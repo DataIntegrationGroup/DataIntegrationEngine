@@ -16,24 +16,25 @@
 from backend.connectors.ampapi.source import AMPAPISiteSource
 from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource
 from backend.connectors.usgs.source import USGSSiteSource
-from backend.persister import CSVPersister
+from backend.persister import CSVPersister, GeoJSONPersister
 
 
 def unify():
     print('unifying')
 
     persister = CSVPersister()
+    persister = GeoJSONPersister()
 
-    s = AMPAPISiteSource()
-    persister.load(s.read())
+    # s = AMPAPISiteSource()
+    # persister.load(s.read())
 
-    isc = ISCSevenRiversSiteSource()
-    persister.load(isc.read())
+    # isc = ISCSevenRiversSiteSource()
+    # persister.load(isc.read())
 
-    nwis = USGSSiteSource()
-    persister.load(nwis.read())
+    # nwis = USGSSiteSource()
+    # persister.load(nwis.read())
 
-    outpath = 'output.csv'
+    outpath = 'output'
     persister.save(outpath)
 
 
