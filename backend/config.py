@@ -13,32 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import click
 
-from backend.config import Config
-from frontend.unifier import unify
-
-
-@click.group()
-def cli():
-    pass
-
-@cli.command()
-@click.option(
-    "--bbox",
-    default="",
-    help="Bounding box in the form 'minx,miny,maxx,maxy'",
-)
-def get_locations(bbox):
-    """
-    Get locations
-    """
-    click.echo(f"Getting locations for bounding box {bbox}")
-
-    config = Config()
-    config.bbox = bbox
-
-    unify(config)
-
+class Config:
+    bbox = None
+    output_path = 'output'
 
 # ============= EOF =============================================

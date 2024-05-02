@@ -19,23 +19,22 @@ from backend.connectors.usgs.source import USGSSiteSource
 from backend.persister import CSVPersister, GeoJSONPersister
 
 
-def unify():
+def unify(config=None):
     print('unifying')
 
     persister = CSVPersister()
     persister = GeoJSONPersister()
 
     # s = AMPAPISiteSource()
-    # persister.load(s.read())
+    # persister.load(s.read(config))
 
     # isc = ISCSevenRiversSiteSource()
-    # persister.load(isc.read())
+    # persister.load(isc.read(config))
 
     # nwis = USGSSiteSource()
-    # persister.load(nwis.read())
+    # persister.load(nwis.read(config))
 
-    outpath = 'output'
-    persister.save(outpath)
+    persister.save(config.output_path)
 
 
 if __name__ == '__main__':
