@@ -15,21 +15,24 @@
 # ===============================================================================
 import httpx
 
-from backend.connectors.isc_seven_rivers.transformer import ISCSevenRiversSiteTransformer
+from backend.connectors.isc_seven_rivers.transformer import (
+    ISCSevenRiversSiteTransformer,
+)
 from backend.source import BaseSource
 
 
 class ISCSevenRiversSource(BaseSource):
     def _make_url(self, endpoint):
-        return f'https://nmisc-wf.gladata.com/api/{endpoint}'
+        return f"https://nmisc-wf.gladata.com/api/{endpoint}"
 
 
 class ISCSevenRiversSiteSource(ISCSevenRiversSource):
     transformer_klass = ISCSevenRiversSiteTransformer
 
     def get_records(self):
-        resp = httpx.get(self._make_url('getMonitoringPoints.ashx'))
-        for record in resp.json()['data']:
+        resp = httpx.get(self._make_url("getMonitoringPoints.ashx"))
+        for record in resp.json()["data"]:
             yield record
+
 
 # ============= EOF =============================================

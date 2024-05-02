@@ -19,19 +19,21 @@ from backend.transformer import BaseTransformer
 
 class AMPAPISiteTransformer(BaseTransformer):
     def transform(self, record):
-        props = record['properties']
+        props = record["properties"]
         rec = {
-            'source': 'AMPAPI',
-            'id': props['point_id'],
-            'name': props['point_id'],
-            'latitude': record['geometry']['coordinates'][1],
-            'longitude': record['geometry']['coordinates'][0],
-            'elevation': record['geometry']['coordinates'][2]*3.28084,
-            'horizontal_datum': props['lonlat_datum'],
-            'vertical_datum': props['altitude_datum'],
-            'usgs_site_id': props['site_id'],
-            'alternate_site_id': props['alternate_site_id'],
-            'formation': props['formation'],
+            "source": "AMPAPI",
+            "id": props["point_id"],
+            "name": props["point_id"],
+            "latitude": record["geometry"]["coordinates"][1],
+            "longitude": record["geometry"]["coordinates"][0],
+            "elevation": record["geometry"]["coordinates"][2] * 3.28084,
+            "horizontal_datum": props["lonlat_datum"],
+            "vertical_datum": props["altitude_datum"],
+            "usgs_site_id": props["site_id"],
+            "alternate_site_id": props["alternate_site_id"],
+            "formation": props["formation"],
         }
         return SiteRecord(rec)
+
+
 # ============= EOF =============================================

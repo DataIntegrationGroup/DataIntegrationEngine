@@ -14,37 +14,42 @@
 # limitations under the License.
 # ===============================================================================
 
+
 class BaseRecord:
     def to_csv(self):
         raise NotImplementedError
 
 
 class SiteRecord(BaseRecord):
-    keys = ('source',
-            'id',
-            'name',
-            'latitude',
-            'longitude',
-            'elevation',
-            'elevation_units',
-            'horizontal_datum',
-            'vertical_datum',
-            'usgs_site_id',
-            'alternate_site_id',
-            'formation')
+    keys = (
+        "source",
+        "id",
+        "name",
+        "latitude",
+        "longitude",
+        "elevation",
+        "elevation_units",
+        "horizontal_datum",
+        "vertical_datum",
+        "usgs_site_id",
+        "alternate_site_id",
+        "formation",
+    )
 
-    defaults = {'source': None,
-                'id': None,
-                'name': '',
-                'latitude': None,
-                'longitude': None,
-                'elevation': None,
-                'elevation_units': 'feet',
-                'horizontal_datum': '',
-                'vertical_datum': '',
-                'usgs_site_id': '',
-                'alternate_site_id': '',
-                'formation': ''}
+    defaults = {
+        "source": None,
+        "id": None,
+        "name": "",
+        "latitude": None,
+        "longitude": None,
+        "elevation": None,
+        "elevation_units": "feet",
+        "horizontal_datum": "",
+        "vertical_datum": "",
+        "usgs_site_id": "",
+        "alternate_site_id": "",
+        "formation": "",
+    }
 
     def __init__(self, payload):
         self._payload = payload
@@ -53,7 +58,7 @@ class SiteRecord(BaseRecord):
 
         def get(attr):
             v = self._payload.get(attr)
-            if attr == 'elevation' and v is not None:
+            if attr == "elevation" and v is not None:
                 v = round(v, 2)
 
             if v is None:
@@ -61,7 +66,6 @@ class SiteRecord(BaseRecord):
             return v
 
         return [get(k) for k in self.keys]
-
 
 
 # ============= EOF =============================================

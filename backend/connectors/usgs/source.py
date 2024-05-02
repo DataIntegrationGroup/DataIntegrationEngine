@@ -23,8 +23,10 @@ class USGSSiteSource(BaseSource):
     transformer_klass = USGSSiteTransformer
 
     def get_records(self):
-        resp = httpx.get('https://waterservices.usgs.gov/nwis/site/?format=rdb&siteOutput=expanded&siteType=GW&stateCd=NM')
-        for line in resp.text.split('\n'):
+        resp = httpx.get(
+            "https://waterservices.usgs.gov/nwis/site/?format=rdb&siteOutput=expanded&siteType=GW&stateCd=NM"
+        )
+        for line in resp.text.split("\n"):
             if line.startswith("#"):
                 continue
             elif line.startswith("agency_cd"):
@@ -37,5 +39,6 @@ class USGSSiteSource(BaseSource):
 
             vals = [v.strip() for v in line.split("\t")]
             yield dict(zip(header, vals))
+
 
 # ============= EOF =============================================

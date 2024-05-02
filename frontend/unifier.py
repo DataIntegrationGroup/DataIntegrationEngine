@@ -20,7 +20,7 @@ from backend.persister import CSVPersister, GeoJSONPersister
 
 
 def unify(config=None):
-    print('unifying')
+    print("unifying")
 
     persister = CSVPersister()
     persister = GeoJSONPersister()
@@ -37,7 +37,7 @@ def unify(config=None):
     persister.save(config.output_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unify()
 
 # ============= EOF =============================================

@@ -23,12 +23,12 @@ class AMPAPISiteSource(BaseSource):
     transformer_klass = AMPAPISiteTransformer
 
     def get_records(self):
-        resp = httpx.get(self._make_url('locations'))
-        for site in resp.json()['features']:
+        resp = httpx.get(self._make_url("locations"))
+        for site in resp.json()["features"]:
             yield site
 
     def _make_url(self, endpoint):
-        return f'https://waterdata.nmt.edu/{endpoint}'
+        return f"https://waterdata.nmt.edu/{endpoint}"
 
 
 # ============= EOF =============================================

@@ -19,22 +19,24 @@ from backend.transformer import BaseTransformer
 
 class USGSSiteTransformer(BaseTransformer):
     def transform(self, record):
-        elevation = record['alt_va']
+        elevation = record["alt_va"]
         try:
             elevation = float(elevation)
         except (ValueError, TypeError):
             elevation = None
 
         rec = {
-            'source': 'USGS-NWIS',
-            'id': record['site_no'],
-            'name': record['station_nm'],
-            'latitude': float(record['dec_lat_va']),
-            'longitude': float(record['dec_long_va']),
-            'elevation': elevation,
-            'horizontal_datum': record['coord_datum_cd'],
-            'vertical_datum': record['alt_datum_cd'],
-            'formation': record['nat_aqfr_cd'],
+            "source": "USGS-NWIS",
+            "id": record["site_no"],
+            "name": record["station_nm"],
+            "latitude": float(record["dec_lat_va"]),
+            "longitude": float(record["dec_long_va"]),
+            "elevation": elevation,
+            "horizontal_datum": record["coord_datum_cd"],
+            "vertical_datum": record["alt_datum_cd"],
+            "formation": record["nat_aqfr_cd"],
         }
         return SiteRecord(rec)
+
+
 # ============= EOF =============================================

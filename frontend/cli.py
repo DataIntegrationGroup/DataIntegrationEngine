@@ -23,6 +23,7 @@ from frontend.unifier import unify
 def cli():
     pass
 
+
 @cli.command()
 @click.option(
     "--bbox",

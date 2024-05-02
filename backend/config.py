@@ -14,8 +14,10 @@
 # limitations under the License.
 # ===============================================================================
 
+
 class Config:
     bbox = None
-    output_path = 'output'
+    output_path = "output"
+
 
 # ============= EOF =============================================

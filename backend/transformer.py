@@ -14,7 +14,10 @@
 # limitations under the License.
 # ===============================================================================
 
+
 class BaseTransformer:
     def transform(self, record):
         raise NotImplementedError
+
+
 # ============= EOF =============================================

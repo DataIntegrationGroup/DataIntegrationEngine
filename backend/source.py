@@ -24,12 +24,13 @@ class BaseSource:
         self.transformer = self.transformer_klass()
 
     def read(self):
-        print(f'{self.__class__.__name__} Gathering records')
+        print(f"{self.__class__.__name__} Gathering records")
         for record in self.get_records():
             record = self.transformer.transform(record)
             yield record
 
     def get_records(self):
         raise NotImplementedError
+
 
 # ============= EOF =============================================

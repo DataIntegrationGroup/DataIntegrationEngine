@@ -20,13 +20,15 @@ from backend.transformer import BaseTransformer
 class ISCSevenRiversSiteTransformer(BaseTransformer):
     def transform(self, record):
         rec = {
-            'source': 'ISCSevenRivers',
-            'id': record['id'],
-            'name': record['name'],
-            'latitude': record['latitude'],
-            'longitude': record['longitude'],
-            'elevation_feet': record['groundSurfaceElevationFeet'],
+            "source": "ISCSevenRivers",
+            "id": record["id"],
+            "name": record["name"],
+            "latitude": record["latitude"],
+            "longitude": record["longitude"],
+            "elevation_feet": record["groundSurfaceElevationFeet"],
         }
 
         return SiteRecord(rec)
+
+
 # ============= EOF =============================================
