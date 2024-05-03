@@ -38,15 +38,17 @@ class BaseRecord:
     def __getattr__(self, k):
         return self._payload.get(k)
 
+
 class WaterLevelRecord(BaseRecord):
     keys = (
         "source",
         "id",
         "depth_to_water_below_ground_surface_ft",
         "date_measured",
-        "time_measured"
+        "time_measured",
     )
-    defaults ={}
+    defaults = {}
+
 
 class SiteRecord(BaseRecord):
     keys = (
@@ -78,7 +80,6 @@ class SiteRecord(BaseRecord):
         "alternate_site_id": "",
         "formation": "",
     }
-
 
 
 # ============= EOF =============================================

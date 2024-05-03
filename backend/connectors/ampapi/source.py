@@ -15,7 +15,10 @@
 # ===============================================================================
 import httpx
 
-from backend.connectors.ampapi.transformer import AMPAPISiteTransformer, AMPAPIWaterLevelTransformer
+from backend.connectors.ampapi.transformer import (
+    AMPAPISiteTransformer,
+    AMPAPIWaterLevelTransformer,
+)
 from backend.source import BaseSource
 
 
@@ -56,9 +59,11 @@ class AMPAPIWaterLevelSource(BaseSource):
         self.log(f"nrecords={n}")
 
     def get_records(self, parent_record, config):
-        params = {'pointid': parent_record.id}
+        params = {"pointid": parent_record.id}
         # just use manual waterlevels temporarily
         resp = httpx.get(_make_url("waterlevels/manual"), params=params)
         for wl in resp.json():
             yield wl
+
+
 # ============= EOF =============================================

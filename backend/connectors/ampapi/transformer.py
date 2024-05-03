@@ -40,16 +40,18 @@ class AMPAPISiteTransformer(BaseTransformer):
 
 class AMPAPIWaterLevelTransformer(BaseTransformer):
     def transform(self, record, parent_record, config):
-        dt = record['DateMeasured']
-        tt = record['TimeMeasured']
+        dt = record["DateMeasured"]
+        tt = record["TimeMeasured"]
 
         # ts = datetime.strptime(f'{dt} {tt}', '%Y-%m-%d %H:%M:%S')
         rec = {
-            'source': 'AMPAPI',
-            'id': parent_record.id,
-            'depth_to_water_below_ground_surface_ft': record['DepthToWaterBGS'],
-            'date_measured': dt,
-            'time_measured': tt
+            "source": "AMPAPI",
+            "id": parent_record.id,
+            "depth_to_water_below_ground_surface_ft": record["DepthToWaterBGS"],
+            "date_measured": dt,
+            "time_measured": tt,
         }
         return WaterLevelRecord(rec)
+
+
 # ============= EOF =============================================

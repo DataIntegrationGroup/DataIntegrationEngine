@@ -71,7 +71,6 @@ def unify_waterlevels(config):
 
     persister.save(config.output_path)
 
-
     # if config.use_source_isc_seven_rivers:
     #     isc = ISCSevenRiversSiteSource()
     #     persister.load(isc.read(config))
@@ -79,7 +78,6 @@ def unify_waterlevels(config):
     # if config.use_source_nwis:
     #     nwis = USGSSiteSource()
     #     persister.load(nwis.read(config))
-
 
 
 if __name__ == "__main__":

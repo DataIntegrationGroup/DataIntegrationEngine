@@ -20,9 +20,9 @@ from backend.connectors.isc_seven_rivers.transformer import (
 )
 from backend.source import BaseSource
 
+
 def _make_url(endpoint):
     return f"https://nmisc-wf.gladata.com/api/{endpoint}"
-
 
 
 class ISCSevenRiversSiteSource(BaseSource):
@@ -37,5 +37,6 @@ class ISCSevenRiversSiteSource(BaseSource):
 class ISCSevenRiversWaterLevelSource(BaseSource):
     def get_records(self, parent_record, config):
         pass
+
 
 # ============= EOF =============================================
