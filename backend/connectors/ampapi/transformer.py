@@ -34,7 +34,7 @@ class AMPAPISiteTransformer(BaseTransformer):
             "usgs_site_id": props["site_id"],
             "alternate_site_id": props["alternate_site_id"],
             "formation": props["formation"],
-            "well_depth_ft_below_ground_surface": props["well_depth"]['value'],
+            "well_depth_ft_below_ground_surface": props["well_depth"]["value"],
         }
         return SiteRecord(rec)
 
