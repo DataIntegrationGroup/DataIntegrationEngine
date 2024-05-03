@@ -28,6 +28,11 @@ class BaseSource:
     def log(self, msg):
         click.secho(f"{self.__class__.__name__:30s} {msg}", fg="yellow")
 
+    def get_records(self, *args, **kw):
+        raise NotImplementedError(f"get_records not implemented by {self.__class__.__name__}")
+
+
+class BaseSiteSource(BaseSource):
     def read(self, config, *args, **kw):
         self.log("Gathering records")
         n = 0
@@ -39,8 +44,16 @@ class BaseSource:
 
         self.log(f"nrecords={n}")
 
-    def get_records(self, *args, **kw):
-        raise NotImplementedError
 
+class BaseWaterLevelsSource(BaseSource):
+    def read(self, parent_record, config):
+        self.log(f"Gathering records for record {parent_record.id}")
+        n = 0
+        for record in self.get_records(parent_record, config):
+            record = self.transformer.transform(record, parent_record, config)
+            if record:
+                n += 1
+                yield record
 
+        self.log(f"nrecords={n}")
 # ============= EOF =============================================

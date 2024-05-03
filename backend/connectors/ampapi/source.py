@@ -19,14 +19,14 @@ from backend.connectors.ampapi.transformer import (
     AMPAPISiteTransformer,
     AMPAPIWaterLevelTransformer,
 )
-from backend.source import BaseSource
+from backend.source import BaseSource, BaseWaterLevelsSource, BaseSiteSource
 
 
 def _make_url(endpoint):
     return f"https://waterdata.nmt.edu/{endpoint}"
 
 
-class AMPAPISiteSource(BaseSource):
+class AMPAPISiteSource(BaseSiteSource):
     transformer_klass = AMPAPISiteTransformer
 
     def get_records(self, config):
@@ -44,19 +44,8 @@ class AMPAPISiteSource(BaseSource):
             yield site
 
 
-class AMPAPIWaterLevelSource(BaseSource):
+class AMPAPIWaterLevelSource(BaseWaterLevelsSource):
     transformer_klass = AMPAPIWaterLevelTransformer
-
-    def read(self, parent_record, config):
-        self.log(f"Gathering records for record {parent_record.id}")
-        n = 0
-        for record in self.get_records(parent_record, config):
-            record = self.transformer.transform(record, parent_record, config)
-            if record:
-                n += 1
-                yield record
-
-        self.log(f"nrecords={n}")
 
     def get_records(self, parent_record, config):
         params = {"pointid": parent_record.id}

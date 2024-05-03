@@ -13,32 +13,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import shapely.wkt
-from shapely import Point
+import pprint
 
-from backend.record import SiteRecord
+from backend.record import SiteRecord, WaterLevelRecord
 from backend.transformer import BaseTransformer
 
 
-class ISCSevenRiversSiteTransformer(BaseTransformer):
+class OSERoswellSiteTransformer(BaseTransformer):
     def transform(self, record, config):
-        lat = record["latitude"]
-        lng = record["longitude"]
-
+        # pprint.pprint(record)
+        lat = record["DD_lat"]
+        lng = record["DD_lon"]
         if not self.contained(lng, lat, config):
             return
 
         rec = {
-            "source": "ISCSevenRivers",
-            "id": record["id"],
-            "name": record["name"],
+            "source": f"CKAN/OSERoswell",
+            "id": record["Site_ID"],
+            "name": record["Location"],
             "latitude": lat,
             "longitude": lng,
-            "elevation": record["groundSurfaceElevationFeet"],
-            "elevation_unit": "ft",
-        }
+            "horizontal_datum": "WGS84",
+            # "elevation": record['VerticalMeasure/MeasureValue'],
+            # "elevation_unit": record['VerticalMeasure/MeasureUnitCode'],
+            # "horizontal_datum": record["HorizontalCoordinateReferenceSystemDatumName"],
+            # "vertical_datum": record["VerticalCoordinateReferenceSystemDatumName"],
+            # 'aquifer': record['AquiferName'],
+            # 'well_depth': record["WellDepthMeasure/MeasureValue"],
+            # 'well_depth_unit': record["WellDepthMeasure/MeasureUnitCode"],
 
+        }
         return SiteRecord(rec)
 
 
+class OSERoswellWaterLevelTransformer(BaseTransformer):
+    def transform(self, record, parent_record, config):
+        rec = {}
+        return WaterLevelRecord(rec)
 # ============= EOF =============================================
