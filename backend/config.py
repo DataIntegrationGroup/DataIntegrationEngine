@@ -20,13 +20,19 @@ class Config:
     output_path = "output"
     use_csv = True
     use_geojson = False
+
     use_source_ampapi = True
+    use_source_wqp = True
 
     # use_source_isc_seven_rivers = True
     # use_source_nwis = True
 
     use_source_isc_seven_rivers = False
     use_source_nwis = False
+
+    output_horizontal_datum = 'WGS84'
+    output_elevation_unit = 'ft'
+    output_well_depth_unit = 'ft'
 
     def bounding_points(self):
         p1, p2 = self.bbox.split(",")

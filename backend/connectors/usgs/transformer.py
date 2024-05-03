@@ -25,18 +25,21 @@ class USGSSiteTransformer(BaseTransformer):
         except (ValueError, TypeError):
             elevation = None
 
+        lng = float(record["dec_long_va"])
+        lat = float(record["dec_lat_va"])
+        datum = record["coord_datum_cd"]
+
         rec = {
             "source": "USGS-NWIS",
             "id": record["site_no"],
             "name": record["station_nm"],
-            "latitude": float(record["dec_lat_va"]),
-            "longitude": float(record["dec_long_va"]),
+            "latitude": lat,
+            "longitude": lng,
             "elevation": elevation,
-            "horizontal_datum": record["coord_datum_cd"],
+            "horizontal_datum": datum,
             "vertical_datum": record["alt_datum_cd"],
-            "formation": record["nat_aqfr_cd"],
+            "aquifer": record["nat_aqfr_cd"],
         }
         return SiteRecord(rec)
-
 
 # ============= EOF =============================================

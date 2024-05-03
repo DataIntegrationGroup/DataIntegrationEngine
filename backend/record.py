@@ -35,6 +35,9 @@ class BaseRecord:
 
         return [get(k) for k in self.keys]
 
+    def update(self, **kw):
+        self._payload.update(kw)
+
     def __getattr__(self, k):
         return self._payload.get(k)
 
@@ -52,6 +55,18 @@ class WaterLevelRecord(BaseRecord):
     defaults = {}
 
 
+class AnalyteRecord(BaseRecord):
+    keys = (
+        "source",
+        "id",
+        "date_measured",
+        "time_measured",
+        "analyte",
+        "result",
+        "units"
+    )
+
+
 class SiteRecord(BaseRecord):
     keys = (
         "source",
@@ -66,6 +81,7 @@ class SiteRecord(BaseRecord):
         "usgs_site_id",
         "alternate_site_id",
         "formation",
+        "aquifer",
     )
 
     defaults = {
@@ -81,7 +97,7 @@ class SiteRecord(BaseRecord):
         "usgs_site_id": "",
         "alternate_site_id": "",
         "formation": "",
+        "aquifer": "",
     }
-
 
 # ============= EOF =============================================

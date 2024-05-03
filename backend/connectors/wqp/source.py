@@ -13,34 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import click
+import httpx
 
-from backend.persister import BasePersister, CSVPersister
-from backend.transformer import BaseTransformer
+from backend.connectors.wqp.transformer import WQPSiteTransformer
+from backend.source import BaseSource
 
 
-class BaseSource:
-    transformer_klass = BaseTransformer
+class WQPSiteSource(BaseSource):
+    transformer_klass = WQPSiteTransformer
 
-    def __init__(self):
-        self.transformer = self.transformer_klass()
+    def get_records(self, config):
+        params = {'mimeType': 'tsv', 'siteType': 'Well'}
+        if config.bbox:
+            bbox = config.bounding_points()
+            params["bBox"] = ",".join([str(b) for b in bbox])
 
-    def log(self, msg):
-        click.secho(f"{self.__class__.__name__:30s} {msg}", fg="yellow")
-
-    def read(self, config, *args, **kw):
-        self.log("Gathering records")
-        n = 0
-        for record in self.get_records(config):
-            record = self.transformer.do_transform(record, config)
-            if record:
-                n += 1
-                yield record
-
-        self.log(f"nrecords={n}")
-
-    def get_records(self, *args, **kw):
-        raise NotImplementedError
-
+        resp = httpx.get('https://www.waterqualitydata.us/data/Station/search?', params=params)
+        result = resp.text
+        rows = result.split('\n')
+        header = rows[0].split('\t')
+        for row in rows[1:]:
+            vals = row.split('\t')
+            yield dict(zip(header, vals))
 
 # ============= EOF =============================================

@@ -28,13 +28,15 @@ class AMPAPISiteTransformer(BaseTransformer):
             "name": props["point_id"],
             "latitude": record["geometry"]["coordinates"][1],
             "longitude": record["geometry"]["coordinates"][0],
-            "elevation": record["geometry"]["coordinates"][2] * 3.28084,
+            "elevation": record["geometry"]["coordinates"][2],
+            "elevation_unit": "m",
             "horizontal_datum": props["lonlat_datum"],
             "vertical_datum": props["altitude_datum"],
             "usgs_site_id": props["site_id"],
             "alternate_site_id": props["alternate_site_id"],
             "formation": props["formation"],
-            "well_depth_ft_below_ground_surface": props["well_depth"]["value"],
+            "well_depth": props["well_depth"]["value"],
+            "well_depth_unit": props["well_depth"]["unit"],
         }
         return SiteRecord(rec)
 

@@ -16,7 +16,7 @@
 import click
 
 from backend.config import Config
-from frontend.unifier import unify_sites, unify_waterlevels
+from frontend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 
 @click.group()
@@ -62,4 +62,15 @@ def waterlevels(bbox):
     unify_waterlevels(config)
 
 
+@cli.command()
+@click.option(
+    "--bbox",
+    default="",
+    help="Bounding box in the form 'x1 y1, x2 y2'",
+)
+def analytes(bbox):
+    click.echo("Getting analytes")
+    config = Config()
+    config.bbox = bbox
+    unify_analytes(config)
 # ============= EOF =============================================

@@ -20,8 +20,9 @@ from backend.connectors.isc_seven_rivers.source import (
     ISCSevenRiversWaterLevelSource,
 )
 from backend.connectors.usgs.source import USGSSiteSource
+from backend.connectors.wqp.source import WQPSiteSource
 from backend.persister import CSVPersister, GeoJSONPersister
-from backend.record import SiteRecord, WaterLevelRecord
+from backend.record import SiteRecord, WaterLevelRecord, AnalyteRecord
 
 
 def perister_factory(config, record_klass):
@@ -34,46 +35,72 @@ def perister_factory(config, record_klass):
     return persister_klass(record_klass)
 
 
+def unify_wrapper(record_klass, config, func):
+    persister = perister_factory(config, record_klass)
+    func(config, persister)
+    persister.save(config.output_path)
+
+
+def unify_analytes(config):
+    def func(config, persister):
+        if config.use_source_wqp:
+            wqp = WQPSiteSource()
+            persister.load(wqp.read(config))
+
+        # if config.use_source_ampapi:
+        #     s = AMPAPISiteSource()
+        #     persister.load(s.read(config))
+        #
+        # if config.use_source_isc_seven_rivers:
+        #     isc = ISCSevenRiversSiteSource()
+        #     persister.load(isc.read(config))
+        #
+        # if config.use_source_nwis:
+        #     nwis = USGSSiteSource()
+        #     persister.load(nwis.read(config))
+
+    unify_wrapper(AnalyteRecord, config, func)
+
+
 def unify_sites(config):
     print("unifying")
-    persister = perister_factory(config, SiteRecord)
 
-    if config.use_source_ampapi:
-        s = AMPAPISiteSource()
-        persister.load(s.read(config))
+    def func(config, persister):
+        if config.use_source_ampapi:
+            s = AMPAPISiteSource()
+            persister.load(s.read(config))
 
-    if config.use_source_isc_seven_rivers:
-        isc = ISCSevenRiversSiteSource()
-        persister.load(isc.read(config))
+        if config.use_source_isc_seven_rivers:
+            isc = ISCSevenRiversSiteSource()
+            persister.load(isc.read(config))
 
-    if config.use_source_nwis:
-        nwis = USGSSiteSource()
-        persister.load(nwis.read(config))
+        if config.use_source_nwis:
+            nwis = USGSSiteSource()
+            persister.load(nwis.read(config))
 
-    persister.save(config.output_path)
+    unify_wrapper(SiteRecord, config, func)
 
 
 def unify_waterlevels(config):
-    persister = perister_factory(config, WaterLevelRecord)
+    def func(config, persister):
+        if config.use_source_ampapi:
+            s = AMPAPISiteSource()
+            ss = AMPAPIWaterLevelSource()
+            for record in s.read(config):
+                for wl in ss.read(record, config):
+                    persister.records.append(wl)
 
-    if config.use_source_ampapi:
-        s = AMPAPISiteSource()
-        ss = AMPAPIWaterLevelSource()
-        for record in s.read(config):
-            for wl in ss.read(record, config):
-                persister.records.append(wl)
+        if config.use_source_isc_seven_rivers:
+            s = ISCSevenRiversSiteSource()
+            ss = ISCSevenRiversWaterLevelSource()
+            for record in s.read(config):
+                for wl in ss.read(record, config):
+                    persister.records.append(wl)
 
-    if config.use_source_isc_seven_rivers:
-        s = ISCSevenRiversSiteSource()
-        ss = ISCSevenRiversWaterLevelSource()
-        for record in s.read(config):
-            for wl in ss.read(record, config):
-                persister.records.append(wl)
+        if config.use_source_nwis:
+            pass
 
-    if config.use_source_nwis:
-        pass
-
-    persister.save(config.output_path)
+    unify_wrapper(WaterLevelRecord, config, func)
 
     # if config.use_source_isc_seven_rivers:
     #     isc = ISCSevenRiversSiteSource()
