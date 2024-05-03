@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from backend.config import Config
 from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
-from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource
+from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource
 from backend.connectors.usgs.source import USGSSiteSource
 from backend.persister import CSVPersister, GeoJSONPersister
 from backend.record import SiteRecord, WaterLevelRecord
@@ -81,6 +82,8 @@ def unify_waterlevels(config):
 
 
 if __name__ == "__main__":
-    unify_sites()
+    cfg = Config()
+    cfg.bbox = "-106.5 32.5, -106.0 33.0"
+    unify_sites(cfg)
 
 # ============= EOF =============================================

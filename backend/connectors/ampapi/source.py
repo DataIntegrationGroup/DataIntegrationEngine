@@ -33,11 +33,11 @@ class AMPAPISiteSource(BaseSource):
         params = {}
         if config.bbox:
             # need to update api to use lon/lat pairs
-            # params["wkt"] = config.bounding_wkt()
+            params["wkt"] = config.bounding_wkt()
 
-            x1, y1, x2, y2 = config.bounding_points()
-            w = f"POLYGON(({y1} {x1},{y1} {x2},{y2} {x2},{y2} {x1},{y1} {x1}))"
-            params["wkt"] = w
+            # x1, y1, x2, y2 = config.bounding_points()
+            # w = f"POLYGON(({y1} {x1},{y1} {x2},{y2} {x2},{y2} {x1},{y1} {x1}))"
+            # params["wkt"] = w
 
         resp = httpx.get(_make_url("locations"), params=params)
         for site in resp.json()["features"]:
