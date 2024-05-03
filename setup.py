@@ -20,8 +20,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="pyweaver",
-    version="0.0.1",
+    name="nmuwd",
+    version="0.0.1c",
     author="Jake Ross",
     description="New Mexico Water Data Integration Engine",
     long_description=long_description,
