@@ -43,6 +43,7 @@ def locations(bbox):
 
     unify_sites(config)
 
+
 @cli.command()
 @click.option(
     "--bbox",
@@ -57,5 +58,6 @@ def waterlevels(bbox):
     config.bbox = bbox
 
     unify_waterlevels(config)
+
 
 # ============= EOF =============================================

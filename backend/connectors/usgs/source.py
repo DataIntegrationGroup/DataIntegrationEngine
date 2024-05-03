@@ -23,20 +23,16 @@ class USGSSiteSource(BaseSource):
     transformer_klass = USGSSiteTransformer
 
     def get_records(self, config):
-        params = {'format': 'rdb',
-                  'siteOutput': 'expanded',
-                  'siteType': 'GW'}
+        params = {"format": "rdb", "siteOutput": "expanded", "siteType": "GW"}
 
         if config.bbox:
             bbox = config.bounding_points()
-            params['bBox'] = ','.join([str(b) for b in bbox])
+            params["bBox"] = ",".join([str(b) for b in bbox])
         else:
-            params['stateCd'] = 'NM'
+            params["stateCd"] = "NM"
 
         resp = httpx.get(
-            "https://waterservices.usgs.gov/nwis/site/",
-            params=params,
-            timeout=10
+            "https://waterservices.usgs.gov/nwis/site/", params=params, timeout=10
         )
         header = None
         for line in resp.text.split("\n"):

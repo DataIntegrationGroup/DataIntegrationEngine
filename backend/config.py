@@ -29,9 +29,9 @@ class Config:
         x1, y1 = [float(a) for a in p1.strip().split(" ")]
         x2, y2 = [float(a) for a in p2.strip().split(" ")]
 
-        if x1>x2:
-            x1,x2 = x2, x1
-        if y1>y2:
+        if x1 > x2:
+            x1, x2 = x2, x1
+        if y1 > y2:
             y1, y2 = y2, y1
 
         return x1, y1, x2, y2
@@ -39,5 +39,6 @@ class Config:
     def bounding_wkt(self):
         x1, y1, x2, y2 = self.bounding_points()
         return f"POLYGON(({x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}))"
+
 
 # ============= EOF =============================================

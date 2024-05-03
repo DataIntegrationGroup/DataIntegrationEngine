@@ -24,9 +24,10 @@ import geopandas as gpd
 
 from backend.record import SiteRecord
 
+
 class Loggable:
-    def log(self, msg, fg='yellow'):
-        click.secho(f'{self.__class__.__name__:30s}{msg}', fg=fg)
+    def log(self, msg, fg="yellow"):
+        click.secho(f"{self.__class__.__name__:30s}{msg}", fg=fg)
 
 
 class BasePersister(Loggable):
@@ -40,7 +41,7 @@ class BasePersister(Loggable):
 
     def save(self, path):
         path = self.add_extension(path)
-        self.log(f'saving to {path}')
+        self.log(f"saving to {path}")
         self._save(path)
 
     def add_extension(self, path):
