@@ -34,6 +34,7 @@ class AMPAPISiteTransformer(BaseTransformer):
             "usgs_site_id": props["site_id"],
             "alternate_site_id": props["alternate_site_id"],
             "formation": props["formation"],
+            "well_depth_ft_below_ground_surface": props["well_depth"]['value'],
         }
         return SiteRecord(rec)
 
@@ -44,10 +45,16 @@ class AMPAPIWaterLevelTransformer(BaseTransformer):
         tt = record["TimeMeasured"]
 
         # ts = datetime.strptime(f'{dt} {tt}', '%Y-%m-%d %H:%M:%S')
+        elev = parent_record.elevation
+        if elev is not None:
+            elev = round(elev, 2)
+
         rec = {
             "source": "AMPAPI",
             "id": parent_record.id,
-            "depth_to_water_below_ground_surface_ft": record["DepthToWaterBGS"],
+            "surface_elevation_ft": elev,
+            "well_depth_ft_below_ground_surface": parent_record.well_depth_ft_below_ground_surface,
+            "depth_to_water_ft_below_ground_surface": record["DepthToWaterBGS"],
             "date_measured": dt,
             "time_measured": tt,
         }

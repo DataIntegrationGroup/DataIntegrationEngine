@@ -87,6 +87,6 @@ def unify_waterlevels(config):
 if __name__ == "__main__":
     cfg = Config()
     cfg.bbox = "-106.5 32.5, -106.0 33.0"
-    unify_sites(cfg)
+    unify_waterlevels(cfg)
 
 # ============= EOF =============================================

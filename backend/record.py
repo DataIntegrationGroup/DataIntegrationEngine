@@ -43,7 +43,9 @@ class WaterLevelRecord(BaseRecord):
     keys = (
         "source",
         "id",
-        "depth_to_water_below_ground_surface_ft",
+        "surface_elevation_ft",
+        "well_depth_ft_below_ground_surface",
+        "depth_to_water_ft_below_ground_surface",
         "date_measured",
         "time_measured",
     )
