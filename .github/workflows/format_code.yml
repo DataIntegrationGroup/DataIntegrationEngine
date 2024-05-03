@@ -1,9 +1,9 @@
 name: Format code
 on:
   pull_request:
-    branches: [main,  ]
+    branches: [feature/jir,  ]
   push:
-    branches: [main,]
+    branches: [feature/jir,]
 jobs:
   format:
     runs-on: ubuntu-latest

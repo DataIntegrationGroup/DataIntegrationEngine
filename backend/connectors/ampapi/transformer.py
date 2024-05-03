@@ -18,7 +18,7 @@ from backend.transformer import BaseTransformer
 
 
 class AMPAPISiteTransformer(BaseTransformer):
-    def transform(self, record):
+    def transform(self, record, config):
         props = record["properties"]
         rec = {
             "source": "AMPAPI",

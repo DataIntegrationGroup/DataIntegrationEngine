@@ -18,7 +18,7 @@ import os
 
 import pandas as pd
 import geopandas as gpd
-from frost_sta_client import AuthHandler
+# from frost_sta_client import AuthHandler
 
 from backend.record import SiteRecord
 
@@ -48,6 +48,7 @@ class CSVPersister(BasePersister):
     extension = "csv"
 
     def save(self, path):
+        path = self.add_extension(path)
         with open(path, "w") as f:
             writer = csv.writer(f)
             writer.writerow(SiteRecord.keys)
@@ -68,19 +69,19 @@ class GeoJSONPersister(BasePersister):
         gdf.to_file(path, driver="GeoJSON")
 
 
-class ST2Persister(BasePersister):
-    extension = "st2"
-
-    def save(self, path):
-        import frost_sta_client as fsc
-
-        service = fsc.SensorThingsService(
-            "https://st.newmexicowaterdata.org/FROST-Server/v1.0",
-            auth_handler=AuthHandler(os.getenv("ST2_USER"), os.getenv("ST2_PASSWORD")),
-        )
-        for record in self.records:
-            for t in service.things().query().filter(name=record["id"]).list():
-                print(t)
+# class ST2Persister(BasePersister):
+#     extension = "st2"
+#
+#     def save(self, path):
+#         import frost_sta_client as fsc
+#
+#         service = fsc.SensorThingsService(
+#             "https://st.newmexicowaterdata.org/FROST-Server/v1.0",
+#             auth_handler=AuthHandler(os.getenv("ST2_USER"), os.getenv("ST2_PASSWORD")),
+#         )
+#         for record in self.records:
+#             for t in service.things().query().filter(name=record["id"]).list():
+#                 print(t)
 
 
 # ============= EOF =============================================

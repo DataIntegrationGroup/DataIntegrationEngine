@@ -28,15 +28,18 @@ def cli():
 @click.option(
     "--bbox",
     default="",
-    help="Bounding box in the form 'minx,miny,maxx,maxy'",
+    help="Bounding box in the form 'x1 y1, x2 y2'",
 )
-def get_locations(bbox):
+def locations(bbox):
     """
     Get locations
     """
+
     click.echo(f"Getting locations for bounding box {bbox}")
 
     config = Config()
+    # bbox = 36.219290 -105.396826, 35.384307 -106.024162
+
     config.bbox = bbox
 
     unify(config)

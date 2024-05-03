@@ -22,14 +22,21 @@ from backend.persister import CSVPersister, GeoJSONPersister
 def unify(config=None):
     print("unifying")
 
-    persister = CSVPersister()
-    persister = GeoJSONPersister()
+    persister_klass = CSVPersister
+    if config.use_csv:
+        persister_klass = CSVPersister
+    elif config.use_geojson:
+        persister_klass = GeoJSONPersister
 
-    # s = AMPAPISiteSource()
-    # persister.load(s.read(config))
+    persister = persister_klass()
 
-    # isc = ISCSevenRiversSiteSource()
-    # persister.load(isc.read(config))
+    if config.use_source_ampapi:
+        s = AMPAPISiteSource()
+        persister.load(s.read(config))
+
+    if config.use_source_isc_seven_rivers:
+        isc = ISCSevenRiversSiteSource()
+        persister.load(isc.read(config))
 
     # nwis = USGSSiteSource()
     # persister.load(nwis.read(config))

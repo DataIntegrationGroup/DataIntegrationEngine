@@ -18,6 +18,23 @@
 class Config:
     bbox = None
     output_path = "output"
+    use_csv = True
+    use_geojson = False
+    use_source_ampapi = True
+    use_source_isc_seven_rivers = True
 
+    def bounding_wkt(self):
+        p1, p2 = self.bbox.split(',')
+        x1,y1 = [float(a) for a in p1.strip().split(' ')]
+        x2,y2 = [float(a) for a in p2.strip().split(' ')]
+
+        pts = [f'{x1} {y1}',
+               f'{x1} {y2}',
+               f'{x2} {y2}',
+               f'{x2} {y1}',
+               f'{x1} {y1}']
+
+        pts = ','.join(pts)
+        return f'POLYGON(({pts}))'
 
 # ============= EOF =============================================

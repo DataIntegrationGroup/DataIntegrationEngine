@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import click
+
 from backend.persister import BasePersister, CSVPersister
 from backend.transformer import BaseTransformer
 
@@ -23,14 +25,21 @@ class BaseSource:
     def __init__(self):
         self.transformer = self.transformer_klass()
 
-    def read(self):
-        print(f"{self.__class__.__name__} Gathering records")
-        for record in self.get_records():
-            record = self.transformer.transform(record)
-            yield record
+    def log(self, msg):
+        click.secho(f"{self.__class__.__name__:30s} {msg}", fg='yellow')
 
-    def get_records(self):
+    def read(self, config):
+        self.log('Gathering records')
+        n = 0
+        for record in self.get_records(config):
+            record = self.transformer.transform(record, config)
+            if record:
+                n += 1
+                yield record
+
+        self.log(f'nrecords={n}')
+
+    def get_records(self, config):
         raise NotImplementedError
-
 
 # ============= EOF =============================================

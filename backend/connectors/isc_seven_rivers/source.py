@@ -29,7 +29,7 @@ class ISCSevenRiversSource(BaseSource):
 class ISCSevenRiversSiteSource(ISCSevenRiversSource):
     transformer_klass = ISCSevenRiversSiteTransformer
 
-    def get_records(self):
+    def get_records(self, config):
         resp = httpx.get(self._make_url("getMonitoringPoints.ashx"))
         for record in resp.json()["data"]:
             yield record

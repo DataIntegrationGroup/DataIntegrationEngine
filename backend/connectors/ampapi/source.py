@@ -22,8 +22,14 @@ from backend.source import BaseSource
 class AMPAPISiteSource(BaseSource):
     transformer_klass = AMPAPISiteTransformer
 
-    def get_records(self):
-        resp = httpx.get(self._make_url("locations"))
+    def get_records(self, config):
+
+        params = {}
+        if config.bbox:
+            params['wkt'] = config.bounding_wkt()
+
+        resp = httpx.get(self._make_url("locations"),
+                         params=params)
         for site in resp.json()["features"]:
             yield site
 

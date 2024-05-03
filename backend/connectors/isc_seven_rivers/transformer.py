@@ -13,22 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import shapely.wkt
+from shapely import Point
+
 from backend.record import SiteRecord
 from backend.transformer import BaseTransformer
 
 
 class ISCSevenRiversSiteTransformer(BaseTransformer):
-    def transform(self, record):
+    _cached_polygon = None
+
+    def transform(self, record, config):
+        lat = record['latitude']
+        lng = record['longitude']
+
+        if config.bbox:
+            if not self._cached_polygon:
+                poly = shapely.wkt.loads(config.bounding_wkt())
+                self._cached_polygon = poly
+            else:
+                poly = self._cached_polygon
+
+            pt = Point(lng, lat)
+            if poly.contains(pt):
+                return
+
         rec = {
             "source": "ISCSevenRivers",
             "id": record["id"],
             "name": record["name"],
-            "latitude": record["latitude"],
-            "longitude": record["longitude"],
+            "latitude": lat,
+            "longitude": lng,
             "elevation_feet": record["groundSurfaceElevationFeet"],
         }
 
         return SiteRecord(rec)
-
 
 # ============= EOF =============================================
