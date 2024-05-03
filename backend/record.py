@@ -19,6 +19,34 @@ class BaseRecord:
     def to_csv(self):
         raise NotImplementedError
 
+    def __init__(self, payload):
+        self._payload = payload
+
+    def to_row(self):
+
+        def get(attr):
+            v = self._payload.get(attr)
+            if attr == "elevation" and v is not None:
+                v = round(v, 2)
+
+            if v is None:
+                v = self.defaults.get(attr)
+            return v
+
+        return [get(k) for k in self.keys]
+
+    def __getattr__(self, k):
+        return self._payload.get(k)
+
+class WaterLevelRecord(BaseRecord):
+    keys = (
+        "source",
+        "id",
+        "depth_to_water_below_ground_surface_ft",
+        "date_measured",
+        "time_measured"
+    )
+    defaults ={}
 
 class SiteRecord(BaseRecord):
     keys = (
@@ -51,21 +79,6 @@ class SiteRecord(BaseRecord):
         "formation": "",
     }
 
-    def __init__(self, payload):
-        self._payload = payload
-
-    def to_row(self):
-
-        def get(attr):
-            v = self._payload.get(attr)
-            if attr == "elevation" and v is not None:
-                v = round(v, 2)
-
-            if v is None:
-                v = self.defaults.get(attr)
-            return v
-
-        return [get(k) for k in self.keys]
 
 
 # ============= EOF =============================================

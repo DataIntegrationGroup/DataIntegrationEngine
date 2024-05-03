@@ -13,22 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.connectors.ampapi.source import AMPAPISiteSource
+from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
 from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource
 from backend.connectors.usgs.source import USGSSiteSource
 from backend.persister import CSVPersister, GeoJSONPersister
+from backend.record import SiteRecord, WaterLevelRecord
 
 
-def unify_sites(config):
-    print("unifying")
-
+def perister_factory(config, record_klass):
     persister_klass = CSVPersister
     if config.use_csv:
         persister_klass = CSVPersister
     elif config.use_geojson:
         persister_klass = GeoJSONPersister
 
-    persister = persister_klass()
+    return persister_klass(record_klass)
+
+
+def unify_sites(config):
+    print("unifying")
+    persister = perister_factory(config, SiteRecord)
 
     if config.use_source_ampapi:
         s = AMPAPISiteSource()
@@ -46,7 +50,36 @@ def unify_sites(config):
 
 
 def unify_waterlevels(config):
-    pass
+    persister = perister_factory(config, WaterLevelRecord)
+
+    if config.use_source_ampapi:
+        s = AMPAPISiteSource()
+        ss = AMPAPIWaterLevelSource()
+        for record in s.read(config):
+            for wl in ss.read(record, config):
+                persister.records.append(wl)
+
+    if config.use_source_isc_seven_rivers:
+        s = ISCSevenRiversSiteSource()
+        ss = ISCSevenRiversWaterLevelSource()
+        for record in s.read(config):
+            for wl in ss.read(record, config):
+                persister.records.append(wl)
+
+    if config.use_source_nwis:
+        pass
+
+    persister.save(config.output_path)
+
+
+    # if config.use_source_isc_seven_rivers:
+    #     isc = ISCSevenRiversSiteSource()
+    #     persister.load(isc.read(config))
+    #
+    # if config.use_source_nwis:
+    #     nwis = USGSSiteSource()
+    #     persister.load(nwis.read(config))
+
 
 
 if __name__ == "__main__":

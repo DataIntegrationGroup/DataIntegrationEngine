@@ -20,19 +20,22 @@ from backend.connectors.isc_seven_rivers.transformer import (
 )
 from backend.source import BaseSource
 
-
-class ISCSevenRiversSource(BaseSource):
-    def _make_url(self, endpoint):
-        return f"https://nmisc-wf.gladata.com/api/{endpoint}"
+def _make_url(endpoint):
+    return f"https://nmisc-wf.gladata.com/api/{endpoint}"
 
 
-class ISCSevenRiversSiteSource(ISCSevenRiversSource):
+
+class ISCSevenRiversSiteSource(BaseSource):
     transformer_klass = ISCSevenRiversSiteTransformer
 
     def get_records(self, config):
-        resp = httpx.get(self._make_url("getMonitoringPoints.ashx"))
+        resp = httpx.get(_make_url("getMonitoringPoints.ashx"))
         for record in resp.json()["data"]:
             yield record
 
+
+class ISCSevenRiversWaterLevelSource(BaseSource):
+    def get_records(self, parent_record, config):
+        pass
 
 # ============= EOF =============================================

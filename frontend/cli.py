@@ -30,7 +30,7 @@ def cli():
     default="",
     help="Bounding box in the form 'x1 y1, x2 y2'",
 )
-def locations(bbox):
+def wells(bbox):
     """
     Get locations
     """
@@ -54,7 +54,9 @@ def waterlevels(bbox):
     click.echo(f"Getting waterlevels for bounding box {bbox}")
 
     config = Config()
+    # bbox = -107.468262,33.979809,-107.053528,34.191358
     # bbox = -105.396826 36.219290, -106.024162 35.384307
+    # bbox = -107.266538 34.098781,-107.233107 34.114967
     config.bbox = bbox
 
     unify_waterlevels(config)

@@ -28,7 +28,7 @@ class BaseSource:
     def log(self, msg):
         click.secho(f"{self.__class__.__name__:30s} {msg}", fg="yellow")
 
-    def read(self, config):
+    def read(self, config, *args, **kw):
         self.log("Gathering records")
         n = 0
         for record in self.get_records(config):
@@ -39,7 +39,7 @@ class BaseSource:
 
         self.log(f"nrecords={n}")
 
-    def get_records(self, config):
+    def get_records(self, *args, **kw):
         raise NotImplementedError
 
 

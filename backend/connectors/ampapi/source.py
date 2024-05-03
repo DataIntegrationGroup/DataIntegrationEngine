@@ -15,18 +15,20 @@
 # ===============================================================================
 import httpx
 
-from backend.connectors.ampapi.transformer import AMPAPISiteTransformer
+from backend.connectors.ampapi.transformer import AMPAPISiteTransformer, AMPAPIWaterLevelTransformer
 from backend.source import BaseSource
+
+
+def _make_url(endpoint):
+    return f"https://waterdata.nmt.edu/{endpoint}"
 
 
 class AMPAPISiteSource(BaseSource):
     transformer_klass = AMPAPISiteTransformer
 
     def get_records(self, config):
-
         params = {}
         if config.bbox:
-
             # need to update api to use lon/lat pairs
             # params["wkt"] = config.bounding_wkt()
 
@@ -34,12 +36,29 @@ class AMPAPISiteSource(BaseSource):
             w = f"POLYGON(({y1} {x1},{y1} {x2},{y2} {x2},{y2} {x1},{y1} {x1}))"
             params["wkt"] = w
 
-        resp = httpx.get(self._make_url("locations"), params=params)
+        resp = httpx.get(_make_url("locations"), params=params)
         for site in resp.json()["features"]:
             yield site
 
-    def _make_url(self, endpoint):
-        return f"https://waterdata.nmt.edu/{endpoint}"
 
+class AMPAPIWaterLevelSource(BaseSource):
+    transformer_klass = AMPAPIWaterLevelTransformer
 
+    def read(self, parent_record, config):
+        self.log(f"Gathering records for record {parent_record.id}")
+        n = 0
+        for record in self.get_records(parent_record, config):
+            record = self.transformer.transform(record, parent_record, config)
+            if record:
+                n += 1
+                yield record
+
+        self.log(f"nrecords={n}")
+
+    def get_records(self, parent_record, config):
+        params = {'pointid': parent_record.id}
+        # just use manual waterlevels temporarily
+        resp = httpx.get(_make_url("waterlevels/manual"), params=params)
+        for wl in resp.json():
+            yield wl
 # ============= EOF =============================================

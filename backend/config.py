@@ -21,8 +21,12 @@ class Config:
     use_csv = True
     use_geojson = False
     use_source_ampapi = True
-    use_source_isc_seven_rivers = True
-    use_source_nwis = True
+
+    # use_source_isc_seven_rivers = True
+    # use_source_nwis = True
+
+    use_source_isc_seven_rivers = False
+    use_source_nwis = False
 
     def bounding_points(self):
         p1, p2 = self.bbox.split(",")

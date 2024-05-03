@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.record import SiteRecord
+from datetime import datetime
+
+from backend.record import SiteRecord, WaterLevelRecord
 from backend.transformer import BaseTransformer
 
 
@@ -36,4 +38,18 @@ class AMPAPISiteTransformer(BaseTransformer):
         return SiteRecord(rec)
 
 
+class AMPAPIWaterLevelTransformer(BaseTransformer):
+    def transform(self, record, parent_record, config):
+        dt = record['DateMeasured']
+        tt = record['TimeMeasured']
+
+        # ts = datetime.strptime(f'{dt} {tt}', '%Y-%m-%d %H:%M:%S')
+        rec = {
+            'source': 'AMPAPI',
+            'id': parent_record.id,
+            'depth_to_water_below_ground_surface_ft': record['DepthToWaterBGS'],
+            'date_measured': dt,
+            'time_measured': tt
+        }
+        return WaterLevelRecord(rec)
 # ============= EOF =============================================

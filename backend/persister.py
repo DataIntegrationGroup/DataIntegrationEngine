@@ -33,8 +33,10 @@ class Loggable:
 class BasePersister(Loggable):
     extension = None
 
-    def __init__(self):
+    def __init__(self, record_klass):
         self.records = []
+
+        self.keys = record_klass.keys
 
     def load(self, records):
         self.records.extend(records)
@@ -63,7 +65,7 @@ class CSVPersister(BasePersister):
         path = self.add_extension(path)
         with open(path, "w") as f:
             writer = csv.writer(f)
-            writer.writerow(SiteRecord.keys)
+            writer.writerow(self.keys)
             for record in self.records:
                 writer.writerow(record.to_row())
 
@@ -72,7 +74,7 @@ class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
     def _save(self, path):
-        df = pd.DataFrame([r.to_row() for r in self.records], columns=SiteRecord.keys)
+        df = pd.DataFrame([r.to_row() for r in self.records], columns=self.keys)
 
         gdf = gpd.GeoDataFrame(
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"

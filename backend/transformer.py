@@ -16,7 +16,7 @@
 
 
 class BaseTransformer:
-    def transform(self, record, config):
+    def transform(self, record, config, *args, **kw):
         raise NotImplementedError
 
 
