@@ -63,7 +63,7 @@ class AnalyteRecord(BaseRecord):
         "time_measured",
         "analyte",
         "result",
-        "units"
+        "units",
     )
 
 
@@ -99,5 +99,6 @@ class SiteRecord(BaseRecord):
         "formation": "",
         "aquifer": "",
     }
+
 
 # ============= EOF =============================================

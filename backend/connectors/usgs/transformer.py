@@ -42,4 +42,5 @@ class USGSSiteTransformer(BaseTransformer):
         }
         return SiteRecord(rec)
 
+
 # ============= EOF =============================================

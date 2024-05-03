@@ -31,12 +31,12 @@ def transform_units(e, unit, out_unit):
         return None, unit
 
     if unit != out_unit:
-        if unit == 'ft' and out_unit == 'm':
+        if unit == "ft" and out_unit == "m":
             e = e * 0.3048
-            unit = 'm'
-        elif unit == 'm' and out_unit == 'ft':
+            unit = "m"
+        elif unit == "m" and out_unit == "ft":
             e = e * 3.28084
-            unit = 'ft'
+            unit = "ft"
     return e, unit
 
 
@@ -46,19 +46,25 @@ class BaseTransformer:
         x = record.latitude
         y = record.longitude
         datum = record.horizontal_datum
-        lng, lat, datum = transform_horizontal_datum(x, y,
-                                                     datum,
-                                                     config.output_horizontal_datum,
-                                                     )
+        lng, lat, datum = transform_horizontal_datum(
+            x,
+            y,
+            datum,
+            config.output_horizontal_datum,
+        )
         record.update(latitude=lat)
         record.update(longitude=lng)
         record.update(horizontal_datum=datum)
 
-        e, eunit = transform_units(record.elevation, record.elevation_unit, config.output_elevation_unit)
+        e, eunit = transform_units(
+            record.elevation, record.elevation_unit, config.output_elevation_unit
+        )
         record.update(elevation=e)
         record.update(elevation_unit=eunit)
 
-        wd, wdunit = transform_units(record.well_depth, record.well_depth_unit, config.output_well_depth_unit)
+        wd, wdunit = transform_units(
+            record.well_depth, record.well_depth_unit, config.output_well_depth_unit
+        )
         record.update(well_depth=wd)
         record.update(well_depth_unit=wdunit)
 
@@ -66,5 +72,6 @@ class BaseTransformer:
 
     def transform(self, *args, **kw):
         raise NotImplementedError
+
 
 # ============= EOF =============================================

@@ -29,15 +29,15 @@ class WQPSiteTransformer(BaseTransformer):
             "name": record["MonitoringLocationName"],
             "latitude": record["LatitudeMeasure"],
             "longitude": record["LongitudeMeasure"],
-            "elevation": record['VerticalMeasure/MeasureValue'],
-            "elevation_unit": record['VerticalMeasure/MeasureUnitCode'],
+            "elevation": record["VerticalMeasure/MeasureValue"],
+            "elevation_unit": record["VerticalMeasure/MeasureUnitCode"],
             "horizontal_datum": record["HorizontalCoordinateReferenceSystemDatumName"],
             "vertical_datum": record["VerticalCoordinateReferenceSystemDatumName"],
-            'aquifer': record['AquiferName'],
-            'well_depth': record["WellDepthMeasure/MeasureValue"],
-            'well_depth_unit': record["WellDepthMeasure/MeasureUnitCode"],
-
+            "aquifer": record["AquiferName"],
+            "well_depth": record["WellDepthMeasure/MeasureValue"],
+            "well_depth_unit": record["WellDepthMeasure/MeasureUnitCode"],
         }
         return SiteRecord(rec)
+
 
 # ============= EOF =============================================

@@ -73,4 +73,6 @@ def analytes(bbox):
     config = Config()
     config.bbox = bbox
     unify_analytes(config)
+
+
 # ============= EOF =============================================

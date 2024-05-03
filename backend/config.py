@@ -30,9 +30,9 @@ class Config:
     use_source_isc_seven_rivers = False
     use_source_nwis = False
 
-    output_horizontal_datum = 'WGS84'
-    output_elevation_unit = 'ft'
-    output_well_depth_unit = 'ft'
+    output_horizontal_datum = "WGS84"
+    output_elevation_unit = "ft"
+    output_well_depth_unit = "ft"
 
     def bounding_points(self):
         p1, p2 = self.bbox.split(",")

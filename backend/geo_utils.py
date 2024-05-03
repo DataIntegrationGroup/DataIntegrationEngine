@@ -36,13 +36,13 @@ def datum_transform(x, y, in_datum, out_datum):
     tuple
         (easting, northing)
     """
-    if in_datum == 'NAD27':
-        in_datum = 'EPSG:4267'
-    elif in_datum == 'NAD83':
-        in_datum = 'EPSG:4269'
+    if in_datum == "NAD27":
+        in_datum = "EPSG:4267"
+    elif in_datum == "NAD83":
+        in_datum = "EPSG:4269"
 
-    if out_datum == 'WGS84':
-        out_datum = 'EPSG:4326'
+    if out_datum == "WGS84":
+        out_datum = "EPSG:4326"
 
     name = f"datum{out_datum}{in_datum}"
     if name not in PROJECTIONS:
