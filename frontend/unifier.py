@@ -15,8 +15,15 @@
 # ===============================================================================
 from backend.config import Config
 from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
-from backend.connectors.ckan import HONDO_RESOURCE_ID, FORT_SUMNER_RESOURCE_ID, ROSWELL_RESOURCE_ID
-from backend.connectors.ckan.source import OSERoswellSiteSource, OSERoswellWaterLevelSource
+from backend.connectors.ckan import (
+    HONDO_RESOURCE_ID,
+    FORT_SUMNER_RESOURCE_ID,
+    ROSWELL_RESOURCE_ID,
+)
+from backend.connectors.ckan.source import (
+    OSERoswellSiteSource,
+    OSERoswellWaterLevelSource,
+)
 from backend.connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
@@ -91,19 +98,33 @@ def unify_waterlevels(config):
             sources.append((AMPAPISiteSource(), AMPAPIWaterLevelSource()))
 
         if config.use_source_isc_seven_rivers:
-            sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource()))
+            sources.append(
+                (ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource())
+            )
 
         if config.use_source_nwis:
             pass
 
         if config.use_source_ose_roswell:
-            sources.append((OSERoswellSiteSource(HONDO_RESOURCE_ID),
-                            OSERoswellWaterLevelSource(HONDO_RESOURCE_ID)))
-            sources.append((OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
-                            OSERoswellWaterLevelSource(FORT_SUMNER_RESOURCE_ID)))
-            sources.append((OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
-                            OSERoswellWaterLevelSource(ROSWELL_RESOURCE_ID)))
-            
+            sources.append(
+                (
+                    OSERoswellSiteSource(HONDO_RESOURCE_ID),
+                    OSERoswellWaterLevelSource(HONDO_RESOURCE_ID),
+                )
+            )
+            sources.append(
+                (
+                    OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
+                    OSERoswellWaterLevelSource(FORT_SUMNER_RESOURCE_ID),
+                )
+            )
+            sources.append(
+                (
+                    OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
+                    OSERoswellWaterLevelSource(ROSWELL_RESOURCE_ID),
+                )
+            )
+
         for s, ss in sources:
             for record in s.read(config):
                 for wl in ss.read(record, config):

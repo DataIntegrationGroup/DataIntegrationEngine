@@ -41,7 +41,6 @@ class OSERoswellSiteTransformer(BaseTransformer):
             # 'aquifer': record['AquiferName'],
             # 'well_depth': record["WellDepthMeasure/MeasureValue"],
             # 'well_depth_unit': record["WellDepthMeasure/MeasureUnitCode"],
-
         }
         return SiteRecord(rec)
 
@@ -50,4 +49,6 @@ class OSERoswellWaterLevelTransformer(BaseTransformer):
     def transform(self, record, parent_record, config):
         rec = {}
         return WaterLevelRecord(rec)
+
+
 # ============= EOF =============================================

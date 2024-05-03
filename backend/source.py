@@ -29,7 +29,9 @@ class BaseSource:
         click.secho(f"{self.__class__.__name__:30s} {msg}", fg="yellow")
 
     def get_records(self, *args, **kw):
-        raise NotImplementedError(f"get_records not implemented by {self.__class__.__name__}")
+        raise NotImplementedError(
+            f"get_records not implemented by {self.__class__.__name__}"
+        )
 
 
 class BaseSiteSource(BaseSource):
@@ -56,4 +58,6 @@ class BaseWaterLevelsSource(BaseSource):
                 yield record
 
         self.log(f"nrecords={n}")
+
+
 # ============= EOF =============================================

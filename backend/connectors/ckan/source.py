@@ -17,7 +17,10 @@ from itertools import groupby
 
 import httpx
 
-from backend.connectors.ckan.transformer import OSERoswellSiteTransformer, OSERoswellWaterLevelTransformer
+from backend.connectors.ckan.transformer import (
+    OSERoswellSiteTransformer,
+    OSERoswellWaterLevelTransformer,
+)
 from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelsSource
 
 
@@ -30,10 +33,12 @@ class CKANSource:
 
     def get_response(self, config):
         if self.base_url is None:
-            raise NotImplementedError('base_url is not set')
+            raise NotImplementedError("base_url is not set")
 
         if self._cached_response is None:
-            self._cached_response = httpx.get(self.base_url, params=self._get_params(config))
+            self._cached_response = httpx.get(
+                self.base_url, params=self._get_params(config)
+            )
 
         return self._cached_response
 
@@ -41,11 +46,11 @@ class CKANSource:
         return {}
 
     def _parse_response(self, resp):
-        raise NotImplementedError('parse_response not implemented')
+        raise NotImplementedError("parse_response not implemented")
 
 
 class NMWDICKANSource(CKANSource):
-    base_url = 'https://catalog.newmexicowaterdata.org/api/3/action/datastore_search'
+    base_url = "https://catalog.newmexicowaterdata.org/api/3/action/datastore_search"
 
 
 class OSERoswellSource(NMWDICKANSource):
@@ -57,7 +62,7 @@ class OSERoswellSource(NMWDICKANSource):
 
     def _get_params(self, config):
         return {
-            'resource_id': self.resource_id,
+            "resource_id": self.resource_id,
         }
 
 
@@ -65,10 +70,10 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
     transformer_klass = OSERoswellSiteTransformer
 
     def _parse_response(self, resp):
-        records = resp.json()['result']['records']
+        records = resp.json()["result"]["records"]
         # group records by site_no
-        records = sorted(records, key=lambda x: x['Site_ID'])
-        for site_id, records in groupby(records, key=lambda x: x['Site_ID']):
+        records = sorted(records, key=lambda x: x["Site_ID"])
+        for site_id, records in groupby(records, key=lambda x: x["Site_ID"]):
             yield next(records)
 
 
@@ -87,8 +92,10 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelsSource):
         self.log(f"nrecords={n}")
 
     def _get_waterlevels(self, parent_record, resp):
-        records = resp.json()['result']['records']
+        records = resp.json()["result"]["records"]
         for record in records:
-            if record['Site_ID'] == parent_record.id:
+            if record["Site_ID"] == parent_record.id:
                 yield record
+
+
 # ============= EOF =============================================
