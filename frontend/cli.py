@@ -16,7 +16,7 @@
 import click
 
 from backend.config import Config
-from frontend.unifier import unify
+from frontend.unifier import unify_sites, unify_waterlevels
 
 
 @click.group()
@@ -38,11 +38,24 @@ def locations(bbox):
     click.echo(f"Getting locations for bounding box {bbox}")
 
     config = Config()
-    # bbox = 36.219290 -105.396826, 35.384307 -106.024162
-
+    # bbox = -105.396826 36.219290, -106.024162 35.384307
     config.bbox = bbox
 
-    unify(config)
+    unify_sites(config)
 
+@cli.command()
+@click.option(
+    "--bbox",
+    default="",
+    help="Bounding box in the form 'x1 y1, x2 y2'",
+)
+def waterlevels(bbox):
+    click.echo(f"Getting waterlevels for bounding box {bbox}")
+
+    config = Config()
+    # bbox = -105.396826 36.219290, -106.024162 35.384307
+    config.bbox = bbox
+
+    unify_waterlevels(config)
 
 # ============= EOF =============================================

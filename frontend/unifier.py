@@ -19,7 +19,7 @@ from backend.connectors.usgs.source import USGSSiteSource
 from backend.persister import CSVPersister, GeoJSONPersister
 
 
-def unify(config=None):
+def unify_sites(config):
     print("unifying")
 
     persister_klass = CSVPersister
@@ -38,13 +38,18 @@ def unify(config=None):
         isc = ISCSevenRiversSiteSource()
         persister.load(isc.read(config))
 
-    # nwis = USGSSiteSource()
-    # persister.load(nwis.read(config))
+    if config.use_source_nwis:
+        nwis = USGSSiteSource()
+        persister.load(nwis.read(config))
 
     persister.save(config.output_path)
 
 
+def unify_waterlevels(config):
+    pass
+
+
 if __name__ == "__main__":
-    unify()
+    unify_sites()
 
 # ============= EOF =============================================

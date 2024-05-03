@@ -22,16 +22,22 @@ class Config:
     use_geojson = False
     use_source_ampapi = True
     use_source_isc_seven_rivers = True
+    use_source_nwis = True
 
-    def bounding_wkt(self):
+    def bounding_points(self):
         p1, p2 = self.bbox.split(",")
         x1, y1 = [float(a) for a in p1.strip().split(" ")]
         x2, y2 = [float(a) for a in p2.strip().split(" ")]
 
-        pts = [f"{x1} {y1}", f"{x1} {y2}", f"{x2} {y2}", f"{x2} {y1}", f"{x1} {y1}"]
+        if x1>x2:
+            x1,x2 = x2, x1
+        if y1>y2:
+            y1, y2 = y2, y1
 
-        pts = ",".join(pts)
-        return f"POLYGON(({pts}))"
+        return x1, y1, x2, y2
 
+    def bounding_wkt(self):
+        x1, y1, x2, y2 = self.bounding_points()
+        return f"POLYGON(({x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}))"
 
 # ============= EOF =============================================

@@ -18,7 +18,7 @@ from backend.transformer import BaseTransformer
 
 
 class USGSSiteTransformer(BaseTransformer):
-    def transform(self, record):
+    def transform(self, record, config):
         elevation = record["alt_va"]
         try:
             elevation = float(elevation)

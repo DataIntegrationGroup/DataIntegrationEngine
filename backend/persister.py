@@ -16,6 +16,7 @@
 import csv
 import os
 
+import click
 import pandas as pd
 import geopandas as gpd
 
@@ -23,8 +24,12 @@ import geopandas as gpd
 
 from backend.record import SiteRecord
 
+class Loggable:
+    def log(self, msg, fg='yellow'):
+        click.secho(f'{self.__class__.__name__:30s}{msg}', fg=fg)
 
-class BasePersister:
+
+class BasePersister(Loggable):
     extension = None
 
     def __init__(self):
@@ -34,7 +39,9 @@ class BasePersister:
         self.records.extend(records)
 
     def save(self, path):
-        raise NotImplementedError
+        path = self.add_extension(path)
+        self.log(f'saving to {path}')
+        self._save(path)
 
     def add_extension(self, path):
         if not self.extension:
@@ -44,11 +51,14 @@ class BasePersister:
             path = f"{path}.{self.extension}"
         return path
 
+    def _save(self, path):
+        raise NotImplementedError
+
 
 class CSVPersister(BasePersister):
     extension = "csv"
 
-    def save(self, path):
+    def _save(self, path):
         path = self.add_extension(path)
         with open(path, "w") as f:
             writer = csv.writer(f)
@@ -60,8 +70,7 @@ class CSVPersister(BasePersister):
 class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
-    def save(self, path):
-        path = self.add_extension(path)
+    def _save(self, path):
         df = pd.DataFrame([r.to_row() for r in self.records], columns=SiteRecord.keys)
 
         gdf = gpd.GeoDataFrame(

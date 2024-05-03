@@ -22,10 +22,23 @@ from backend.source import BaseSource
 class USGSSiteSource(BaseSource):
     transformer_klass = USGSSiteTransformer
 
-    def get_records(self):
+    def get_records(self, config):
+        params = {'format': 'rdb',
+                  'siteOutput': 'expanded',
+                  'siteType': 'GW'}
+
+        if config.bbox:
+            bbox = config.bounding_points()
+            params['bBox'] = ','.join([str(b) for b in bbox])
+        else:
+            params['stateCd'] = 'NM'
+
         resp = httpx.get(
-            "https://waterservices.usgs.gov/nwis/site/?format=rdb&siteOutput=expanded&siteType=GW&stateCd=NM"
+            "https://waterservices.usgs.gov/nwis/site/",
+            params=params,
+            timeout=10
         )
+        header = None
         for line in resp.text.split("\n"):
             if line.startswith("#"):
                 continue
@@ -38,7 +51,8 @@ class USGSSiteSource(BaseSource):
                 continue
 
             vals = [v.strip() for v in line.split("\t")]
-            yield dict(zip(header, vals))
+            if header:
+                yield dict(zip(header, vals))
 
 
 # ============= EOF =============================================
