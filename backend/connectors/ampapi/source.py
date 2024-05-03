@@ -26,10 +26,9 @@ class AMPAPISiteSource(BaseSource):
 
         params = {}
         if config.bbox:
-            params['wkt'] = config.bounding_wkt()
+            params["wkt"] = config.bounding_wkt()
 
-        resp = httpx.get(self._make_url("locations"),
-                         params=params)
+        resp = httpx.get(self._make_url("locations"), params=params)
         for site in resp.json()["features"]:
             yield site
 

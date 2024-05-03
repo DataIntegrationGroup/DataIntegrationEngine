@@ -24,8 +24,8 @@ class ISCSevenRiversSiteTransformer(BaseTransformer):
     _cached_polygon = None
 
     def transform(self, record, config):
-        lat = record['latitude']
-        lng = record['longitude']
+        lat = record["latitude"]
+        lng = record["longitude"]
 
         if config.bbox:
             if not self._cached_polygon:
@@ -48,5 +48,6 @@ class ISCSevenRiversSiteTransformer(BaseTransformer):
         }
 
         return SiteRecord(rec)
+
 
 # ============= EOF =============================================

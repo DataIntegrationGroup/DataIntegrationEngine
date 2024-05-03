@@ -26,10 +26,10 @@ class BaseSource:
         self.transformer = self.transformer_klass()
 
     def log(self, msg):
-        click.secho(f"{self.__class__.__name__:30s} {msg}", fg='yellow')
+        click.secho(f"{self.__class__.__name__:30s} {msg}", fg="yellow")
 
     def read(self, config):
-        self.log('Gathering records')
+        self.log("Gathering records")
         n = 0
         for record in self.get_records(config):
             record = self.transformer.transform(record, config)
@@ -37,9 +37,10 @@ class BaseSource:
                 n += 1
                 yield record
 
-        self.log(f'nrecords={n}')
+        self.log(f"nrecords={n}")
 
     def get_records(self, config):
         raise NotImplementedError
+
 
 # ============= EOF =============================================

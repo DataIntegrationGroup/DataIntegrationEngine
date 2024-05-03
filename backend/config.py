@@ -24,17 +24,14 @@ class Config:
     use_source_isc_seven_rivers = True
 
     def bounding_wkt(self):
-        p1, p2 = self.bbox.split(',')
-        x1,y1 = [float(a) for a in p1.strip().split(' ')]
-        x2,y2 = [float(a) for a in p2.strip().split(' ')]
+        p1, p2 = self.bbox.split(",")
+        x1, y1 = [float(a) for a in p1.strip().split(" ")]
+        x2, y2 = [float(a) for a in p2.strip().split(" ")]
 
-        pts = [f'{x1} {y1}',
-               f'{x1} {y2}',
-               f'{x2} {y2}',
-               f'{x2} {y1}',
-               f'{x1} {y1}']
+        pts = [f"{x1} {y1}", f"{x1} {y2}", f"{x2} {y2}", f"{x2} {y1}", f"{x1} {y1}"]
 
-        pts = ','.join(pts)
-        return f'POLYGON(({pts}))'
+        pts = ",".join(pts)
+        return f"POLYGON(({pts}))"
+
 
 # ============= EOF =============================================
