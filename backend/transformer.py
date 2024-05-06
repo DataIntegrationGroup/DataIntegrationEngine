@@ -99,10 +99,11 @@ class BaseTransformer:
 
     def _standardize_datetime(self, dt):
         if isinstance(dt, str):
-            for fmt in ["%Y-%m-%dT%H:%M:%S",
-                        "%Y-%m-%dT%H:%M:%S.%fZ",
-                        "%Y-%m-%dT%H:%M:%SZ",
-                        ]:
+            for fmt in [
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+                "%Y-%m-%dT%H:%M:%SZ",
+            ]:
                 try:
                     dt = dt.split(".")[0]
                     dt = datetime.strptime(dt, fmt)
@@ -111,5 +112,6 @@ class BaseTransformer:
                     print(e)
 
         return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")
+
 
 # ============= EOF =============================================

@@ -17,7 +17,9 @@ import frost_sta_client as fsc
 
 from backend.connectors.st2.transformer import (
     PVACDSiteTransformer,
-    EBIDSiteTransformer, PVACDWaterLevelTransformer, EBIDWaterLevelTransformer,
+    EBIDSiteTransformer,
+    PVACDWaterLevelTransformer,
+    EBIDWaterLevelTransformer,
 )
 from backend.source import BaseSiteSource, BaseWaterLevelsSource
 
@@ -59,18 +61,27 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
     def get_records(self, parent_record, config, *args, **kw):
         service = self.get_service()
 
-        things = service.things().query().expand('Locations,Datastreams').filter(
-            f"Locations/id eq {parent_record.id}"
-        ).list()
+        things = (
+            service.things()
+            .query()
+            .expand("Locations,Datastreams")
+            .filter(f"Locations/id eq {parent_record.id}")
+            .list()
+        )
         for t in things:
-            if t.name == 'Water Well':
+            if t.name == "Water Well":
                 for di in t.datastreams:
                     q = di.get_observations().query()
                     if config.latest_water_level_only:
-                        q = q.orderby('phenomenonTime', 'desc').top(1)
+                        q = q.orderby("phenomenonTime", "desc").top(1)
 
                     for obs in q.list():
-                        yield {"thing": t, "location": parent_record, "datastream": di, "observation": obs}
+                        yield {
+                            "thing": t,
+                            "location": parent_record,
+                            "datastream": di,
+                            "observation": obs,
+                        }
                         if config.latest_water_level_only:
                             break
 
@@ -83,4 +94,6 @@ class PVACDWaterLevelSource(ST2WaterLevelSource):
 class EBIDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = EBIDWaterLevelTransformer
     agency = "EBID"
+
+
 # ============= EOF =============================================

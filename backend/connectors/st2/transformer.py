@@ -69,7 +69,7 @@ class ST2WaterLevelTransformer(BaseTransformer):
     source_id = "ST2"
 
     def transform(self, record, parent_record, config, *args, **kw):
-        dstr, tstr = self._standardize_datetime(record['observation'].phenomenon_time)
+        dstr, tstr = self._standardize_datetime(record["observation"].phenomenon_time)
 
         rec = {
             "source": self.source_id,
@@ -91,5 +91,6 @@ class PVACDWaterLevelTransformer(ST2WaterLevelTransformer):
 
 class EBIDWaterLevelTransformer(ST2WaterLevelTransformer):
     source_id = "ST2/EBID"
+
 
 # ============= EOF =============================================
