@@ -15,9 +15,19 @@
 # ===============================================================================
 from backend.bounding_polygons import get_county_polygon
 from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
-from backend.connectors.ckan import HONDO_RESOURCE_ID, FORT_SUMNER_RESOURCE_ID, ROSWELL_RESOURCE_ID
-from backend.connectors.ckan.source import OSERoswellSiteSource, OSERoswellWaterLevelSource
-from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource
+from backend.connectors.ckan import (
+    HONDO_RESOURCE_ID,
+    FORT_SUMNER_RESOURCE_ID,
+    ROSWELL_RESOURCE_ID,
+)
+from backend.connectors.ckan.source import (
+    OSERoswellSiteSource,
+    OSERoswellWaterLevelSource,
+)
+from backend.connectors.isc_seven_rivers.source import (
+    ISCSevenRiversSiteSource,
+    ISCSevenRiversWaterLevelSource,
+)
 from backend.connectors.st2.source import ST2SiteSource, PVACDSiteSource, EBIDSiteSource
 from backend.connectors.usgs.source import USGSSiteSource
 
@@ -46,9 +56,7 @@ class Config:
             sources.append((AMPAPISiteSource, AMPAPIWaterLevelSource))
 
         if self.use_source_isc_seven_rivers:
-            sources.append(
-                (ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource)
-            )
+            sources.append((ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource))
 
         if self.use_source_nwis:
             pass
@@ -104,12 +112,13 @@ class Config:
     def bounding_wkt(self):
         if self.bbox:
             x1, y1, x2, y2 = self.bounding_points()
-            pts = f'{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}'
+            pts = f"{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}"
             return f"POLYGON({pts})"
         elif self.county:
             return get_county_polygon(self.county)
 
     def has_bounds(self):
         return self.bbox or self.county
+
 
 # ============= EOF =============================================

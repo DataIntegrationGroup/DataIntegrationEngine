@@ -107,7 +107,7 @@ def unify_waterlevels(config):
 if __name__ == "__main__":
     cfg = Config()
     # cfg.bbox = "-104.0 32.5, -105.0 34.0"
-    cfg.county = 'chaves'
+    cfg.county = "chaves"
     print(cfg.county, cfg.bbox)
     unify_sites(cfg)
     # unify_waterlevels(cfg)
