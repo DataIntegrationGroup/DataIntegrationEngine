@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import pprint
+
 import shapely
 from shapely import Point
 
@@ -82,7 +84,7 @@ class BaseTransformer:
         raise NotImplementedError
 
     def contained(self, lng, lat, config):
-        if config.bbox:
+        if config.has_bounds():
             if not self._cached_polygon:
                 poly = shapely.wkt.loads(config.bounding_wkt())
                 self._cached_polygon = poly

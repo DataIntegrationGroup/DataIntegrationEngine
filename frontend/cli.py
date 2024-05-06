@@ -30,16 +30,25 @@ def cli():
     default="",
     help="Bounding box in the form 'x1 y1, x2 y2'",
 )
-def wells(bbox):
+@click.option(
+    "--county",
+    default="",
+    help="New Mexico county name",
+)
+def wells(bbox, county):
     """
     Get locations
     """
 
-    click.echo(f"Getting locations for bounding box {bbox}")
-
     config = Config()
-    # bbox = -105.396826 36.219290, -106.024162 35.384307
-    config.bbox = bbox
+    if county:
+        click.echo(f"Getting locations for county {county}")
+        config.county = county
+    elif bbox:
+        click.echo(f"Getting locations for bounding box {bbox}")
+
+        # bbox = -105.396826 36.219290, -106.024162 35.384307
+        config.bbox = bbox
 
     unify_sites(config)
 

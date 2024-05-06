@@ -13,15 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.connectors.ampapi.source import AMPAPISiteSource
-from backend.connectors.ckan.source import OSERoswellSiteSource
-from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource
+from backend.bounding_polygons import get_county_polygon
+from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
+from backend.connectors.ckan import HONDO_RESOURCE_ID, FORT_SUMNER_RESOURCE_ID, ROSWELL_RESOURCE_ID
+from backend.connectors.ckan.source import OSERoswellSiteSource, OSERoswellWaterLevelSource
+from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource
 from backend.connectors.st2.source import ST2SiteSource, PVACDSiteSource, EBIDSiteSource
 from backend.connectors.usgs.source import USGSSiteSource
 
 
 class Config:
     bbox = None
+    county = None
     output_path = "output"
     use_csv = True
     use_geojson = False
@@ -36,6 +39,40 @@ class Config:
     output_horizontal_datum = "WGS84"
     output_elevation_unit = "ft"
     output_well_depth_unit = "ft"
+
+    def water_level_sources(self):
+        sources = []
+        if self.use_source_ampapi:
+            sources.append((AMPAPISiteSource, AMPAPIWaterLevelSource))
+
+        if self.use_source_isc_seven_rivers:
+            sources.append(
+                (ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource)
+            )
+
+        if self.use_source_nwis:
+            pass
+
+        if self.use_source_ose_roswell:
+            sources.append(
+                (
+                    OSERoswellSiteSource(HONDO_RESOURCE_ID),
+                    OSERoswellWaterLevelSource(HONDO_RESOURCE_ID),
+                )
+            )
+            sources.append(
+                (
+                    OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
+                    OSERoswellWaterLevelSource(FORT_SUMNER_RESOURCE_ID),
+                )
+            )
+            sources.append(
+                (
+                    OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
+                    OSERoswellWaterLevelSource(ROSWELL_RESOURCE_ID),
+                )
+            )
+        return sources
 
     def site_sources(self):
         sources = []
@@ -65,8 +102,14 @@ class Config:
         return x1, y1, x2, y2
 
     def bounding_wkt(self):
-        x1, y1, x2, y2 = self.bounding_points()
-        return f"POLYGON(({x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}))"
+        if self.bbox:
+            x1, y1, x2, y2 = self.bounding_points()
+            pts = f'{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}'
+            return f"POLYGON({pts})"
+        elif self.county:
+            return get_county_polygon(self.county)
 
+    def has_bounds(self):
+        return self.bbox or self.county
 
 # ============= EOF =============================================

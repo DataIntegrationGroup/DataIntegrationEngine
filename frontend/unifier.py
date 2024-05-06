@@ -85,40 +85,10 @@ def unify_sites(config):
 
 def unify_waterlevels(config):
     def func(config, persister):
-        sources = []
 
-        if config.use_source_ampapi:
-            sources.append((AMPAPISiteSource(), AMPAPIWaterLevelSource()))
-
-        if config.use_source_isc_seven_rivers:
-            sources.append(
-                (ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource())
-            )
-
-        if config.use_source_nwis:
-            pass
-
-        if config.use_source_ose_roswell:
-            sources.append(
-                (
-                    OSERoswellSiteSource(HONDO_RESOURCE_ID),
-                    OSERoswellWaterLevelSource(HONDO_RESOURCE_ID),
-                )
-            )
-            sources.append(
-                (
-                    OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
-                    OSERoswellWaterLevelSource(FORT_SUMNER_RESOURCE_ID),
-                )
-            )
-            sources.append(
-                (
-                    OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
-                    OSERoswellWaterLevelSource(ROSWELL_RESOURCE_ID),
-                )
-            )
-
-        for s, ss in sources:
+        for sklass, ssklass in config.water_level_sources():
+            s = sklass()
+            ss = ssklass()
             for record in s.read(config):
                 for wl in ss.read(record, config):
                     persister.records.append(wl)
@@ -136,7 +106,9 @@ def unify_waterlevels(config):
 
 if __name__ == "__main__":
     cfg = Config()
-    cfg.bbox = "-104.0 32.5, -105.0 34.0"
+    # cfg.bbox = "-104.0 32.5, -105.0 34.0"
+    cfg.county = 'chaves'
+    print(cfg.county, cfg.bbox)
     unify_sites(cfg)
     # unify_waterlevels(cfg)
 

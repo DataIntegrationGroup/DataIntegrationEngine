@@ -31,28 +31,27 @@ class ST2Source(BaseSource):
 
 class ST2SiteSource(BaseSiteSource):
     url = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
+    agency = "ST2"
+
+    def get_records(self, config, *args, **kw):
+        service = fsc.SensorThingsService(self.url)
+
+        f = f"properties/agency eq '{self.agency}'"
+        if config.has_bounds():
+            f = f"{f} and st_within(Location/location, geography'{config.bounding_wkt()}')"
+
+        q = service.locations().query().filter(f)
+        for location in q.list():
+            yield location
 
 
 class PVACDSiteSource(ST2SiteSource):
     transformer_klass = PVACDSiteTransformer
-
-    def get_records(self, config, *args, **kw):
-        service = fsc.SensorThingsService(self.url)
-        for location in (
-            service.locations().query().filter("properties/agency eq 'PVACD'").list()
-        ):
-            yield location
+    agency = "PVACD"
 
 
 class EBIDSiteSource(ST2SiteSource):
     transformer_klass = EBIDSiteTransformer
-
-    def get_records(self, config, *args, **kw):
-        service = fsc.SensorThingsService(self.url)
-        for location in (
-            service.locations().query().filter("properties/agency eq 'EBID'").list()
-        ):
-            yield location
-
+    agency = "EBID"
 
 # ============= EOF =============================================
