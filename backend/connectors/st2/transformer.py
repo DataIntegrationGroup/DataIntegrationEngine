@@ -20,7 +20,7 @@ from backend.transformer import BaseTransformer
 
 
 class ST2SiteTransformer(BaseTransformer):
-    source_id = 'ST2'
+    source_id = "ST2"
 
     def transform(self, record, config):
         lat = record.location["coordinates"][1]
@@ -34,7 +34,7 @@ class ST2SiteTransformer(BaseTransformer):
             "name": record.name,
             "latitude": lat,
             "longitude": lng,
-            "horizontal_datum": "WGS84"
+            "horizontal_datum": "WGS84",
         }
         #     # "elevation": record['VerticalMeasure/MeasureValue'],
         #     # "elevation_unit": record['VerticalMeasure/MeasureUnitCode'],
@@ -54,13 +54,15 @@ class ST2SiteTransformer(BaseTransformer):
 
 
 class PVACDSiteTransformer(ST2SiteTransformer):
-    source_id = 'ST2/PVACD'
+    source_id = "ST2/PVACD"
 
     def _transform_hook(self, rec):
-        if rec['id'] in [9402, 9403, 9404, 9405, 9406, 9408, 9409, 9410, 9411, 9417]:
+        if rec["id"] in [9402, 9403, 9404, 9405, 9406, 9408, 9409, 9410, 9411, 9417]:
             return rec
 
 
 class EBIDSiteTransformer(ST2SiteTransformer):
-    source_id = 'ST2/EBID'
+    source_id = "ST2/EBID"
+
+
 # ============= EOF =============================================

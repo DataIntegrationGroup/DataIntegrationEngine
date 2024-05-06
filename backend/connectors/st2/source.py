@@ -17,7 +17,11 @@ from itertools import groupby
 import frost_sta_client as fsc
 import httpx
 
-from backend.connectors.st2.transformer import ST2SiteTransformer, PVACDSiteTransformer, EBIDSiteTransformer
+from backend.connectors.st2.transformer import (
+    ST2SiteTransformer,
+    PVACDSiteTransformer,
+    EBIDSiteTransformer,
+)
 from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelsSource
 
 
@@ -26,7 +30,7 @@ class ST2Source(BaseSource):
 
 
 class ST2SiteSource(BaseSiteSource):
-    url = 'https://st2.newmexicowaterdata.org/FROST-Server/v1.0'
+    url = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
 
 
 class PVACDSiteSource(ST2SiteSource):
@@ -34,7 +38,9 @@ class PVACDSiteSource(ST2SiteSource):
 
     def get_records(self, config, *args, **kw):
         service = fsc.SensorThingsService(self.url)
-        for location in service.locations().query().filter("properties/agency eq 'PVACD'").list():
+        for location in (
+            service.locations().query().filter("properties/agency eq 'PVACD'").list()
+        ):
             yield location
 
 
@@ -43,6 +49,10 @@ class EBIDSiteSource(ST2SiteSource):
 
     def get_records(self, config, *args, **kw):
         service = fsc.SensorThingsService(self.url)
-        for location in service.locations().query().filter("properties/agency eq 'EBID'").list():
+        for location in (
+            service.locations().query().filter("properties/agency eq 'EBID'").list()
+        ):
             yield location
+
+
 # ============= EOF =============================================

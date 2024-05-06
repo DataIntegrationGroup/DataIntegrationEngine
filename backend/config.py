@@ -68,4 +68,5 @@ class Config:
         x1, y1, x2, y2 = self.bounding_points()
         return f"POLYGON(({x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}))"
 
+
 # ============= EOF =============================================
