@@ -59,4 +59,5 @@ class AMPAPIWaterLevelSource(BaseWaterLevelsSource):
         for wl in resp.json():
             yield wl
 
+
 # ============= EOF =============================================
