@@ -65,4 +65,31 @@ class EBIDSiteTransformer(ST2SiteTransformer):
     source_id = "ST2/EBID"
 
 
+class ST2WaterLevelTransformer(BaseTransformer):
+    source_id = "ST2"
+
+    def transform(self, record, parent_record, config, *args, **kw):
+        dstr, tstr = self._standardize_datetime(record['observation'].phenomenon_time)
+
+        rec = {
+            "source": self.source_id,
+            "id": parent_record.id,
+            "location": parent_record.name,
+            "surface_elevation_ft": parent_record.elevation,
+            "well_depth_ft_below_ground_surface": parent_record.well_depth,
+            "depth_to_water_ft_below_ground_surface": record["observation"].result,
+            "date_measured": dstr,
+            "time_measured": tstr,
+        }
+
+        return WaterLevelRecord(rec)
+
+
+class PVACDWaterLevelTransformer(ST2WaterLevelTransformer):
+    source_id = "ST2/PVACD"
+
+
+class EBIDWaterLevelTransformer(ST2WaterLevelTransformer):
+    source_id = "ST2/EBID"
+
 # ============= EOF =============================================

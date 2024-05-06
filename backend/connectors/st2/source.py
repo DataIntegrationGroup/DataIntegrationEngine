@@ -13,28 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from itertools import groupby
 import frost_sta_client as fsc
-import httpx
 
 from backend.connectors.st2.transformer import (
-    ST2SiteTransformer,
     PVACDSiteTransformer,
-    EBIDSiteTransformer,
+    EBIDSiteTransformer, PVACDWaterLevelTransformer, EBIDWaterLevelTransformer,
 )
-from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelsSource
+from backend.source import BaseSiteSource, BaseWaterLevelsSource
+
+URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
 
 
-class ST2Source(BaseSource):
-    pass
+class ST2Mixin:
+    def get_service(self):
+        return fsc.SensorThingsService(URL)
 
 
-class ST2SiteSource(BaseSiteSource):
-    url = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
+class ST2SiteSource(BaseSiteSource, ST2Mixin):
     agency = "ST2"
 
     def get_records(self, config, *args, **kw):
-        service = fsc.SensorThingsService(self.url)
+        service = self.get_service()
 
         f = f"properties/agency eq '{self.agency}'"
         if config.has_bounds():
@@ -55,4 +54,33 @@ class EBIDSiteSource(ST2SiteSource):
     agency = "EBID"
 
 
+class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
+
+    def get_records(self, parent_record, config, *args, **kw):
+        service = self.get_service()
+
+        things = service.things().query().expand('Locations,Datastreams').filter(
+            f"Locations/id eq {parent_record.id}"
+        ).list()
+        for t in things:
+            if t.name == 'Water Well':
+                for di in t.datastreams:
+                    q = di.get_observations().query()
+                    if config.latest_water_level_only:
+                        q = q.orderby('phenomenonTime', 'desc').top(1)
+
+                    for obs in q.list():
+                        yield {"thing": t, "location": parent_record, "datastream": di, "observation": obs}
+                        if config.latest_water_level_only:
+                            break
+
+
+class PVACDWaterLevelSource(ST2WaterLevelSource):
+    transformer_klass = PVACDWaterLevelTransformer
+    agency = "PVACD"
+
+
+class EBIDWaterLevelSource(ST2WaterLevelSource):
+    transformer_klass = EBIDWaterLevelTransformer
+    agency = "EBID"
 # ============= EOF =============================================

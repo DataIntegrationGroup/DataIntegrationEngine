@@ -28,7 +28,7 @@ from backend.connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
 )
-from backend.connectors.st2.source import ST2SiteSource, PVACDSiteSource, EBIDSiteSource
+from backend.connectors.st2.source import ST2SiteSource, PVACDSiteSource, EBIDSiteSource, PVACDWaterLevelSource
 from backend.connectors.usgs.source import USGSSiteSource
 
 
@@ -49,6 +49,8 @@ class Config:
     output_horizontal_datum = "WGS84"
     output_elevation_unit = "ft"
     output_well_depth_unit = "ft"
+
+    latest_water_level_only = True
 
     def water_level_sources(self):
         sources = []
@@ -80,6 +82,9 @@ class Config:
                     OSERoswellWaterLevelSource(ROSWELL_RESOURCE_ID),
                 )
             )
+        if self.use_source_st2:
+            sources.append((PVACDSiteSource, PVACDWaterLevelSource))
+            # sources.append((EBIDSiteSource, EBIDWaterLevelSource))
         return sources
 
     def site_sources(self):

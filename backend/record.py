@@ -82,6 +82,7 @@ class SiteRecord(BaseRecord):
         "alternate_site_id",
         "formation",
         "aquifer",
+        "well_depth"
     )
 
     defaults = {
@@ -98,6 +99,7 @@ class SiteRecord(BaseRecord):
         "alternate_site_id": "",
         "formation": "",
         "aquifer": "",
+        "well_depth": None
     }
 
 
