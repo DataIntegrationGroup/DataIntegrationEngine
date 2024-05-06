@@ -28,6 +28,7 @@ from backend.connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
 )
+from backend.connectors.st2.source import ST2SiteSource
 from backend.connectors.usgs.source import USGSSiteSource
 from backend.connectors.wqp.source import WQPSiteSource
 from backend.persister import CSVPersister, GeoJSONPersister
@@ -75,17 +76,9 @@ def unify_sites(config):
     print("unifying")
 
     def func(config, persister):
-        if config.use_source_ampapi:
-            s = AMPAPISiteSource()
+        for source in config.site_sources():
+            s = source()
             persister.load(s.read(config))
-
-        if config.use_source_isc_seven_rivers:
-            isc = ISCSevenRiversSiteSource()
-            persister.load(isc.read(config))
-
-        if config.use_source_nwis:
-            nwis = USGSSiteSource()
-            persister.load(nwis.read(config))
 
     unify_wrapper(SiteRecord, config, func)
 
@@ -143,7 +136,8 @@ def unify_waterlevels(config):
 
 if __name__ == "__main__":
     cfg = Config()
-    cfg.bbox = "-106.5 32.5, -106.0 33.0"
-    unify_waterlevels(cfg)
+    cfg.bbox = "-104.0 32.5, -105.0 34.0"
+    unify_sites(cfg)
+    # unify_waterlevels(cfg)
 
 # ============= EOF =============================================

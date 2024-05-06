@@ -2,3 +2,4 @@ httpx
 pandas
 geopandas
 click
+frost_sta_client

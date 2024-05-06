@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from backend.connectors.ampapi.source import AMPAPISiteSource
+from backend.connectors.ckan.source import OSERoswellSiteSource
+from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource
+from backend.connectors.st2.source import ST2SiteSource, PVACDSiteSource, EBIDSiteSource
+from backend.connectors.usgs.source import USGSSiteSource
 
 
 class Config:
@@ -25,11 +30,27 @@ class Config:
     use_source_wqp = False
     use_source_isc_seven_rivers = False
     use_source_nwis = False
-    use_source_ose_roswell = True
+    use_source_ose_roswell = False
+    use_source_st2 = True
 
     output_horizontal_datum = "WGS84"
     output_elevation_unit = "ft"
     output_well_depth_unit = "ft"
+
+    def site_sources(self):
+        sources = []
+        if self.use_source_ampapi:
+            sources.append(AMPAPISiteSource)
+        if self.use_source_isc_seven_rivers:
+            sources.append(ISCSevenRiversSiteSource)
+        if self.use_source_ose_roswell:
+            sources.append(OSERoswellSiteSource)
+        if self.use_source_nwis:
+            sources.append(USGSSiteSource)
+        if self.use_source_st2:
+            sources.append(PVACDSiteSource)
+            sources.append(EBIDSiteSource)
+        return sources
 
     def bounding_points(self):
         p1, p2 = self.bbox.split(",")
@@ -46,6 +67,5 @@ class Config:
     def bounding_wkt(self):
         x1, y1, x2, y2 = self.bounding_points()
         return f"POLYGON(({x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}))"
-
 
 # ============= EOF =============================================
