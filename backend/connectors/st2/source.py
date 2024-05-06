@@ -66,9 +66,8 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
             .query()
             .expand("Locations,Datastreams")
             .filter(f"Locations/id eq {parent_record.id}")
-            .list()
         )
-        for t in things:
+        for t in things.list():
             if t.name == "Water Well":
                 for di in t.datastreams:
                     q = di.get_observations().query()

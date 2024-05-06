@@ -21,8 +21,12 @@ from backend.connectors.ampapi.transformer import (
 )
 from backend.source import BaseWaterLevelsSource, BaseSiteSource
 
+DEBUG = False
+
 
 def _make_url(endpoint):
+    if DEBUG:
+        return f"http://localhost:8000/{endpoint}"
     return f"https://waterdata.nmt.edu/{endpoint}"
 
 
@@ -43,11 +47,16 @@ class AMPAPIWaterLevelSource(BaseWaterLevelsSource):
     transformer_klass = AMPAPIWaterLevelTransformer
 
     def get_records(self, parent_record, config):
-        params = {"pointid": parent_record.id}
-        # just use manual waterlevels temporarily
-        resp = httpx.get(_make_url("waterlevels/manual"), params=params)
+        if config.latest_water_level_only:
+            params = {"pointids": parent_record.id}
+            url = _make_url("waterlevels/latest")
+        else:
+            params = {"pointid": parent_record.id}
+            # just use manual waterlevels temporarily
+            url = _make_url("waterlevels/manual")
+
+        resp = httpx.get(url, params=params)
         for wl in resp.json():
             yield wl
-
 
 # ============= EOF =============================================

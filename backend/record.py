@@ -28,6 +28,10 @@ class BaseRecord:
             v = self._payload.get(attr)
             if attr == "elevation" and v is not None:
                 v = round(v, 2)
+            elif attr == 'depth_to_water_ft_below_ground_surface' and v is not None:
+                v = round(v, 2)
+            elif attr == 'surface_elevation_ft' and v is not None:
+                v = round(v, 2)
 
             if v is None:
                 v = self.defaults.get(attr)

@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from datetime import datetime
-
 from backend.record import SiteRecord, WaterLevelRecord
 from backend.transformer import BaseTransformer
 
@@ -36,7 +34,7 @@ class AMPAPISiteTransformer(BaseTransformer):
             "alternate_site_id": props["alternate_site_id"],
             "formation": props["formation"],
             "well_depth": props["well_depth"]["value"],
-            "well_depth_unit": props["well_depth"]["unit"],
+            "well_depth_unit": props["well_depth"]["units"],
         }
         return SiteRecord(rec)
 
@@ -45,16 +43,10 @@ class AMPAPIWaterLevelTransformer(BaseTransformer):
     def transform(self, record, parent_record, config):
         dt = record["DateMeasured"]
         tt = record["TimeMeasured"]
-
-        # ts = datetime.strptime(f'{dt} {tt}', '%Y-%m-%d %H:%M:%S')
-        elev = parent_record.elevation
-        if elev is not None:
-            elev = round(elev, 2)
-
         rec = {
             "source": "AMPAPI",
             "id": parent_record.id,
-            "surface_elevation_ft": elev,
+            "surface_elevation_ft": parent_record.elevation,
             "well_depth_ft_below_ground_surface": parent_record.well_depth_ft_below_ground_surface,
             "depth_to_water_ft_below_ground_surface": record["DepthToWaterBGS"],
             "date_measured": dt,
