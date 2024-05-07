@@ -42,26 +42,28 @@ class AMPAPISiteTransformer(BaseTransformer):
 
 class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
     def transform(self, record, parent_record, config):
-        rec = {"source": "AMPAPI",
-               "id": parent_record.id,
-                "location": parent_record.name,
-                "usgs_site_id": parent_record.usgs_site_id,
-               "alternate_site_id": parent_record.alternate_site_id,
-               "latitude": parent_record.latitude,
-                "longitude": parent_record.longitude,
-               "surface_elevation_ft": parent_record.elevation,
-               "well_depth_ft_below_ground_surface": parent_record.well_depth_ft_below_ground_surface,}
+        rec = {
+            "source": "AMPAPI",
+            "id": parent_record.id,
+            "location": parent_record.name,
+            "usgs_site_id": parent_record.usgs_site_id,
+            "alternate_site_id": parent_record.alternate_site_id,
+            "latitude": parent_record.latitude,
+            "longitude": parent_record.longitude,
+            "surface_elevation_ft": parent_record.elevation,
+            "well_depth_ft_below_ground_surface": parent_record.well_depth_ft_below_ground_surface,
+        }
 
         if config.output_summary_waterlevel_stats:
-            rec['nrecords'] = record['nrecords']
-            rec['min'] = record['min']
-            rec['max'] = record['max']
-            rec['mean'] = record['mean']
-            rec['date_measured'] = record['most_recent_date']
+            rec["nrecords"] = record["nrecords"]
+            rec["min"] = record["min"]
+            rec["max"] = record["max"]
+            rec["mean"] = record["mean"]
+            rec["date_measured"] = record["most_recent_date"]
         else:
-            rec['date_measured'] = record["DateMeasured"]
-            rec['time_measured'] = record["TimeMeasured"]
-            rec['depth_to_water_ft_below_ground_surface'] = record['DepthToWaterBGS']
+            rec["date_measured"] = record["DateMeasured"]
+            rec["time_measured"] = record["TimeMeasured"]
+            rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
 
         klass = self._get_record_klass(config)
         return klass(rec)

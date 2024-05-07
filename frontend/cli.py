@@ -40,7 +40,7 @@ def wells(bbox, county):
     Get locations
     """
 
-    config = setup_config('sites', bbox, county)
+    config = setup_config("sites", bbox, county)
     unify_sites(config)
 
 
@@ -63,14 +63,14 @@ def wells(bbox, county):
     help="Summarize water levels",
 )
 def waterlevels(bbox, county, summarize):
-    config = setup_config('waterlevels', bbox, county)
-    print('summarize', summarize, type(summarize))
+    config = setup_config("waterlevels", bbox, county)
+    print("summarize", summarize, type(summarize))
     config.output_summary_waterlevel_stats = summarize
     unify_waterlevels(config)
 
 
 @cli.command()
-@click.argument('analyte')
+@click.argument("analyte")
 @click.option(
     "--bbox",
     default="",
@@ -82,7 +82,7 @@ def waterlevels(bbox, county, summarize):
     help="New Mexico county name",
 )
 def analytes(analyte, bbox, county):
-    config = setup_config(f'analytes ({analyte})', bbox, county)
+    config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte
     unify_analytes(config)
 
@@ -99,4 +99,6 @@ def setup_config(tag, bbox, county):
         config.bbox = bbox
 
     return config
+
+
 # ============= EOF =============================================

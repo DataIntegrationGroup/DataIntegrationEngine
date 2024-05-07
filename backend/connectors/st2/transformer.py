@@ -68,14 +68,14 @@ class ST2WaterLevelTransformer(WaterLevelTransformer):
             "longitude": parent_record.longitude,
             "surface_elevation_ft": parent_record.elevation,
             "well_depth_ft_below_ground_surface": parent_record.well_depth,
-            }
+        }
 
         if config.output_summary_waterlevel_stats:
-            dt = record['most_recent_date']
-            rec['nrecords'] = record['nrecords']
-            rec['min'] = record['min']
-            rec['max'] = record['max']
-            rec['mean'] = record['mean']
+            dt = record["most_recent_date"]
+            rec["nrecords"] = record["nrecords"]
+            rec["min"] = record["min"]
+            rec["max"] = record["max"]
+            rec["mean"] = record["mean"]
         else:
             dt = record["observation"].phenomenon_time
             dtw = record["observation"].result

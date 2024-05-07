@@ -57,4 +57,6 @@ class WQPAnalyteSource(BaseSource):
         for row in rows[1:]:
             vals = row.split("\t")
             yield dict(zip(header, vals))
+
+
 # ============= EOF =============================================

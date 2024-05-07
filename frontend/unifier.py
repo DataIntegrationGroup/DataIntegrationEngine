@@ -15,7 +15,12 @@
 # ===============================================================================
 from backend.config import Config
 from backend.persister import CSVPersister, GeoJSONPersister
-from backend.record import SiteRecord, WaterLevelRecord, AnalyteRecord, WaterLevelSummaryRecord
+from backend.record import (
+    SiteRecord,
+    WaterLevelRecord,
+    AnalyteRecord,
+    WaterLevelSummaryRecord,
+)
 
 
 def perister_factory(config, record_klass):
@@ -46,7 +51,9 @@ def unify_sites(config):
 
 
 def unify_waterlevels(config):
-    unify_datastream(config, config.water_level_sources(), WaterLevelRecord, WaterLevelSummaryRecord)
+    unify_datastream(
+        config, config.water_level_sources(), WaterLevelRecord, WaterLevelSummaryRecord
+    )
 
 
 def unify_analytes(config):

@@ -76,7 +76,10 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
             if t.name == "Water Well":
                 for di in t.datastreams:
                     q = di.get_observations().query()
-                    if config.latest_water_level_only and not config.output_summary_waterlevel_stats:
+                    if (
+                        config.latest_water_level_only
+                        and not config.output_summary_waterlevel_stats
+                    ):
                         q = q.orderby("phenomenonTime", "desc").top(1)
 
                     for obs in q.list():
@@ -86,7 +89,10 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
                             "datastream": di,
                             "observation": obs,
                         }
-                        if config.latest_water_level_only and not config.output_summary_waterlevel_stats:
+                        if (
+                            config.latest_water_level_only
+                            and not config.output_summary_waterlevel_stats
+                        ):
                             break
 
 

@@ -55,19 +55,27 @@ class BaseWaterLevelsSource(BaseSource):
             print(len(rs))
             wls = self._extract_waterlevels(rs)
             mrd = self._extract_most_recent(rs)
-            return self.transformer.transform({
-                "nrecords": len(wls),
-                "min": min(wls),
-                "max": max(wls),
-                "mean": sum(wls) / len(wls),
-                "most_recent_date": mrd,
-            }, parent_record, config)
+            return self.transformer.transform(
+                {
+                    "nrecords": len(wls),
+                    "min": min(wls),
+                    "max": max(wls),
+                    "mean": sum(wls) / len(wls),
+                    "most_recent_date": mrd,
+                },
+                parent_record,
+                config,
+            )
 
     def _extract_waterlevels(self, records):
-        raise NotImplementedError(f"{self.__class__.__name__} Must implement _extract_waterlevels")
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_waterlevels"
+        )
 
     def _extract_most_recent(self, records):
-        raise NotImplementedError(f"{self.__class__.__name__} Must implement _extract_most_recent")
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_most_recent"
+        )
 
     def read(self, parent_record, config):
         self.log(f"Gathering waterlevels for record {parent_record.id}")
@@ -92,5 +100,6 @@ class BaseAnalytesSource(BaseSource):
                 yield record
 
         self.log(f"nrecords={n}")
+
 
 # ============= EOF =============================================
