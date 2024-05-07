@@ -20,6 +20,7 @@ import shapely
 from shapely import Point
 
 from backend.geo_utils import datum_transform
+from backend.record import WaterLevelSummaryRecord, WaterLevelRecord
 
 
 def transform_horizontal_datum(x, y, in_datum, out_datum):
@@ -113,5 +114,14 @@ class BaseTransformer:
 
         return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")
 
+    def _get_record_klass(self, config):
+        raise NotImplementedError
 
+
+class WaterLevelTransformer(BaseTransformer):
+    def _get_record_klass(self, config):
+        if config.output_summary_waterlevel_stats:
+            return WaterLevelSummaryRecord
+        else:
+            return WaterLevelRecord
 # ============= EOF =============================================

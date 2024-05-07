@@ -46,6 +46,12 @@ class AMPAPISiteSource(BaseSiteSource):
 class AMPAPIWaterLevelSource(BaseWaterLevelsSource):
     transformer_klass = AMPAPIWaterLevelTransformer
 
+    def _extract_most_recent(self, records):
+        return records[0]["DateMeasured"]
+
+    def _extract_waterlevels(self, records):
+        return [r["DepthToWaterBGS"] for r in records]
+
     def get_records(self, parent_record, config):
         if config.latest_water_level_only:
             params = {"pointids": parent_record.id}

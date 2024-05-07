@@ -31,7 +31,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    install_requires=[],
+    install_requires=["click", "httpx", "geopandas", "frost_sta_client"],
     entry_points={
         "console_scripts": [
             "weave = frontend.cli:cli",

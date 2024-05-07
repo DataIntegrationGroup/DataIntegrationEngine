@@ -35,15 +35,15 @@ from backend.connectors.st2.source import (
     PVACDWaterLevelSource,
 )
 from backend.connectors.usgs.source import USGSSiteSource
+from backend.connectors.wqp.source import WQPSiteSource
 
 
 class Config:
+    # spatial
     bbox = None
     county = None
-    output_path = "output"
-    use_csv = True
-    use_geojson = False
 
+    # sources
     use_source_ampapi = True
     use_source_wqp = False
     use_source_isc_seven_rivers = False
@@ -51,11 +51,25 @@ class Config:
     use_source_ose_roswell = False
     use_source_st2 = True
 
+    analyte = None
+
+    # output
+    output_path = "output"
     output_horizontal_datum = "WGS84"
     output_elevation_unit = "ft"
     output_well_depth_unit = "ft"
+    output_summary_waterlevel_stats = True
 
     latest_water_level_only = True
+
+    use_csv = True
+    use_geojson = False
+
+    def analyte_sources(self):
+        sources = []
+        # if self.use_source_wqp:
+            # sources.append((WQPSiteSource, WQPAnalyteSource))
+        return sources
 
     def water_level_sources(self):
         sources = []

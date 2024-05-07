@@ -16,10 +16,10 @@
 import httpx
 
 from backend.connectors.wqp.transformer import WQPSiteTransformer
-from backend.source import BaseSource
+from backend.source import BaseSource, BaseSiteSource
 
 
-class WQPSiteSource(BaseSource):
+class WQPSiteSource(BaseSiteSource):
     transformer_klass = WQPSiteTransformer
 
     def get_records(self, config):
@@ -39,4 +39,22 @@ class WQPSiteSource(BaseSource):
             yield dict(zip(header, vals))
 
 
+class WQPAnalyteSource(BaseSource):
+    transformer_klass = WQPSiteTransformer
+
+    def get_records(self, config):
+        params = {"mimeType": "tsv", "siteType": "Well"}
+        if config.bbox:
+            bbox = config.bounding_points()
+            params["bBox"] = ",".join([str(b) for b in bbox])
+
+        resp = httpx.get(
+            "https://www.waterqualitydata.us/data/Result/search?", params=params
+        )
+        result = resp.text
+        rows = result.split("\n")
+        header = rows[0].split("\t")
+        for row in rows[1:]:
+            vals = row.split("\t")
+            yield dict(zip(header, vals))
 # ============= EOF =============================================

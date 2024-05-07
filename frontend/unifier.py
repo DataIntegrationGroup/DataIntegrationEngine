@@ -14,25 +14,8 @@
 # limitations under the License.
 # ===============================================================================
 from backend.config import Config
-from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
-from backend.connectors.ckan import (
-    HONDO_RESOURCE_ID,
-    FORT_SUMNER_RESOURCE_ID,
-    ROSWELL_RESOURCE_ID,
-)
-from backend.connectors.ckan.source import (
-    OSERoswellSiteSource,
-    OSERoswellWaterLevelSource,
-)
-from backend.connectors.isc_seven_rivers.source import (
-    ISCSevenRiversSiteSource,
-    ISCSevenRiversWaterLevelSource,
-)
-from backend.connectors.st2.source import ST2SiteSource
-from backend.connectors.usgs.source import USGSSiteSource
-from backend.connectors.wqp.source import WQPSiteSource
 from backend.persister import CSVPersister, GeoJSONPersister
-from backend.record import SiteRecord, WaterLevelRecord, AnalyteRecord
+from backend.record import SiteRecord, WaterLevelRecord, AnalyteRecord, WaterLevelSummaryRecord
 
 
 def perister_factory(config, record_klass):
@@ -51,27 +34,6 @@ def unify_wrapper(record_klass, config, func):
     persister.save(config.output_path)
 
 
-def unify_analytes(config):
-    def func(config, persister):
-        if config.use_source_wqp:
-            wqp = WQPSiteSource()
-            persister.load(wqp.read(config))
-
-        # if config.use_source_ampapi:
-        #     s = AMPAPISiteSource()
-        #     persister.load(s.read(config))
-        #
-        # if config.use_source_isc_seven_rivers:
-        #     isc = ISCSevenRiversSiteSource()
-        #     persister.load(isc.read(config))
-        #
-        # if config.use_source_nwis:
-        #     nwis = USGSSiteSource()
-        #     persister.load(nwis.read(config))
-
-    unify_wrapper(AnalyteRecord, config, func)
-
-
 def unify_sites(config):
     print("unifying")
 
@@ -84,23 +46,35 @@ def unify_sites(config):
 
 
 def unify_waterlevels(config):
+    unify_datastream(config, config.water_level_sources(), WaterLevelRecord, WaterLevelSummaryRecord)
+
+
+def unify_analytes(config):
+    unify_datastream(config, config.analyte_sources(), AnalyteRecord)
+
+
+def unify_datastream(config, sources, record_klass, summary_record_klass):
     def func(config, persister):
-        for sklass, ssklass in config.water_level_sources():
+        for sklass, ssklass in sources:
             s = sklass()
             ss = ssklass()
-            for record in s.read(config):
-                for wl in ss.read(record, config):
-                    persister.records.append(wl)
+            for i, record in enumerate(s.read(config)):
+                if i > 3:
+                    break
 
-    unify_wrapper(WaterLevelRecord, config, func)
+                if config.output_summary_waterlevel_stats:
+                    summary_record = ss.summary(record, config)
+                    if summary_record:
+                        persister.records.append(summary_record)
+                else:
+                    for wl in ss.read(record, config):
+                        persister.records.append(wl)
 
-    # if config.use_source_isc_seven_rivers:
-    #     isc = ISCSevenRiversSiteSource()
-    #     persister.load(isc.read(config))
-    #
-    # if config.use_source_nwis:
-    #     nwis = USGSSiteSource()
-    #     persister.load(nwis.read(config))
+    klass = record_klass
+    if config.output_summary_waterlevel_stats:
+        klass = summary_record_klass
+
+    unify_wrapper(klass, config, func)
 
 
 if __name__ == "__main__":
@@ -108,6 +82,7 @@ if __name__ == "__main__":
     # cfg.bbox = "-104.0 32.5, -105.0 34.0"
     cfg.county = "chaves"
     print(cfg.county, cfg.bbox)
+    cfg.output_summary_waterlevel_stats = True
     # unify_sites(cfg)
     unify_waterlevels(cfg)
 

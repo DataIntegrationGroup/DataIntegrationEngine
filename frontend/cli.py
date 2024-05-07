@@ -40,16 +40,7 @@ def wells(bbox, county):
     Get locations
     """
 
-    config = Config()
-    if county:
-        click.echo(f"Getting locations for county {county}")
-        config.county = county
-    elif bbox:
-        click.echo(f"Getting locations for bounding box {bbox}")
-
-        # bbox = -105.396826 36.219290, -106.024162 35.384307
-        config.bbox = bbox
-
+    config = setup_config('sites', bbox, county)
     unify_sites(config)
 
 
@@ -59,29 +50,53 @@ def wells(bbox, county):
     default="",
     help="Bounding box in the form 'x1 y1, x2 y2'",
 )
-def waterlevels(bbox):
-    click.echo(f"Getting waterlevels for bounding box {bbox}")
-
-    config = Config()
-    # bbox = -107.468262,33.979809,-107.053528,34.191358
-    # bbox = -105.396826 36.219290, -106.024162 35.384307
-    # bbox = -107.266538 34.098781,-107.233107 34.114967
-    config.bbox = bbox
-
+@click.option(
+    "--county",
+    default="",
+    help="New Mexico county name",
+)
+@click.option(
+    "--summarize/--no-summarize",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Summarize water levels",
+)
+def waterlevels(bbox, county, summarize):
+    config = setup_config('waterlevels', bbox, county)
+    print('summarize', summarize, type(summarize))
+    config.output_summary_waterlevel_stats = summarize
     unify_waterlevels(config)
 
 
 @cli.command()
+@click.argument('analyte')
 @click.option(
     "--bbox",
     default="",
     help="Bounding box in the form 'x1 y1, x2 y2'",
 )
-def analytes(bbox):
-    click.echo("Getting analytes")
-    config = Config()
-    config.bbox = bbox
+@click.option(
+    "--county",
+    default="",
+    help="New Mexico county name",
+)
+def analytes(analyte, bbox, county):
+    config = setup_config(f'analytes ({analyte})', bbox, county)
+    config.analyte = analyte
     unify_analytes(config)
 
 
+def setup_config(tag, bbox, county):
+    config = Config()
+    if county:
+        click.echo(f"Getting {tag} for county {county}")
+        config.county = county
+    elif bbox:
+        click.echo(f"Getting {tag} for bounding box {bbox}")
+
+        # bbox = -105.396826 36.219290, -106.024162 35.384307
+        config.bbox = bbox
+
+    return config
 # ============= EOF =============================================

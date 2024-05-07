@@ -26,15 +26,22 @@ class BaseRecord:
 
         def get(attr):
             v = self._payload.get(attr)
-            if attr == "elevation" and v is not None:
-                v = round(v, 2)
-            elif attr == "depth_to_water_ft_below_ground_surface" and v is not None:
-                v = round(v, 2)
-            elif attr == "surface_elevation_ft" and v is not None:
-                v = round(v, 2)
-
-            if v is None:
+            if v is None and self.defaults:
                 v = self.defaults.get(attr)
+
+            for key, sigfigs in (("elevation", 2),
+                                  ("depth_to_water_ft_below_ground_surface", 2),
+                                  ("surface_elevation_ft", 2),
+                                  ("well_depth_ft_below_ground_surface", 2),
+                                  ("well_depth", 2),
+                                  ("latitude", 6),
+                                  ("longitude", 6),
+                                  ("min", 2),
+                                  ("max", 2),
+                                  ("mean", 2)):
+                if v is not None and key == attr:
+                    v = round(v, sigfigs)
+                    break
             return v
 
         return [get(k) for k in self.keys]
@@ -50,13 +57,37 @@ class WaterLevelRecord(BaseRecord):
     keys = (
         "source",
         "id",
+        "location",
+        "latitude",
+        "longitude",
         "surface_elevation_ft",
         "well_depth_ft_below_ground_surface",
         "depth_to_water_ft_below_ground_surface",
         "date_measured",
         "time_measured",
     )
-    defaults = {}
+
+
+class WaterLevelSummaryRecord(BaseRecord):
+    keys = (
+        "source",
+        "id",
+        "location",
+        "usgs_site_id",
+        "alternate_site_id",
+        "latitude",
+        "longitude",
+        "surface_elevation_ft",
+        "well_depth_ft_below_ground_surface",
+        "nrecords",
+        "min",
+        "max",
+        "mean",
+        "date_measured",
+        "time_measured",
+    )
+
+
 
 
 class AnalyteRecord(BaseRecord):

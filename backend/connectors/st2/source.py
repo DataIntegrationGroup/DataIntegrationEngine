@@ -57,6 +57,11 @@ class EBIDSiteSource(ST2SiteSource):
 
 
 class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
+    def _extract_most_recent(self, records):
+        return records[0]["observation"].phenomenon_time
+
+    def _extract_waterlevels(self, records):
+        return [r["observation"].result for r in records]
 
     def get_records(self, parent_record, config, *args, **kw):
         service = self.get_service()
@@ -71,7 +76,7 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
             if t.name == "Water Well":
                 for di in t.datastreams:
                     q = di.get_observations().query()
-                    if config.latest_water_level_only:
+                    if config.latest_water_level_only and not config.output_summary_waterlevel_stats:
                         q = q.orderby("phenomenonTime", "desc").top(1)
 
                     for obs in q.list():
@@ -81,7 +86,7 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
                             "datastream": di,
                             "observation": obs,
                         }
-                        if config.latest_water_level_only:
+                        if config.latest_water_level_only and not config.output_summary_waterlevel_stats:
                             break
 
 
