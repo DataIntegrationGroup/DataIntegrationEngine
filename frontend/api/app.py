@@ -18,17 +18,17 @@ from fastapi import FastAPI
 app = FastAPI()
 
 
-@app.get('/unify_sites')
+@app.get("/unify_sites")
 def unify_sites():
-    return dict(message='unify sites')
+    return dict(message="unify sites")
 
 
-@app.get('/unify_waterlevels')
+@app.get("/unify_waterlevels")
 def unify_waterlevels():
-    return dict(message='unify waterlevels')
+    return dict(message="unify waterlevels")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, port=8080)
