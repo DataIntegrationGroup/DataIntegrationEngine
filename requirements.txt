@@ -3,3 +3,4 @@ pandas
 geopandas
 click
 frost_sta_client
+fastapi==0.111.0
