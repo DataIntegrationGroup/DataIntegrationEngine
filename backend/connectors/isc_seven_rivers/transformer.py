@@ -65,4 +65,6 @@ class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
 
         klass = self._get_record_klass(config)
         return klass(rec)
+
+
 # ============= EOF =============================================

@@ -38,7 +38,7 @@ class AMPAPISiteSource(BaseSiteSource):
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
 
-        params['has_waterlevels'] = config.has_waterlevels
+        params["has_waterlevels"] = config.has_waterlevels
 
         resp = httpx.get(_make_url("locations"), params=params, timeout=30)
         for site in resp.json()["features"]:
@@ -52,7 +52,9 @@ class AMPAPIWaterLevelSource(BaseWaterLevelsSource):
         return records[0]["DateMeasured"]
 
     def _extract_waterlevels(self, records):
-        return [r["DepthToWaterBGS"] for r in records if r["DepthToWaterBGS"] is not None]
+        return [
+            r["DepthToWaterBGS"] for r in records if r["DepthToWaterBGS"] is not None
+        ]
 
     def get_records(self, parent_record, config):
         if config.latest_water_level_only:

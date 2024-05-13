@@ -86,7 +86,9 @@ class Config:
             sources.append((AMPAPISiteSource(), AMPAPIWaterLevelSource()))
 
         if self.use_source_isc_seven_rivers:
-            sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource()))
+            sources.append(
+                (ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource())
+            )
 
         if self.use_source_nwis:
             pass
@@ -163,5 +165,6 @@ class Config:
         td = timedelta(days=days)
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
+
 
 # ============= EOF =============================================
