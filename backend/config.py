@@ -133,10 +133,10 @@ class Config:
             x1, y1 = [float(a) for a in p1.strip().split(" ")]
             x2, y2 = [float(a) for a in p2.strip().split(" ")]
         else:
-            x1 = self.bbox['minLng']
-            x2 = self.bbox['maxLng']
-            y1 = self.bbox['minLat']
-            y2 = self.bbox['maxLat']
+            x1 = self.bbox["minLng"]
+            x2 = self.bbox["maxLng"]
+            y1 = self.bbox["minLat"]
+            y2 = self.bbox["maxLat"]
 
         if x1 > x2:
             x1, x2 = x2, x1
@@ -155,5 +155,6 @@ class Config:
 
     def has_bounds(self):
         return self.bbox or self.county
+
 
 # ============= EOF =============================================

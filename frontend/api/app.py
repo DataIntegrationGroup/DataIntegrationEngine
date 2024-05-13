@@ -51,6 +51,7 @@ class ConfigModel(BaseModel):
 
 active_processes = []
 
+
 def cleanup():
     rm = []
     for a in active_processes:
@@ -66,9 +67,11 @@ def cleanup():
 def router_unify_waterlevels(item: ConfigModel):
     print("unify waterlevels", item)
     cfg = Config(model=item)
-    itemhash = hashlib.md5(json.dumps(item.model_dump(), sort_keys=True).encode()).hexdigest()
-    name = f'{itemhash}.csv'
-    pp = os.path.join('cache', name)
+    itemhash = hashlib.md5(
+        json.dumps(item.model_dump(), sort_keys=True).encode()
+    ).hexdigest()
+    name = f"{itemhash}.csv"
+    pp = os.path.join("cache", name)
     if not os.path.isfile(pp):
         cfg.output_path = pp
 
@@ -94,18 +97,19 @@ def router_status(process_id: Optional[int] = None):
                 return dict(message="active process", process=str(p))
     else:
 
-        return dict(message="active processes", processes=[str(p) for p in active_processes
-                                                           if p.is_alive()
-                                                           ])
+        return dict(
+            message="active processes",
+            processes=[str(p) for p in active_processes if p.is_alive()],
+        )
 
 
 @app.get("/download_unified_waterlevels")
 def router_download_unified_waterlevels(downloadhash: str):
-    downloadhash = os.path.join('cache', f"{downloadhash}.csv")
+    downloadhash = os.path.join("cache", f"{downloadhash}.csv")
     if not os.path.isfile(downloadhash):
         return HTTPException(status_code=404, detail="No such file")
 
-    with open(downloadhash, 'r') as f:
+    with open(downloadhash, "r") as f:
         response = StreamingResponse(iter([f.read()]), media_type="text/csv")
 
     response.headers["Content-Disposition"] = f"attachment; filename=output.csv"

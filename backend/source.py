@@ -55,7 +55,7 @@ class BaseWaterLevelsSource(BaseSource):
             wls = self._extract_waterlevels(rs)
             mrd = self._extract_most_recent(rs)
             n = len(wls)
-            self.log(f'Retrieved waterlevels: {n}')
+            self.log(f"Retrieved waterlevels: {n}")
             return self.transformer.transform(
                 {
                     "nrecords": n,
