@@ -58,6 +58,7 @@ class BaseTransformer:
         x = record.latitude
         y = record.longitude
         datum = record.horizontal_datum
+
         lng, lat, datum = transform_horizontal_datum(
             x,
             y,

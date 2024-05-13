@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import time
+from datetime import datetime, timedelta
+
 from backend.bounding_polygons import get_county_polygon
 from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
 from backend.connectors.ckan import (
@@ -44,13 +47,14 @@ class Config:
     county = None
 
     # sources
-    use_source_ampapi = True
-    use_source_wqp = False
-    use_source_isc_seven_rivers = False
-    use_source_nwis = False
-    use_source_ose_roswell = False
+    use_source_ampapi = False
+    use_source_wqp = True
+    use_source_isc_seven_rivers = True
+    use_source_nwis = True
+    use_source_ose_roswell = True
     use_source_st2 = True
 
+    has_waterlevels = False
     analyte = None
 
     # output
@@ -58,9 +62,8 @@ class Config:
     output_horizontal_datum = "WGS84"
     output_elevation_unit = "ft"
     output_well_depth_unit = "ft"
-    output_summary_waterlevel_stats = True
-
-    latest_water_level_only = True
+    output_summary_waterlevel_stats = False
+    latest_water_level_only = False
 
     use_csv = True
     use_geojson = False
@@ -80,10 +83,10 @@ class Config:
     def water_level_sources(self):
         sources = []
         if self.use_source_ampapi:
-            sources.append((AMPAPISiteSource, AMPAPIWaterLevelSource))
+            sources.append((AMPAPISiteSource(), AMPAPIWaterLevelSource()))
 
         if self.use_source_isc_seven_rivers:
-            sources.append((ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource))
+            sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource()))
 
         if self.use_source_nwis:
             pass
@@ -108,7 +111,7 @@ class Config:
                 )
             )
         if self.use_source_st2:
-            sources.append((PVACDSiteSource, PVACDWaterLevelSource))
+            sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
             # sources.append((EBIDSiteSource, EBIDWaterLevelSource))
         return sources
 
@@ -156,5 +159,9 @@ class Config:
     def has_bounds(self):
         return self.bbox or self.county
 
+    def now_ms(self, days=0):
+        td = timedelta(days=days)
+        # return current time in milliseconds
+        return int((datetime.now() - td).timestamp() * 1000)
 
 # ============= EOF =============================================

@@ -54,19 +54,20 @@ class BaseWaterLevelsSource(BaseSource):
         if rs:
             wls = self._extract_waterlevels(rs)
             mrd = self._extract_most_recent(rs)
-            n = len(wls)
-            self.log(f"Retrieved waterlevels: {n}")
-            return self.transformer.transform(
-                {
-                    "nrecords": n,
-                    "min": min(wls),
-                    "max": max(wls),
-                    "mean": sum(wls) / n,
-                    "most_recent_date": mrd,
-                },
-                parent_record,
-                config,
-            )
+            if wls:
+                n = len(wls)
+                self.log(f"Retrieved waterlevels: {n}")
+                return self.transformer.transform(
+                    {
+                        "nrecords": n,
+                        "min": min(wls),
+                        "max": max(wls),
+                        "mean": sum(wls) / n,
+                        "most_recent_date": mrd,
+                    },
+                    parent_record,
+                    config,
+                )
 
     def _extract_waterlevels(self, records):
         raise NotImplementedError(

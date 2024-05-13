@@ -25,21 +25,21 @@ class BaseRecord:
     def to_row(self):
 
         def get(attr):
-            v = self._payload.get(attr)
-            if v is None and self.defaults:
-                v = self.defaults.get(attr)
-
+            # v = self._payload.get(attr)
+            # if v is None and self.defaults:
+            #     v = self.defaults.get(attr)
+            v = self.__getattr__(attr)
             for key, sigfigs in (
-                ("elevation", 2),
-                ("depth_to_water_ft_below_ground_surface", 2),
-                ("surface_elevation_ft", 2),
-                ("well_depth_ft_below_ground_surface", 2),
-                ("well_depth", 2),
-                ("latitude", 6),
-                ("longitude", 6),
-                ("min", 2),
-                ("max", 2),
-                ("mean", 2),
+                    ("elevation", 2),
+                    ("depth_to_water_ft_below_ground_surface", 2),
+                    ("surface_elevation_ft", 2),
+                    ("well_depth_ft_below_ground_surface", 2),
+                    ("well_depth", 2),
+                    ("latitude", 6),
+                    ("longitude", 6),
+                    ("min", 2),
+                    ("max", 2),
+                    ("mean", 2),
             ):
                 if v is not None and key == attr:
                     v = round(v, sigfigs)
@@ -51,8 +51,11 @@ class BaseRecord:
     def update(self, **kw):
         self._payload.update(kw)
 
-    def __getattr__(self, k):
-        return self._payload.get(k)
+    def __getattr__(self, attr):
+        v = self._payload.get(attr)
+        if v is None and self.defaults:
+            v = self.defaults.get(attr)
+        return v
 
 
 class WaterLevelRecord(BaseRecord):
@@ -68,6 +71,8 @@ class WaterLevelRecord(BaseRecord):
         "date_measured",
         "time_measured",
     )
+
+    defaults = {}
 
 
 class WaterLevelSummaryRecord(BaseRecord):
@@ -88,6 +93,7 @@ class WaterLevelSummaryRecord(BaseRecord):
         "date_measured",
         "time_measured",
     )
+    defaults = {}
 
 
 class AnalyteRecord(BaseRecord):
@@ -100,6 +106,7 @@ class AnalyteRecord(BaseRecord):
         "result",
         "units",
     )
+    defaults = {}
 
 
 class SiteRecord(BaseRecord):
@@ -128,7 +135,7 @@ class SiteRecord(BaseRecord):
         "longitude": None,
         "elevation": None,
         "elevation_units": "feet",
-        "horizontal_datum": "",
+        "horizontal_datum": "WGS84",
         "vertical_datum": "",
         "usgs_site_id": "",
         "alternate_site_id": "",
@@ -136,6 +143,5 @@ class SiteRecord(BaseRecord):
         "aquifer": "",
         "well_depth": None,
     }
-
 
 # ============= EOF =============================================

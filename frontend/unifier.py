@@ -62,9 +62,7 @@ def unify_analytes(config):
 
 def unify_datastream(config, sources, record_klass, summary_record_klass):
     def func(config, persister):
-        for sklass, ssklass in sources:
-            s = sklass()
-            ss = ssklass()
+        for s, ss in sources:
             for i, record in enumerate(s.read(config)):
                 # if i > 5:
                 #     break
@@ -88,7 +86,7 @@ if __name__ == "__main__":
     cfg = Config()
     cfg.county = "chaves"
     cfg.output_summary_waterlevel_stats = True
-
+    cfg.has_waterlevels = True
     # unify_sites(cfg)
     unify_waterlevels(cfg)
 
