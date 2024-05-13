@@ -58,13 +58,12 @@ def wells(bbox, county):
 @click.option(
     "--summarize/--no-summarize",
     is_flag=True,
-    default=False,
+    default=True,
     show_default=True,
     help="Summarize water levels",
 )
 def waterlevels(bbox, county, summarize):
     config = setup_config("waterlevels", bbox, county)
-    print("summarize", summarize, type(summarize))
     config.output_summary_waterlevel_stats = summarize
     unify_waterlevels(config)
 

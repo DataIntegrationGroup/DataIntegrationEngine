@@ -40,7 +40,7 @@ from backend.connectors.wqp.source import WQPSiteSource
 
 class Config:
     # spatial
-    bbox = None
+    bbox = None  # dict or str
     county = None
 
     # sources
@@ -64,6 +64,12 @@ class Config:
 
     use_csv = True
     use_geojson = False
+
+    def __init__(self, model=None):
+        if model:
+            self.county = model.county
+            if not self.county:
+                self.bbox = model.bbox
 
     def analyte_sources(self):
         sources = []
@@ -122,9 +128,15 @@ class Config:
         return sources
 
     def bounding_points(self):
-        p1, p2 = self.bbox.split(",")
-        x1, y1 = [float(a) for a in p1.strip().split(" ")]
-        x2, y2 = [float(a) for a in p2.strip().split(" ")]
+        if isinstance(self.bbox, str):
+            p1, p2 = self.bbox.split(",")
+            x1, y1 = [float(a) for a in p1.strip().split(" ")]
+            x2, y2 = [float(a) for a in p2.strip().split(" ")]
+        else:
+            x1 = self.bbox['minLng']
+            x2 = self.bbox['maxLng']
+            y1 = self.bbox['minLat']
+            y2 = self.bbox['maxLat']
 
         if x1 > x2:
             x1, x2 = x2, x1
@@ -143,6 +155,5 @@ class Config:
 
     def has_bounds(self):
         return self.bbox or self.county
-
 
 # ============= EOF =============================================

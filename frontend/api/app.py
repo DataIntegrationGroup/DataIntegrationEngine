@@ -13,23 +13,107 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from fastapi import FastAPI
+import hashlib
+import json
+import multiprocessing
+import os
+from typing import Optional
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import StreamingResponse
+
+from backend.config import Config
+from frontend.unifier import unify_waterlevels
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.get("/unify_sites")
-def unify_sites():
-    return dict(message="unify sites")
+class BboxModel(BaseModel):
+    minLat: float
+    maxLat: float
+    minLng: float
+    maxLng: float
 
 
-@app.get("/unify_waterlevels")
-def unify_waterlevels():
-    return dict(message="unify waterlevels")
+class ConfigModel(BaseModel):
+    bbox: Optional[BboxModel] = None
+    county: str
+
+
+active_processes = []
+
+def cleanup():
+    rm = []
+    for a in active_processes:
+        if not a.is_alive():
+            rm.append(a)
+
+    if rm:
+        for r in rm:
+            active_processes.remove(r)
+
+
+@app.post("/trigger_unify_waterlevels")
+def router_unify_waterlevels(item: ConfigModel):
+    print("unify waterlevels", item)
+    cfg = Config(model=item)
+    itemhash = hashlib.md5(json.dumps(item.model_dump(), sort_keys=True).encode()).hexdigest()
+    name = f'{itemhash}.csv'
+    pp = os.path.join('cache', name)
+    if not os.path.isfile(pp):
+        cfg.output_path = pp
+
+        cleanup()
+        # spawn a new process to do the work
+        if len(active_processes) > 5:
+            raise HTTPException(status_code=429, detail="Too many active processes")
+
+        proc = multiprocessing.Process(target=unify_waterlevels, args=(cfg,))
+        proc.start()
+
+        active_processes.append(proc)
+    return dict(message="triggered unify waterlevels", downloadhash=itemhash)
+
+
+@app.get("/status")
+def router_status(process_id: Optional[int] = None):
+    cleanup()
+
+    if process_id:
+        for p in active_processes:
+            if p.pid == process_id:
+                return dict(message="active process", process=str(p))
+    else:
+
+        return dict(message="active processes", processes=[str(p) for p in active_processes
+                                                           if p.is_alive()
+                                                           ])
+
+
+@app.get("/download_unified_waterlevels")
+def router_download_unified_waterlevels(downloadhash: str):
+    downloadhash = os.path.join('cache', f"{downloadhash}.csv")
+    if not os.path.isfile(downloadhash):
+        return HTTPException(status_code=404, detail="No such file")
+
+    with open(downloadhash, 'r') as f:
+        response = StreamingResponse(iter([f.read()]), media_type="text/csv")
+
+    response.headers["Content-Disposition"] = f"attachment; filename=output.csv"
+    return response
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, port=8080)
+    uvicorn.run(app, port=8080, reload=True)
 # ============= EOF =============================================

@@ -26,7 +26,7 @@ class BaseSource:
         self.transformer = self.transformer_klass()
 
     def log(self, msg):
-        click.secho(f"{self.__class__.__name__:30s} {msg}", fg="yellow")
+        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg="yellow")
 
     def get_records(self, *args, **kw):
         raise NotImplementedError(
@@ -52,15 +52,16 @@ class BaseWaterLevelsSource(BaseSource):
         self.log(f"Gathering waterlevel summary for record {parent_record.id}")
         rs = list(self.get_records(parent_record, config))
         if rs:
-            print(len(rs))
             wls = self._extract_waterlevels(rs)
             mrd = self._extract_most_recent(rs)
+            n = len(wls)
+            self.log(f'Retrieved waterlevels: {n}')
             return self.transformer.transform(
                 {
-                    "nrecords": len(wls),
+                    "nrecords": n,
                     "min": min(wls),
                     "max": max(wls),
-                    "mean": sum(wls) / len(wls),
+                    "mean": sum(wls) / n,
                     "most_recent_date": mrd,
                 },
                 parent_record,

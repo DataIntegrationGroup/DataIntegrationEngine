@@ -62,7 +62,6 @@ class CSVPersister(BasePersister):
     extension = "csv"
 
     def _save(self, path):
-        path = self.add_extension(path)
         with open(path, "w") as f:
             writer = csv.writer(f)
             writer.writerow(self.keys)

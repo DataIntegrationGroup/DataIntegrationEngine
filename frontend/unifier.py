@@ -66,8 +66,8 @@ def unify_datastream(config, sources, record_klass, summary_record_klass):
             s = sklass()
             ss = ssklass()
             for i, record in enumerate(s.read(config)):
-                if i > 3:
-                    break
+                # if i > 5:
+                #     break
 
                 if config.output_summary_waterlevel_stats:
                     summary_record = ss.summary(record, config)
@@ -86,10 +86,9 @@ def unify_datastream(config, sources, record_klass, summary_record_klass):
 
 if __name__ == "__main__":
     cfg = Config()
-    # cfg.bbox = "-104.0 32.5, -105.0 34.0"
     cfg.county = "chaves"
-    print(cfg.county, cfg.bbox)
     cfg.output_summary_waterlevel_stats = True
+
     # unify_sites(cfg)
     unify_waterlevels(cfg)
 

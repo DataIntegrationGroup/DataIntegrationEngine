@@ -20,7 +20,7 @@ from backend.transformer import BaseTransformer, WaterLevelTransformer
 class AMPAPISiteTransformer(BaseTransformer):
     def transform(self, record, config):
         props = record["properties"]
-        print(props)
+        # print(props)
         rec = {
             "source": "AMPAPI",
             "id": props["point_id"],
