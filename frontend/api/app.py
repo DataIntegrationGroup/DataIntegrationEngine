@@ -47,6 +47,7 @@ class BboxModel(BaseModel):
 class ConfigModel(BaseModel):
     bbox: Optional[BboxModel] = None
     county: str
+    wkt: str
 
 
 active_processes = []
@@ -67,6 +68,10 @@ def cleanup():
 def router_unify_waterlevels(item: ConfigModel):
     print("unify waterlevels", item)
     cfg = Config(model=item)
+    cfg.output_summary_waterlevel_stats = True
+    cfg.has_waterlevels = True
+
+
     itemhash = hashlib.md5(
         json.dumps(item.model_dump(), sort_keys=True).encode()
     ).hexdigest()

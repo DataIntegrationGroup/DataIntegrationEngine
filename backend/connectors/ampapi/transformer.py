@@ -28,14 +28,14 @@ class AMPAPISiteTransformer(BaseTransformer):
             "latitude": record["geometry"]["coordinates"][1],
             "longitude": record["geometry"]["coordinates"][0],
             "elevation": record["geometry"]["coordinates"][2],
-            "elevation_unit": "m",
+            "elevation_units": "m",
             "horizontal_datum": props["lonlat_datum"],
             "vertical_datum": props["altitude_datum"],
             "usgs_site_id": props["site_id"],
             "alternate_site_id": props["alternate_site_id"],
             "formation": props["formation"],
             "well_depth": props["well_depth"]["value"],
-            "well_depth_unit": props["well_depth"]["units"],
+            "well_depth_units": props["well_depth"]["units"],
         }
         return SiteRecord(rec)
 
@@ -50,8 +50,10 @@ class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
             "alternate_site_id": parent_record.alternate_site_id,
             "latitude": parent_record.latitude,
             "longitude": parent_record.longitude,
-            "surface_elevation_ft": parent_record.elevation,
-            "well_depth_ft_below_ground_surface": parent_record.well_depth_ft_below_ground_surface,
+            "well_depth": parent_record.well_depth,
+            "well_depth_units": parent_record.well_depth_units,
+            "elevation": parent_record.elevation,
+            "elevation_units": parent_record.elevation_units,
         }
 
         if config.output_summary_waterlevel_stats:

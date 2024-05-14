@@ -35,7 +35,7 @@ class ISCSevenRiversSiteTransformer(BaseTransformer):
             "latitude": lat,
             "longitude": lng,
             "elevation": record["groundSurfaceElevationFeet"],
-            "elevation_unit": "ft",
+            "elevation_units": "ft",
         }
 
         return SiteRecord(rec)
@@ -51,7 +51,6 @@ class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
             "longitude": parent_record.longitude,
             "surface_elevation_ft": parent_record.elevation,
         }
-
         if config.output_summary_waterlevel_stats:
             rec["nrecords"] = record["nrecords"]
             rec["min"] = record["min"]
@@ -59,9 +58,8 @@ class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
             rec["mean"] = record["mean"]
             rec["date_measured"] = record["most_recent_date"]
         else:
-            rec["date_measured"] = record["DateMeasured"]
-            rec["time_measured"] = record["TimeMeasured"]
-            rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
+            rec["date_measured"] = record["dateTime"]
+            rec["depth_to_water_ft_below_ground_surface"] = record["depthToWaterFeet"]
 
         klass = self._get_record_klass(config)
         return klass(rec)

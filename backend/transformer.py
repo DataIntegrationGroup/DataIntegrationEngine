@@ -70,16 +70,16 @@ class BaseTransformer:
         record.update(horizontal_datum=datum)
 
         e, eunit = transform_units(
-            record.elevation, record.elevation_unit, config.output_elevation_unit
+            record.elevation, record.elevation_units, config.output_elevation_units
         )
         record.update(elevation=e)
-        record.update(elevation_unit=eunit)
+        record.update(elevation_units=eunit)
 
         wd, wdunit = transform_units(
-            record.well_depth, record.well_depth_unit, config.output_well_depth_unit
+            record.well_depth, record.well_depth_units, config.output_well_depth_units
         )
         record.update(well_depth=wd)
-        record.update(well_depth_unit=wdunit)
+        record.update(well_depth_units=wdunit)
 
         return record
 

@@ -45,9 +45,10 @@ class Config:
     # spatial
     bbox = None  # dict or str
     county = None
+    wkt = None
 
     # sources
-    use_source_ampapi = False
+    use_source_ampapi = True
     use_source_wqp = True
     use_source_isc_seven_rivers = True
     use_source_nwis = True
@@ -60,8 +61,8 @@ class Config:
     # output
     output_path = "output"
     output_horizontal_datum = "WGS84"
-    output_elevation_unit = "ft"
-    output_well_depth_unit = "ft"
+    output_elevation_units = "ft"
+    output_well_depth_units = "ft"
     output_summary_waterlevel_stats = False
     latest_water_level_only = False
 
@@ -70,9 +71,12 @@ class Config:
 
     def __init__(self, model=None):
         if model:
-            self.county = model.county
-            if not self.county:
-                self.bbox = model.bbox
+            if model.wkt:
+                self.wkt = model.wkt
+            else:
+                self.county = model.county
+                if not self.county:
+                    self.bbox = model.bbox.model_dump()
 
     def analyte_sources(self):
         sources = []
@@ -151,7 +155,9 @@ class Config:
         return x1, y1, x2, y2
 
     def bounding_wkt(self):
-        if self.bbox:
+        if self.wkt:
+            return self.wkt
+        elif self.bbox:
             x1, y1, x2, y2 = self.bounding_points()
             pts = f"{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}"
             return f"POLYGON({pts})"
@@ -159,7 +165,7 @@ class Config:
             return get_county_polygon(self.county)
 
     def has_bounds(self):
-        return self.bbox or self.county
+        return self.bbox or self.county or self.wkt
 
     def now_ms(self, days=0):
         td = timedelta(days=days)

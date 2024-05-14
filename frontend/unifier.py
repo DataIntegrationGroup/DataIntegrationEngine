@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import click
+
 from backend.config import Config
 from backend.persister import CSVPersister, GeoJSONPersister
 from backend.record import (
@@ -63,17 +65,20 @@ def unify_analytes(config):
 def unify_datastream(config, sources, record_klass, summary_record_klass):
     def func(config, persister):
         for s, ss in sources:
-            for i, record in enumerate(s.read(config)):
-                # if i > 5:
-                #     break
+            try:
+                for i, record in enumerate(s.read(config)):
+                    # if i > 5:
+                    #     break
 
-                if config.output_summary_waterlevel_stats:
-                    summary_record = ss.summary(record, config)
-                    if summary_record:
-                        persister.records.append(summary_record)
-                else:
-                    for wl in ss.read(record, config):
-                        persister.records.append(wl)
+                    if config.output_summary_waterlevel_stats:
+                        summary_record = ss.summary(record, config)
+                        if summary_record:
+                            persister.records.append(summary_record)
+                    else:
+                        for wl in ss.read(record, config):
+                            persister.records.append(wl)
+            except BaseException:
+                click.secho(f"Failed to unify {s}", fg="red")
 
     klass = record_klass
     if config.output_summary_waterlevel_stats:
