@@ -35,6 +35,8 @@ class BaseSource:
 
 
 class BaseSiteSource(BaseSource):
+    chunk_size = 1
+
     def read(self, config, *args, **kw):
         self.log("Gathering site records")
         n = 0
@@ -50,7 +52,10 @@ class BaseSiteSource(BaseSource):
         self.log(f"processed nrecords={n}")
         return ns
 
-    def chunks(self, records, chunk_size):
+    def chunks(self, records, chunk_size=None):
+        if chunk_size is None:
+            chunk_size = self.chunk_size
+
         if chunk_size > 1:
             return [
                 records[i : i + chunk_size] for i in range(0, len(records), chunk_size)

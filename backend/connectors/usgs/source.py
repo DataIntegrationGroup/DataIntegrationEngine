@@ -45,6 +45,7 @@ def parse_rdb(text):
 
 class USGSSiteSource(BaseSiteSource):
     transformer_klass = USGSSiteTransformer
+    chunk_size = 500
 
     def get_records(self, config):
         params = {"format": "rdb", "siteOutput": "expanded", "siteType": "GW"}

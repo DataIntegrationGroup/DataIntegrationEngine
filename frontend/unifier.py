@@ -67,7 +67,7 @@ def unify_datastream(config, sources, record_klass, summary_record_klass):
         for s, ss in sources:
             try:
                 sites = s.read(config)
-                for i, sites in enumerate(s.chunks(sites, 100)):
+                for i, sites in enumerate(s.chunks(sites)):
                     if config.output_summary_waterlevel_stats:
                         summary_records = ss.summary(sites, config)
                         if summary_records:
