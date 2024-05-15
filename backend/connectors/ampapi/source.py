@@ -19,7 +19,7 @@ from backend.connectors.ampapi.transformer import (
     AMPAPISiteTransformer,
     AMPAPIWaterLevelTransformer,
 )
-from backend.source import BaseWaterLevelsSource, BaseSiteSource
+from backend.source import BaseWaterLevelSource, BaseSiteSource
 
 DEBUG = True
 
@@ -41,15 +41,15 @@ class AMPAPISiteSource(BaseSiteSource):
         params["has_waterlevels"] = config.has_waterlevels
 
         resp = httpx.get(_make_url("locations"), params=params, timeout=30)
-        for site in resp.json()["features"]:
-            yield site
+        return resp.json()["features"]
 
 
-class AMPAPIWaterLevelSource(BaseWaterLevelsSource):
+class AMPAPIWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = AMPAPIWaterLevelTransformer
 
     def _extract_most_recent(self, records):
-        return records[0]["DateMeasured"]
+        record = records[0]
+        return record["DateMeasured"], record["TimeMeasured"]
 
     def _extract_waterlevels(self, records):
         return [
@@ -66,8 +66,7 @@ class AMPAPIWaterLevelSource(BaseWaterLevelsSource):
             url = _make_url("waterlevels/manual")
 
         resp = httpx.get(url, params=params)
-        for wl in resp.json():
-            yield wl
+        return resp.json()
 
 
 # ============= EOF =============================================

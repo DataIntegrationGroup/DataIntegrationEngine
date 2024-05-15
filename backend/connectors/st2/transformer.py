@@ -16,10 +16,10 @@
 import pprint
 
 from backend.record import SiteRecord, WaterLevelRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer
+from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
 
 
-class ST2SiteTransformer(BaseTransformer):
+class ST2SiteTransformer(SiteTransformer):
     source_id = "ST2"
 
     def transform(self, record, config):
@@ -36,9 +36,7 @@ class ST2SiteTransformer(BaseTransformer):
             "longitude": lng,
             "horizontal_datum": "WGS84",
         }
-        rec = self._transform_hook(rec)
-        if rec:
-            return SiteRecord(rec)
+        return self._transform_hook(rec)
 
     def _transform_hook(self, rec):
         return rec
@@ -59,7 +57,7 @@ class EBIDSiteTransformer(ST2SiteTransformer):
 class ST2WaterLevelTransformer(WaterLevelTransformer):
     source_id = "ST2"
 
-    def transform(self, record, parent_record, config, *args, **kw):
+    def transform(self, record, config, parent_record, *args, **kw):
         rec = {
             "source": self.source_id,
             "id": parent_record.id,
@@ -71,23 +69,14 @@ class ST2WaterLevelTransformer(WaterLevelTransformer):
         }
 
         if config.output_summary_waterlevel_stats:
-            dt = record["most_recent_date"]
-            rec["nrecords"] = record["nrecords"]
-            rec["min"] = record["min"]
-            rec["max"] = record["max"]
-            rec["mean"] = record["mean"]
+            rec.update(record)
         else:
             dt = record["observation"].phenomenon_time
             dtw = record["observation"].result
             rec["depth_to_water_ft_below_ground_surface"] = dtw
+            rec["datetime_measured"] = dt
 
-        dstr, tstr = self._standardize_datetime(dt)
-
-        rec["date_measured"] = dstr
-        rec["time_measured"] = tstr
-
-        klass = self._get_record_klass(config)
-        return klass(rec)
+        return rec
 
 
 class PVACDWaterLevelTransformer(ST2WaterLevelTransformer):

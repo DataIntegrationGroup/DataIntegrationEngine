@@ -14,10 +14,10 @@
 # limitations under the License.
 # ===============================================================================
 from backend.record import SiteRecord, WaterLevelRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer
+from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
 
 
-class AMPAPISiteTransformer(BaseTransformer):
+class AMPAPISiteTransformer(SiteTransformer):
     def transform(self, record, config):
         props = record["properties"]
         # print(props)
@@ -37,11 +37,11 @@ class AMPAPISiteTransformer(BaseTransformer):
             "well_depth": props["well_depth"]["value"],
             "well_depth_units": props["well_depth"]["units"],
         }
-        return SiteRecord(rec)
+        return rec
 
 
 class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
-    def transform(self, record, parent_record, config):
+    def transform(self, record, config, parent_record):
         rec = {
             "source": "AMPAPI",
             "id": parent_record.id,
@@ -57,18 +57,13 @@ class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
         }
 
         if config.output_summary_waterlevel_stats:
-            rec["nrecords"] = record["nrecords"]
-            rec["min"] = record["min"]
-            rec["max"] = record["max"]
-            rec["mean"] = record["mean"]
-            rec["date_measured"] = record["most_recent_date"]
+            rec.update(record)
         else:
             rec["date_measured"] = record["DateMeasured"]
             rec["time_measured"] = record["TimeMeasured"]
             rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
 
-        klass = self._get_record_klass(config)
-        return klass(rec)
+        return rec
 
 
 # ============= EOF =============================================

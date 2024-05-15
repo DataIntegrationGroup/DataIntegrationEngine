@@ -16,14 +16,14 @@
 import pprint
 
 from backend.record import SiteRecord, WaterLevelRecord
-from backend.transformer import BaseTransformer
+from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
 
 
-class OSERoswellSiteTransformer(BaseTransformer):
+class OSERoswellSiteTransformer(SiteTransformer):
     def transform(self, record, config):
         # pprint.pprint(record)
-        lat = record["DD_lat"]
-        lng = record["DD_lon"]
+        lat = float(record["DD_lat"])
+        lng = float(record["DD_lon"])
         if not self.contained(lng, lat, config):
             return
 
@@ -42,13 +42,26 @@ class OSERoswellSiteTransformer(BaseTransformer):
             # 'well_depth': record["WellDepthMeasure/MeasureValue"],
             # 'well_depth_unit': record["WellDepthMeasure/MeasureUnitCode"],
         }
-        return SiteRecord(rec)
+        return rec
 
 
-class OSERoswellWaterLevelTransformer(BaseTransformer):
-    def transform(self, record, parent_record, config):
-        rec = {}
-        return WaterLevelRecord(rec)
+class OSERoswellWaterLevelTransformer(WaterLevelTransformer):
+    def transform(self, record, config, parent_record):
+        rec = {'id': parent_record.id,
+               'source': 'CKAN/OSERoswell',
+               'location': parent_record.name,
+               'usgs_site_id': parent_record.id,
+               'latitude': parent_record.latitude,
+               'longitude': parent_record.longitude,
+               'elevation': parent_record.elevation,
+               'elevation_units': 'ft',
+               'well_depth': parent_record.well_depth,
+               'well_depth_units': 'ft',
+            }
+        if config.output_summary_waterlevel_stats:
+            rec.update(record)
+
+        return rec
 
 
 # ============= EOF =============================================

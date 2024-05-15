@@ -16,8 +16,11 @@
 import time
 from datetime import datetime, timedelta
 
+import shapely.wkt
+
 from backend.bounding_polygons import get_county_polygon
 from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
+from backend.connectors.bor.source import BORSiteSource, BORWaterLevelSource
 from backend.connectors.ckan import (
     HONDO_RESOURCE_ID,
     FORT_SUMNER_RESOURCE_ID,
@@ -37,7 +40,7 @@ from backend.connectors.st2.source import (
     EBIDSiteSource,
     PVACDWaterLevelSource,
 )
-from backend.connectors.usgs.source import USGSSiteSource
+from backend.connectors.usgs.source import USGSSiteSource, USGSWaterLevelSource
 from backend.connectors.wqp.source import WQPSiteSource
 
 
@@ -54,6 +57,7 @@ class Config:
     use_source_nwis = True
     use_source_ose_roswell = True
     use_source_st2 = True
+    use_source_bor = True
 
     has_waterlevels = False
     analyte = None
@@ -95,7 +99,7 @@ class Config:
             )
 
         if self.use_source_nwis:
-            pass
+            sources.append((USGSSiteSource(), USGSWaterLevelSource()))
 
         if self.use_source_ose_roswell:
             sources.append(
@@ -119,6 +123,9 @@ class Config:
         if self.use_source_st2:
             sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
             # sources.append((EBIDSiteSource, EBIDWaterLevelSource))
+
+        # if self.use_source_bor:
+        #     sources.append((BORSiteSource(), BORWaterLevelSource()))
         return sources
 
     def site_sources(self):
@@ -134,6 +141,8 @@ class Config:
         if self.use_source_st2:
             sources.append(PVACDSiteSource)
             sources.append(EBIDSiteSource)
+        if self.use_source_bor:
+            sources.append(BORSiteSource)
         return sources
 
     def bounding_points(self):
@@ -142,17 +151,26 @@ class Config:
             x1, y1 = [float(a) for a in p1.strip().split(" ")]
             x2, y2 = [float(a) for a in p2.strip().split(" ")]
         else:
-            x1 = self.bbox["minLng"]
-            x2 = self.bbox["maxLng"]
-            y1 = self.bbox["minLat"]
-            y2 = self.bbox["maxLat"]
+            shp = None
+            if self.county:
+                shp = get_county_polygon(self.county, as_wkt=False)
+            elif self.wkt:
+                shp = shapely.wkt.loads(self.wkt)
+
+            if shp:
+                x1, y1, x2, y2 = shp.bounds
+            else:
+                x1 = self.bbox["minLng"]
+                x2 = self.bbox["maxLng"]
+                y1 = self.bbox["minLat"]
+                y2 = self.bbox["maxLat"]
 
         if x1 > x2:
             x1, x2 = x2, x1
         if y1 > y2:
             y1, y2 = y2, y1
 
-        return x1, y1, x2, y2
+        return round(x1, 7), round(y1, 7), round(x2, 7), round(y2, 7)
 
     def bounding_wkt(self):
         if self.wkt:
@@ -171,6 +189,5 @@ class Config:
         td = timedelta(days=days)
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
-
 
 # ============= EOF =============================================

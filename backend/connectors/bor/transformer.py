@@ -13,46 +13,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import pprint
+
 from backend.record import SiteRecord, WaterLevelRecord
 from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
 
+WELL_DEPTHS = {
+    3243: 1340,  # well 1
+    3244: 190,  # well 2
+    3245: 220,  # well 3
+    3246: 185  # well 4
+}
 
-class USGSSiteTransformer(SiteTransformer):
+
+class BORSiteTransformer(SiteTransformer):
     def transform(self, record, config):
-        elevation = record["alt_va"]
+        props = record['attributes']
+
+        elevation = props["elevation"]
         try:
             elevation = float(elevation)
         except (ValueError, TypeError):
             elevation = None
 
-        lng = float(record["dec_long_va"])
-        lat = float(record["dec_lat_va"])
-        datum = record["coord_datum_cd"]
+        lng = float(props["locationCoordinates"]["coordinates"][0])
+        lat = float(props["locationCoordinates"]["coordinates"][1])
 
         rec = {
-            "source": "USGS-NWIS",
-            "id": record["site_no"],
-            "name": record["station_nm"],
+            "source": "BOR-RISE",
+            "id": props['_id'],
+            "name": props['locationName'],
             "latitude": lat,
             "longitude": lng,
             "elevation": elevation,
             "elevation_units": "ft",
-            "horizontal_datum": datum,
-            "vertical_datum": record["alt_datum_cd"],
-            "aquifer": record["nat_aqfr_cd"],
-            "well_depth": record["well_depth_va"],
+            "horizontal_datum": props['horizontalDatum']['_id'],
+            "vertical_datum": props['verticalDatum']['_id'],
+            "well_depth": WELL_DEPTHS.get(props['_id']),
             "well_depth_units": "ft",
+            "catalogRecords": record['relationships']['catalogRecords']['data'],
+            "catalogItems":  record['relationships']['catalogItems']['data'],
         }
         return rec
 
 
-class USGSWaterLevelTransformer(WaterLevelTransformer):
+class BORWaterLevelTransformer(WaterLevelTransformer):
     def transform(self, record, config, parent_record):
         rec = {
-            "source": "USGS-NWIS",
+            "source": "BOR-NWIS",
             "id": parent_record.id,
             "location": parent_record.name,
-            "usgs_site_id": parent_record.id,
+            "BOR_site_id": parent_record.id,
             "latitude": parent_record.latitude,
             "longitude": parent_record.longitude,
             "elevation": parent_record.elevation,

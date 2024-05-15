@@ -20,11 +20,11 @@ import shapely
 from shapely import Point
 
 from backend.geo_utils import datum_transform
-from backend.record import WaterLevelSummaryRecord, WaterLevelRecord
+from backend.record import WaterLevelSummaryRecord, WaterLevelRecord, SiteRecord
 
 
 def transform_horizontal_datum(x, y, in_datum, out_datum):
-    if in_datum != out_datum:
+    if in_datum and in_datum != out_datum:
         nx, ny = datum_transform(x, y, in_datum, out_datum)
         return nx, ny, out_datum
     else:
@@ -50,10 +50,26 @@ def transform_units(e, unit, out_unit):
 class BaseTransformer:
     _cached_polygon = None
 
-    def do_transform(self, record, config):
-        record = self.transform(record, config)
+    def do_transform(self, record, config, *args, **kw):
+        record = self.transform(record, config, *args, **kw)
         if not record:
             return
+
+        dt = record.get("datetime_measured")
+        if dt:
+            d, t = self._standardize_datetime(dt)
+            record["date_measured"] = d
+            record['time_measured'] = t
+        else:
+            mrd = record.get('most_recent_datetime')
+            if mrd:
+                d, t = self._standardize_datetime(mrd)
+                record["date_measured"] = d
+                record['time_measured'] = t
+
+        # convert to proper record type
+        klass = self._get_record_klass(config)
+        record = klass(record)
 
         x = record.latitude
         y = record.longitude
@@ -81,6 +97,9 @@ class BaseTransformer:
         record.update(well_depth=wd)
         record.update(well_depth_units=wdunit)
 
+
+
+
         return record
 
     def transform(self, *args, **kw):
@@ -100,23 +119,46 @@ class BaseTransformer:
         return True
 
     def _standardize_datetime(self, dt):
+        if isinstance(dt, tuple):
+            dt = [di for di in dt if di is not None]
+            dt = ' '.join(dt)
+
+        fmt = None
         if isinstance(dt, str):
+            dt = dt.strip()
             for fmt in [
                 "%Y-%m-%dT%H:%M:%S",
                 "%Y-%m-%dT%H:%M:%S.%fZ",
                 "%Y-%m-%dT%H:%M:%SZ",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M",
+                "%Y-%m-%d",
+                "%Y/%m/%d %H:%M:%S",
+                "%Y/%m/%d %H:%M",
+                "%Y/%m/%d",
             ]:
                 try:
-                    dt = dt.split(".")[0]
-                    dt = datetime.strptime(dt, fmt)
+                    dt = datetime.strptime(dt.split(".")[0], fmt)
                     break
                 except ValueError as e:
-                    print(e)
+                    pass
+            else:
+                raise ValueError(f"Failed to parse datetime {dt}")
+
+        if fmt == "%Y-%m-%d":
+            return dt.strftime("%Y-%m-%d"), ""
+        elif fmt == '%Y/%m/%d':
+            return dt.strftime("%Y-%m-%d"), ""
 
         return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")
 
     def _get_record_klass(self, config):
         raise NotImplementedError
+
+
+class SiteTransformer(BaseTransformer):
+    def _get_record_klass(self, config):
+        return SiteRecord
 
 
 class WaterLevelTransformer(BaseTransformer):
@@ -125,6 +167,5 @@ class WaterLevelTransformer(BaseTransformer):
             return WaterLevelSummaryRecord
         else:
             return WaterLevelRecord
-
 
 # ============= EOF =============================================

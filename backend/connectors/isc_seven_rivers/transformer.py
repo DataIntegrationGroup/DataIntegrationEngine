@@ -17,10 +17,10 @@ import shapely.wkt
 from shapely import Point
 
 from backend.record import SiteRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer
+from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
 
 
-class ISCSevenRiversSiteTransformer(BaseTransformer):
+class ISCSevenRiversSiteTransformer(SiteTransformer):
     def transform(self, record, config):
         lat = record["latitude"]
         lng = record["longitude"]
@@ -38,31 +38,27 @@ class ISCSevenRiversSiteTransformer(BaseTransformer):
             "elevation_units": "ft",
         }
 
-        return SiteRecord(rec)
+        return rec
 
 
 class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
-    def transform(self, record, parent_record, config):
+    def transform(self, record, config, parent_record):
         rec = {
             "source": "ISCSevenRivers",
             "id": parent_record.id,
             "location": parent_record.name,
             "latitude": parent_record.latitude,
             "longitude": parent_record.longitude,
-            "surface_elevation_ft": parent_record.elevation,
+            "elevation": parent_record.elevation,
+            "elevation_units": 'ft'
         }
         if config.output_summary_waterlevel_stats:
-            rec["nrecords"] = record["nrecords"]
-            rec["min"] = record["min"]
-            rec["max"] = record["max"]
-            rec["mean"] = record["mean"]
-            rec["date_measured"] = record["most_recent_date"]
+            rec.update(record)
         else:
             rec["date_measured"] = record["dateTime"]
             rec["depth_to_water_ft_below_ground_surface"] = record["depthToWaterFeet"]
 
-        klass = self._get_record_klass(config)
-        return klass(rec)
+        return rec
 
 
 # ============= EOF =============================================

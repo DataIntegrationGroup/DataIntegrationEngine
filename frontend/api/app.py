@@ -17,6 +17,7 @@ import hashlib
 import json
 import multiprocessing
 import os
+import time
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
@@ -76,6 +77,13 @@ def router_unify_waterlevels(item: ConfigModel):
     ).hexdigest()
     name = f"{itemhash}.csv"
     pp = os.path.join("cache", name)
+
+    if os.path.isfile(pp):
+        # how old is the file
+        st = os.stat(pp)
+        if time.time() - st.st_mtime > 3600:
+            os.remove(pp)
+
     if not os.path.isfile(pp):
         cfg.output_path = pp
 

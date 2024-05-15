@@ -21,15 +21,15 @@ from backend.connectors.ckan.transformer import (
     OSERoswellSiteTransformer,
     OSERoswellWaterLevelTransformer,
 )
-from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelsSource
+from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource
 
 
 class CKANSource:
     base_url = None
     _cached_response = None
 
-    def get_records(self, config):
-        yield from self._parse_response(self.get_response(config))
+    def get_records(self, *args, **kw):
+        return self._parse_response(self.get_response(*args, **kw))
 
     def get_response(self, config):
         if self.base_url is None:
@@ -45,7 +45,7 @@ class CKANSource:
     def _get_params(self, config):
         return {}
 
-    def _parse_response(self, resp):
+    def _parse_response(self, *args, **kw):
         raise NotImplementedError("parse_response not implemented")
 
 
@@ -73,29 +73,23 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
         records = resp.json()["result"]["records"]
         # group records by site_no
         records = sorted(records, key=lambda x: x["Site_ID"])
-        for site_id, records in groupby(records, key=lambda x: x["Site_ID"]):
-            yield next(records)
+        records = [next(records) for site_id, records in groupby(records, key=lambda x: x["Site_ID"])]
+        return records
 
 
-class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelsSource):
+class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
     transformer_klass = OSERoswellWaterLevelTransformer
 
-    def read(self, parent_record, config):
-        self.log(f"Gathering records for record {parent_record.id}")
-        n = 0
-        for record in self._get_waterlevels(parent_record, self.get_response(config)):
-            record = self.transformer.transform(record, parent_record, config)
-            if record:
-                n += 1
-                yield record
+    def get_records(self, parent_record, config):
+        return self._parse_response(parent_record, self.get_response(config))
 
-        self.log(f"nrecords={n}")
-
-    def _get_waterlevels(self, parent_record, resp):
+    def _parse_response(self, parent_record, resp):
         records = resp.json()["result"]["records"]
-        for record in records:
-            if record["Site_ID"] == parent_record.id:
-                yield record
+        return [record for record in records if record["Site_ID"] == parent_record.id]
 
+    def _extract_waterlevels(self, records):
+        return [float(r["DTWGS"]) for r in records]
 
+    def _extract_most_recent(self, records):
+        return [(r['Date'], '') for r in records][-1]
 # ============= EOF =============================================

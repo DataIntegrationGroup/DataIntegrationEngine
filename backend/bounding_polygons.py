@@ -72,7 +72,7 @@ def get_state_bb(state):
     return box(*p.bounds).wkt
 
 
-def get_county_polygon(name):
+def get_county_polygon(name, as_wkt=True):
     if ":" in name:
         state, county = name.split(":")
         statefp = statelookup(state)
@@ -98,7 +98,10 @@ def get_county_polygon(name):
         county = county.lower()
         for f in obj["features"]:
             if f["properties"]["name"].lower() == county:
-                return Polygon(f["geometry"]["coordinates"][0][0]).wkt
+                poly = Polygon(f["geometry"]["coordinates"][0][0])
+                if as_wkt:
+                    return poly.wkt
+                return poly
         else:
             warning(f"county '{county}' does not exist")
             warning("---------- Valid county names -------------")

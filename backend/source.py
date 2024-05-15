@@ -36,37 +36,40 @@ class BaseSource:
 
 class BaseSiteSource(BaseSource):
     def read(self, config, *args, **kw):
-        self.log("Gathering records")
+        self.log("Gathering site records")
         n = 0
-        for record in self.get_records(config):
+        records = self.get_records(config)
+        self.log(f'total records={len(records)}')
+        for record in records:
             record = self.transformer.do_transform(record, config)
             if record:
                 n += 1
                 yield record
 
-        self.log(f"nrecords={n}")
+        self.log(f"processed nrecords={n}")
 
 
-class BaseWaterLevelsSource(BaseSource):
+
+class BaseWaterLevelSource(BaseSource):
     def summary(self, parent_record, config):
         self.log(f"Gathering waterlevel summary for record {parent_record.id}")
-        rs = list(self.get_records(parent_record, config))
+        rs = self.get_records(parent_record, config)
         if rs:
             wls = self._extract_waterlevels(rs)
             mrd = self._extract_most_recent(rs)
             if wls:
                 n = len(wls)
                 self.log(f"Retrieved waterlevels: {n}")
-                return self.transformer.transform(
+                return self.transformer.do_transform(
                     {
                         "nrecords": n,
                         "min": min(wls),
                         "max": max(wls),
                         "mean": sum(wls) / n,
-                        "most_recent_date": mrd,
+                        "most_recent_datetime": mrd,
                     },
-                    parent_record,
                     config,
+                    parent_record,
                 )
 
     def _extract_waterlevels(self, records):

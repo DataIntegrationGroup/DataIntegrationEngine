@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import datetime
+
 import frost_sta_client as fsc
 
 from backend.connectors.st2.transformer import (
@@ -21,7 +23,7 @@ from backend.connectors.st2.transformer import (
     PVACDWaterLevelTransformer,
     EBIDWaterLevelTransformer,
 )
-from backend.source import BaseSiteSource, BaseWaterLevelsSource
+from backend.source import BaseSiteSource, BaseWaterLevelSource
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
 
@@ -42,8 +44,7 @@ class ST2SiteSource(BaseSiteSource, ST2Mixin):
             f = f"{f} and st_within(Location/location, geography'{config.bounding_wkt()}')"
 
         q = service.locations().query().filter(f)
-        for location in q.list():
-            yield location
+        return list(q.list())
 
 
 class PVACDSiteSource(ST2SiteSource):
@@ -56,7 +57,7 @@ class EBIDSiteSource(ST2SiteSource):
     agency = "EBID"
 
 
-class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
+class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
     def _extract_most_recent(self, records):
         return records[0]["observation"].phenomenon_time
 
@@ -72,6 +73,7 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
             .expand("Locations,Datastreams")
             .filter(f"Locations/id eq {parent_record.id}")
         )
+        records = []
         for t in things.list():
             if t.name == "Water Well":
                 for di in t.datastreams:
@@ -83,17 +85,18 @@ class ST2WaterLevelSource(BaseWaterLevelsSource, ST2Mixin):
                         q = q.orderby("phenomenonTime", "desc").top(1)
 
                     for obs in q.list():
-                        yield {
+                        records.append({
                             "thing": t,
                             "location": parent_record,
                             "datastream": di,
                             "observation": obs,
-                        }
+                        })
                         if (
                             config.latest_water_level_only
                             and not config.output_summary_waterlevel_stats
                         ):
                             break
+        return records
 
 
 class PVACDWaterLevelSource(ST2WaterLevelSource):

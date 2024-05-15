@@ -21,7 +21,7 @@ from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
     ISCSevenRiversWaterLevelTransformer,
 )
-from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelsSource
+from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource
 
 
 def _make_url(endpoint):
@@ -33,11 +33,10 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
 
     def get_records(self, config):
         resp = httpx.get(_make_url("getMonitoringPoints.ashx"))
-        for record in resp.json()["data"]:
-            yield record
+        return resp.json()["data"]
 
 
-class ISCSevenRiversWaterLevelSource(BaseWaterLevelsSource):
+class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
 
     def get_records(self, parent_record, config):
@@ -45,8 +44,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelsSource):
             _make_url("getWaterLevels.ashx"),
             params={"id": parent_record.id, "start": 0, "end": config.now_ms(days=1)},
         )
-        for record in resp.json()["data"]:
-            yield record
+        return resp.json()["data"]
 
     def _extract_waterlevels(self, records):
         return [
@@ -58,7 +56,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelsSource):
     def _extract_most_recent(self, records):
         t = max(records, key=lambda x: x["dateTime"])["dateTime"]
         t = datetime.fromtimestamp(t / 1000)
-        return t.isoformat()
+        return t
 
 
 # ============= EOF =============================================
