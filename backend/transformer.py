@@ -134,7 +134,6 @@ class BaseTransformer:
                 "%Y/%m/%d %H:%M:%S",
                 "%Y/%m/%d %H:%M",
                 "%Y/%m/%d",
-
             ]:
                 try:
                     dt = datetime.strptime(dt.split(".")[0], fmt)
@@ -148,7 +147,7 @@ class BaseTransformer:
             return dt.strftime("%Y-%m-%d"), ""
         elif fmt == "%Y/%m/%d":
             return dt.strftime("%Y-%m-%d"), ""
-        elif fmt == '%Y-%m':
+        elif fmt == "%Y-%m":
             return dt.strftime("%Y-%m"), ""
 
         return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")

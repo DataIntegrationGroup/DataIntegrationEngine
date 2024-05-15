@@ -52,7 +52,9 @@ class BaseSiteSource(BaseSource):
 
     def chunks(self, records, chunk_size):
         if chunk_size > 1:
-            return [records[i: i + chunk_size] for i in range(0, len(records), chunk_size)]
+            return [
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+            ]
         else:
             return records
 
@@ -60,7 +62,9 @@ class BaseSiteSource(BaseSource):
 class BaseWaterLevelSource(BaseSource):
     def summary(self, parent_record, config):
         if isinstance(parent_record, list):
-            self.log(f'Gathering waterlevel summary for multiple records. {len(parent_record)}')
+            self.log(
+                f"Gathering waterlevel summary for multiple records. {len(parent_record)}"
+            )
         else:
             self.log(f"Gathering waterlevel summary for record {parent_record.id}")
 
@@ -87,19 +91,18 @@ class BaseWaterLevelSource(BaseSource):
                 self.log(f"Retrieved waterlevels: {n}")
                 ret.append(
                     self.transformer.do_transform(
-                                {
-                                    "nrecords": n,
-                                    "min": min(wls),
-                                    "max": max(wls),
-                                    "mean": sum(wls) / n,
-                                    "most_recent_datetime": mrd,
-                                },
-                                config,
-                                pi,
-                            )
+                        {
+                            "nrecords": n,
+                            "min": min(wls),
+                            "max": max(wls),
+                            "mean": sum(wls) / n,
+                            "most_recent_datetime": mrd,
+                        },
+                        config,
+                        pi,
                     )
+                )
             return ret
-
 
     def _extract_parent_records(self, records, parent_record):
         raise NotImplementedError(
@@ -139,5 +142,6 @@ class BaseAnalytesSource(BaseSource):
                 yield record
 
         self.log(f"nrecords={n}")
+
 
 # ============= EOF =============================================
