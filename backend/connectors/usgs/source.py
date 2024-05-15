@@ -61,17 +61,23 @@ class USGSSiteSource(BaseSiteSource):
         records = parse_rdb(resp.text)
 
         self.log(f"Retrieved {len(records)} records")
-        return records[:30]
+        return records
 
 
 class USGSWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = USGSWaterLevelTransformer
 
     def get_records(self, parent_record, config):
+
+        if isinstance(parent_record, list):
+            sites = ",".join([r.id for r in parent_record])
+        else:
+            sites = parent_record.id
+
         params = {
             "format": "rdb",
             "siteType": "GW",
-            "sites": parent_record.id,
+            "sites": sites,
             # "startDT": config.start_date,
             # "endDT": config.end_date,
         }
@@ -82,8 +88,11 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
         records = parse_rdb(resp.text)
         return records
 
+    def _extract_parent_records(self, records, parent_record):
+        return [ri for ri in records if ri["site_no"] == parent_record.id]
+
     def _extract_waterlevels(self, records):
-        return [float(r["lev_va"]) for r in records if r["lev_va"] is not None]
+        return [float(r["lev_va"]) for r in records if r["lev_va"] is not None and r['lev_va'].strip()]
 
     def _extract_most_recent(self, records):
 

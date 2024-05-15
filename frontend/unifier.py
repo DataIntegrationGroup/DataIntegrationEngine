@@ -66,16 +66,14 @@ def unify_datastream(config, sources, record_klass, summary_record_klass):
     def func(config, persister):
         for s, ss in sources:
             try:
-                for i, record in enumerate(s.read(config)):
-                    # if i > 5:
-                    #     break
-
+                sites = s.read(config)
+                for i, sites in enumerate(s.chunks(sites, 100)):
                     if config.output_summary_waterlevel_stats:
-                        summary_record = ss.summary(record, config)
-                        if summary_record:
-                            persister.records.append(summary_record)
+                        summary_records = ss.summary(sites, config)
+                        if summary_records:
+                            persister.records.extend(summary_records)
                     else:
-                        for wl in ss.read(record, config):
+                        for wl in ss.read(sites, config):
                             persister.records.append(wl)
             except BaseException:
                 import traceback
@@ -98,7 +96,7 @@ if __name__ == "__main__":
     cfg.output_summary_waterlevel_stats = True
     cfg.has_waterlevels = True
 
-    cfg.use_source_nwis = False
+    # cfg.use_source_nwis = False
     cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False

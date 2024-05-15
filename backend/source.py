@@ -40,36 +40,71 @@ class BaseSiteSource(BaseSource):
         n = 0
         records = self.get_records(config)
         self.log(f"total records={len(records)}")
+        ns = []
         for record in records:
             record = self.transformer.do_transform(record, config)
             if record:
                 n += 1
-                yield record
+                ns.append(record)
 
         self.log(f"processed nrecords={n}")
+        return ns
+
+    def chunks(self, records, chunk_size):
+        if chunk_size > 1:
+            return [records[i: i + chunk_size] for i in range(0, len(records), chunk_size)]
+        else:
+            return records
 
 
 class BaseWaterLevelSource(BaseSource):
     def summary(self, parent_record, config):
-        self.log(f"Gathering waterlevel summary for record {parent_record.id}")
+        if isinstance(parent_record, list):
+            self.log(f'Gathering waterlevel summary for multiple records. {len(parent_record)}')
+        else:
+            self.log(f"Gathering waterlevel summary for record {parent_record.id}")
+
         rs = self.get_records(parent_record, config)
         if rs:
-            wls = self._extract_waterlevels(rs)
-            mrd = self._extract_most_recent(rs)
-            if wls:
+            if not isinstance(parent_record, list):
+                parent_record = [parent_record]
+
+            ret = []
+            for pi in parent_record:
+                rrs = self._extract_parent_records(rs, pi)
+                if not rrs:
+                    continue
+
+                wls = self._extract_waterlevels(rrs)
+                if not wls:
+                    continue
+
+                mrd = self._extract_most_recent(rrs)
+                if not mrd:
+                    continue
+
                 n = len(wls)
                 self.log(f"Retrieved waterlevels: {n}")
-                return self.transformer.do_transform(
-                    {
-                        "nrecords": n,
-                        "min": min(wls),
-                        "max": max(wls),
-                        "mean": sum(wls) / n,
-                        "most_recent_datetime": mrd,
-                    },
-                    config,
-                    parent_record,
-                )
+                ret.append(
+                    self.transformer.do_transform(
+                                {
+                                    "nrecords": n,
+                                    "min": min(wls),
+                                    "max": max(wls),
+                                    "mean": sum(wls) / n,
+                                    "most_recent_datetime": mrd,
+                                },
+                                config,
+                                pi,
+                            )
+                    )
+            return ret
+
+
+    def _extract_parent_records(self, records, parent_record):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parent_records"
+        )
 
     def _extract_waterlevels(self, records):
         raise NotImplementedError(
@@ -104,6 +139,5 @@ class BaseAnalytesSource(BaseSource):
                 yield record
 
         self.log(f"nrecords={n}")
-
 
 # ============= EOF =============================================
