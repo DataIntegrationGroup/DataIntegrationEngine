@@ -15,7 +15,10 @@
 # ===============================================================================
 import httpx
 
-from backend.connectors.usgs.transformer import USGSSiteTransformer, USGSWaterLevelTransformer
+from backend.connectors.usgs.transformer import (
+    USGSSiteTransformer,
+    USGSWaterLevelTransformer,
+)
 from backend.source import BaseSource, BaseWaterLevelSource, BaseSiteSource
 
 
@@ -84,5 +87,9 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_most_recent(self, records):
 
-        return [(r['lev_dt'], r['lev_tm']) for r in records if r['lev_dt'] is not None][-1]
+        return [(r["lev_dt"], r["lev_tm"]) for r in records if r["lev_dt"] is not None][
+            -1
+        ]
+
+
 # ============= EOF =============================================

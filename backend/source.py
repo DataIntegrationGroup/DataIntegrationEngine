@@ -39,7 +39,7 @@ class BaseSiteSource(BaseSource):
         self.log("Gathering site records")
         n = 0
         records = self.get_records(config)
-        self.log(f'total records={len(records)}')
+        self.log(f"total records={len(records)}")
         for record in records:
             record = self.transformer.do_transform(record, config)
             if record:
@@ -47,7 +47,6 @@ class BaseSiteSource(BaseSource):
                 yield record
 
         self.log(f"processed nrecords={n}")
-
 
 
 class BaseWaterLevelSource(BaseSource):

@@ -59,13 +59,13 @@ class BaseTransformer:
         if dt:
             d, t = self._standardize_datetime(dt)
             record["date_measured"] = d
-            record['time_measured'] = t
+            record["time_measured"] = t
         else:
-            mrd = record.get('most_recent_datetime')
+            mrd = record.get("most_recent_datetime")
             if mrd:
                 d, t = self._standardize_datetime(mrd)
                 record["date_measured"] = d
-                record['time_measured'] = t
+                record["time_measured"] = t
 
         # convert to proper record type
         klass = self._get_record_klass(config)
@@ -97,9 +97,6 @@ class BaseTransformer:
         record.update(well_depth=wd)
         record.update(well_depth_units=wdunit)
 
-
-
-
         return record
 
     def transform(self, *args, **kw):
@@ -121,7 +118,7 @@ class BaseTransformer:
     def _standardize_datetime(self, dt):
         if isinstance(dt, tuple):
             dt = [di for di in dt if di is not None]
-            dt = ' '.join(dt)
+            dt = " ".join(dt)
 
         fmt = None
         if isinstance(dt, str):
@@ -147,7 +144,7 @@ class BaseTransformer:
 
         if fmt == "%Y-%m-%d":
             return dt.strftime("%Y-%m-%d"), ""
-        elif fmt == '%Y/%m/%d':
+        elif fmt == "%Y/%m/%d":
             return dt.strftime("%Y-%m-%d"), ""
 
         return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")
@@ -167,5 +164,6 @@ class WaterLevelTransformer(BaseTransformer):
             return WaterLevelSummaryRecord
         else:
             return WaterLevelRecord
+
 
 # ============= EOF =============================================

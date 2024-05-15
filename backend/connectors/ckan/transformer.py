@@ -47,17 +47,18 @@ class OSERoswellSiteTransformer(SiteTransformer):
 
 class OSERoswellWaterLevelTransformer(WaterLevelTransformer):
     def transform(self, record, config, parent_record):
-        rec = {'id': parent_record.id,
-               'source': 'CKAN/OSERoswell',
-               'location': parent_record.name,
-               'usgs_site_id': parent_record.id,
-               'latitude': parent_record.latitude,
-               'longitude': parent_record.longitude,
-               'elevation': parent_record.elevation,
-               'elevation_units': 'ft',
-               'well_depth': parent_record.well_depth,
-               'well_depth_units': 'ft',
-            }
+        rec = {
+            "id": parent_record.id,
+            "source": "CKAN/OSERoswell",
+            "location": parent_record.name,
+            "usgs_site_id": parent_record.id,
+            "latitude": parent_record.latitude,
+            "longitude": parent_record.longitude,
+            "elevation": parent_record.elevation,
+            "elevation_units": "ft",
+            "well_depth": parent_record.well_depth,
+            "well_depth_units": "ft",
+        }
         if config.output_summary_waterlevel_stats:
             rec.update(record)
 

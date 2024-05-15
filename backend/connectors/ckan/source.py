@@ -73,7 +73,10 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
         records = resp.json()["result"]["records"]
         # group records by site_no
         records = sorted(records, key=lambda x: x["Site_ID"])
-        records = [next(records) for site_id, records in groupby(records, key=lambda x: x["Site_ID"])]
+        records = [
+            next(records)
+            for site_id, records in groupby(records, key=lambda x: x["Site_ID"])
+        ]
         return records
 
 
@@ -91,5 +94,7 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         return [float(r["DTWGS"]) for r in records]
 
     def _extract_most_recent(self, records):
-        return [(r['Date'], '') for r in records][-1]
+        return [(r["Date"], "") for r in records][-1]
+
+
 # ============= EOF =============================================

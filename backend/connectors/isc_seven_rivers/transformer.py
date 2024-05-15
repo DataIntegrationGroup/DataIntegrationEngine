@@ -50,7 +50,7 @@ class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
             "latitude": parent_record.latitude,
             "longitude": parent_record.longitude,
             "elevation": parent_record.elevation,
-            "elevation_units": 'ft'
+            "elevation_units": "ft",
         }
         if config.output_summary_waterlevel_stats:
             rec.update(record)

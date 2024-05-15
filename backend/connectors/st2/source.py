@@ -85,12 +85,14 @@ class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
                         q = q.orderby("phenomenonTime", "desc").top(1)
 
                     for obs in q.list():
-                        records.append({
-                            "thing": t,
-                            "location": parent_record,
-                            "datastream": di,
-                            "observation": obs,
-                        })
+                        records.append(
+                            {
+                                "thing": t,
+                                "location": parent_record,
+                                "datastream": di,
+                                "observation": obs,
+                            }
+                        )
                         if (
                             config.latest_water_level_only
                             and not config.output_summary_waterlevel_stats

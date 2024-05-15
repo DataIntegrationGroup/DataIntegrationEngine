@@ -17,7 +17,10 @@ import pprint
 
 import httpx
 
-from backend.connectors.bor.transformer import BORSiteTransformer, BORWaterLevelTransformer
+from backend.connectors.bor.transformer import (
+    BORSiteTransformer,
+    BORWaterLevelTransformer,
+)
 from backend.source import BaseSource, BaseWaterLevelSource, BaseSiteSource
 
 
@@ -26,13 +29,10 @@ class BORSiteSource(BaseSiteSource):
 
     def get_records(self, config):
         # locationTypeId 10 is for wells
-        params = {'stateId': 'NM', 'locationTypeId': 10}
-        resp = httpx.get(
-            'https://data.usbr.gov/rise/api/location',
-            params=params
-        )
+        params = {"stateId": "NM", "locationTypeId": 10}
+        resp = httpx.get("https://data.usbr.gov/rise/api/location", params=params)
         print(resp.url)
-        return resp.json()['data']
+        return resp.json()["data"]
 
 
 class BORWaterLevelSource(BaseWaterLevelSource):
@@ -40,12 +40,13 @@ class BORWaterLevelSource(BaseWaterLevelSource):
 
     def get_records(self, parent_record, config):
         for item in parent_record.catalogItems:
-            print('get records', item)
-            resp = httpx.get(f'https://data.usbr.gov{item["id"]}',)
-            data = resp.json()['data']
+            print("get records", item)
+            resp = httpx.get(
+                f'https://data.usbr.gov{item["id"]}',
+            )
+            data = resp.json()["data"]
             # pprint.pprint(data)
-            print('asdf', data['attributes']['parameterName'])
-
+            print("asdf", data["attributes"]["parameterName"])
 
         # print('get records', parent_record.catalogItems)
         # crec = parent_record.catalogItems[0]['id']
@@ -70,5 +71,9 @@ class BORWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_most_recent(self, records):
 
-        return [(r['lev_dt'], r['lev_tm']) for r in records if r['lev_dt'] is not None][-1]
+        return [(r["lev_dt"], r["lev_tm"]) for r in records if r["lev_dt"] is not None][
+            -1
+        ]
+
+
 # ============= EOF =============================================

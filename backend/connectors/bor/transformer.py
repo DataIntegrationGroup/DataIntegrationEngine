@@ -22,13 +22,13 @@ WELL_DEPTHS = {
     3243: 1340,  # well 1
     3244: 190,  # well 2
     3245: 220,  # well 3
-    3246: 185  # well 4
+    3246: 185,  # well 4
 }
 
 
 class BORSiteTransformer(SiteTransformer):
     def transform(self, record, config):
-        props = record['attributes']
+        props = record["attributes"]
 
         elevation = props["elevation"]
         try:
@@ -41,18 +41,18 @@ class BORSiteTransformer(SiteTransformer):
 
         rec = {
             "source": "BOR-RISE",
-            "id": props['_id'],
-            "name": props['locationName'],
+            "id": props["_id"],
+            "name": props["locationName"],
             "latitude": lat,
             "longitude": lng,
             "elevation": elevation,
             "elevation_units": "ft",
-            "horizontal_datum": props['horizontalDatum']['_id'],
-            "vertical_datum": props['verticalDatum']['_id'],
-            "well_depth": WELL_DEPTHS.get(props['_id']),
+            "horizontal_datum": props["horizontalDatum"]["_id"],
+            "vertical_datum": props["verticalDatum"]["_id"],
+            "well_depth": WELL_DEPTHS.get(props["_id"]),
             "well_depth_units": "ft",
-            "catalogRecords": record['relationships']['catalogRecords']['data'],
-            "catalogItems":  record['relationships']['catalogItems']['data'],
+            "catalogRecords": record["relationships"]["catalogRecords"]["data"],
+            "catalogItems": record["relationships"]["catalogItems"]["data"],
         }
         return rec
 
@@ -91,4 +91,6 @@ class BORWaterLevelTransformer(WaterLevelTransformer):
         #     rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
 
         return rec
+
+
 # ============= EOF =============================================
