@@ -33,10 +33,10 @@ class Loggable:
 class BasePersister(Loggable):
     extension = None
 
-    def __init__(self, record_klass):
+    def __init__(self):
         self.records = []
 
-        self.keys = record_klass.keys
+        # self.keys = record_klass.keys
 
     def load(self, records):
         self.records.extend(records)
@@ -64,7 +64,9 @@ class CSVPersister(BasePersister):
     def _save(self, path):
         with open(path, "w") as f:
             writer = csv.writer(f)
-            writer.writerow(self.keys)
+
+            record = self.records[0]
+            writer.writerow(record.keys)
             for record in self.records:
                 writer.writerow(record.to_row())
 

@@ -20,7 +20,7 @@ import shapely.wkt
 
 from backend.bounding_polygons import get_county_polygon
 from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
-from backend.connectors.bor.source import BORSiteSource, BORWaterLevelSource
+from backend.connectors.bor.source import BORSiteSource, BORAnalyteSource
 from backend.connectors.ckan import (
     HONDO_RESOURCE_ID,
     FORT_SUMNER_RESOURCE_ID,
@@ -84,8 +84,12 @@ class Config:
 
     def analyte_sources(self):
         sources = []
+
         # if self.use_source_wqp:
         # sources.append((WQPSiteSource, WQPAnalyteSource))
+        if self.use_source_bor:
+            sources.append((BORSiteSource(), BORAnalyteSource()))
+
         return sources
 
     def water_level_sources(self):

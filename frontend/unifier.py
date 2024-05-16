@@ -20,23 +20,22 @@ from backend.persister import CSVPersister, GeoJSONPersister
 from backend.record import (
     SiteRecord,
     WaterLevelRecord,
-    AnalyteRecord,
-    WaterLevelSummaryRecord,
+    WaterLevelSummaryRecord, AnalyteSummaryRecord,
 )
 
 
-def perister_factory(config, record_klass):
+def perister_factory(config):
     persister_klass = CSVPersister
     if config.use_csv:
         persister_klass = CSVPersister
     elif config.use_geojson:
         persister_klass = GeoJSONPersister
 
-    return persister_klass(record_klass)
+    return persister_klass()
 
 
-def unify_wrapper(record_klass, config, func):
-    persister = perister_factory(config, record_klass)
+def unify_wrapper(config, func):
+    persister = perister_factory(config)
     func(config, persister)
     persister.save(config.output_path)
 
@@ -49,21 +48,25 @@ def unify_sites(config):
             s = source()
             persister.load(s.read(config))
 
-    unify_wrapper(SiteRecord, config, func)
-
-
-def unify_waterlevels(config):
-    unify_datastream(
-        config, config.water_level_sources(), WaterLevelRecord, WaterLevelSummaryRecord
-    )
+    unify_wrapper(config, func)
 
 
 def unify_analytes(config):
-    unify_datastream(config, config.analyte_sources(), AnalyteRecord)
-
-
-def unify_datastream(config, sources, record_klass, summary_record_klass):
     def func(config, persister):
+        for s, ss in config.analyte_sources():
+            sites = s.read(config)
+            for i, sites in enumerate(s.chunks(sites)):
+                summary_records = ss.summary(sites, config)
+                if summary_records:
+                    persister.records.extend(summary_records)
+                    # break
+
+    unify_wrapper(config, func)
+
+
+def unify_waterlevels(config):
+    def func(config, persister):
+        sources = config.water_level_sources()
         for s, ss in sources:
             try:
                 sites = s.read(config)
@@ -82,19 +85,18 @@ def unify_datastream(config, sources, record_klass, summary_record_klass):
                 click.secho(exc, fg="blue")
                 click.secho(f"Failed to unify {s}", fg="red")
 
-    klass = record_klass
-    if config.output_summary_waterlevel_stats:
-        klass = summary_record_klass
-
-    unify_wrapper(klass, config, func)
+    unify_wrapper(config, func)
 
 
 if __name__ == "__main__":
     cfg = Config()
     cfg.county = "chaves"
     cfg.county = "eddy"
+
     cfg.output_summary_waterlevel_stats = True
     cfg.has_waterlevels = True
+
+    cfg.analyte = 'TDS'
 
     # cfg.use_source_nwis = False
     cfg.use_source_ampapi = False
@@ -103,5 +105,6 @@ if __name__ == "__main__":
     cfg.use_source_ose_roswell = False
     # unify_sites(cfg)
     unify_waterlevels(cfg)
+    # unify_analytes(cfg)
 
 # ============= EOF =============================================

@@ -119,7 +119,6 @@ class BaseTransformer:
         if isinstance(dt, tuple):
             dt = [di for di in dt if di is not None]
             dt = " ".join(dt)
-
         fmt = None
         if isinstance(dt, str):
             dt = dt.strip()
@@ -128,6 +127,7 @@ class BaseTransformer:
                 "%Y-%m-%dT%H:%M:%S.%fZ",
                 "%Y-%m-%dT%H:%M:%SZ",
                 "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S+00:00",
                 "%Y-%m-%d %H:%M",
                 "%Y-%m-%d",
                 "%Y-%m",

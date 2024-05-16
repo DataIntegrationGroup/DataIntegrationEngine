@@ -98,15 +98,26 @@ class WaterLevelSummaryRecord(BaseRecord):
     defaults = {}
 
 
-class AnalyteRecord(BaseRecord):
+class AnalyteSummaryRecord(BaseRecord):
     keys = (
         "source",
         "id",
+        "location",
+        "usgs_site_id",
+        "alternate_site_id",
+        "latitude",
+        "longitude",
+        "elevation",
+        "elevation_units",
+        "well_depth",
+        "well_depth_units",
+        "parameter",
+        "nrecords",
+        "min",
+        "max",
+        "mean",
         "date_measured",
         "time_measured",
-        "analyte",
-        "result",
-        "units",
     )
     defaults = {}
 

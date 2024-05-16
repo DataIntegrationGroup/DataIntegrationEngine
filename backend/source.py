@@ -58,44 +58,38 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
 
 
-class BaseWaterLevelSource(BaseSource):
+class BaseSummarySource(BaseSource):
+    name = ''
+
+    def summary_hook(self, parent_record, config, rs):
+        raise NotImplementedError(f"{self.__class__.__name__} must implement summary_hook")
+
     def summary(self, parent_record, config):
         if isinstance(parent_record, list):
             self.log(
-                f"Gathering waterlevel summary for multiple records. {len(parent_record)}"
+                f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
             )
         else:
-            self.log(f"Gathering waterlevel summary for record {parent_record.id}")
+            self.log(f"Gathering {self.name} summary for record {parent_record.id}")
 
         rs = self.get_records(parent_record, config)
         if rs:
             if not isinstance(parent_record, list):
                 parent_record = [parent_record]
-
             ret = []
             for pi in parent_record:
-                rrs = self._extract_parent_records(rs, pi)
-                if not rrs:
-                    continue
-
-                wls = self._extract_waterlevels(rrs)
-                if not wls:
-                    continue
-
-                mrd = self._extract_most_recent(rrs)
-                if not mrd:
-                    continue
-
-                n = len(wls)
-                self.log(f"Retrieved waterlevels: {n}")
-                ret.append(
-                    self.transformer.do_transform(
+                rec = self.summary_hook(pi, config, rs)
+                if rec is not None:
+                    wls, mrd = rec
+                    n = len(wls)
+                    self.log(f"Retrieved {self.name}: {n}")
+                    trec = self.transformer.do_transform(
                         {
                             "nrecords": n,
                             "min": min(wls),
@@ -106,8 +100,61 @@ class BaseWaterLevelSource(BaseSource):
                         config,
                         pi,
                     )
-                )
+                    ret.append(trec)
+
             return ret
+
+
+class BaseAnalyteSource(BaseSummarySource):
+    name = 'analyte'
+
+    def summary_hook(self, parent_record, config, rs):
+
+        rss = self._extract_parent_records(rs, parent_record)
+        if not rss:
+            return
+
+        results = self._extract_analyte_results(rss)
+        if not results:
+            return
+
+        mrd = self._extract_most_recent(rss)
+
+        return results, mrd
+
+    def _extract_parent_records(self, records, parent_record):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parent_records"
+        )
+
+    def _extract_analyte_results(self, records):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_analyte_results"
+        )
+
+    def _extract_most_recent(self, records):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_most_recent"
+        )
+
+
+class BaseWaterLevelSource(BaseSummarySource):
+    name = 'water levels'
+
+    def summary_hook(self, parent_record, config, rs):
+        rrs = self._extract_parent_records(rs, parent_record)
+        if not rrs:
+            return
+
+        wls = self._extract_waterlevels(rrs)
+        if not wls:
+            return
+
+        mrd = self._extract_most_recent(rrs)
+        if not mrd:
+            return
+
+        return wls, mrd
 
     def _extract_parent_records(self, records, parent_record):
         raise NotImplementedError(
@@ -136,17 +183,16 @@ class BaseWaterLevelSource(BaseSource):
         self.log(f"nrecords={n}")
 
 
-class BaseAnalytesSource(BaseSource):
-    def read(self, parent_record, config):
-        self.log(f"Gathering analytes for record {parent_record.id}")
-        n = 0
-        for record in self.get_records(parent_record, config):
-            record = self.transformer.transform(record, parent_record, config)
-            if record:
-                n += 1
-                yield record
-
-        self.log(f"nrecords={n}")
-
+# class BaseAnalytesSource(BaseSource):
+#     def read(self, parent_record, config):
+#         self.log(f"Gathering analytes for record {parent_record.id}")
+#         n = 0
+#         for record in self.get_records(parent_record, config):
+#             record = self.transformer.transform(record, parent_record, config)
+#             if record:
+#                 n += 1
+#                 yield record
+#
+#         self.log(f"nrecords={n}")
 
 # ============= EOF =============================================
