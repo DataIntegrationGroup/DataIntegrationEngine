@@ -18,6 +18,7 @@ import pprint
 import httpx
 
 from backend.connectors.bor.transformer import BORSiteTransformer, BORAnalyteTransformer
+from backend.connectors.constants import TDS
 
 from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource
 
@@ -29,13 +30,12 @@ class BORSiteSource(BaseSiteSource):
         # locationTypeId 10 is for wells
         params = {"stateId": "NM", "locationTypeId": 10}
         resp = httpx.get("https://data.usbr.gov/rise/api/location", params=params)
-        print(resp.url)
         return resp.json()["data"]
 
 
 def get_analyte_code(config):
     name = None
-    if config.analyte == "TDS":
+    if config.analyte == TDS:
         name = "TDS"
     return name
 
@@ -46,6 +46,9 @@ class BORAnalyteSource(BaseAnalyteSource):
 
     def _extract_analyte_results(self, rs):
         return [ri["attributes"]["result"] for ri in rs]
+
+    def _extract_analyte_units(self, records):
+        return [ri["attributes"]["resultAttributes"]["units"] for ri in records]
 
     def _extract_most_recent(self, rs):
         def parse_dt(dt):

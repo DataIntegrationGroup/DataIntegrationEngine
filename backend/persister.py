@@ -43,8 +43,11 @@ class BasePersister(Loggable):
 
     def save(self, path):
         path = self.add_extension(path)
-        self.log(f"saving to {path}")
-        self._save(path)
+        if self.records:
+            self.log(f"saving to {path}")
+            self._save(path)
+        else:
+            self.log('no records to save', fg='red')
 
     def add_extension(self, path):
         if not self.extension:

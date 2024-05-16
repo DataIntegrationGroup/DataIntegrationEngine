@@ -17,6 +17,7 @@ import pprint
 
 import httpx
 
+from backend.connectors.constants import TDS, URANIUM, NITRATE, SULFATE
 from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer
 from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource, make_site_list
 
@@ -51,9 +52,9 @@ def get_characteristic_names(parameter):
         characteristic_names = ["Chloride"]
     elif parameter == "Fluoride":
         characteristic_names = ["Fluoride"]
-    elif parameter == "Nitrate as N":
+    elif parameter == NITRATE:
         characteristic_names = ["Nitrate", "Nitrate-N", "Nitrate as N"]
-    elif parameter == "Sulfate":
+    elif parameter == SULFATE:
         characteristic_names = [
             "Sulfate",
             "Sulfate as SO4",
@@ -61,9 +62,9 @@ def get_characteristic_names(parameter):
             "Sulfate as S",
             "Total Sulfate",
         ]
-    elif parameter == "TDS":
+    elif parameter == TDS:
         characteristic_names = ["Total dissolved solids"]
-    elif parameter == "Uranium":
+    elif parameter == URANIUM:
         characteristic_names = ["Uranium", "Uranium-238"]
     else:
         raise ValueError(f"Invalid parameter name {parameter}")
@@ -82,7 +83,14 @@ class WQPAnalyteSource(BaseAnalyteSource):
 
     def _extract_analyte_results(self, records):
         return [
-            float(ri["ResultMeasureValue"])
+            ri["ResultMeasureValue"]
+            for ri in records
+            if ri["ResultMeasureValue"]
+        ]
+
+    def _extract_analyte_units(self, records):
+        return [
+            ri["ResultMeasure/MeasureUnitCode"]
             for ri in records
             if ri["ResultMeasureValue"]
         ]

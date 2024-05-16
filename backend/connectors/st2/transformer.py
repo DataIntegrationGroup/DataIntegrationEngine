@@ -22,7 +22,7 @@ from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTran
 class ST2SiteTransformer(SiteTransformer):
     source_id = "ST2"
 
-    def transform(self, record, config):
+    def _transform(self, record, config):
         lat = record.location["coordinates"][1]
         lng = record.location["coordinates"][0]
         if not self.contained(lng, lat, config):
@@ -57,7 +57,7 @@ class EBIDSiteTransformer(ST2SiteTransformer):
 class ST2WaterLevelTransformer(WaterLevelTransformer):
     source_id = "ST2"
 
-    def transform(self, record, config, parent_record, *args, **kw):
+    def _transform(self, record, config, parent_record, *args, **kw):
         rec = {
             "source": self.source_id,
             "id": parent_record.id,

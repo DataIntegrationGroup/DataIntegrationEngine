@@ -16,11 +16,11 @@
 import pprint
 
 from backend.record import SiteRecord, AnalyteSummaryRecord
-from backend.transformer import BaseTransformer, SiteTransformer
+from backend.transformer import BaseTransformer, SiteTransformer, AnalyteTransformer
 
 
 class WQPSiteTransformer(SiteTransformer):
-    def transform(self, record, config):
+    def _transform(self, record, config):
         # pprint.pprint(record)
         provider = record["ProviderName"]
         rec = {
@@ -40,30 +40,7 @@ class WQPSiteTransformer(SiteTransformer):
         return rec
 
 
-class WQPAnalyteTransformer(BaseTransformer):
-    def _get_record_klass(self, config):
-        return AnalyteSummaryRecord
-
-    def transform(self, record, config, parent_record):
-        rec = {
-            "source": "WQP",
-            "id": parent_record.id,
-            "location": parent_record.name,
-            "usgs_site_id": parent_record.id,
-            "latitude": parent_record.latitude,
-            "longitude": parent_record.longitude,
-            "elevation": parent_record.elevation,
-            "elevation_units": parent_record.elevation_units,
-            "well_depth": parent_record.well_depth,
-            "well_depth_units": parent_record.well_depth_units,
-            "parameter": config.analyte,
-            # "date": record["datetime"],
-            # "value": record["lev_va"],
-            # "units": "ft",
-            # "qualifiers": record["lev_status_cd"],
-        }
-        rec.update(record)
-        return rec
-
+class WQPAnalyteTransformer(AnalyteTransformer):
+    source_tag = "WQP"
 
 # ============= EOF =============================================

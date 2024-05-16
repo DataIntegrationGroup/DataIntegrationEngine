@@ -99,8 +99,9 @@ if __name__ == "__main__":
 
     cfg.analyte = "TDS"
 
-    # cfg.use_source_nwis = False
-    cfg.use_source_ampapi = False
+    cfg.use_source_nwis = False
+    cfg.use_source_wqp = False
+    # cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False

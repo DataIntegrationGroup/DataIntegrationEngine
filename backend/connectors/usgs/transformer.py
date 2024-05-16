@@ -18,7 +18,7 @@ from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTran
 
 
 class USGSSiteTransformer(SiteTransformer):
-    def transform(self, record, config):
+    def _transform(self, record, config):
         elevation = record["alt_va"]
         try:
             elevation = float(elevation)
@@ -47,7 +47,7 @@ class USGSSiteTransformer(SiteTransformer):
 
 
 class USGSWaterLevelTransformer(WaterLevelTransformer):
-    def transform(self, record, config, parent_record):
+    def _transform(self, record, config, parent_record):
         rec = {
             "source": "USGS-NWIS",
             "id": parent_record.id,

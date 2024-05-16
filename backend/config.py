@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 import shapely.wkt
 
 from backend.bounding_polygons import get_county_polygon
-from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource
+from backend.connectors.ampapi.source import AMPAPISiteSource, AMPAPIWaterLevelSource, AMPAPIAnalyteSource
 from backend.connectors.bor.source import BORSiteSource, BORAnalyteSource
 from backend.connectors.ckan import (
     HONDO_RESOURCE_ID,
@@ -30,9 +30,10 @@ from backend.connectors.ckan.source import (
     OSERoswellSiteSource,
     OSERoswellWaterLevelSource,
 )
+from backend.connectors.constants import MILLIGRAMS_PER_LITER, WGS84, FEET
 from backend.connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
-    ISCSevenRiversWaterLevelSource,
+    ISCSevenRiversWaterLevelSource, ISCSevenRiversAnalyteSource,
 )
 from backend.connectors.st2.source import (
     ST2SiteSource,
@@ -64,11 +65,14 @@ class Config:
 
     # output
     output_path = "output"
-    output_horizontal_datum = "WGS84"
-    output_elevation_units = "ft"
-    output_well_depth_units = "ft"
+    output_horizontal_datum = WGS84
+    output_elevation_units = FEET
+    output_well_depth_units = FEET
     output_summary_waterlevel_stats = False
     latest_water_level_only = False
+
+    analyte_output_units = MILLIGRAMS_PER_LITER
+    waterlevel_output_units = FEET
 
     use_csv = True
     use_geojson = False
@@ -91,7 +95,12 @@ class Config:
             sources.append((BORSiteSource(), BORAnalyteSource()))
         if self.use_source_wqp:
             sources.append((WQPSiteSource(), WQPAnalyteSource()))
-
+        if self.use_source_isc_seven_rivers:
+            sources.append(
+                (ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource())
+            )
+        if self.use_source_ampapi:
+            sources.append((AMPAPISiteSource(), AMPAPIAnalyteSource()))
         return sources
 
     def water_level_sources(self):
@@ -195,6 +204,5 @@ class Config:
         td = timedelta(days=days)
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
-
 
 # ============= EOF =============================================

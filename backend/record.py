@@ -116,6 +116,7 @@ class AnalyteSummaryRecord(BaseRecord):
         "well_depth",
         "well_depth_units",
         "parameter",
+        "parameter_units",
         "nrecords",
         "min",
         "max",

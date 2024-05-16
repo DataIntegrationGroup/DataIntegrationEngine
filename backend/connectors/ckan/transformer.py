@@ -20,7 +20,7 @@ from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTran
 
 
 class OSERoswellSiteTransformer(SiteTransformer):
-    def transform(self, record, config):
+    def _transform(self, record, config):
         # pprint.pprint(record)
         lat = float(record["DD_lat"])
         lng = float(record["DD_lon"])
@@ -46,7 +46,7 @@ class OSERoswellSiteTransformer(SiteTransformer):
 
 
 class OSERoswellWaterLevelTransformer(WaterLevelTransformer):
-    def transform(self, record, config, parent_record):
+    def _transform(self, record, config, parent_record):
         rec = {
             "id": parent_record.id,
             "source": "CKAN/OSERoswell",

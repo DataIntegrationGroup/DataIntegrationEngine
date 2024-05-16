@@ -17,11 +17,12 @@ from datetime import datetime
 
 import httpx
 
+from backend.connectors.constants import TDS
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
-    ISCSevenRiversWaterLevelTransformer,
+    ISCSevenRiversWaterLevelTransformer, ISCSevenRiversAnalyteTransformer,
 )
-from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource
+from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource, BaseAnalyteSource
 
 
 def _make_url(endpoint):
@@ -36,6 +37,41 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
         return resp.json()["data"]
 
 
+class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
+    transformer_klass = ISCSevenRiversAnalyteTransformer
+    _analyte_ids = None
+
+    def _get_analyte_id(self, analyte):
+        if self._analyte_ids is None:
+            resp = httpx.get(_make_url("getAnalytes.ashx"))
+            self._analyte_ids = {r["name"]: r["id"] for r in resp.json()["data"]}
+
+        if analyte == TDS:
+            analyte = 'TDS calc'
+
+        return self._analyte_ids.get(analyte)
+
+    def _extract_most_recent(self, records):
+        t = max(records, key=lambda x: x["dateTime"])["dateTime"]
+        t = datetime.fromtimestamp(t / 1000)
+        return t
+
+    def _extract_analyte_results(self, records):
+        return [r["result"] for r in records]
+
+    def _extract_analyte_units(self, records):
+        return [r['units'] for r in records]
+
+    def get_records(self, parent_record, config):
+        resp = httpx.get(
+            _make_url("getReadings.ashx"),
+            params={"monitoringPointId": parent_record.id,
+                    "analyteId": self._get_analyte_id(config.analyte),
+                    "start": 0, "end": config.now_ms(days=1)},
+        )
+        return resp.json()["data"]
+
+
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
 
@@ -46,17 +82,19 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         )
         return resp.json()["data"]
 
+    def _clean_records(self, records):
+        return [r for r in records if r["depthToWaterFeet"] is not None]
+
     def _extract_waterlevels(self, records):
         return [
             r["depthToWaterFeet"]
             for r in records
-            if r["depthToWaterFeet"] is not None and not r["invalid"] and not r["dry"]
+            if not r["invalid"] and not r["dry"]
         ]
 
     def _extract_most_recent(self, records):
         t = max(records, key=lambda x: x["dateTime"])["dateTime"]
         t = datetime.fromtimestamp(t / 1000)
         return t
-
 
 # ============= EOF =============================================

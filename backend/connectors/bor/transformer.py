@@ -16,7 +16,7 @@
 import pprint
 
 from backend.record import SiteRecord, WaterLevelRecord, AnalyteSummaryRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
+from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer, AnalyteTransformer
 
 WELL_DEPTHS = {
     3243: 1340,  # well 1
@@ -27,7 +27,7 @@ WELL_DEPTHS = {
 
 
 class BORSiteTransformer(SiteTransformer):
-    def transform(self, record, config):
+    def _transform(self, record, config):
         props = record["attributes"]
 
         elevation = props["elevation"]
@@ -57,30 +57,8 @@ class BORSiteTransformer(SiteTransformer):
         return rec
 
 
-class BORAnalyteTransformer(BaseTransformer):
-    def _get_record_klass(self, config):
-        return AnalyteSummaryRecord
-
-    def transform(self, record, config, parent_record):
-        rec = {
-            "source": "BOR-RISE",
-            "id": parent_record.id,
-            "location": parent_record.name,
-            "usgs_site_id": parent_record.id,
-            "latitude": parent_record.latitude,
-            "longitude": parent_record.longitude,
-            "elevation": parent_record.elevation,
-            "elevation_units": parent_record.elevation_units,
-            "well_depth": parent_record.well_depth,
-            "well_depth_units": parent_record.well_depth_units,
-            "parameter": config.analyte,
-            # "date": record["datetime"],
-            # "value": record["lev_va"],
-            # "units": "ft",
-            # "qualifiers": record["lev_status_cd"],
-        }
-        rec.update(record)
-        return rec
+class BORAnalyteTransformer(AnalyteTransformer):
+    source_tag = "BOR-RISE"
 
 
 # class BORWaterLevelTransformer(WaterLevelTransformer):

@@ -14,13 +14,12 @@
 # limitations under the License.
 # ===============================================================================
 from backend.record import SiteRecord, WaterLevelRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
+from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer, AnalyteTransformer
 
 
 class AMPAPISiteTransformer(SiteTransformer):
-    def transform(self, record, config):
+    def _transform(self, record, config):
         props = record["properties"]
-        # print(props)
         rec = {
             "source": "AMPAPI",
             "id": props["point_id"],
@@ -40,8 +39,12 @@ class AMPAPISiteTransformer(SiteTransformer):
         return rec
 
 
+class AMPAPIAnalyteTransformer(AnalyteTransformer):
+    source_tag = "AMPAPI"
+
+
 class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
-    def transform(self, record, config, parent_record):
+    def _transform(self, record, config, parent_record):
         rec = {
             "source": "AMPAPI",
             "id": parent_record.id,
@@ -64,6 +67,5 @@ class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
             rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
 
         return rec
-
 
 # ============= EOF =============================================

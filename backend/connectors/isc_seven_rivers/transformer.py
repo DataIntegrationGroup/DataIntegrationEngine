@@ -17,11 +17,11 @@ import shapely.wkt
 from shapely import Point
 
 from backend.record import SiteRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
+from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer, AnalyteTransformer
 
 
 class ISCSevenRiversSiteTransformer(SiteTransformer):
-    def transform(self, record, config):
+    def _transform(self, record, config):
         lat = record["latitude"]
         lng = record["longitude"]
 
@@ -41,8 +41,12 @@ class ISCSevenRiversSiteTransformer(SiteTransformer):
         return rec
 
 
+class ISCSevenRiversAnalyteTransformer(AnalyteTransformer):
+    source_tag = "ISCSevenRivers"
+
+
 class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
-    def transform(self, record, config, parent_record):
+    def _transform(self, record, config, parent_record):
         rec = {
             "source": "ISCSevenRivers",
             "id": parent_record.id,
@@ -59,6 +63,5 @@ class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
             rec["depth_to_water_ft_below_ground_surface"] = record["depthToWaterFeet"]
 
         return rec
-
 
 # ============= EOF =============================================

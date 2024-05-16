@@ -20,7 +20,7 @@ import shapely
 from shapely import Point
 
 from backend.geo_utils import datum_transform
-from backend.record import WaterLevelSummaryRecord, WaterLevelRecord, SiteRecord
+from backend.record import WaterLevelSummaryRecord, WaterLevelRecord, SiteRecord, AnalyteSummaryRecord
 
 
 def transform_horizontal_datum(x, y, in_datum, out_datum):
@@ -51,7 +51,7 @@ class BaseTransformer:
     _cached_polygon = None
 
     def do_transform(self, record, config, *args, **kw):
-        record = self.transform(record, config, *args, **kw)
+        record = self._transform(record, config, *args, **kw)
         if not record:
             return
 
@@ -99,8 +99,11 @@ class BaseTransformer:
 
         return record
 
-    def transform(self, *args, **kw):
-        raise NotImplementedError
+    def _transform(self, *args, **kw):
+        raise NotImplementedError(f"{self.__class__.__name__} must implement _transform")
+
+    def _post_transform(self, *args, **kw):
+        pass
 
     def contained(self, lng, lat, config):
         if config.has_bounds():
@@ -168,5 +171,33 @@ class WaterLevelTransformer(BaseTransformer):
         else:
             return WaterLevelRecord
 
+
+class AnalyteTransformer(BaseTransformer):
+    source_tag = None
+
+    def _get_record_klass(self, config):
+        return AnalyteSummaryRecord
+
+    def _transform(self, record, config, parent_record):
+        if self.source_tag is None:
+            raise NotImplementedError(f"{self.__class__.__name__} source_tag is not set")
+
+        rec = {
+            "source": self.source_tag,
+            "id": parent_record.id,
+            "location": parent_record.name,
+            "usgs_site_id": parent_record.id,
+            "latitude": parent_record.latitude,
+            "longitude": parent_record.longitude,
+            "elevation": parent_record.elevation,
+            "elevation_units": parent_record.elevation_units,
+            "well_depth": parent_record.well_depth,
+            "well_depth_units": parent_record.well_depth_units,
+
+            "parameter": config.analyte,
+            "parameter_units": config.analyte_output_units,
+        }
+        rec.update(record)
+        return rec
 
 # ============= EOF =============================================

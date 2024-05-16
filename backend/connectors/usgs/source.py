@@ -91,11 +91,13 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
     def _extract_parent_records(self, records, parent_record):
         return [ri for ri in records if ri["site_no"] == parent_record.id]
 
+    def _clean_records(self, records):
+        return [r for r in records if r["lev_va"] is not None and r["lev_va"].strip()]
+
     def _extract_waterlevels(self, records):
         return [
             float(r["lev_va"])
             for r in records
-            if r["lev_va"] is not None and r["lev_va"].strip()
         ]
 
     def _extract_most_recent(self, records):
