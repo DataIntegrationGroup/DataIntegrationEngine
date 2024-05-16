@@ -20,7 +20,8 @@ from backend.persister import CSVPersister, GeoJSONPersister
 from backend.record import (
     SiteRecord,
     WaterLevelRecord,
-    WaterLevelSummaryRecord, AnalyteSummaryRecord,
+    WaterLevelSummaryRecord,
+    AnalyteSummaryRecord,
 )
 
 
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     cfg.output_summary_waterlevel_stats = True
     cfg.has_waterlevels = True
 
-    cfg.analyte = 'TDS'
+    cfg.analyte = "TDS"
 
     # cfg.use_source_nwis = False
     cfg.use_source_ampapi = False

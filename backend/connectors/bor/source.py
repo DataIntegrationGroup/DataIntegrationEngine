@@ -17,10 +17,7 @@ import pprint
 
 import httpx
 
-from backend.connectors.bor.transformer import (
-    BORSiteTransformer,
-    BORAnalyteTransformer
-)
+from backend.connectors.bor.transformer import BORSiteTransformer, BORAnalyteTransformer
 
 from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource
 
@@ -38,8 +35,8 @@ class BORSiteSource(BaseSiteSource):
 
 def get_analyte_code(config):
     name = None
-    if config.analyte == 'TDS':
-        name = 'TDS'
+    if config.analyte == "TDS":
+        name = "TDS"
     return name
 
 
@@ -48,27 +45,33 @@ class BORAnalyteSource(BaseAnalyteSource):
     _catalog_item_idx = None
 
     def _extract_analyte_results(self, rs):
-        return [ri['attributes']['result'] for ri in rs]
+        return [ri["attributes"]["result"] for ri in rs]
 
     def _extract_most_recent(self, rs):
         def parse_dt(dt):
-            return tuple(dt.split('T'))
+            return tuple(dt.split("T"))
 
-        return sorted([parse_dt(ri['attributes']['dateTime']) for ri in rs], key=lambda x: x[0])[-1]
+        return sorted(
+            [parse_dt(ri["attributes"]["dateTime"]) for ri in rs], key=lambda x: x[0]
+        )[-1]
 
     def _extract_parent_records(self, records, parent_record):
-        return [ri for ri in records if ri["attributes"]['locationId'] == parent_record.id]
+        return [
+            ri for ri in records if ri["attributes"]["locationId"] == parent_record.id
+        ]
 
     def _reorder_catalog_items(self, items):
         if self._catalog_item_idx:
             # rotate list so catalog_item_idx is the first item
-            items = items[self._catalog_item_idx:] + items[:self._catalog_item_idx]
+            items = items[self._catalog_item_idx :] + items[: self._catalog_item_idx]
         return items
 
     def get_records(self, parent_record, config):
         code = get_analyte_code(config)
 
-        for i, item in enumerate(self._reorder_catalog_items(parent_record.catalogItems)):
+        for i, item in enumerate(
+            self._reorder_catalog_items(parent_record.catalogItems)
+        ):
             resp = httpx.get(
                 f'https://data.usbr.gov{item["id"]}',
             )
@@ -79,10 +82,11 @@ class BORAnalyteSource(BaseAnalyteSource):
                     self._catalog_item_idx = i
 
                 params = {
-                    'itemId': data['attributes']["_id"],
+                    "itemId": data["attributes"]["_id"],
                 }
-                resp = httpx.get('https://data.usbr.gov/rise/api/result', params=params)
+                resp = httpx.get("https://data.usbr.gov/rise/api/result", params=params)
                 return resp.json()["data"]
+
 
 # class BORWaterLevelSource(BaseWaterLevelSource):
 #     transformer_klass = BORWaterLevelTransformer

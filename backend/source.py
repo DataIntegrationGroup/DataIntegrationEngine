@@ -58,17 +58,19 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
 
 
 class BaseSummarySource(BaseSource):
-    name = ''
+    name = ""
 
     def summary_hook(self, parent_record, config, rs):
-        raise NotImplementedError(f"{self.__class__.__name__} must implement summary_hook")
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement summary_hook"
+        )
 
     def summary(self, parent_record, config):
         if isinstance(parent_record, list):
@@ -106,7 +108,7 @@ class BaseSummarySource(BaseSource):
 
 
 class BaseAnalyteSource(BaseSummarySource):
-    name = 'analyte'
+    name = "analyte"
 
     def summary_hook(self, parent_record, config, rs):
 
@@ -139,7 +141,7 @@ class BaseAnalyteSource(BaseSummarySource):
 
 
 class BaseWaterLevelSource(BaseSummarySource):
-    name = 'water levels'
+    name = "water levels"
 
     def summary_hook(self, parent_record, config, rs):
         rrs = self._extract_parent_records(rs, parent_record)
