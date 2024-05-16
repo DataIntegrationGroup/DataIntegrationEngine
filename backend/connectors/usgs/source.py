@@ -19,7 +19,7 @@ from backend.connectors.usgs.transformer import (
     USGSSiteTransformer,
     USGSWaterLevelTransformer,
 )
-from backend.source import BaseSource, BaseWaterLevelSource, BaseSiteSource
+from backend.source import BaseSource, BaseWaterLevelSource, BaseSiteSource, make_site_list
 
 
 def parse_rdb(text):
@@ -69,16 +69,10 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = USGSWaterLevelTransformer
 
     def get_records(self, parent_record, config):
-
-        if isinstance(parent_record, list):
-            sites = ",".join([r.id for r in parent_record])
-        else:
-            sites = parent_record.id
-
         params = {
             "format": "rdb",
             "siteType": "GW",
-            "sites": sites,
+            "sites": ','.join(make_site_list(parent_record)),
             # "startDT": config.start_date,
             # "endDT": config.end_date,
         }

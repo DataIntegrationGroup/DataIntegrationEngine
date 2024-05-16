@@ -64,6 +64,14 @@ class BaseSiteSource(BaseSource):
             return records
 
 
+def make_site_list(parent_record):
+    if isinstance(parent_record, list):
+        sites = [r.id for r in parent_record]
+    else:
+        sites = parent_record.id
+    return sites
+
+
 class BaseSummarySource(BaseSource):
     name = ""
 
@@ -81,12 +89,14 @@ class BaseSummarySource(BaseSource):
             self.log(f"Gathering {self.name} summary for record {parent_record.id}")
 
         rs = self.get_records(parent_record, config)
+        print('asdf', rs)
         if rs:
             if not isinstance(parent_record, list):
                 parent_record = [parent_record]
             ret = []
             for pi in parent_record:
                 rec = self.summary_hook(pi, config, rs)
+
                 if rec is not None:
                     wls, mrd = rec
                     n = len(wls)
@@ -183,7 +193,6 @@ class BaseWaterLevelSource(BaseSummarySource):
                 yield record
 
         self.log(f"nrecords={n}")
-
 
 # class BaseAnalytesSource(BaseSource):
 #     def read(self, parent_record, config):

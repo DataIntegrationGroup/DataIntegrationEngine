@@ -25,8 +25,8 @@ class USGSSiteTransformer(SiteTransformer):
         except (ValueError, TypeError):
             elevation = None
 
-        lng = float(record["dec_long_va"])
-        lat = float(record["dec_lat_va"])
+        lng = record["dec_long_va"]
+        lat = record["dec_lat_va"]
         datum = record["coord_datum_cd"]
 
         rec = {

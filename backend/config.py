@@ -41,7 +41,7 @@ from backend.connectors.st2.source import (
     PVACDWaterLevelSource,
 )
 from backend.connectors.usgs.source import USGSSiteSource, USGSWaterLevelSource
-from backend.connectors.wqp.source import WQPSiteSource
+from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 
 class Config:
@@ -89,6 +89,8 @@ class Config:
         # sources.append((WQPSiteSource, WQPAnalyteSource))
         if self.use_source_bor:
             sources.append((BORSiteSource(), BORAnalyteSource()))
+        if self.use_source_wqp:
+            sources.append((WQPSiteSource(), WQPAnalyteSource()))
 
         return sources
 

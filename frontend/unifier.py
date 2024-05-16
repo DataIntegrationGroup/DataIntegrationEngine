@@ -104,8 +104,9 @@ if __name__ == "__main__":
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
+    cfg.use_source_bor = False
     # unify_sites(cfg)
-    unify_waterlevels(cfg)
-    # unify_analytes(cfg)
+    # unify_waterlevels(cfg)
+    unify_analytes(cfg)
 
 # ============= EOF =============================================

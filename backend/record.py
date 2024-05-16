@@ -42,7 +42,11 @@ class BaseRecord:
                 ("mean", 2),
             ):
                 if v is not None and key == attr:
-                    v = round(v, sigfigs)
+                    try:
+                        v = round(v, sigfigs)
+                    except TypeError as e:
+                        print(key, attr)
+                        raise e
                     break
             return v
 

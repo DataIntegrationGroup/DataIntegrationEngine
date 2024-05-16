@@ -71,8 +71,8 @@ class BaseTransformer:
         klass = self._get_record_klass(config)
         record = klass(record)
 
-        x = record.latitude
-        y = record.longitude
+        x = float(record.latitude)
+        y = float(record.longitude)
         datum = record.horizontal_datum
 
         lng, lat, datum = transform_horizontal_datum(
