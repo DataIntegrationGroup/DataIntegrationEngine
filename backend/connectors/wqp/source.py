@@ -24,6 +24,7 @@ from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource, make_s
 class WQPSiteSource(BaseSiteSource):
     transformer_klass = WQPSiteTransformer
     chunk_size = 100
+
     def get_records(self, config):
         params = {"mimeType": "tsv", "siteType": "Well"}
         # if config.bbox:
@@ -53,7 +54,13 @@ def get_characteristic_names(parameter):
     elif parameter == "Nitrate as N":
         characteristic_names = ["Nitrate", "Nitrate-N", "Nitrate as N"]
     elif parameter == "Sulfate":
-        characteristic_names = ["Sulfate", "Sulfate as SO4", "Sulfur Sulfate", "Sulfate as S", "Total Sulfate"]
+        characteristic_names = [
+            "Sulfate",
+            "Sulfate as SO4",
+            "Sulfur Sulfate",
+            "Sulfate as S",
+            "Total Sulfate",
+        ]
     elif parameter == "TDS":
         characteristic_names = ["Total dissolved solids"]
     elif parameter == "Uranium":
@@ -67,26 +74,37 @@ class WQPAnalyteSource(BaseAnalyteSource):
     transformer_klass = WQPAnalyteTransformer
 
     def _extract_parent_records(self, records, parent_record):
-        return [ri for ri in records if ri["MonitoringLocationIdentifier"] == parent_record.id]
+        return [
+            ri
+            for ri in records
+            if ri["MonitoringLocationIdentifier"] == parent_record.id
+        ]
 
     def _extract_analyte_results(self, records):
-        return [float(ri['ResultMeasureValue']) for ri in records if ri['ResultMeasureValue']]
+        return [
+            float(ri["ResultMeasureValue"])
+            for ri in records
+            if ri["ResultMeasureValue"]
+        ]
 
     def _extract_most_recent(self, records):
-        return sorted([ri['ActivityStartDate'] for ri in records], reverse=True)[0]
+        return sorted([ri["ActivityStartDate"] for ri in records], reverse=True)[0]
 
     def get_records(self, parent_record, config):
         sites = make_site_list(parent_record)
 
-        params = {'siteid': sites, 'mimeType': 'tsv'}
+        params = {"siteid": sites, "mimeType": "tsv"}
 
-        params['characteristicName'] = get_characteristic_names(config.analyte)
+        params["characteristicName"] = get_characteristic_names(config.analyte)
         resp = httpx.get(
-            "https://www.waterqualitydata.us/data/Result/search?", params=params, timeout=10
+            "https://www.waterqualitydata.us/data/Result/search?",
+            params=params,
+            timeout=10,
         )
         result = resp.text
         rows = result.split("\n")
         header = rows[0].split("\t")
         return [dict(zip(header, row.split("\t"))) for row in rows[1:]]
+
 
 # ============= EOF =============================================

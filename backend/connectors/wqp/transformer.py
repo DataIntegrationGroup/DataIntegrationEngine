@@ -64,4 +64,6 @@ class WQPAnalyteTransformer(BaseTransformer):
         }
         rec.update(record)
         return rec
+
+
 # ============= EOF =============================================
