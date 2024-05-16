@@ -93,9 +93,8 @@ class WQPAnalyteSource(BaseAnalyteSource):
     def get_records(self, parent_record, config):
         sites = make_site_list(parent_record)
 
-        params = {"siteid": sites, "mimeType": "tsv"}
+        params = {'siteid': sites, 'mimeType': 'tsv', 'characteristicName': get_characteristic_names(config.analyte)}
 
-        params["characteristicName"] = get_characteristic_names(config.analyte)
         resp = httpx.get(
             "https://www.waterqualitydata.us/data/Result/search?",
             params=params,

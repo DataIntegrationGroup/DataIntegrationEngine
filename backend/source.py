@@ -89,7 +89,6 @@ class BaseSummarySource(BaseSource):
             self.log(f"Gathering {self.name} summary for record {parent_record.id}")
 
         rs = self.get_records(parent_record, config)
-        print("asdf", rs)
         if rs:
             if not isinstance(parent_record, list):
                 parent_record = [parent_record]
