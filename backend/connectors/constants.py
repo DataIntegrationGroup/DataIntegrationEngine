@@ -22,7 +22,7 @@ SULFATE = "Sulfate"
 MILLIGRAMS_PER_LITER = "mg/L"
 PARTS_PER_MILLION = "ppm"
 FEET = "ft"
-METERS = 'm'
+METERS = "m"
 WGS84 = "WGS84"
 
 # ============= EOF =============================================

@@ -16,7 +16,12 @@
 import pprint
 
 from backend.record import SiteRecord, WaterLevelRecord, AnalyteSummaryRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer, AnalyteTransformer
+from backend.transformer import (
+    BaseTransformer,
+    WaterLevelTransformer,
+    SiteTransformer,
+    AnalyteTransformer,
+)
 
 WELL_DEPTHS = {
     3243: 1340,  # well 1

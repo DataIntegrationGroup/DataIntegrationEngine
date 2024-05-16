@@ -20,9 +20,15 @@ import httpx
 from backend.connectors.constants import TDS
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
-    ISCSevenRiversWaterLevelTransformer, ISCSevenRiversAnalyteTransformer,
+    ISCSevenRiversWaterLevelTransformer,
+    ISCSevenRiversAnalyteTransformer,
 )
-from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource, BaseAnalyteSource
+from backend.source import (
+    BaseSource,
+    BaseSiteSource,
+    BaseWaterLevelSource,
+    BaseAnalyteSource,
+)
 
 
 def _make_url(endpoint):
@@ -47,7 +53,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             self._analyte_ids = {r["name"]: r["id"] for r in resp.json()["data"]}
 
         if analyte == TDS:
-            analyte = 'TDS calc'
+            analyte = "TDS calc"
 
         return self._analyte_ids.get(analyte)
 
@@ -60,14 +66,17 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         return [r["result"] for r in records]
 
     def _extract_analyte_units(self, records):
-        return [r['units'] for r in records]
+        return [r["units"] for r in records]
 
     def get_records(self, parent_record, config):
         resp = httpx.get(
             _make_url("getReadings.ashx"),
-            params={"monitoringPointId": parent_record.id,
-                    "analyteId": self._get_analyte_id(config.analyte),
-                    "start": 0, "end": config.now_ms(days=1)},
+            params={
+                "monitoringPointId": parent_record.id,
+                "analyteId": self._get_analyte_id(config.analyte),
+                "start": 0,
+                "end": config.now_ms(days=1),
+            },
         )
         return resp.json()["data"]
 
@@ -87,14 +96,13 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_waterlevels(self, records):
         return [
-            r["depthToWaterFeet"]
-            for r in records
-            if not r["invalid"] and not r["dry"]
+            r["depthToWaterFeet"] for r in records if not r["invalid"] and not r["dry"]
         ]
 
     def _extract_most_recent(self, records):
         t = max(records, key=lambda x: x["dateTime"])["dateTime"]
         t = datetime.fromtimestamp(t / 1000)
         return t
+
 
 # ============= EOF =============================================

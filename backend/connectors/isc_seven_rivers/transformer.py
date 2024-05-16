@@ -17,7 +17,12 @@ import shapely.wkt
 from shapely import Point
 
 from backend.record import SiteRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer, AnalyteTransformer
+from backend.transformer import (
+    BaseTransformer,
+    WaterLevelTransformer,
+    SiteTransformer,
+    AnalyteTransformer,
+)
 
 
 class ISCSevenRiversSiteTransformer(SiteTransformer):
@@ -63,5 +68,6 @@ class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
             rec["depth_to_water_ft_below_ground_surface"] = record["depthToWaterFeet"]
 
         return rec
+
 
 # ============= EOF =============================================

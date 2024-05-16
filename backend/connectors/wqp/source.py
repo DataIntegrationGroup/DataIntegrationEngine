@@ -82,11 +82,7 @@ class WQPAnalyteSource(BaseAnalyteSource):
         ]
 
     def _extract_analyte_results(self, records):
-        return [
-            ri["ResultMeasureValue"]
-            for ri in records
-            if ri["ResultMeasureValue"]
-        ]
+        return [ri["ResultMeasureValue"] for ri in records if ri["ResultMeasureValue"]]
 
     def _extract_analyte_units(self, records):
         return [

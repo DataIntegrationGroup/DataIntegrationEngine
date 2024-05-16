@@ -14,7 +14,12 @@
 # limitations under the License.
 # ===============================================================================
 from backend.record import SiteRecord, WaterLevelRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer, AnalyteTransformer
+from backend.transformer import (
+    BaseTransformer,
+    WaterLevelTransformer,
+    SiteTransformer,
+    AnalyteTransformer,
+)
 
 
 class AMPAPISiteTransformer(SiteTransformer):
@@ -67,5 +72,6 @@ class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
             rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
 
         return rec
+
 
 # ============= EOF =============================================

@@ -15,7 +15,12 @@
 # ===============================================================================
 import click
 
-from backend.connectors.constants import MILLIGRAMS_PER_LITER, FEET, METERS, PARTS_PER_MILLION
+from backend.connectors.constants import (
+    MILLIGRAMS_PER_LITER,
+    FEET,
+    METERS,
+    PARTS_PER_MILLION,
+)
 from backend.persister import BasePersister, CSVPersister
 from backend.transformer import BaseTransformer
 
@@ -60,7 +65,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -154,8 +159,12 @@ def convert_units(input_value, input_units, output_units):
     if input_units == output_units:
         return input_value
 
-    if (input_units == mgl and output_units == ppm
-            or input_units == ppm and output_units == mgl):
+    if (
+        input_units == mgl
+        and output_units == ppm
+        or input_units == ppm
+        and output_units == mgl
+    ):
         return input_value * 1.0
 
     ft = FEET.lower()
@@ -178,13 +187,16 @@ class BaseAnalyteSource(BaseSummarySource):
             return
 
         units = self._extract_analyte_units(rs)
-        results = [convert_units(float(r), u, config.analyte_output_units)
-                   for r, u in zip(results, units)]
+        results = [
+            convert_units(float(r), u, config.analyte_output_units)
+            for r, u in zip(results, units)
+        ]
         return results
 
     def _extract_analyte_units(self, records):
         raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_analyte_units")
+            f"{self.__class__.__name__} Must implement _extract_analyte_units"
+        )
 
     def _extract_analyte_results(self, records):
         raise NotImplementedError(
@@ -198,7 +210,10 @@ class BaseWaterLevelSource(BaseSummarySource):
     def _summary_hook(self, parent_record, config, rs):
         rs = self._extract_waterlevels(rs)
         us = self._extract_waterlevel_units(rs)
-        return [convert_units(float(r), u, config.waterlevel_output_units) for r, u in zip(rs, us)]
+        return [
+            convert_units(float(r), u, config.waterlevel_output_units)
+            for r, u in zip(rs, us)
+        ]
 
     def _extract_waterlevel_units(self, records):
         return [FEET for _ in records]
@@ -218,5 +233,6 @@ class BaseWaterLevelSource(BaseSummarySource):
                 yield record
 
         self.log(f"nrecords={n}")
+
 
 # ============= EOF =============================================
