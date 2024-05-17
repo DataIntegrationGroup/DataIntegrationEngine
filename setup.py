@@ -21,7 +21,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="nmuwd",
-    version="0.0.9",
+    version="0.0.10",
     author="Jake Ross",
     description="New Mexico Water Data Integration Engine",
     long_description=long_description,
@@ -37,7 +37,7 @@ setup(
             "weave = frontend.cli:cli",
         ],
     },
-    packages=["frontend"] + [f"backend.{p}" for p in find_packages("backend")],
+    packages=["frontend", 'backend'] + [f"backend.{p}" for p in find_packages("backend")],
     python_requires=">=3.6",
     include_package_data=True,
     # package_data={
