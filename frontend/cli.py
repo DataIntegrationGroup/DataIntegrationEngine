@@ -81,7 +81,8 @@ SPATIAL_OPTIONS = [
         "--county",
         default="",
         help="New Mexico county name",
-    )]
+    ),
+]
 
 
 def add_options(options):
@@ -114,7 +115,17 @@ def wells(bbox, county):
     help="Summarize water levels",
 )
 @add_options(SOURCE_OPTIONS)
-def waterlevels(bbox, county, summarize, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp):
+def waterlevels(
+    bbox,
+    county,
+    summarize,
+    no_amp,
+    no_nwis,
+    no_st2,
+    no_isc_seven_rivers,
+    no_bor,
+    no_wqp,
+):
     config = setup_config("waterlevels", bbox, county)
     config.output_summary_waterlevel_stats = summarize
 
@@ -129,11 +140,12 @@ def waterlevels(bbox, county, summarize, no_amp, no_nwis, no_st2, no_isc_seven_r
 
 
 @cli.command()
-@click.argument("analyte",
-                type=click.Choice(ANALYTE_CHOICES))
+@click.argument("analyte", type=click.Choice(ANALYTE_CHOICES))
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
-def analytes(analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp):
+def analytes(
+    analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp
+):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte
 
@@ -159,5 +171,6 @@ def setup_config(tag, bbox, county):
         config.bbox = bbox
 
     return config
+
 
 # ============= EOF =============================================

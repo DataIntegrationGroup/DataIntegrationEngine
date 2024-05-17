@@ -26,7 +26,8 @@ from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent, get_analyte_search_param,
+    get_most_recent,
+    get_analyte_search_param,
 )
 
 DEBUG = True
@@ -48,7 +49,9 @@ class AMPAPISiteSource(BaseSiteSource):
             params["wkt"] = config.bounding_wkt()
 
         if config.analyte:
-            params["has_analyte"] = get_analyte_search_param(config.analyte, AMPAPI_ANALYTE_MAPPING)
+            params["has_analyte"] = get_analyte_search_param(
+                config.analyte, AMPAPI_ANALYTE_MAPPING
+            )
         else:
             params["has_waterlevels"] = True
 
@@ -112,5 +115,6 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
 
         resp = httpx.get(url, params=params)
         return resp.json()
+
 
 # ============= EOF =============================================

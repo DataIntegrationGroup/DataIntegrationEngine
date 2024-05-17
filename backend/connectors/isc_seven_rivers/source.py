@@ -29,7 +29,8 @@ from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
     BaseAnalyteSource,
-    get_most_recent, get_analyte_search_param,
+    get_most_recent,
+    get_analyte_search_param,
 )
 
 
@@ -50,8 +51,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     _analyte_ids = None
 
     def _get_analyte_id(self, analyte):
-        """
-        """
+        """ """
         if self._analyte_ids is None:
             resp = httpx.get(_make_url("getAnalytes.ashx"))
             self._analyte_ids = {r["name"]: r["id"] for r in resp.json()["data"]}
@@ -120,5 +120,6 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         record = get_most_recent(records, "dateTime")
         t = datetime.fromtimestamp(record["dateTime"] / 1000)
         return {"value": record["depthToWaterFeet"], "datetime": t, "units": FEET}
+
 
 # ============= EOF =============================================

@@ -25,7 +25,8 @@ from backend.source import (
     BaseSiteSource,
     BaseAnalyteSource,
     make_site_list,
-    get_most_recent, get_analyte_search_param,
+    get_most_recent,
+    get_analyte_search_param,
 )
 
 
@@ -46,7 +47,9 @@ class WQPSiteSource(BaseSiteSource):
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
 
         if config.analyte:
-            params["characteristicName"] = get_analyte_search_param(config.analyte, WQP_ANALYTE_MAPPING)
+            params["characteristicName"] = get_analyte_search_param(
+                config.analyte, WQP_ANALYTE_MAPPING
+            )
 
         resp = httpx.get(
             "https://www.waterqualitydata.us/data/Station/search?", params=params
@@ -87,7 +90,9 @@ class WQPAnalyteSource(BaseAnalyteSource):
         params = {
             "siteid": sites,
             "mimeType": "tsv",
-            "characteristicName": get_analyte_search_param(self.config.analyte, WQP_ANALYTE_MAPPING),
+            "characteristicName": get_analyte_search_param(
+                self.config.analyte, WQP_ANALYTE_MAPPING
+            ),
         }
 
         resp = httpx.get(

@@ -74,7 +74,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -147,7 +147,9 @@ class BaseParameterSource(BaseSource):
                 f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
             )
         else:
-            self.log(f"Gathering {self.name} summary for record {parent_record.id}, {parent_record.name}")
+            self.log(
+                f"Gathering {self.name} summary for record {parent_record.id}, {parent_record.name}"
+            )
 
         rs = self.get_records(parent_record)
         if rs:
@@ -204,7 +206,9 @@ def get_analyte_search_param(parameter, mapping):
     try:
         return mapping[parameter]
     except KeyError:
-        raise ValueError(f"Invalid parameter name {parameter}. Valid parameters are {list(mapping.keys())}")
+        raise ValueError(
+            f"Invalid parameter name {parameter}. Valid parameters are {list(mapping.keys())}"
+        )
 
 
 class BaseAnalyteSource(BaseParameterSource):
@@ -222,5 +226,6 @@ class BaseWaterLevelSource(BaseParameterSource):
 
     def _extract_parameter_units(self, records):
         return [FEET for _ in records]
+
 
 # ============= EOF =============================================
