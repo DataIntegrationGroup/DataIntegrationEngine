@@ -13,11 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.constants import TDS, URANIUM, SULFATE, FLUORIDE, CHLORIDE, ARSENIC, NITRATE, CALCIUM, SODIUM, POTASSIUM, \
-    MAGNESIUM, CARBONATE, PH, BICARBONATE
+from backend.constants import (
+    TDS,
+    URANIUM,
+    SULFATE,
+    FLUORIDE,
+    CHLORIDE,
+    ARSENIC,
+    NITRATE,
+    CALCIUM,
+    SODIUM,
+    POTASSIUM,
+    MAGNESIUM,
+    CARBONATE,
+    PH,
+    BICARBONATE,
+)
 
 # ISC Seven Rivers ===============================================================================
-'''
+"""
 pH
 Specific Conductance
 Temperature
@@ -52,7 +66,7 @@ Fluoride
 Hardness
 Alkalinity as CaCO3
 Cations total
-Barium'''
+Barium"""
 ISC_SEVEN_RIVERS_ANALYTE_MAPPING = {
     ARSENIC: None,
     BICARBONATE: "Bicarbonate (HCO3)",
@@ -67,12 +81,11 @@ ISC_SEVEN_RIVERS_ANALYTE_MAPPING = {
     SULFATE: "Sulfate",
     TDS: "TDS calc",
     URANIUM: None,
-
     PH: "pH",
 }
 
 # AMP ===============================================================================
-'''
+"""
 ALK
 Ca
 Ca(total)
@@ -95,7 +108,7 @@ SO4
 TAn
 TCat
 TDS
-'''
+"""
 AMPAPI_ANALYTE_MAPPING = {
     ARSENIC: "As",  #  ampapi can't handle multiple analytes yet "As,As(total)",
     BICARBONATE: "HCO3",
@@ -110,10 +123,7 @@ AMPAPI_ANALYTE_MAPPING = {
     SULFATE: "SO4",
     TDS: "TDS",
     URANIUM: "Uranium",
-
     PH: "pHL",
-
-
 }
 
 # WQP ===============================================================================
@@ -137,7 +147,6 @@ WQP_ANALYTE_MAPPING = {
     ],
     TDS: ["Total dissolved solids"],
     URANIUM: ["Uranium", "Uranium-238"],
-
     PH: ["pH"],
 }
 # BOR ===============================================================================
@@ -208,7 +217,6 @@ BOR_ANALYTE_MAPPING = {
     SULFATE: "SO4",
     TDS: "TDS",
     URANIUM: "U",
-
     PH: "pH",
 }
 # ============= EOF =============================================
