@@ -58,9 +58,9 @@ class AMPAPISiteSource(BaseSiteSource):
         resp = httpx.get(_make_url("locations"), params=params, timeout=30)
 
         if resp.status_code != 200:
-            self.warn(f'Failed url {resp.url}')
-            self.warn(f'Failed with status code {resp.status_code}')
-            self.warn(f'Failed with response {resp.text}')
+            self.warn(f"Failed url {resp.url}")
+            self.warn(f"Failed with status code {resp.status_code}")
+            self.warn(f"Failed with response {resp.text}")
 
             return []
 
