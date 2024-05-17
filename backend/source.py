@@ -67,7 +67,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -85,12 +85,15 @@ def get_most_recent(records, tag):
     if callable(tag):
         func = tag
     else:
-        if '.' in tag:
+        if "." in tag:
+
             def func(x):
-                for t in tag.split('.'):
+                for t in tag.split("."):
                     x = x[t]
                 return x
+
         else:
+
             def func(x):
                 return x[tag]
 
@@ -165,7 +168,10 @@ class BaseParameterSource(BaseSource):
 
                 items = self._extract_parameter_results(cleaned)
                 units = self._extract_parameter_units(cleaned)
-                items = [convert_units(float(r), u, self._get_output_units()) for r, u in zip(items, units)]
+                items = [
+                    convert_units(float(r), u, self._get_output_units())
+                    for r, u in zip(items, units)
+                ]
 
                 if items is not None:
                     n = len(items)
@@ -176,9 +182,9 @@ class BaseParameterSource(BaseSource):
                             "min": min(items),
                             "max": max(items),
                             "mean": sum(items) / n,
-                            "most_recent_datetime": mr['datetime'],
-                            "most_recent_value": mr['value'],
-                            "most_recent_units": mr['units']
+                            "most_recent_datetime": mr["datetime"],
+                            "most_recent_value": mr["value"],
+                            "most_recent_units": mr["units"],
                         },
                         self.config,
                         pi,
@@ -203,5 +209,6 @@ class BaseWaterLevelSource(BaseParameterSource):
 
     def _extract_parameter_units(self, records):
         return [FEET for _ in records]
+
 
 # ============= EOF =============================================

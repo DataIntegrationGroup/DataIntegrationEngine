@@ -19,7 +19,13 @@ import httpx
 
 from backend.connectors.constants import TDS, URANIUM, NITRATE, SULFATE
 from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer
-from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource, make_site_list, get_most_recent
+from backend.source import (
+    BaseSource,
+    BaseSiteSource,
+    BaseAnalyteSource,
+    make_site_list,
+    get_most_recent,
+)
 
 
 def parse_tsv(text):
@@ -90,16 +96,15 @@ class WQPAnalyteSource(BaseAnalyteSource):
         return [ri for ri in records if ri["ResultMeasureValue"]]
 
     def _extract_parameter_units(self, records):
-        return [
-            ri["ResultMeasure/MeasureUnitCode"]
-            for ri in records
-        ]
+        return [ri["ResultMeasure/MeasureUnitCode"] for ri in records]
 
     def _extract_most_recent(self, records):
         ri = get_most_recent(records, "ActivityStartDate")
-        return {'value': ri['ResultMeasureValue'],
-                'datetime': ri["ActivityStartDate"],
-                'units': ri['ResultMeasure/MeasureUnitCode']}
+        return {
+            "value": ri["ResultMeasureValue"],
+            "datetime": ri["ActivityStartDate"],
+            "units": ri["ResultMeasure/MeasureUnitCode"],
+        }
 
     def get_records(self, parent_record):
         sites = make_site_list(parent_record)
@@ -116,5 +121,6 @@ class WQPAnalyteSource(BaseAnalyteSource):
             timeout=10,
         )
         return parse_tsv(resp.text)
+
 
 # ============= EOF =============================================
