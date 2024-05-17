@@ -26,11 +26,11 @@ from backend.transformer import (
 
 
 class ISCSevenRiversSiteTransformer(SiteTransformer):
-    def _transform(self, record, config):
+    def _transform(self, record):
         lat = record["latitude"]
         lng = record["longitude"]
 
-        if not self.contained(lng, lat, config):
+        if not self.contained(lng, lat):
             return
 
         rec = {

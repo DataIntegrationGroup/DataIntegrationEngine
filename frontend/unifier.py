@@ -17,15 +17,34 @@ import click
 
 from backend.config import Config
 from backend.persister import CSVPersister, GeoJSONPersister
-from backend.record import (
-    SiteRecord,
-    WaterLevelRecord,
-    WaterLevelSummaryRecord,
-    AnalyteSummaryRecord,
-)
 
 
-def perister_factory(config):
+def log(msg, fg='green'):
+    click.secho(msg, fg=fg)
+
+
+def unify_sites(config):
+    log("Unifying sites")
+
+    def func(config, persister):
+        for source in config.site_sources():
+            s = source()
+            persister.load(s.read(config))
+
+    _unify_wrapper(config, func)
+
+
+def unify_analytes(config):
+    log("Unifying analytes")
+    _unify_parameter(config, config.analyte_sources())
+
+
+def unify_waterlevels(config):
+    log("Unifying waterlevels")
+    _unify_parameter(config, config.water_level_sources())
+
+
+def _perister_factory(config):
     persister_klass = CSVPersister
     if config.use_csv:
         persister_klass = CSVPersister
@@ -35,59 +54,33 @@ def perister_factory(config):
     return persister_klass()
 
 
-def unify_wrapper(config, func):
-    persister = perister_factory(config)
-    func(config, persister)
+def _unify_wrapper(config, func):
+    persister = _perister_factory(config)
+    func(persister)
     persister.save(config.output_path)
 
 
-def unify_sites(config):
-    print("unifying")
+def _site_wrapper(site_source, parameter_source, persister):
+    try:
+        sites = site_source.read_sites()
+        for i, sites in enumerate(site_source.chunks(sites)):
+            summary_records = parameter_source.summarize(sites)
+            if summary_records:
+                persister.records.extend(summary_records)
+    except BaseException:
+        import traceback
 
-    def func(config, persister):
-        for source in config.site_sources():
-            s = source()
-            persister.load(s.read(config))
-
-    unify_wrapper(config, func)
-
-
-def unify_analytes(config):
-    def func(config, persister):
-        for site_source, ss in config.analyte_sources():
-            sites = site_source.read_sites()
-            for i, sites in enumerate(site_source.chunks(sites)):
-                if config.output_summary_analyte_stats:
-                    summary_records = ss.summarize(sites)
-                    if summary_records:
-                        persister.records.extend(summary_records)
-                    # break
-
-    unify_wrapper(config, func)
+        exc = traceback.format_exc()
+        click.secho(exc, fg="blue")
+        click.secho(f"Failed to unify {site_source}", fg="red")
 
 
-def unify_waterlevels(config):
-    def func(config, persister):
-        sources = config.water_level_sources()
+def _unify_parameter(config, sources):
+    def func(persister):
         for site_source, ss in sources:
-            try:
-                sites = site_source.read_sites()
-                for i, sites in enumerate(site_source.chunks(sites)):
-                    if config.output_summary_waterlevel_stats:
-                        summary_records = ss.summarize(sites)
-                        if summary_records:
-                            persister.records.extend(summary_records)
-                    # else:
-                    #     for wl in ss.read(sites, config):
-                    #         persister.records.append(wl)
-            except BaseException:
-                import traceback
+            _site_wrapper(site_source, ss, persister)
 
-                exc = traceback.format_exc()
-                click.secho(exc, fg="blue")
-                click.secho(f"Failed to unify {site_source}", fg="red")
-
-    unify_wrapper(config, func)
+    _unify_wrapper(config, func)
 
 
 def test_analyte_unification():
@@ -120,12 +113,11 @@ def test_waterlevel_unification():
     # cfg.use_source_st2 = False
     # cfg.use_source_ose_roswell = False
 
-    # unify_sites(cfg)
     unify_waterlevels(cfg)
 
 
 if __name__ == "__main__":
-    test_waterlevel_unification()
-    # test_analyte_unification()
+    # test_waterlevel_unification()
+    test_analyte_unification()
 
 # ============= EOF =============================================

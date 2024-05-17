@@ -32,6 +32,10 @@ class BaseSource:
     def __init__(self):
         self.transformer = self.transformer_klass()
 
+    def set_config(self, config):
+        self.config = config
+        self.transformer.config = config
+
     def log(self, msg):
         click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg="yellow")
 
@@ -53,7 +57,7 @@ class BaseSiteSource(BaseSource):
     def _transform_sites(self, records):
         ns = []
         for record in records:
-            record = self.transformer.do_transform(record, self.config)
+            record = self.transformer.do_transform(record)
             if record:
                 record.chunk_size = self.chunk_size
                 ns.append(record)
@@ -119,11 +123,6 @@ class BaseParameterSource(BaseSource):
     def _clean_records(self, records):
         return records
 
-    # def _summary_hook(self, parent_record, rs):
-    #     raise NotImplementedError(
-    #         f"{self.__class__.__name__} must implement _summary_hook"
-    #     )
-    #
     def _extract_parameter_units(self, records):
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _extract_parameter_units"
@@ -186,7 +185,7 @@ class BaseParameterSource(BaseSource):
                             "most_recent_value": mr["value"],
                             "most_recent_units": mr["units"],
                         },
-                        self.config,
+
                         pi,
                     )
                     ret.append(trec)

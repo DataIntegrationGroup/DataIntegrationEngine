@@ -136,13 +136,14 @@ def standardize_datetime(dt):
 
 class BaseTransformer:
     _cached_polygon = None
+    config = None
 
-    def do_transform(self, record, config, *args, **kw):
-        record = self._transform(record, config, *args, **kw)
+    def do_transform(self, record, *args, **kw):
+        record = self._transform(record, *args, **kw)
         if not record:
             return
 
-        self._post_transform(record, config, *args, **kw)
+        self._post_transform(record, *args, **kw)
 
         dt = record.get("datetime_measured")
         if dt:
@@ -157,7 +158,7 @@ class BaseTransformer:
                 record["time_measured"] = t
 
         # convert to proper record type
-        klass = self._get_record_klass(config)
+        klass = self._get_record_klass()
         record = klass(record)
 
         x = float(record.latitude)
@@ -168,20 +169,20 @@ class BaseTransformer:
             x,
             y,
             datum,
-            config.output_horizontal_datum,
+            self.config.output_horizontal_datum,
         )
         record.update(latitude=lat)
         record.update(longitude=lng)
         record.update(horizontal_datum=datum)
 
         e, eunit = transform_units(
-            record.elevation, record.elevation_units, config.output_elevation_units
+            record.elevation, record.elevation_units, self.config.output_elevation_units
         )
         record.update(elevation=e)
         record.update(elevation_units=eunit)
 
         wd, wdunit = transform_units(
-            record.well_depth, record.well_depth_units, config.output_well_depth_units
+            record.well_depth, record.well_depth_units, self.config.output_well_depth_units
         )
         record.update(well_depth=wd)
         record.update(well_depth_units=wdunit)
@@ -196,7 +197,8 @@ class BaseTransformer:
     def _post_transform(self, *args, **kw):
         pass
 
-    def contained(self, lng, lat, config):
+    def contained(self, lng, lat,):
+        config = self.config
         if config.has_bounds():
             if not self._cached_polygon:
                 poly = shapely.wkt.loads(config.bounding_wkt())
@@ -209,32 +211,32 @@ class BaseTransformer:
 
         return True
 
-    def _get_record_klass(self, config):
+    def _get_record_klass(self):
         raise NotImplementedError
 
 
 class SiteTransformer(BaseTransformer):
-    def _get_record_klass(self, config):
+    def _get_record_klass(self):
         return SiteRecord
 
 
 class ParameterTransformer(BaseTransformer):
     source_tag = None
 
-    def _get_parameter(self, config):
+    def _get_parameter(self):
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _get_parameter"
         )
 
-    def _transform(self, record, config, site_record):
+    def _transform(self, record, site_record):
         if self.source_tag is None:
             raise NotImplementedError(
                 f"{self.__class__.__name__} source_tag is not set"
             )
 
-        self._transform_most_recents(record, config)
+        self._transform_most_recents(record)
 
-        p, u = self._get_parameter(config)
+        p, u = self._get_parameter()
         rec = {
             "source": self.source_tag,
             "id": site_record.id,
@@ -252,12 +254,12 @@ class ParameterTransformer(BaseTransformer):
         rec.update(record)
         return rec
 
-    def _transform_most_recents(self, record, config):
+    def _transform_most_recents(self, record):
         # convert most_recents
         dt, tt = standardize_datetime(record["most_recent_datetime"])
         record["most_recent_date"] = dt
         record["most_recent_time"] = tt
-        p, u = self._get_parameter(config)
+        p, u = self._get_parameter()
         record["most_recent_value"] = convert_units(
             record["most_recent_value"], record["most_recent_units"], u
         )
@@ -265,22 +267,22 @@ class ParameterTransformer(BaseTransformer):
 
 
 class WaterLevelTransformer(ParameterTransformer):
-    def _get_record_klass(self, config):
-        if config.output_summary_waterlevel_stats:
+    def _get_record_klass(self):
+        if self.config.output_summary_waterlevel_stats:
             return WaterLevelSummaryRecord
         else:
             return WaterLevelRecord
 
-    def _get_parameter(self, config):
-        return "DTW BGS", config.waterlevel_output_units
+    def _get_parameter(self):
+        return "DTW BGS", self.config.waterlevel_output_units
 
 
 class AnalyteTransformer(ParameterTransformer):
-    def _get_record_klass(self, config):
+    def _get_record_klass(self):
         return AnalyteSummaryRecord
 
-    def _get_parameter(self, config):
-        return config.analyte, config.analyte_output_units
+    def _get_parameter(self):
+        return self.config.analyte, self.config.analyte_output_units
 
 
 # ============= EOF =============================================

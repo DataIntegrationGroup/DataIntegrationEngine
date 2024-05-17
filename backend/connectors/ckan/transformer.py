@@ -20,11 +20,11 @@ from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTran
 
 
 class OSERoswellSiteTransformer(SiteTransformer):
-    def _transform(self, record, config):
+    def _transform(self, record):
         # pprint.pprint(record)
         lat = float(record["DD_lat"])
         lng = float(record["DD_lon"])
-        if not self.contained(lng, lat, config):
+        if not self.contained(lng, lat):
             return
 
         rec = {

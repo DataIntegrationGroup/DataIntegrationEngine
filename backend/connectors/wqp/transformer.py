@@ -20,7 +20,7 @@ from backend.transformer import BaseTransformer, SiteTransformer, AnalyteTransfo
 
 
 class WQPSiteTransformer(SiteTransformer):
-    def _transform(self, record, config):
+    def _transform(self, record):
         # pprint.pprint(record)
         provider = record["ProviderName"]
         rec = {

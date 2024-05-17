@@ -106,8 +106,11 @@ class Config:
             sources.append((AMPAPISiteSource(), AMPAPIAnalyteSource()))
 
         for s, ss in sources:
-            s.config = self
-            ss.config = self
+            s.set_config(self)
+            ss.set_config(self)
+
+            # s.config = self
+            # ss.config = self
 
         return sources
 
@@ -151,8 +154,8 @@ class Config:
         #     sources.append((BORSiteSource(), BORWaterLevelSource()))
 
         for s, ss in sources:
-            s.config = self
-            ss.config = self
+            s.set_config(self)
+            ss.set_config(self)
 
         return sources
 

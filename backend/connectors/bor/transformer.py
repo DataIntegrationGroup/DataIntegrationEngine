@@ -32,7 +32,7 @@ WELL_DEPTHS = {
 
 
 class BORSiteTransformer(SiteTransformer):
-    def _transform(self, record, config):
+    def _transform(self, record):
         props = record["attributes"]
 
         elevation = props["elevation"]
