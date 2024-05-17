@@ -37,7 +37,7 @@ setup(
             "weave = frontend.cli:cli",
         ],
     },
-    packages=["frontend"] + [f'backend.{p}' for p in find_packages('backend')],
+    packages=["frontend"] + [f"backend.{p}" for p in find_packages("backend")],
     python_requires=">=3.6",
     include_package_data=True,
     # package_data={
