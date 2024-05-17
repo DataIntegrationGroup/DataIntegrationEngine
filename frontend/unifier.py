@@ -19,7 +19,7 @@ from backend.config import Config
 from backend.persister import CSVPersister, GeoJSONPersister
 
 
-def log(msg, fg='green'):
+def log(msg, fg="green"):
     click.secho(msg, fg=fg)
 
 

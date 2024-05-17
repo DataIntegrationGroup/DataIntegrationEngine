@@ -185,7 +185,6 @@ class BaseParameterSource(BaseSource):
                             "most_recent_value": mr["value"],
                             "most_recent_units": mr["units"],
                         },
-
                         pi,
                     )
                     ret.append(trec)

@@ -182,7 +182,9 @@ class BaseTransformer:
         record.update(elevation_units=eunit)
 
         wd, wdunit = transform_units(
-            record.well_depth, record.well_depth_units, self.config.output_well_depth_units
+            record.well_depth,
+            record.well_depth_units,
+            self.config.output_well_depth_units,
         )
         record.update(well_depth=wd)
         record.update(well_depth_units=wdunit)
@@ -197,7 +199,11 @@ class BaseTransformer:
     def _post_transform(self, *args, **kw):
         pass
 
-    def contained(self, lng, lat,):
+    def contained(
+        self,
+        lng,
+        lat,
+    ):
         config = self.config
         if config.has_bounds():
             if not self._cached_polygon:
