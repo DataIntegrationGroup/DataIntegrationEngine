@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import os
+
 import httpx
 
 from backend.connectors.ampapi.transformer import (
@@ -30,11 +32,9 @@ from backend.source import (
     get_analyte_search_param,
 )
 
-DEBUG = True
-
 
 def _make_url(endpoint):
-    if DEBUG:
+    if bool(os.getenv("DEBUG")):
         return f"http://localhost:8000/{endpoint}"
     return f"https://waterdata.nmt.edu/{endpoint}"
 
