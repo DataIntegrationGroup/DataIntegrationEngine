@@ -27,7 +27,8 @@ from backend.source import (
     BaseSource,
     BaseSiteSource,
     BaseWaterLevelSource,
-    BaseAnalyteSource, get_most_recent,
+    BaseAnalyteSource,
+    get_most_recent,
 )
 
 
@@ -58,11 +59,13 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         return self._analyte_ids.get(analyte)
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, 'dateTime')
+        record = get_most_recent(records, "dateTime")
 
-        return {'value': record['result'],
-                'datetime': datetime.fromtimestamp(record['dateTime'] / 1000),
-                'units': record['units']}
+        return {
+            "value": record["result"],
+            "datetime": datetime.fromtimestamp(record["dateTime"] / 1000),
+            "units": record["units"],
+        }
 
     def _extract_analyte_results(self, records):
         return [r["result"] for r in records]
@@ -90,7 +93,11 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     def get_records(self, parent_record):
         resp = httpx.get(
             _make_url("getWaterLevels.ashx"),
-            params={"id": parent_record.id, "start": 0, "end": self.config.now_ms(days=1)},
+            params={
+                "id": parent_record.id,
+                "start": 0,
+                "end": self.config.now_ms(days=1),
+            },
         )
         return resp.json()["data"]
 
@@ -103,11 +110,9 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         ]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, 'dateTime')
+        record = get_most_recent(records, "dateTime")
         t = datetime.fromtimestamp(record["dateTime"] / 1000)
-        return {"value": record["depthToWaterFeet"],
-                "datetime": t,
-                "units": FEET}
+        return {"value": record["depthToWaterFeet"], "datetime": t, "units": FEET}
 
 
 # ============= EOF =============================================

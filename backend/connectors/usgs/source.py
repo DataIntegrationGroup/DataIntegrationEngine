@@ -24,7 +24,8 @@ from backend.source import (
     BaseSource,
     BaseWaterLevelSource,
     BaseSiteSource,
-    make_site_list, get_most_recent,
+    make_site_list,
+    get_most_recent,
 )
 
 
@@ -103,10 +104,9 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
         record = get_most_recent(records, "lev_dt")
         return {
             "value": record["lev_va"],
-            "datetime": (record["lev_dt"], record['lev_tm']),
+            "datetime": (record["lev_dt"], record["lev_tm"]),
             "units": FEET,
         }
-
 
 
 # ============= EOF =============================================

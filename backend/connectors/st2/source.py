@@ -60,7 +60,9 @@ class EBIDSiteSource(ST2SiteSource):
 
 class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, tag=lambda x: x["observation"].phenomenon_time)
+        record = get_most_recent(
+            records, tag=lambda x: x["observation"].phenomenon_time
+        )
 
         return {
             "value": record["observation"].result,

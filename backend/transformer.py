@@ -19,7 +19,13 @@ from datetime import datetime
 import shapely
 from shapely import Point
 
-from backend.connectors.constants import MILLIGRAMS_PER_LITER, PARTS_PER_MILLION, FEET, METERS, TONS_PER_ACRE_FOOT
+from backend.connectors.constants import (
+    MILLIGRAMS_PER_LITER,
+    PARTS_PER_MILLION,
+    FEET,
+    METERS,
+    TONS_PER_ACRE_FOOT,
+)
 from backend.geo_utils import datum_transform
 from backend.record import (
     WaterLevelSummaryRecord,
@@ -69,10 +75,10 @@ def convert_units(input_value, input_units, output_units):
         return input_value * 735.47
 
     if (
-            input_units == mgl
-            and output_units == ppm
-            or input_units == ppm
-            and output_units == mgl
+        input_units == mgl
+        and output_units == ppm
+        or input_units == ppm
+        and output_units == mgl
     ):
         return input_value * 1.0
 
@@ -123,8 +129,8 @@ def standardize_datetime(dt):
         return dt.strftime("%Y-%m"), ""
 
     tt = dt.strftime("%H:%M:%S")
-    if tt == '00:00:00':
-        tt = ''
+    if tt == "00:00:00":
+        tt = ""
     return dt.strftime("%Y-%m-%d"), tt
 
 
@@ -241,20 +247,21 @@ class ParameterTransformer(BaseTransformer):
             "well_depth": site_record.well_depth,
             "well_depth_units": site_record.well_depth_units,
             "parameter": p,
-            "parameter_units": u
+            "parameter_units": u,
         }
         rec.update(record)
         return rec
 
     def _transform_most_recents(self, record, config):
         # convert most_recents
-        dt, tt = standardize_datetime(record['most_recent_datetime'])
-        record['most_recent_date'] = dt
-        record['most_recent_time'] = tt
+        dt, tt = standardize_datetime(record["most_recent_datetime"])
+        record["most_recent_date"] = dt
+        record["most_recent_time"] = tt
         p, u = self._get_parameter(config)
-        record['most_recent_value'] = convert_units(record['most_recent_value'],
-                                                    record['most_recent_units'], u)
-        record['most_recent_units'] = u
+        record["most_recent_value"] = convert_units(
+            record["most_recent_value"], record["most_recent_units"], u
+        )
+        record["most_recent_units"] = u
 
 
 class WaterLevelTransformer(ParameterTransformer):
@@ -265,7 +272,7 @@ class WaterLevelTransformer(ParameterTransformer):
             return WaterLevelRecord
 
     def _get_parameter(self, config):
-        return 'DTW BGS', config.waterlevel_output_units
+        return "DTW BGS", config.waterlevel_output_units
 
 
 class AnalyteTransformer(ParameterTransformer):
@@ -274,4 +281,6 @@ class AnalyteTransformer(ParameterTransformer):
 
     def _get_parameter(self, config):
         return config.analyte, config.analyte_output_units
+
+
 # ============= EOF =============================================

@@ -22,7 +22,12 @@ from backend.connectors.ckan.transformer import (
     OSERoswellWaterLevelTransformer,
 )
 from backend.connectors.constants import FEET
-from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource, get_most_recent
+from backend.source import (
+    BaseSource,
+    BaseSiteSource,
+    BaseWaterLevelSource,
+    get_most_recent,
+)
 
 
 class CKANSource:
@@ -37,9 +42,7 @@ class CKANSource:
             raise NotImplementedError("base_url is not set")
 
         if self._cached_response is None:
-            self._cached_response = httpx.get(
-                self.base_url, params=self._get_params()
-            )
+            self._cached_response = httpx.get(self.base_url, params=self._get_params())
 
         return self._cached_response
 

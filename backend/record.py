@@ -78,6 +78,7 @@ class WaterLevelRecord(BaseRecord):
 
     defaults = {}
 
+
 class SummaryRecord(BaseRecord):
     keys = (
         "source",

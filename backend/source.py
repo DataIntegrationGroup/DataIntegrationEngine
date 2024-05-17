@@ -67,7 +67,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -85,12 +85,15 @@ def get_most_recent(records, tag):
     if callable(tag):
         func = tag
     else:
-        if '.' in tag:
+        if "." in tag:
+
             def func(x):
-                for t in tag.split('.'):
+                for t in tag.split("."):
                     x = x[t]
                 return x
+
         else:
+
             def func(x):
                 return x[tag]
 
@@ -161,9 +164,9 @@ class BaseSummarySource(BaseSource):
                             "min": min(items),
                             "max": max(items),
                             "mean": sum(items) / n,
-                            "most_recent_datetime": mr['datetime'],
-                            "most_recent_value": mr['value'],
-                            "most_recent_units": mr['units']
+                            "most_recent_datetime": mr["datetime"],
+                            "most_recent_value": mr["value"],
+                            "most_recent_units": mr["units"],
                         },
                         self.config,
                         pi,
@@ -233,5 +236,6 @@ class BaseWaterLevelSource(BaseSummarySource):
     #             yield record
     #
     #     self.log(f"nrecords={n}")
+
 
 # ============= EOF =============================================

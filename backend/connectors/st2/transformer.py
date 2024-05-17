@@ -57,26 +57,26 @@ class EBIDSiteTransformer(ST2SiteTransformer):
 # class ST2WaterLevelTransformer(WaterLevelTransformer):
 #     source_tag = "ST2"
 
-    # def _transform_hook(self, record, config, parent_record, *args, **kw):
-    #     rec = {
-    #         "source": self.source_id,
-    #         "id": parent_record.id,
-    #         "location": parent_record.name,
-    #         "latitude": parent_record.latitude,
-    #         "longitude": parent_record.longitude,
-    #         "surface_elevation_ft": parent_record.elevation,
-    #         "well_depth_ft_below_ground_surface": parent_record.well_depth,
-    #     }
-    #
-    #     if config.output_summary_waterlevel_stats:
-    #         rec.update(record)
-    #     else:
-    #         dt = record["observation"].phenomenon_time
-    #         dtw = record["observation"].result
-    #         rec["depth_to_water_ft_below_ground_surface"] = dtw
-    #         rec["datetime_measured"] = dt
-    #
-    #     return rec
+# def _transform_hook(self, record, config, parent_record, *args, **kw):
+#     rec = {
+#         "source": self.source_id,
+#         "id": parent_record.id,
+#         "location": parent_record.name,
+#         "latitude": parent_record.latitude,
+#         "longitude": parent_record.longitude,
+#         "surface_elevation_ft": parent_record.elevation,
+#         "well_depth_ft_below_ground_surface": parent_record.well_depth,
+#     }
+#
+#     if config.output_summary_waterlevel_stats:
+#         rec.update(record)
+#     else:
+#         dt = record["observation"].phenomenon_time
+#         dtw = record["observation"].result
+#         rec["depth_to_water_ft_below_ground_surface"] = dtw
+#         rec["datetime_measured"] = dt
+#
+#     return rec
 
 
 class PVACDWaterLevelTransformer(WaterLevelTransformer):

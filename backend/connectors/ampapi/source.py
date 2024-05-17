@@ -21,7 +21,12 @@ from backend.connectors.ampapi.transformer import (
     AMPAPIAnalyteTransformer,
 )
 from backend.connectors.constants import TDS, FEET
-from backend.source import BaseWaterLevelSource, BaseSiteSource, BaseAnalyteSource, get_most_recent
+from backend.source import (
+    BaseWaterLevelSource,
+    BaseSiteSource,
+    BaseAnalyteSource,
+    get_most_recent,
+)
 
 DEBUG = True
 
@@ -73,10 +78,12 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
         return [r["Units"] for r in records]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, 'info.CollectionDate')
-        return {'value': record["SampleValue"],
-                "datetime": record["info"]["CollectionDate"],
-                "units": record["Units"]}
+        record = get_most_recent(records, "info.CollectionDate")
+        return {
+            "value": record["SampleValue"],
+            "datetime": record["info"]["CollectionDate"],
+            "units": record["Units"],
+        }
 
     def _extract_analyte_results(self, records):
         return [r["SampleValue"] for r in records]
@@ -89,10 +96,12 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
         return [r for r in records if r["DepthToWaterBGS"] is not None]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, 'DateMeasured')
-        return {'value': record['DepthToWaterBGS'],
-                'datetime': (record["DateMeasured"], record["TimeMeasured"]),
-                'units': FEET}
+        record = get_most_recent(records, "DateMeasured")
+        return {
+            "value": record["DepthToWaterBGS"],
+            "datetime": (record["DateMeasured"], record["TimeMeasured"]),
+            "units": FEET,
+        }
 
     def _extract_waterlevels(self, records):
         return [r["DepthToWaterBGS"] for r in records]

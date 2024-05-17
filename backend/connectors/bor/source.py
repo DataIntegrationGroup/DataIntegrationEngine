@@ -20,7 +20,12 @@ import httpx
 from backend.connectors.bor.transformer import BORSiteTransformer, BORAnalyteTransformer
 from backend.connectors.constants import TDS
 
-from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource, get_most_recent
+from backend.source import (
+    BaseSource,
+    BaseSiteSource,
+    BaseAnalyteSource,
+    get_most_recent,
+)
 
 
 class BORSiteSource(BaseSiteSource):
@@ -54,10 +59,12 @@ class BORAnalyteSource(BaseAnalyteSource):
         def parse_dt(dt):
             return tuple(dt.split("T"))
 
-        record = get_most_recent(rs, 'attributes.dateTime')
-        return {'value': record['attributes']['result'],
-                'datetime': parse_dt(record['attributes']['dateTime']),
-                'units': record['attributes']['resultAttributes']['units']}
+        record = get_most_recent(rs, "attributes.dateTime")
+        return {
+            "value": record["attributes"]["result"],
+            "datetime": parse_dt(record["attributes"]["dateTime"]),
+            "units": record["attributes"]["resultAttributes"]["units"],
+        }
 
     def _extract_parent_records(self, records, parent_record):
         return [
