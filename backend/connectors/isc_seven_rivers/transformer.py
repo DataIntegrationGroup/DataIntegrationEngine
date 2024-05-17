@@ -51,23 +51,25 @@ class ISCSevenRiversAnalyteTransformer(AnalyteTransformer):
 
 
 class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
-    def _transform(self, record, config, parent_record):
-        rec = {
-            "source": "ISCSevenRivers",
-            "id": parent_record.id,
-            "location": parent_record.name,
-            "latitude": parent_record.latitude,
-            "longitude": parent_record.longitude,
-            "elevation": parent_record.elevation,
-            "elevation_units": "ft",
-        }
-        if config.output_summary_waterlevel_stats:
-            rec.update(record)
-        else:
-            rec["date_measured"] = record["dateTime"]
-            rec["depth_to_water_ft_below_ground_surface"] = record["depthToWaterFeet"]
+    source_tag = "ISCSevenRivers"
 
-        return rec
+    # def _transform_hook(self, record, config, parent_record):
+    #     rec = {
+    #         "source": "ISCSevenRivers",
+    #         "id": parent_record.id,
+    #         "location": parent_record.name,
+    #         "latitude": parent_record.latitude,
+    #         "longitude": parent_record.longitude,
+    #         "elevation": parent_record.elevation,
+    #         "elevation_units": "ft",
+    #     }
+    #     if config.output_summary_waterlevel_stats:
+    #         rec.update(record)
+    #     else:
+    #         rec["date_measured"] = record["dateTime"]
+    #         rec["depth_to_water_ft_below_ground_surface"] = record["depthToWaterFeet"]
+    #
+    #     return rec
 
 
 # ============= EOF =============================================

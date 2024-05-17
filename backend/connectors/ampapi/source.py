@@ -20,8 +20,8 @@ from backend.connectors.ampapi.transformer import (
     AMPAPIWaterLevelTransformer,
     AMPAPIAnalyteTransformer,
 )
-from backend.connectors.constants import TDS
-from backend.source import BaseWaterLevelSource, BaseSiteSource, BaseAnalyteSource
+from backend.connectors.constants import TDS, FEET
+from backend.source import BaseWaterLevelSource, BaseSiteSource, BaseAnalyteSource, get_most_recent
 
 DEBUG = True
 
@@ -35,7 +35,8 @@ def _make_url(endpoint):
 class AMPAPISiteSource(BaseSiteSource):
     transformer_klass = AMPAPISiteTransformer
 
-    def get_records(self, config):
+    def get_records(self):
+        config = self.config
         params = {}
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
@@ -43,7 +44,7 @@ class AMPAPISiteSource(BaseSiteSource):
         if config.analyte:
             params["has_analyte"] = get_analyte(config.analyte)
         else:
-            params["has_waterlevels"] = config.has_waterlevels
+            params["has_waterlevels"] = True
 
         resp = httpx.get(_make_url("locations"), params=params, timeout=30)
         return resp.json()["features"]
@@ -57,8 +58,9 @@ def get_analyte(analyte):
 class AMPAPIAnalyteSource(BaseAnalyteSource):
     transformer_klass = AMPAPIAnalyteTransformer
 
-    def get_records(self, parent_record, config):
-        analyte = get_analyte(config.analyte)
+    def get_records(self, parent_record):
+
+        analyte = get_analyte(self.config.analyte)
         resp = httpx.get(
             _make_url("waterchemistry/major"),
             params={"pointid": parent_record.id, "analyte": analyte},
@@ -71,8 +73,10 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
         return [r["Units"] for r in records]
 
     def _extract_most_recent(self, records):
-        record = sorted(records, key=lambda x: x["info"]["CollectionDate"])[-1]
-        return record["info"]["CollectionDate"]
+        record = get_most_recent(records, 'info.CollectionDate')
+        return {'value': record["SampleValue"],
+                "datetime": record["info"]["CollectionDate"],
+                "units": record["Units"]}
 
     def _extract_analyte_results(self, records):
         return [r["SampleValue"] for r in records]
@@ -85,14 +89,16 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
         return [r for r in records if r["DepthToWaterBGS"] is not None]
 
     def _extract_most_recent(self, records):
-        record = sorted(records, key=lambda x: x["DateMeasured"])[-1]
-        return record["DateMeasured"], record["TimeMeasured"]
+        record = get_most_recent(records, 'DateMeasured')
+        return {'value': record['DepthToWaterBGS'],
+                'datetime': (record["DateMeasured"], record["TimeMeasured"]),
+                'units': FEET}
 
     def _extract_waterlevels(self, records):
         return [r["DepthToWaterBGS"] for r in records]
 
-    def get_records(self, parent_record, config):
-        if config.latest_water_level_only:
+    def get_records(self, parent_record):
+        if self.config.latest_water_level_only:
             params = {"pointids": parent_record.id}
             url = _make_url("waterlevels/latest")
         else:

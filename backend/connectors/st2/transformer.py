@@ -51,40 +51,40 @@ class PVACDSiteTransformer(ST2SiteTransformer):
 
 
 class EBIDSiteTransformer(ST2SiteTransformer):
-    source_id = "ST2/EBID"
+    source_tag = "ST2/EBID"
 
 
-class ST2WaterLevelTransformer(WaterLevelTransformer):
-    source_id = "ST2"
+# class ST2WaterLevelTransformer(WaterLevelTransformer):
+#     source_tag = "ST2"
 
-    def _transform(self, record, config, parent_record, *args, **kw):
-        rec = {
-            "source": self.source_id,
-            "id": parent_record.id,
-            "location": parent_record.name,
-            "latitude": parent_record.latitude,
-            "longitude": parent_record.longitude,
-            "surface_elevation_ft": parent_record.elevation,
-            "well_depth_ft_below_ground_surface": parent_record.well_depth,
-        }
-
-        if config.output_summary_waterlevel_stats:
-            rec.update(record)
-        else:
-            dt = record["observation"].phenomenon_time
-            dtw = record["observation"].result
-            rec["depth_to_water_ft_below_ground_surface"] = dtw
-            rec["datetime_measured"] = dt
-
-        return rec
-
-
-class PVACDWaterLevelTransformer(ST2WaterLevelTransformer):
-    source_id = "ST2/PVACD"
+    # def _transform_hook(self, record, config, parent_record, *args, **kw):
+    #     rec = {
+    #         "source": self.source_id,
+    #         "id": parent_record.id,
+    #         "location": parent_record.name,
+    #         "latitude": parent_record.latitude,
+    #         "longitude": parent_record.longitude,
+    #         "surface_elevation_ft": parent_record.elevation,
+    #         "well_depth_ft_below_ground_surface": parent_record.well_depth,
+    #     }
+    #
+    #     if config.output_summary_waterlevel_stats:
+    #         rec.update(record)
+    #     else:
+    #         dt = record["observation"].phenomenon_time
+    #         dtw = record["observation"].result
+    #         rec["depth_to_water_ft_below_ground_surface"] = dtw
+    #         rec["datetime_measured"] = dt
+    #
+    #     return rec
 
 
-class EBIDWaterLevelTransformer(ST2WaterLevelTransformer):
-    source_id = "ST2/EBID"
+class PVACDWaterLevelTransformer(WaterLevelTransformer):
+    source_tag = "ST2/PVACD"
+
+
+class EBIDWaterLevelTransformer(WaterLevelTransformer):
+    source_tag = "ST2/EBID"
 
 
 # ============= EOF =============================================

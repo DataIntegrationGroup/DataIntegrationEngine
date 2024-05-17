@@ -78,31 +78,7 @@ class WaterLevelRecord(BaseRecord):
 
     defaults = {}
 
-
-class WaterLevelSummaryRecord(BaseRecord):
-    keys = (
-        "source",
-        "id",
-        "location",
-        "usgs_site_id",
-        "alternate_site_id",
-        "latitude",
-        "longitude",
-        "elevation",
-        "elevation_units",
-        "well_depth",
-        "well_depth_units",
-        "nrecords",
-        "min",
-        "max",
-        "mean",
-        "date_measured",
-        "time_measured",
-    )
-    defaults = {}
-
-
-class AnalyteSummaryRecord(BaseRecord):
+class SummaryRecord(BaseRecord):
     keys = (
         "source",
         "id",
@@ -121,10 +97,20 @@ class AnalyteSummaryRecord(BaseRecord):
         "min",
         "max",
         "mean",
-        "date_measured",
-        "time_measured",
+        "most_recent_date",
+        "most_recent_time",
+        "most_recent_value",
+        "most_recent_units",
     )
     defaults = {}
+
+
+class WaterLevelSummaryRecord(SummaryRecord):
+    pass
+
+
+class AnalyteSummaryRecord(SummaryRecord):
+    pass
 
 
 class SiteRecord(BaseRecord):

@@ -49,29 +49,31 @@ class AMPAPIAnalyteTransformer(AnalyteTransformer):
 
 
 class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
-    def _transform(self, record, config, parent_record):
-        rec = {
-            "source": "AMPAPI",
-            "id": parent_record.id,
-            "location": parent_record.name,
-            "usgs_site_id": parent_record.usgs_site_id,
-            "alternate_site_id": parent_record.alternate_site_id,
-            "latitude": parent_record.latitude,
-            "longitude": parent_record.longitude,
-            "well_depth": parent_record.well_depth,
-            "well_depth_units": parent_record.well_depth_units,
-            "elevation": parent_record.elevation,
-            "elevation_units": parent_record.elevation_units,
-        }
+    source_tag = "AMPAPI"
 
-        if config.output_summary_waterlevel_stats:
-            rec.update(record)
-        else:
-            rec["date_measured"] = record["DateMeasured"]
-            rec["time_measured"] = record["TimeMeasured"]
-            rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
-
-        return rec
+    # def _transform_hook(self, record, config, parent_record):
+    #     rec = {
+    #         "source": "AMPAPI",
+    #         "id": parent_record.id,
+    #         "location": parent_record.name,
+    #         "usgs_site_id": parent_record.usgs_site_id,
+    #         "alternate_site_id": parent_record.alternate_site_id,
+    #         "latitude": parent_record.latitude,
+    #         "longitude": parent_record.longitude,
+    #         "well_depth": parent_record.well_depth,
+    #         "well_depth_units": parent_record.well_depth_units,
+    #         "elevation": parent_record.elevation,
+    #         "elevation_units": parent_record.elevation_units,
+    #     }
+    #
+    #     if config.output_summary_waterlevel_stats:
+    #         rec.update(record)
+    #     else:
+    #         rec["date_measured"] = record["DateMeasured"]
+    #         rec["time_measured"] = record["TimeMeasured"]
+    #         rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
+    #
+    #     return rec
 
 
 # ============= EOF =============================================

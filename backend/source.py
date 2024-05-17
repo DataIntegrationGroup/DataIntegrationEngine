@@ -22,11 +22,12 @@ from backend.connectors.constants import (
     PARTS_PER_MILLION,
 )
 from backend.persister import BasePersister, CSVPersister
-from backend.transformer import BaseTransformer
+from backend.transformer import BaseTransformer, convert_units
 
 
 class BaseSource:
     transformer_klass = BaseTransformer
+    config = None
 
     def __init__(self):
         self.transformer = self.transformer_klass()
@@ -43,20 +44,21 @@ class BaseSource:
 class BaseSiteSource(BaseSource):
     chunk_size = 1
 
-    def read(self, config, *args, **kw):
+    def read_sites(self, *args, **kw):
         self.log("Gathering site records")
-        n = 0
-        records = self.get_records(config)
+        records = self.get_records()
         self.log(f"total records={len(records)}")
+        return self._transform_sites(records)
+
+    def _transform_sites(self, records):
         ns = []
         for record in records:
-            record = self.transformer.do_transform(record, config)
+            record = self.transformer.do_transform(record, self.config)
             if record:
                 record.chunk_size = self.chunk_size
-                n += 1
                 ns.append(record)
 
-        self.log(f"processed nrecords={n}")
+        self.log(f"processed nrecords={len(ns)}")
         return ns
 
     def chunks(self, records, chunk_size=None):
@@ -65,7 +67,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -77,6 +79,22 @@ def make_site_list(parent_record):
     else:
         sites = parent_record.id
     return sites
+
+
+def get_most_recent(records, tag):
+    if callable(tag):
+        func = tag
+    else:
+        if '.' in tag:
+            def func(x):
+                for t in tag.split('.'):
+                    x = x[t]
+                return x
+        else:
+            def func(x):
+                return x[tag]
+
+    return sorted(records, key=func)[-1]
 
 
 class BaseSummarySource(BaseSource):
@@ -98,12 +116,15 @@ class BaseSummarySource(BaseSource):
     def _clean_records(self, records):
         return records
 
-    def _summary_hook(self, parent_record, config, rs):
+    def _summary_hook(self, parent_record, rs):
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _summary_hook"
         )
 
-    def summary(self, parent_record, config):
+    # def _convert_most_recent(self, records):
+    #     return records
+
+    def summarize(self, parent_record):
         if isinstance(parent_record, list):
             self.log(
                 f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
@@ -111,7 +132,7 @@ class BaseSummarySource(BaseSource):
         else:
             self.log(f"Gathering {self.name} summary for record {parent_record.id}")
 
-        rs = self.get_records(parent_record, config)
+        rs = self.get_records(parent_record)
         if rs:
             if not isinstance(parent_record, list):
                 parent_record = [parent_record]
@@ -121,15 +142,15 @@ class BaseSummarySource(BaseSource):
                 if not rrs:
                     continue
 
-                rss = self._clean_records(rrs)
-                if not rss:
+                cleaned = self._clean_records(rrs)
+                if not cleaned:
                     continue
 
-                mrd = self._extract_most_recent(rs)
-                if not mrd:
+                mr = self._extract_most_recent(cleaned)
+                if not mr:
                     continue
 
-                items = self._summary_hook(pi, config, rs)
+                items = self._summary_hook(pi, cleaned)
 
                 if items is not None:
                     n = len(items)
@@ -140,9 +161,11 @@ class BaseSummarySource(BaseSource):
                             "min": min(items),
                             "max": max(items),
                             "mean": sum(items) / n,
-                            "most_recent_datetime": mrd,
+                            "most_recent_datetime": mr['datetime'],
+                            "most_recent_value": mr['value'],
+                            "most_recent_units": mr['units']
                         },
-                        config,
+                        self.config,
                         pi,
                     )
                     ret.append(trec)
@@ -150,48 +173,25 @@ class BaseSummarySource(BaseSource):
             return ret
 
 
-def convert_units(input_value, input_units, output_units):
-    input_units = input_units.lower()
-    output_units = output_units.lower()
-    mgl = MILLIGRAMS_PER_LITER.lower()
-    ppm = PARTS_PER_MILLION.lower()
-
-    if input_units == output_units:
-        return input_value
-
-    if (
-        input_units == mgl
-        and output_units == ppm
-        or input_units == ppm
-        and output_units == mgl
-    ):
-        return input_value * 1.0
-
-    ft = FEET.lower()
-    m = METERS.lower()
-
-    if input_units == ft and output_units == m:
-        return input_value * 0.3048
-    if input_units == m and output_units == ft:
-        return input_value * 3.28084
-
-    return input_value
-
-
 class BaseAnalyteSource(BaseSummarySource):
     name = "analyte"
 
-    def _summary_hook(self, parent_record, config, rs):
+    def _summary_hook(self, parent_record, rs):
         results = self._extract_analyte_results(rs)
         if not results:
             return
 
         units = self._extract_analyte_units(rs)
         results = [
-            convert_units(float(r), u, config.analyte_output_units)
+            convert_units(float(r), u, self.config.analyte_output_units)
             for r, u in zip(results, units)
         ]
         return results
+
+    # def _convert_most_recent(self, records):
+    #     print(records)
+    #     return [convert_units(float(r['value']),
+    #                           r['units'], self.config.analyte_output_units) for r in records]
 
     def _extract_analyte_units(self, records):
         raise NotImplementedError(
@@ -207,11 +207,11 @@ class BaseAnalyteSource(BaseSummarySource):
 class BaseWaterLevelSource(BaseSummarySource):
     name = "water levels"
 
-    def _summary_hook(self, parent_record, config, rs):
+    def _summary_hook(self, parent_record, rs):
         rs = self._extract_waterlevels(rs)
         us = self._extract_waterlevel_units(rs)
         return [
-            convert_units(float(r), u, config.waterlevel_output_units)
+            convert_units(float(r), u, self.config.waterlevel_output_units)
             for r, u in zip(rs, us)
         ]
 
@@ -223,16 +223,15 @@ class BaseWaterLevelSource(BaseSummarySource):
             f"{self.__class__.__name__} Must implement _extract_waterlevels"
         )
 
-    def read(self, parent_record, config):
-        self.log(f"Gathering waterlevels for record {parent_record.id}")
-        n = 0
-        for record in self.get_records(parent_record, config):
-            record = self.transformer.transform(record, parent_record, config)
-            if record:
-                n += 1
-                yield record
-
-        self.log(f"nrecords={n}")
-
+    # def read(self, parent_record, config):
+    #     self.log(f"Gathering waterlevels for record {parent_record.id}")
+    #     n = 0
+    #     for record in self.get_records(parent_record):
+    #         record = self.transformer.transform(record, parent_record, config)
+    #         if record:
+    #             n += 1
+    #             yield record
+    #
+    #     self.log(f"nrecords={n}")
 
 # ============= EOF =============================================

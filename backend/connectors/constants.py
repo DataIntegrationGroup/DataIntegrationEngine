@@ -21,6 +21,7 @@ SULFATE = "Sulfate"
 
 MILLIGRAMS_PER_LITER = "mg/L"
 PARTS_PER_MILLION = "ppm"
+TONS_PER_ACRE_FOOT = "tons/ac ft"
 FEET = "ft"
 METERS = "m"
 WGS84 = "WGS84"

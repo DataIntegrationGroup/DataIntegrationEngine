@@ -21,7 +21,8 @@ from backend.connectors.ckan.transformer import (
     OSERoswellSiteTransformer,
     OSERoswellWaterLevelTransformer,
 )
-from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource
+from backend.connectors.constants import FEET
+from backend.source import BaseSource, BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
 
 class CKANSource:
@@ -31,18 +32,18 @@ class CKANSource:
     def get_records(self, *args, **kw):
         return self._parse_response(self.get_response(*args, **kw))
 
-    def get_response(self, config):
+    def get_response(self):
         if self.base_url is None:
             raise NotImplementedError("base_url is not set")
 
         if self._cached_response is None:
             self._cached_response = httpx.get(
-                self.base_url, params=self._get_params(config)
+                self.base_url, params=self._get_params()
             )
 
         return self._cached_response
 
-    def _get_params(self, config):
+    def _get_params(self):
         return {}
 
     def _parse_response(self, *args, **kw):
@@ -60,7 +61,7 @@ class OSERoswellSource(NMWDICKANSource):
         self.resource_id = resource_id
         super().__init__()
 
-    def _get_params(self, config):
+    def _get_params(self):
         return {
             "resource_id": self.resource_id,
         }
@@ -83,8 +84,8 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
 class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
     transformer_klass = OSERoswellWaterLevelTransformer
 
-    def get_records(self, parent_record, config):
-        return self._parse_response(parent_record, self.get_response(config))
+    def get_records(self, parent_record):
+        return self._parse_response(parent_record, self.get_response())
 
     def _parse_response(self, parent_record, resp):
         records = resp.json()["result"]["records"]
@@ -94,7 +95,8 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         return [float(r["DTWGS"]) for r in records]
 
     def _extract_most_recent(self, records):
-        return [(r["Date"], "") for r in records][-1]
+        record = get_most_recent(records, tag="Date")
+        return {"value": record["DTWGS"], "datetime": record["Date"], "units": FEET}
 
 
 # ============= EOF =============================================

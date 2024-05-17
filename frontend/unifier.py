@@ -54,12 +54,13 @@ def unify_sites(config):
 
 def unify_analytes(config):
     def func(config, persister):
-        for s, ss in config.analyte_sources():
-            sites = s.read(config)
-            for i, sites in enumerate(s.chunks(sites)):
-                summary_records = ss.summary(sites, config)
-                if summary_records:
-                    persister.records.extend(summary_records)
+        for site_source, ss in config.analyte_sources():
+            sites = site_source.read_sites()
+            for i, sites in enumerate(site_source.chunks(sites)):
+                if config.output_summary_analyte_stats:
+                    summary_records = ss.summarize(sites)
+                    if summary_records:
+                        persister.records.extend(summary_records)
                     # break
 
     unify_wrapper(config, func)
@@ -68,46 +69,63 @@ def unify_analytes(config):
 def unify_waterlevels(config):
     def func(config, persister):
         sources = config.water_level_sources()
-        for s, ss in sources:
+        for site_source, ss in sources:
             try:
-                sites = s.read(config)
-                for i, sites in enumerate(s.chunks(sites)):
+                sites = site_source.read_sites()
+                for i, sites in enumerate(site_source.chunks(sites)):
                     if config.output_summary_waterlevel_stats:
-                        summary_records = ss.summary(sites, config)
+                        summary_records = ss.summarize(sites)
                         if summary_records:
                             persister.records.extend(summary_records)
-                    else:
-                        for wl in ss.read(sites, config):
-                            persister.records.append(wl)
+                    # else:
+                    #     for wl in ss.read(sites, config):
+                    #         persister.records.append(wl)
             except BaseException:
                 import traceback
 
                 exc = traceback.format_exc()
                 click.secho(exc, fg="blue")
-                click.secho(f"Failed to unify {s}", fg="red")
+                click.secho(f"Failed to unify {site_source}", fg="red")
 
     unify_wrapper(config, func)
 
 
-if __name__ == "__main__":
+def test_analyte_unification():
+    cfg = Config()
+    cfg.county = "chaves"
+    cfg.county = "eddy"
+
+    cfg.analyte = "TDS"
+    cfg.output_summary_analyte_stats = True
+
+    # analyte testing
+    # cfg.use_source_wqp = False
+    cfg.use_source_ampapi = False
+    cfg.use_source_isc_seven_rivers = False
+    cfg.use_source_bor = False
+
+    unify_analytes(cfg)
+
+
+def test_waterlevel_unification():
     cfg = Config()
     cfg.county = "chaves"
     cfg.county = "eddy"
 
     cfg.output_summary_waterlevel_stats = True
-    cfg.has_waterlevels = True
-
-    cfg.analyte = "TDS"
 
     cfg.use_source_nwis = False
-    cfg.use_source_wqp = False
     # cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
-    cfg.use_source_bor = False
+
     # unify_sites(cfg)
-    # unify_waterlevels(cfg)
-    unify_analytes(cfg)
+    unify_waterlevels(cfg)
+
+
+if __name__ == "__main__":
+    test_waterlevel_unification()
+    # test_analyte_unification()
 
 # ============= EOF =============================================

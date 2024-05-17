@@ -17,7 +17,7 @@ from datetime import datetime
 
 import httpx
 
-from backend.connectors.constants import TDS
+from backend.connectors.constants import TDS, FEET
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
     ISCSevenRiversWaterLevelTransformer,
@@ -27,7 +27,7 @@ from backend.source import (
     BaseSource,
     BaseSiteSource,
     BaseWaterLevelSource,
-    BaseAnalyteSource,
+    BaseAnalyteSource, get_most_recent,
 )
 
 
@@ -38,7 +38,7 @@ def _make_url(endpoint):
 class ISCSevenRiversSiteSource(BaseSiteSource):
     transformer_klass = ISCSevenRiversSiteTransformer
 
-    def get_records(self, config):
+    def get_records(self):
         resp = httpx.get(_make_url("getMonitoringPoints.ashx"))
         return resp.json()["data"]
 
@@ -58,9 +58,11 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         return self._analyte_ids.get(analyte)
 
     def _extract_most_recent(self, records):
-        t = max(records, key=lambda x: x["dateTime"])["dateTime"]
-        t = datetime.fromtimestamp(t / 1000)
-        return t
+        record = get_most_recent(records, 'dateTime')
+
+        return {'value': record['result'],
+                'datetime': datetime.fromtimestamp(record['dateTime'] / 1000),
+                'units': record['units']}
 
     def _extract_analyte_results(self, records):
         return [r["result"] for r in records]
@@ -68,7 +70,8 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     def _extract_analyte_units(self, records):
         return [r["units"] for r in records]
 
-    def get_records(self, parent_record, config):
+    def get_records(self, parent_record):
+        config = self.config
         resp = httpx.get(
             _make_url("getReadings.ashx"),
             params={
@@ -84,10 +87,10 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
 
-    def get_records(self, parent_record, config):
+    def get_records(self, parent_record):
         resp = httpx.get(
             _make_url("getWaterLevels.ashx"),
-            params={"id": parent_record.id, "start": 0, "end": config.now_ms(days=1)},
+            params={"id": parent_record.id, "start": 0, "end": self.config.now_ms(days=1)},
         )
         return resp.json()["data"]
 
@@ -100,9 +103,11 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         ]
 
     def _extract_most_recent(self, records):
-        t = max(records, key=lambda x: x["dateTime"])["dateTime"]
-        t = datetime.fromtimestamp(t / 1000)
-        return t
+        record = get_most_recent(records, 'dateTime')
+        t = datetime.fromtimestamp(record["dateTime"] / 1000)
+        return {"value": record["depthToWaterFeet"],
+                "datetime": t,
+                "units": FEET}
 
 
 # ============= EOF =============================================

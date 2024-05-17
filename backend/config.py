@@ -65,7 +65,6 @@ class Config:
     use_source_st2 = True
     use_source_bor = True
 
-    has_waterlevels = False
     analyte = None
 
     # output
@@ -74,6 +73,7 @@ class Config:
     output_elevation_units = FEET
     output_well_depth_units = FEET
     output_summary_waterlevel_stats = False
+    output_summary_analyte_stats = False
     latest_water_level_only = False
 
     analyte_output_units = MILLIGRAMS_PER_LITER
@@ -104,6 +104,11 @@ class Config:
             sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource()))
         if self.use_source_ampapi:
             sources.append((AMPAPISiteSource(), AMPAPIAnalyteSource()))
+
+        for s, ss in sources:
+            s.config = self
+            ss.config = self
+
         return sources
 
     def water_level_sources(self):
@@ -144,6 +149,11 @@ class Config:
 
         # if self.use_source_bor:
         #     sources.append((BORSiteSource(), BORWaterLevelSource()))
+
+        for s, ss in sources:
+            s.config = self
+            ss.config = self
+
         return sources
 
     def site_sources(self):
@@ -163,7 +173,7 @@ class Config:
             sources.append(BORSiteSource)
         return sources
 
-    def bounding_points(self):
+    def bbox_bounding_points(self):
         if isinstance(self.bbox, str):
             p1, p2 = self.bbox.split(",")
             x1, y1 = [float(a) for a in p1.strip().split(" ")]
@@ -194,7 +204,7 @@ class Config:
         if self.wkt:
             return self.wkt
         elif self.bbox:
-            x1, y1, x2, y2 = self.bounding_points()
+            x1, y1, x2, y2 = self.bbox_bounding_points()
             pts = f"{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}"
             return f"POLYGON({pts})"
         elif self.county:

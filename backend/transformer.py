@@ -19,6 +19,7 @@ from datetime import datetime
 import shapely
 from shapely import Point
 
+from backend.connectors.constants import MILLIGRAMS_PER_LITER, PARTS_PER_MILLION, FEET, METERS, TONS_PER_ACRE_FOOT
 from backend.geo_utils import datum_transform
 from backend.record import (
     WaterLevelSummaryRecord,
@@ -52,6 +53,81 @@ def transform_units(e, unit, out_unit):
     return e, unit
 
 
+def convert_units(input_value, input_units, output_units):
+    input_value = float(input_value)
+    input_units = input_units.lower()
+    output_units = output_units.lower()
+
+    mgl = MILLIGRAMS_PER_LITER.lower()
+    ppm = PARTS_PER_MILLION.lower()
+    tpaf = TONS_PER_ACRE_FOOT.lower()
+
+    if input_units == output_units:
+        return input_value
+
+    if input_units == tpaf and output_units == mgl:
+        return input_value * 735.47
+
+    if (
+            input_units == mgl
+            and output_units == ppm
+            or input_units == ppm
+            and output_units == mgl
+    ):
+        return input_value * 1.0
+
+    ft = FEET.lower()
+    m = METERS.lower()
+
+    if input_units == ft and output_units == m:
+        return input_value * 0.3048
+    if input_units == m and output_units == ft:
+        return input_value * 3.28084
+
+    return input_value
+
+
+def standardize_datetime(dt):
+    if isinstance(dt, tuple):
+        dt = [di for di in dt if di is not None]
+        dt = " ".join(dt)
+    fmt = None
+    if isinstance(dt, str):
+        dt = dt.strip()
+        for fmt in [
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S+00:00",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d",
+            "%Y-%m",
+            "%Y/%m/%d %H:%M:%S",
+            "%Y/%m/%d %H:%M",
+            "%Y/%m/%d",
+        ]:
+            try:
+                dt = datetime.strptime(dt.split(".")[0], fmt)
+                break
+            except ValueError as e:
+                pass
+        else:
+            raise ValueError(f"Failed to parse datetime {dt}")
+
+    if fmt == "%Y-%m-%d":
+        return dt.strftime("%Y-%m-%d"), ""
+    elif fmt == "%Y/%m/%d":
+        return dt.strftime("%Y-%m-%d"), ""
+    elif fmt == "%Y-%m":
+        return dt.strftime("%Y-%m"), ""
+
+    tt = dt.strftime("%H:%M:%S")
+    if tt == '00:00:00':
+        tt = ''
+    return dt.strftime("%Y-%m-%d"), tt
+
+
 class BaseTransformer:
     _cached_polygon = None
 
@@ -60,15 +136,17 @@ class BaseTransformer:
         if not record:
             return
 
+        self._post_transform(record, config, *args, **kw)
+
         dt = record.get("datetime_measured")
         if dt:
-            d, t = self._standardize_datetime(dt)
+            d, t = standardize_datetime(dt)
             record["date_measured"] = d
             record["time_measured"] = t
         else:
             mrd = record.get("most_recent_datetime")
             if mrd:
-                d, t = self._standardize_datetime(mrd)
+                d, t = standardize_datetime(mrd)
                 record["date_measured"] = d
                 record["time_measured"] = t
 
@@ -125,43 +203,6 @@ class BaseTransformer:
 
         return True
 
-    def _standardize_datetime(self, dt):
-        if isinstance(dt, tuple):
-            dt = [di for di in dt if di is not None]
-            dt = " ".join(dt)
-        fmt = None
-        if isinstance(dt, str):
-            dt = dt.strip()
-            for fmt in [
-                "%Y-%m-%dT%H:%M:%S",
-                "%Y-%m-%dT%H:%M:%S.%fZ",
-                "%Y-%m-%dT%H:%M:%SZ",
-                "%Y-%m-%d %H:%M:%S",
-                "%Y-%m-%d %H:%M:%S+00:00",
-                "%Y-%m-%d %H:%M",
-                "%Y-%m-%d",
-                "%Y-%m",
-                "%Y/%m/%d %H:%M:%S",
-                "%Y/%m/%d %H:%M",
-                "%Y/%m/%d",
-            ]:
-                try:
-                    dt = datetime.strptime(dt.split(".")[0], fmt)
-                    break
-                except ValueError as e:
-                    pass
-            else:
-                raise ValueError(f"Failed to parse datetime {dt}")
-
-        if fmt == "%Y-%m-%d":
-            return dt.strftime("%Y-%m-%d"), ""
-        elif fmt == "%Y/%m/%d":
-            return dt.strftime("%Y-%m-%d"), ""
-        elif fmt == "%Y-%m":
-            return dt.strftime("%Y-%m"), ""
-
-        return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")
-
     def _get_record_klass(self, config):
         raise NotImplementedError
 
@@ -171,42 +212,66 @@ class SiteTransformer(BaseTransformer):
         return SiteRecord
 
 
-class WaterLevelTransformer(BaseTransformer):
+class ParameterTransformer(BaseTransformer):
+    source_tag = None
+
+    def _get_parameter(self, config):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement _get_parameter"
+        )
+
+    def _transform(self, record, config, site_record):
+        if self.source_tag is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} source_tag is not set"
+            )
+
+        self._transform_most_recents(record, config)
+
+        p, u = self._get_parameter(config)
+        rec = {
+            "source": self.source_tag,
+            "id": site_record.id,
+            "location": site_record.name,
+            "usgs_site_id": site_record.id,
+            "latitude": site_record.latitude,
+            "longitude": site_record.longitude,
+            "elevation": site_record.elevation,
+            "elevation_units": site_record.elevation_units,
+            "well_depth": site_record.well_depth,
+            "well_depth_units": site_record.well_depth_units,
+            "parameter": p,
+            "parameter_units": u
+        }
+        rec.update(record)
+        return rec
+
+    def _transform_most_recents(self, record, config):
+        # convert most_recents
+        dt, tt = standardize_datetime(record['most_recent_datetime'])
+        record['most_recent_date'] = dt
+        record['most_recent_time'] = tt
+        p, u = self._get_parameter(config)
+        record['most_recent_value'] = convert_units(record['most_recent_value'],
+                                                    record['most_recent_units'], u)
+        record['most_recent_units'] = u
+
+
+class WaterLevelTransformer(ParameterTransformer):
     def _get_record_klass(self, config):
         if config.output_summary_waterlevel_stats:
             return WaterLevelSummaryRecord
         else:
             return WaterLevelRecord
 
+    def _get_parameter(self, config):
+        return 'DTW BGS', config.waterlevel_output_units
 
-class AnalyteTransformer(BaseTransformer):
-    source_tag = None
 
+class AnalyteTransformer(ParameterTransformer):
     def _get_record_klass(self, config):
         return AnalyteSummaryRecord
 
-    def _transform(self, record, config, parent_record):
-        if self.source_tag is None:
-            raise NotImplementedError(
-                f"{self.__class__.__name__} source_tag is not set"
-            )
-
-        rec = {
-            "source": self.source_tag,
-            "id": parent_record.id,
-            "location": parent_record.name,
-            "usgs_site_id": parent_record.id,
-            "latitude": parent_record.latitude,
-            "longitude": parent_record.longitude,
-            "elevation": parent_record.elevation,
-            "elevation_units": parent_record.elevation_units,
-            "well_depth": parent_record.well_depth,
-            "well_depth_units": parent_record.well_depth_units,
-            "parameter": config.analyte,
-            "parameter_units": config.analyte_output_units,
-        }
-        rec.update(record)
-        return rec
-
-
+    def _get_parameter(self, config):
+        return config.analyte, config.analyte_output_units
 # ============= EOF =============================================

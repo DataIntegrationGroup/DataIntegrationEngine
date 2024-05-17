@@ -15,6 +15,7 @@
 # ===============================================================================
 import httpx
 
+from backend.connectors.constants import FEET
 from backend.connectors.usgs.transformer import (
     USGSSiteTransformer,
     USGSWaterLevelTransformer,
@@ -23,7 +24,7 @@ from backend.source import (
     BaseSource,
     BaseWaterLevelSource,
     BaseSiteSource,
-    make_site_list,
+    make_site_list, get_most_recent,
 )
 
 
@@ -52,11 +53,12 @@ class USGSSiteSource(BaseSiteSource):
     transformer_klass = USGSSiteTransformer
     chunk_size = 500
 
-    def get_records(self, config):
+    def get_records(self):
         params = {"format": "rdb", "siteOutput": "expanded", "siteType": "GW"}
+        config = self.config
 
         if config.has_bounds():
-            bbox = config.bounding_points()
+            bbox = config.bbox_bounding_points()
             params["bBox"] = ",".join([str(b) for b in bbox])
         else:
             params["stateCd"] = "NM"
@@ -73,7 +75,7 @@ class USGSSiteSource(BaseSiteSource):
 class USGSWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = USGSWaterLevelTransformer
 
-    def get_records(self, parent_record, config):
+    def get_records(self, parent_record):
         params = {
             "format": "rdb",
             "siteType": "GW",
@@ -98,10 +100,13 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
         return [float(r["lev_va"]) for r in records]
 
     def _extract_most_recent(self, records):
+        record = get_most_recent(records, "lev_dt")
+        return {
+            "value": record["lev_va"],
+            "datetime": (record["lev_dt"], record['lev_tm']),
+            "units": FEET,
+        }
 
-        return [(r["lev_dt"], r["lev_tm"]) for r in records if r["lev_dt"] is not None][
-            -1
-        ]
 
 
 # ============= EOF =============================================

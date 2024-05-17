@@ -19,30 +19,32 @@ import httpx
 
 from backend.connectors.constants import TDS, URANIUM, NITRATE, SULFATE
 from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer
-from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource, make_site_list
+from backend.source import BaseSource, BaseSiteSource, BaseAnalyteSource, make_site_list, get_most_recent
+
+
+def parse_tsv(text):
+    rows = text.split("\n")
+    header = rows[0].split("\t")
+    return [dict(zip(header, row.split("\t"))) for row in rows[1:]]
 
 
 class WQPSiteSource(BaseSiteSource):
     transformer_klass = WQPSiteTransformer
     chunk_size = 100
 
-    def get_records(self, config):
+    def get_records(self):
+        config = self.config
         params = {"mimeType": "tsv", "siteType": "Well"}
-        # if config.bbox:
-        #     bbox = config.bounding_points()
-        #     params["bBox"] = ",".join([str(b) for b in bbox])
         if config.has_bounds():
-            params["bBox"] = ",".join([str(b) for b in config.bounding_points()])
+            params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
+
         if config.analyte:
             params["characteristicName"] = get_characteristic_names(config.analyte)
 
         resp = httpx.get(
             "https://www.waterqualitydata.us/data/Station/search?", params=params
         )
-        result = resp.text
-        rows = result.split("\n")
-        header = rows[0].split("\t")
-        return [dict(zip(header, row.split("\t"))) for row in rows[1:]]
+        return parse_tsv(resp.text)
 
 
 def get_characteristic_names(parameter):
@@ -82,25 +84,30 @@ class WQPAnalyteSource(BaseAnalyteSource):
         ]
 
     def _extract_analyte_results(self, records):
-        return [ri["ResultMeasureValue"] for ri in records if ri["ResultMeasureValue"]]
+        return [ri["ResultMeasureValue"] for ri in records]
+
+    def _clean_records(self, records):
+        return [ri for ri in records if ri["ResultMeasureValue"]]
 
     def _extract_analyte_units(self, records):
         return [
             ri["ResultMeasure/MeasureUnitCode"]
             for ri in records
-            if ri["ResultMeasureValue"]
         ]
 
     def _extract_most_recent(self, records):
-        return sorted([ri["ActivityStartDate"] for ri in records], reverse=True)[0]
+        ri = get_most_recent(records, "ActivityStartDate")
+        return {'value': ri['ResultMeasureValue'],
+                'datetime': ri["ActivityStartDate"],
+                'units': ri['ResultMeasure/MeasureUnitCode']}
 
-    def get_records(self, parent_record, config):
+    def get_records(self, parent_record):
         sites = make_site_list(parent_record)
 
         params = {
             "siteid": sites,
             "mimeType": "tsv",
-            "characteristicName": get_characteristic_names(config.analyte),
+            "characteristicName": get_characteristic_names(self.config.analyte),
         }
 
         resp = httpx.get(
@@ -108,10 +115,6 @@ class WQPAnalyteSource(BaseAnalyteSource):
             params=params,
             timeout=10,
         )
-        result = resp.text
-        rows = result.split("\n")
-        header = rows[0].split("\t")
-        return [dict(zip(header, row.split("\t"))) for row in rows[1:]]
-
+        return parse_tsv(resp.text)
 
 # ============= EOF =============================================

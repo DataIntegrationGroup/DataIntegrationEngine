@@ -23,7 +23,7 @@ from backend.connectors.st2.transformer import (
     PVACDWaterLevelTransformer,
     EBIDWaterLevelTransformer,
 )
-from backend.source import BaseSiteSource, BaseWaterLevelSource
+from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
 
@@ -36,8 +36,9 @@ class ST2Mixin:
 class ST2SiteSource(BaseSiteSource, ST2Mixin):
     agency = "ST2"
 
-    def get_records(self, config, *args, **kw):
+    def get_records(self, *args, **kw):
         service = self.get_service()
+        config = self.config
 
         f = f"properties/agency eq '{self.agency}'"
         if config.has_bounds():
@@ -59,13 +60,20 @@ class EBIDSiteSource(ST2SiteSource):
 
 class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
     def _extract_most_recent(self, records):
-        return records[0]["observation"].phenomenon_time
+        record = get_most_recent(records, tag=lambda x: x["observation"].phenomenon_time)
+
+        return {
+            "value": record["observation"].result,
+            "datetime": record["observation"].phenomenon_time,
+            "units": record["datastream"].unit_of_measurement.symbol,
+        }
 
     def _extract_waterlevels(self, records):
         return [r["observation"].result for r in records]
 
-    def get_records(self, parent_record, config, *args, **kw):
+    def get_records(self, parent_record, *args, **kw):
         service = self.get_service()
+        config = self.config
 
         things = (
             service.things()
