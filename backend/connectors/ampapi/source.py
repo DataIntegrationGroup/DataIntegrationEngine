@@ -20,12 +20,13 @@ from backend.connectors.ampapi.transformer import (
     AMPAPIWaterLevelTransformer,
     AMPAPIAnalyteTransformer,
 )
-from backend.connectors.constants import TDS, FEET
+from backend.connectors.mappings import AMPAPI_ANALYTE_MAPPING
+from backend.constants import TDS, FEET, URANIUM, SULFATE, ARSENIC, CHLORIDE, FLUORIDE
 from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_most_recent, get_analyte_search_param,
 )
 
 DEBUG = True
@@ -47,7 +48,7 @@ class AMPAPISiteSource(BaseSiteSource):
             params["wkt"] = config.bounding_wkt()
 
         if config.analyte:
-            params["has_analyte"] = get_analyte(config.analyte)
+            params["has_analyte"] = get_analyte_search_param(config.analyte, AMPAPI_ANALYTE_MAPPING)
         else:
             params["has_waterlevels"] = True
 
@@ -55,17 +56,11 @@ class AMPAPISiteSource(BaseSiteSource):
         return resp.json()["features"]
 
 
-def get_analyte(analyte):
-    if analyte == TDS:
-        return "TDS"
-
-
 class AMPAPIAnalyteSource(BaseAnalyteSource):
     transformer_klass = AMPAPIAnalyteTransformer
 
     def get_records(self, parent_record):
-
-        analyte = get_analyte(self.config.analyte)
+        analyte = get_analyte_search_param(self.config.analyte, AMPAPI_ANALYTE_MAPPING)
         resp = httpx.get(
             _make_url("waterchemistry/major"),
             params={"pointid": parent_record.id, "analyte": analyte},
@@ -117,6 +112,5 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
 
         resp = httpx.get(url, params=params)
         return resp.json()
-
 
 # ============= EOF =============================================

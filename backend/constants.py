@@ -15,15 +15,45 @@
 # ===============================================================================
 
 TDS = "TDS"
-URANIUM = "Uranium"
+ARSENIC = "Arsenic"
+BICARBONATE = "Bicarbonate"
+CALCIUM = "Calcium"
+CARBONATE = "Carbonate"
+CHLORIDE = "Chloride"
+FLUORIDE = "Fluoride"
+MAGNESIUM = "Magnesium"
 NITRATE = "Nitrate"
+POTASSIUM = "Potassium"
+SODIUM = "Sodium"
 SULFATE = "Sulfate"
+URANIUM = "Uranium"
+
+
+PH = "pH"
+
 
 MILLIGRAMS_PER_LITER = "mg/L"
+MICROGRAMS_PER_LITER = "ug/L"
 PARTS_PER_MILLION = "ppm"
 TONS_PER_ACRE_FOOT = "tons/ac ft"
 FEET = "ft"
 METERS = "m"
 WGS84 = "WGS84"
 
+ANALYTE_CHOICES = [
+    ARSENIC,
+    BICARBONATE,
+    CALCIUM,
+    CARBONATE,
+    CHLORIDE,
+    # FLUORIDE,
+    MAGNESIUM,
+    NITRATE,
+    POTASSIUM,
+    SODIUM,
+    SULFATE,
+    TDS,
+    URANIUM,
+    PH,
+]
 # ============= EOF =============================================

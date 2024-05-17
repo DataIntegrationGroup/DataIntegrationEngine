@@ -17,14 +17,15 @@ import pprint
 
 import httpx
 
-from backend.connectors.constants import TDS, URANIUM, NITRATE, SULFATE
+from backend.connectors.mappings import WQP_ANALYTE_MAPPING
+from backend.constants import TDS, URANIUM, NITRATE, SULFATE, ARSENIC, CHLORIDE
 from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer
 from backend.source import (
     BaseSource,
     BaseSiteSource,
     BaseAnalyteSource,
     make_site_list,
-    get_most_recent,
+    get_most_recent, get_analyte_search_param,
 )
 
 
@@ -45,38 +46,12 @@ class WQPSiteSource(BaseSiteSource):
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
 
         if config.analyte:
-            params["characteristicName"] = get_characteristic_names(config.analyte)
+            params["characteristicName"] = get_analyte_search_param(config.analyte, WQP_ANALYTE_MAPPING)
 
         resp = httpx.get(
             "https://www.waterqualitydata.us/data/Station/search?", params=params
         )
         return parse_tsv(resp.text)
-
-
-def get_characteristic_names(parameter):
-    if parameter == "Arsenic":
-        characteristic_names = ["Arsenic"]
-    elif parameter == "Chloride":
-        characteristic_names = ["Chloride"]
-    elif parameter == "Fluoride":
-        characteristic_names = ["Fluoride"]
-    elif parameter == NITRATE:
-        characteristic_names = ["Nitrate", "Nitrate-N", "Nitrate as N"]
-    elif parameter == SULFATE:
-        characteristic_names = [
-            "Sulfate",
-            "Sulfate as SO4",
-            "Sulfur Sulfate",
-            "Sulfate as S",
-            "Total Sulfate",
-        ]
-    elif parameter == TDS:
-        characteristic_names = ["Total dissolved solids"]
-    elif parameter == URANIUM:
-        characteristic_names = ["Uranium", "Uranium-238"]
-    else:
-        raise ValueError(f"Invalid parameter name {parameter}")
-    return characteristic_names
 
 
 class WQPAnalyteSource(BaseAnalyteSource):
@@ -112,7 +87,7 @@ class WQPAnalyteSource(BaseAnalyteSource):
         params = {
             "siteid": sites,
             "mimeType": "tsv",
-            "characteristicName": get_characteristic_names(self.config.analyte),
+            "characteristicName": get_analyte_search_param(self.config.analyte, WQP_ANALYTE_MAPPING),
         }
 
         resp = httpx.get(

@@ -34,7 +34,7 @@ from backend.connectors.ckan.source import (
     OSERoswellSiteSource,
     OSERoswellWaterLevelSource,
 )
-from backend.connectors.constants import MILLIGRAMS_PER_LITER, WGS84, FEET
+from backend.constants import MILLIGRAMS_PER_LITER, WGS84, FEET
 from backend.connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,

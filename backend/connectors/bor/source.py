@@ -18,13 +18,14 @@ import pprint
 import httpx
 
 from backend.connectors.bor.transformer import BORSiteTransformer, BORAnalyteTransformer
-from backend.connectors.constants import TDS
+from backend.connectors.mappings import BOR_ANALYTE_MAPPING
+from backend.constants import TDS, URANIUM, ARSENIC, SULFATE, FLUORIDE, CHLORIDE
 
 from backend.source import (
     BaseSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_most_recent, get_analyte_search_param,
 )
 
 
@@ -36,13 +37,6 @@ class BORSiteSource(BaseSiteSource):
         params = {"stateId": "NM", "locationTypeId": 10}
         resp = httpx.get("https://data.usbr.gov/rise/api/location", params=params)
         return resp.json()["data"]
-
-
-def get_analyte_code(config):
-    name = None
-    if config.analyte == TDS:
-        name = "TDS"
-    return name
 
 
 class BORAnalyteSource(BaseAnalyteSource):
@@ -74,14 +68,14 @@ class BORAnalyteSource(BaseAnalyteSource):
     def _reorder_catalog_items(self, items):
         if self._catalog_item_idx:
             # rotate list so catalog_item_idx is the first item
-            items = items[self._catalog_item_idx :] + items[: self._catalog_item_idx]
+            items = items[self._catalog_item_idx:] + items[: self._catalog_item_idx]
         return items
 
     def get_records(self, parent_record):
-        code = get_analyte_code(self.config)
+        code = get_analyte_search_param(self.config.analyte, BOR_ANALYTE_MAPPING)
 
         for i, item in enumerate(
-            self._reorder_catalog_items(parent_record.catalogItems)
+                self._reorder_catalog_items(parent_record.catalogItems)
         ):
             resp = httpx.get(
                 f'https://data.usbr.gov{item["id"]}',
@@ -97,7 +91,6 @@ class BORAnalyteSource(BaseAnalyteSource):
                 }
                 resp = httpx.get("https://data.usbr.gov/rise/api/result", params=params)
                 return resp.json()["data"]
-
 
 # class BORWaterLevelSource(BaseWaterLevelSource):
 #     transformer_klass = BORWaterLevelTransformer

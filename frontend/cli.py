@@ -16,6 +16,7 @@
 import click
 
 from backend.config import Config
+from backend.constants import ANALYTE_CHOICES
 from frontend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 
@@ -24,17 +25,76 @@ def cli():
     pass
 
 
+SOURCE_OPTIONS = [
+    click.option(
+        "--no-amp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Include/Exclude AMP data. Default is to include",
+    ),
+    click.option(
+        "--no-nwis",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude NWIS data. Default is to include",
+    ),
+    click.option(
+        "--no-st2",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude ST2 data. Default is to include",
+    ),
+    click.option(
+        "--no-isc-seven-rivers",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude ISC Seven Rivers data. Default is to include",
+    ),
+    click.option(
+        "--no-bor",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude BOR data. Default is to include",
+    ),
+    click.option(
+        "--no-wqp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude WQP data. Default is to include",
+    ),
+]
+
+
+SPATIAL_OPTIONS = [
+    click.option(
+        "--bbox",
+        default="",
+        help="Bounding box in the form 'x1 y1, x2 y2'",
+    ),
+    click.option(
+        "--county",
+        default="",
+        help="New Mexico county name",
+    )]
+
+
+def add_options(options):
+    def _add_options(func):
+        for option in reversed(options):
+            func = option(func)
+        return func
+
+    return _add_options
+
+
 @cli.command()
-@click.option(
-    "--bbox",
-    default="",
-    help="Bounding box in the form 'x1 y1, x2 y2'",
-)
-@click.option(
-    "--county",
-    default="",
-    help="New Mexico county name",
-)
+@add_options(SPATIAL_OPTIONS)
 def wells(bbox, county):
     """
     Get locations
@@ -45,16 +105,7 @@ def wells(bbox, county):
 
 
 @cli.command()
-@click.option(
-    "--bbox",
-    default="",
-    help="Bounding box in the form 'x1 y1, x2 y2'",
-)
-@click.option(
-    "--county",
-    default="",
-    help="New Mexico county name",
-)
+@add_options(SPATIAL_OPTIONS)
 @click.option(
     "--summarize/--no-summarize",
     is_flag=True,
@@ -62,27 +113,37 @@ def wells(bbox, county):
     show_default=True,
     help="Summarize water levels",
 )
-def waterlevels(bbox, county, summarize):
+@add_options(SOURCE_OPTIONS)
+def waterlevels(bbox, county, summarize, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp):
     config = setup_config("waterlevels", bbox, county)
     config.output_summary_waterlevel_stats = summarize
+
+    config.use_source_ampapi = no_amp
+    config.use_source_nwis = no_nwis
+    config.use_source_st2 = no_st2
+    config.use_source_isc_seven_rivers = no_isc_seven_rivers
+    config.use_source_bor = no_bor
+    config.use_source_wqp = no_wqp
+
     unify_waterlevels(config)
 
 
 @cli.command()
-@click.argument("analyte")
-@click.option(
-    "--bbox",
-    default="",
-    help="Bounding box in the form 'x1 y1, x2 y2'",
-)
-@click.option(
-    "--county",
-    default="",
-    help="New Mexico county name",
-)
-def analytes(analyte, bbox, county):
+@click.argument("analyte",
+                type=click.Choice(ANALYTE_CHOICES))
+@add_options(SPATIAL_OPTIONS)
+@add_options(SOURCE_OPTIONS)
+def analytes(analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte
+
+    config.use_source_ampapi = no_amp
+    config.use_source_nwis = no_nwis
+    config.use_source_st2 = no_st2
+    config.use_source_isc_seven_rivers = no_isc_seven_rivers
+    config.use_source_bor = no_bor
+    config.use_source_wqp = no_wqp
+
     unify_analytes(config)
 
 
@@ -98,6 +159,5 @@ def setup_config(tag, bbox, county):
         config.bbox = bbox
 
     return config
-
 
 # ============= EOF =============================================

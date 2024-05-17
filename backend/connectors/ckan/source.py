@@ -21,7 +21,7 @@ from backend.connectors.ckan.transformer import (
     OSERoswellSiteTransformer,
     OSERoswellWaterLevelTransformer,
 )
-from backend.connectors.constants import FEET
+from backend.constants import FEET
 from backend.source import (
     BaseSource,
     BaseSiteSource,

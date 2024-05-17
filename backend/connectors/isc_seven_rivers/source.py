@@ -17,7 +17,8 @@ from datetime import datetime
 
 import httpx
 
-from backend.connectors.constants import TDS, FEET
+from backend.connectors.mappings import ISC_SEVEN_RIVERS_ANALYTE_MAPPING
+from backend.constants import TDS, FEET, URANIUM, SULFATE, FLUORIDE, CHLORIDE
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
     ISCSevenRiversWaterLevelTransformer,
@@ -28,7 +29,7 @@ from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_most_recent, get_analyte_search_param,
 )
 
 
@@ -49,14 +50,15 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     _analyte_ids = None
 
     def _get_analyte_id(self, analyte):
+        """
+        """
         if self._analyte_ids is None:
             resp = httpx.get(_make_url("getAnalytes.ashx"))
             self._analyte_ids = {r["name"]: r["id"] for r in resp.json()["data"]}
 
-        if analyte == TDS:
-            analyte = "TDS calc"
-
-        return self._analyte_ids.get(analyte)
+        analyte = get_analyte_search_param(analyte, ISC_SEVEN_RIVERS_ANALYTE_MAPPING)
+        if analyte:
+            return self._analyte_ids.get(analyte)
 
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "dateTime")
@@ -67,6 +69,9 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             "units": record["units"],
         }
 
+    def _clean_records(self, records):
+        return [r for r in records if r["result"] is not None]
+
     def _extract_parameter_results(self, records):
         return [r["result"] for r in records]
 
@@ -75,16 +80,18 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
     def get_records(self, parent_record):
         config = self.config
-        resp = httpx.get(
-            _make_url("getReadings.ashx"),
-            params={
-                "monitoringPointId": parent_record.id,
-                "analyteId": self._get_analyte_id(config.analyte),
-                "start": 0,
-                "end": config.now_ms(days=1),
-            },
-        )
-        return resp.json()["data"]
+        analyte_id = self._get_analyte_id(config.analyte)
+        if analyte_id:
+            resp = httpx.get(
+                _make_url("getReadings.ashx"),
+                params={
+                    "monitoringPointId": parent_record.id,
+                    "analyteId": self._get_analyte_id(config.analyte),
+                    "start": 0,
+                    "end": config.now_ms(days=1),
+                },
+            )
+            return resp.json()["data"]
 
 
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
@@ -113,6 +120,5 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         record = get_most_recent(records, "dateTime")
         t = datetime.fromtimestamp(record["dateTime"] / 1000)
         return {"value": record["depthToWaterFeet"], "datetime": t, "units": FEET}
-
 
 # ============= EOF =============================================

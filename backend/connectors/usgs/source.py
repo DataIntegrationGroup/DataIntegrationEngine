@@ -15,7 +15,7 @@
 # ===============================================================================
 import httpx
 
-from backend.connectors.constants import FEET
+from backend.constants import FEET
 from backend.connectors.usgs.transformer import (
     USGSSiteTransformer,
     USGSWaterLevelTransformer,

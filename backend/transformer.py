@@ -19,12 +19,12 @@ from datetime import datetime
 import shapely
 from shapely import Point
 
-from backend.connectors.constants import (
+from backend.constants import (
     MILLIGRAMS_PER_LITER,
     PARTS_PER_MILLION,
     FEET,
     METERS,
-    TONS_PER_ACRE_FOOT,
+    TONS_PER_ACRE_FOOT, MICROGRAMS_PER_LITER,
 )
 from backend.geo_utils import datum_transform
 from backend.record import (
@@ -65,6 +65,7 @@ def convert_units(input_value, input_units, output_units):
     output_units = output_units.lower()
 
     mgl = MILLIGRAMS_PER_LITER.lower()
+    ugl = MICROGRAMS_PER_LITER.lower()
     ppm = PARTS_PER_MILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
 
@@ -82,6 +83,9 @@ def convert_units(input_value, input_units, output_units):
     ):
         return input_value * 1.0
 
+    if input_units == ugl and output_units == mgl:
+        return input_value * 0.001
+
     ft = FEET.lower()
     m = METERS.lower()
 
@@ -90,6 +94,7 @@ def convert_units(input_value, input_units, output_units):
     if input_units == m and output_units == ft:
         return input_value * 3.28084
 
+    print(f"Failed to convert {input_value} {input_units} to {output_units}")
     return input_value
 
 

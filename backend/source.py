@@ -15,7 +15,7 @@
 # ===============================================================================
 import click
 
-from backend.connectors.constants import (
+from backend.constants import (
     MILLIGRAMS_PER_LITER,
     FEET,
     METERS,
@@ -36,8 +36,11 @@ class BaseSource:
         self.config = config
         self.transformer.config = config
 
-    def log(self, msg):
-        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg="yellow")
+    def warn(self, msg):
+        self.log(msg, fg="red")
+
+    def log(self, msg, fg="yellow"):
+        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
 
     def get_records(self, *args, **kw):
         raise NotImplementedError(
@@ -71,7 +74,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -144,7 +147,7 @@ class BaseParameterSource(BaseSource):
                 f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
             )
         else:
-            self.log(f"Gathering {self.name} summary for record {parent_record.id}")
+            self.log(f"Gathering {self.name} summary for record {parent_record.id}, {parent_record.name}")
 
         rs = self.get_records(parent_record)
         if rs:
@@ -190,6 +193,18 @@ class BaseParameterSource(BaseSource):
                     ret.append(trec)
 
             return ret
+        else:
+            self.no_records()
+
+    def no_records(self):
+        self.warn("No records found")
+
+
+def get_analyte_search_param(parameter, mapping):
+    try:
+        return mapping[parameter]
+    except KeyError:
+        raise ValueError(f"Invalid parameter name {parameter}. Valid parameters are {list(mapping.keys())}")
 
 
 class BaseAnalyteSource(BaseParameterSource):
@@ -207,6 +222,5 @@ class BaseWaterLevelSource(BaseParameterSource):
 
     def _extract_parameter_units(self, records):
         return [FEET for _ in records]
-
 
 # ============= EOF =============================================
