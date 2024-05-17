@@ -49,10 +49,10 @@ class BORAnalyteSource(BaseAnalyteSource):
     transformer_klass = BORAnalyteTransformer
     _catalog_item_idx = None
 
-    def _extract_analyte_results(self, rs):
+    def _extract_parameter_results(self, rs):
         return [ri["attributes"]["result"] for ri in rs]
 
-    def _extract_analyte_units(self, records):
+    def _extract_parameter_units(self, records):
         return [ri["attributes"]["resultAttributes"]["units"] for ri in records]
 
     def _extract_most_recent(self, rs):
@@ -130,7 +130,7 @@ class BORAnalyteSource(BaseAnalyteSource):
 #     # records = parse_rdb(resp.text)
 #     # return records
 #
-# def _extract_waterlevels(self, records):
+# def _extract_parameter_results(self, records):
 #     return [float(r["lev_va"]) for r in records if r["lev_va"] is not None]
 #
 # def _extract_most_recent(self, records):

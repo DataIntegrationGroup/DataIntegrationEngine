@@ -67,10 +67,10 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             "units": record["units"],
         }
 
-    def _extract_analyte_results(self, records):
+    def _extract_parameter_results(self, records):
         return [r["result"] for r in records]
 
-    def _extract_analyte_units(self, records):
+    def _extract_parameter_units(self, records):
         return [r["units"] for r in records]
 
     def get_records(self, parent_record):
@@ -104,7 +104,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     def _clean_records(self, records):
         return [r for r in records if r["depthToWaterFeet"] is not None]
 
-    def _extract_waterlevels(self, records):
+    def _extract_parameter_results(self, records):
         return [
             r["depthToWaterFeet"] for r in records if not r["invalid"] and not r["dry"]
         ]

@@ -67,7 +67,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -85,22 +85,19 @@ def get_most_recent(records, tag):
     if callable(tag):
         func = tag
     else:
-        if "." in tag:
-
+        if '.' in tag:
             def func(x):
-                for t in tag.split("."):
+                for t in tag.split('.'):
                     x = x[t]
                 return x
-
         else:
-
             def func(x):
                 return x[tag]
 
     return sorted(records, key=func)[-1]
 
 
-class BaseSummarySource(BaseSource):
+class BaseParameterSource(BaseSource):
     name = ""
 
     def _extract_parent_records(self, records, parent_record):
@@ -119,13 +116,25 @@ class BaseSummarySource(BaseSource):
     def _clean_records(self, records):
         return records
 
-    def _summary_hook(self, parent_record, rs):
+    # def _summary_hook(self, parent_record, rs):
+    #     raise NotImplementedError(
+    #         f"{self.__class__.__name__} must implement _summary_hook"
+    #     )
+    #
+    def _extract_parameter_units(self, records):
         raise NotImplementedError(
-            f"{self.__class__.__name__} must implement _summary_hook"
+            f"{self.__class__.__name__} Must implement _extract_parameter_units"
         )
 
-    # def _convert_most_recent(self, records):
-    #     return records
+    def _extract_parameter_results(self, records):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parameter_results"
+        )
+
+    def _get_output_units(self):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _get_output_units"
+        )
 
     def summarize(self, parent_record):
         if isinstance(parent_record, list):
@@ -139,6 +148,7 @@ class BaseSummarySource(BaseSource):
         if rs:
             if not isinstance(parent_record, list):
                 parent_record = [parent_record]
+
             ret = []
             for pi in parent_record:
                 rrs = self._extract_parent_records(rs, pi)
@@ -153,7 +163,9 @@ class BaseSummarySource(BaseSource):
                 if not mr:
                     continue
 
-                items = self._summary_hook(pi, cleaned)
+                items = self._extract_parameter_results(cleaned)
+                units = self._extract_parameter_units(cleaned)
+                items = [convert_units(float(r), u, self._get_output_units()) for r, u in zip(items, units)]
 
                 if items is not None:
                     n = len(items)
@@ -164,9 +176,9 @@ class BaseSummarySource(BaseSource):
                             "min": min(items),
                             "max": max(items),
                             "mean": sum(items) / n,
-                            "most_recent_datetime": mr["datetime"],
-                            "most_recent_value": mr["value"],
-                            "most_recent_units": mr["units"],
+                            "most_recent_datetime": mr['datetime'],
+                            "most_recent_value": mr['value'],
+                            "most_recent_units": mr['units']
                         },
                         self.config,
                         pi,
@@ -176,66 +188,20 @@ class BaseSummarySource(BaseSource):
             return ret
 
 
-class BaseAnalyteSource(BaseSummarySource):
+class BaseAnalyteSource(BaseParameterSource):
     name = "analyte"
 
-    def _summary_hook(self, parent_record, rs):
-        results = self._extract_analyte_results(rs)
-        if not results:
-            return
-
-        units = self._extract_analyte_units(rs)
-        results = [
-            convert_units(float(r), u, self.config.analyte_output_units)
-            for r, u in zip(results, units)
-        ]
-        return results
-
-    # def _convert_most_recent(self, records):
-    #     print(records)
-    #     return [convert_units(float(r['value']),
-    #                           r['units'], self.config.analyte_output_units) for r in records]
-
-    def _extract_analyte_units(self, records):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_analyte_units"
-        )
-
-    def _extract_analyte_results(self, records):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_analyte_results"
-        )
+    def _get_output_units(self):
+        return self.config.analyte_output_units
 
 
-class BaseWaterLevelSource(BaseSummarySource):
+class BaseWaterLevelSource(BaseParameterSource):
     name = "water levels"
 
-    def _summary_hook(self, parent_record, rs):
-        rs = self._extract_waterlevels(rs)
-        us = self._extract_waterlevel_units(rs)
-        return [
-            convert_units(float(r), u, self.config.waterlevel_output_units)
-            for r, u in zip(rs, us)
-        ]
+    def _get_output_units(self):
+        return self.config.waterlevel_output_units
 
-    def _extract_waterlevel_units(self, records):
+    def _extract_parameter_units(self, records):
         return [FEET for _ in records]
-
-    def _extract_waterlevels(self, records):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_waterlevels"
-        )
-
-    # def read(self, parent_record, config):
-    #     self.log(f"Gathering waterlevels for record {parent_record.id}")
-    #     n = 0
-    #     for record in self.get_records(parent_record):
-    #         record = self.transformer.transform(record, parent_record, config)
-    #         if record:
-    #             n += 1
-    #             yield record
-    #
-    #     self.log(f"nrecords={n}")
-
 
 # ============= EOF =============================================

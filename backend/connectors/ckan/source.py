@@ -94,7 +94,7 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         records = resp.json()["result"]["records"]
         return [record for record in records if record["Site_ID"] == parent_record.id]
 
-    def _extract_waterlevels(self, records):
+    def _extract_parameter_results(self, records):
         return [float(r["DTWGS"]) for r in records]
 
     def _extract_most_recent(self, records):

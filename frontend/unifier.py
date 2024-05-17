@@ -114,11 +114,11 @@ def test_waterlevel_unification():
 
     cfg.output_summary_waterlevel_stats = True
 
-    cfg.use_source_nwis = False
+    # cfg.use_source_nwis = False
     # cfg.use_source_ampapi = False
-    cfg.use_source_isc_seven_rivers = False
-    cfg.use_source_st2 = False
-    cfg.use_source_ose_roswell = False
+    # cfg.use_source_isc_seven_rivers = False
+    # cfg.use_source_st2 = False
+    # cfg.use_source_ose_roswell = False
 
     # unify_sites(cfg)
     unify_waterlevels(cfg)

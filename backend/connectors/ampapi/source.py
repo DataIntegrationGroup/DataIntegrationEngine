@@ -74,7 +74,7 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
             return []
         return resp.json()
 
-    def _extract_analyte_units(self, records):
+    def _extract_parameter_units(self, records):
         return [r["Units"] for r in records]
 
     def _extract_most_recent(self, records):
@@ -85,7 +85,7 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
             "units": record["Units"],
         }
 
-    def _extract_analyte_results(self, records):
+    def _extract_parameter_results(self, records):
         return [r["SampleValue"] for r in records]
 
 
@@ -103,7 +103,7 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
             "units": FEET,
         }
 
-    def _extract_waterlevels(self, records):
+    def _extract_parameter_results(self, records):
         return [r["DepthToWaterBGS"] for r in records]
 
     def get_records(self, parent_record):

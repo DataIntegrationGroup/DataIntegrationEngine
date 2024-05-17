@@ -70,7 +70,7 @@ class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
             "units": record["datastream"].unit_of_measurement.symbol,
         }
 
-    def _extract_waterlevels(self, records):
+    def _extract_parameter_results(self, records):
         return [r["observation"].result for r in records]
 
     def get_records(self, parent_record, *args, **kw):
