@@ -127,7 +127,7 @@ def waterlevels(
     no_wqp,
 ):
     config = setup_config("waterlevels", bbox, county)
-    config.output_summary_waterlevel_stats = summarize
+    config.output_summary = summarize
 
     config.use_source_ampapi = no_amp
     config.use_source_nwis = no_nwis

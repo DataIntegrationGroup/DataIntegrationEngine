@@ -40,6 +40,8 @@ FEET = "ft"
 METERS = "m"
 WGS84 = "WGS84"
 
+DTW = "depth_to_water_ft_below_ground_surface"
+
 ANALYTE_CHOICES = [
     ARSENIC,
     BICARBONATE,

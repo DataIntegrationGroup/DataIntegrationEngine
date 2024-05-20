@@ -90,7 +90,7 @@ class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
                     q = di.get_observations().query()
                     if (
                         config.latest_water_level_only
-                        and not config.output_summary_waterlevel_stats
+                        and not config.output_summary
                     ):
                         q = q.orderby("phenomenonTime", "desc").top(1)
 
@@ -105,7 +105,7 @@ class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
                         )
                         if (
                             config.latest_water_level_only
-                            and not config.output_summary_waterlevel_stats
+                            and not config.output_summary
                         ):
                             break
         return records

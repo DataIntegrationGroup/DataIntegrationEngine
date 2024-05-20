@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from backend.constants import DTW
 
 
 class BaseRecord:
@@ -64,14 +65,14 @@ class BaseRecord:
 
 class WaterLevelRecord(BaseRecord):
     keys = (
-        "source",
-        "id",
-        "location",
-        "latitude",
-        "longitude",
-        "surface_elevation_ft",
-        "well_depth_ft_below_ground_surface",
-        "depth_to_water_ft_below_ground_surface",
+        # "source",
+        # "id",
+        # "location",
+        # "latitude",
+        # "longitude",
+        # "surface_elevation_ft",
+        # "well_depth_ft_below_ground_surface",
+        DTW,
         "date_measured",
         "time_measured",
     )

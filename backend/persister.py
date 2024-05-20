@@ -15,6 +15,7 @@
 # ===============================================================================
 import csv
 import os
+import shutil
 
 import click
 import pandas as pd
@@ -41,9 +42,33 @@ class BasePersister(Loggable):
     def load(self, records):
         self.records.extend(records)
 
+    def dump_singles(self, root, singles):
+        if os.path.isdir(root):
+            self.log(f"root {root} already exists", fg="red")
+            shutil.rmtree(root)
+
+        os.mkdir(root)
+
+        for site, records in singles:
+            path = os.path.join(root, site.id)
+            path = self.add_extension(path)
+            self.log(f"dumping {site.id} to {os.path.abspath(path)}")
+            self._dump_single(path, records)
+
+        self._dump_sites(os.path.join(root, self.add_extension('sites')), [s[0] for s in singles])
+
+    def dump_combined(self, path, combined):
+        if combined:
+            path = self.add_extension(path)
+
+            self.log(f"dumping combined to {os.path.abspath(path)}")
+            self._dump_combined(path, combined)
+        else:
+            self.log("no combined records to dump", fg="red")
+
     def save(self, path):
-        path = self.add_extension(path)
         if self.records:
+            path = self.add_extension(path)
             self.log(f"saving to {path}")
             self._save(path)
         else:
@@ -60,17 +85,47 @@ class BasePersister(Loggable):
     def _save(self, path):
         raise NotImplementedError
 
+    def _dump_combined(self, path, combined):
+        raise NotImplementedError
+
 
 class CSVPersister(BasePersister):
     extension = "csv"
 
+    def _dump_sites(self, path, sites):
+        with open(path, "w") as f:
+            writer = csv.writer(f)
+            for i, site in enumerate(sites):
+                if i == 0:
+                    writer.writerow(site.keys)
+
+                writer.writerow(site.to_row())
+
+    def _dump_single(self, path, records):
+        with open(path, "w") as f:
+            writer = csv.writer(f)
+            for i, record in enumerate(records):
+                if i == 0:
+                    writer.writerow(record.keys)
+
+                writer.writerow(record.to_row())
+
+    def _dump_combined(self, path, combined):
+        with open(path, "w") as f:
+            writer = csv.writer(f)
+            for i, (site, record) in enumerate(combined):
+                if i == 0:
+                    writer.writerow(site.keys + record.keys)
+
+                writer.writerow(site.to_row() + record.to_row())
+
     def _save(self, path):
         with open(path, "w") as f:
             writer = csv.writer(f)
+            for i, record in enumerate(self.records):
+                if i == 0:
+                    writer.writerow(record.keys)
 
-            record = self.records[0]
-            writer.writerow(record.keys)
-            for record in self.records:
                 writer.writerow(record.to_row())
 
 
@@ -84,7 +139,6 @@ class GeoJSONPersister(BasePersister):
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(path, driver="GeoJSON")
-
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

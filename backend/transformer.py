@@ -32,7 +32,7 @@ from backend.record import (
     WaterLevelSummaryRecord,
     WaterLevelRecord,
     SiteRecord,
-    AnalyteSummaryRecord,
+    AnalyteSummaryRecord, SummaryRecord,
 )
 
 
@@ -166,34 +166,34 @@ class BaseTransformer:
         # convert to proper record type
         klass = self._get_record_klass()
         record = klass(record)
+        if isinstance(record, (SiteRecord, SummaryRecord)):
+            x = float(record.latitude)
+            y = float(record.longitude)
+            datum = record.horizontal_datum
 
-        x = float(record.latitude)
-        y = float(record.longitude)
-        datum = record.horizontal_datum
+            lng, lat, datum = transform_horizontal_datum(
+                x,
+                y,
+                datum,
+                self.config.output_horizontal_datum,
+            )
+            record.update(latitude=lat)
+            record.update(longitude=lng)
+            record.update(horizontal_datum=datum)
 
-        lng, lat, datum = transform_horizontal_datum(
-            x,
-            y,
-            datum,
-            self.config.output_horizontal_datum,
-        )
-        record.update(latitude=lat)
-        record.update(longitude=lng)
-        record.update(horizontal_datum=datum)
+            e, eunit = transform_units(
+                record.elevation, record.elevation_units, self.config.output_elevation_units
+            )
+            record.update(elevation=e)
+            record.update(elevation_units=eunit)
 
-        e, eunit = transform_units(
-            record.elevation, record.elevation_units, self.config.output_elevation_units
-        )
-        record.update(elevation=e)
-        record.update(elevation_units=eunit)
-
-        wd, wdunit = transform_units(
-            record.well_depth,
-            record.well_depth_units,
-            self.config.output_well_depth_units,
-        )
-        record.update(well_depth=wd)
-        record.update(well_depth_units=wdunit)
+            wd, wdunit = transform_units(
+                record.well_depth,
+                record.well_depth_units,
+                self.config.output_well_depth_units,
+            )
+            record.update(well_depth=wd)
+            record.update(well_depth_units=wdunit)
 
         return record
 
@@ -246,23 +246,25 @@ class ParameterTransformer(BaseTransformer):
                 f"{self.__class__.__name__} source_tag is not set"
             )
 
-        self._transform_most_recents(record)
+        rec = {}
+        if self.config.output_summary:
+            self._transform_most_recents(record)
 
-        p, u = self._get_parameter()
-        rec = {
-            "source": self.source_tag,
-            "id": site_record.id,
-            "location": site_record.name,
-            "usgs_site_id": site_record.id,
-            "latitude": site_record.latitude,
-            "longitude": site_record.longitude,
-            "elevation": site_record.elevation,
-            "elevation_units": site_record.elevation_units,
-            "well_depth": site_record.well_depth,
-            "well_depth_units": site_record.well_depth_units,
-            "parameter": p,
-            "parameter_units": u,
-        }
+            p, u = self._get_parameter()
+            rec = {
+                "source": self.source_tag,
+                "id": site_record.id,
+                "location": site_record.name,
+                "usgs_site_id": site_record.id,
+                "latitude": site_record.latitude,
+                "longitude": site_record.longitude,
+                "elevation": site_record.elevation,
+                "elevation_units": site_record.elevation_units,
+                "well_depth": site_record.well_depth,
+                "well_depth_units": site_record.well_depth_units,
+                "parameter": p,
+                "parameter_units": u,
+            }
         rec.update(record)
         return rec
 
@@ -280,7 +282,7 @@ class ParameterTransformer(BaseTransformer):
 
 class WaterLevelTransformer(ParameterTransformer):
     def _get_record_klass(self):
-        if self.config.output_summary_waterlevel_stats:
+        if self.config.output_summary:
             return WaterLevelSummaryRecord
         else:
             return WaterLevelRecord

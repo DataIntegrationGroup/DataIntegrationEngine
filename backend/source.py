@@ -141,7 +141,7 @@ class BaseParameterSource(BaseSource):
             f"{self.__class__.__name__} Must implement _get_output_units"
         )
 
-    def summarize(self, parent_record):
+    def load(self, parent_record, use_summarize):
         if isinstance(parent_record, list):
             self.log(
                 f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
@@ -166,10 +166,6 @@ class BaseParameterSource(BaseSource):
                 if not cleaned:
                     continue
 
-                mr = self._extract_most_recent(cleaned)
-                if not mr:
-                    continue
-
                 items = self._extract_parameter_results(cleaned)
                 units = self._extract_parameter_units(cleaned)
                 items = [
@@ -180,8 +176,11 @@ class BaseParameterSource(BaseSource):
                 if items is not None:
                     n = len(items)
                     self.log(f"Retrieved {self.name}: {n}")
-                    trec = self.transformer.do_transform(
-                        {
+                    if use_summarize:
+                        mr = self._extract_most_recent(cleaned)
+                        if not mr:
+                            continue
+                        rec = {
                             "nrecords": n,
                             "min": min(items),
                             "max": max(items),
@@ -189,11 +188,15 @@ class BaseParameterSource(BaseSource):
                             "most_recent_datetime": mr["datetime"],
                             "most_recent_value": mr["value"],
                             "most_recent_units": mr["units"],
-                        },
-                        pi,
-                    )
-                    ret.append(trec)
-
+                        }
+                        trec = self.transformer.do_transform(
+                            rec,
+                            pi,
+                        )
+                        ret.append(trec)
+                    else:
+                        cs = [self.transformer.do_transform(r, pi) for r in cleaned]
+                        ret.append((pi, cs))
             return ret
         else:
             self.no_records()

@@ -36,12 +36,12 @@ def unify_sites(config):
 
 def unify_analytes(config):
     log("Unifying analytes")
-    _unify_parameter(config, config.analyte_sources())
+    _unify_parameter(config, config.analyte_sources(), config.output_summary)
 
 
 def unify_waterlevels(config):
     log("Unifying waterlevels")
-    _unify_parameter(config, config.water_level_sources())
+    _unify_parameter(config, config.water_level_sources(), config.output_summary)
 
 
 def _perister_factory(config):
@@ -54,19 +54,41 @@ def _perister_factory(config):
     return persister_klass()
 
 
-def _unify_wrapper(config, func):
-    persister = _perister_factory(config)
-    func(persister)
-    persister.save(config.output_path)
+# def _unify_wrapper(config, func):
+#     persister = _perister_factory(config)
+#     func(persister)
+#     persister.save(config.output_path)
 
 
-def _site_wrapper(site_source, parameter_source, persister):
+def _site_wrapper(config, site_source, parameter_source, persister, use_summarize):
     try:
         sites = site_source.read_sites()
+        combined = []
+        singles = []
         for i, sites in enumerate(site_source.chunks(sites)):
-            summary_records = parameter_source.summarize(sites)
-            if summary_records:
-                persister.records.extend(summary_records)
+            if use_summarize:
+                summary_records = parameter_source.load(sites, use_summarize)
+                if summary_records:
+                    persister.records.extend(summary_records)
+            else:
+                results = parameter_source.load(sites, use_summarize)
+                # combine sites that only have one record
+                for site, records in results:
+                    if len(records) == 1:
+                        combined.append((site, records[0]))
+                    else:
+                        singles.append((site, records))
+
+            # if single??s:
+            #     break
+
+        if combined:
+            persister.dump_combined(f'{config.output_path}.combined', combined)
+        if singles:
+            persister.dump_singles(f'{config.output_path}_timeseries', singles)
+            # for ci in combined:
+            #     per
+
     except BaseException:
         import traceback
 
@@ -75,12 +97,16 @@ def _site_wrapper(site_source, parameter_source, persister):
         click.secho(f"Failed to unify {site_source}", fg="red")
 
 
-def _unify_parameter(config, sources):
-    def func(persister):
-        for site_source, ss in sources:
-            _site_wrapper(site_source, ss, persister)
+def _unify_parameter(config, sources, use_summarize):
+    # def func(persister):
+    persister = _perister_factory(config)
+    for site_source, ss in sources:
+        _site_wrapper(config, site_source, ss, persister, use_summarize)
 
-    _unify_wrapper(config, func)
+    if use_summarize:
+        persister.save(config.output_path)
+
+
 
 
 def test_analyte_unification():
@@ -89,7 +115,7 @@ def test_analyte_unification():
     cfg.county = "eddy"
 
     cfg.analyte = "TDS"
-    cfg.output_summary_analyte_stats = True
+    cfg.output_summary = True
 
     # analyte testing
     # cfg.use_source_wqp = False
@@ -105,19 +131,19 @@ def test_waterlevel_unification():
     cfg.county = "chaves"
     cfg.county = "eddy"
 
-    cfg.output_summary_waterlevel_stats = True
+    cfg.output_summary = False
 
-    # cfg.use_source_nwis = False
+    cfg.use_source_nwis = False
     # cfg.use_source_ampapi = False
-    # cfg.use_source_isc_seven_rivers = False
-    # cfg.use_source_st2 = False
-    # cfg.use_source_ose_roswell = False
+    cfg.use_source_isc_seven_rivers = False
+    cfg.use_source_st2 = False
+    cfg.use_source_ose_roswell = False
 
     unify_waterlevels(cfg)
 
 
 if __name__ == "__main__":
-    # test_waterlevel_unification()
-    test_analyte_unification()
+    test_waterlevel_unification()
+    # test_analyte_unification()
 
 # ============= EOF =============================================

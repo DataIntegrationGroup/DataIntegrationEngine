@@ -72,8 +72,9 @@ class Config:
     output_horizontal_datum = WGS84
     output_elevation_units = FEET
     output_well_depth_units = FEET
-    output_summary_waterlevel_stats = False
-    output_summary_analyte_stats = False
+    output_summary = False
+    # output_summary_waterlevel_stats = False
+    # output_summary_analyte_stats = False
     latest_water_level_only = False
 
     analyte_output_units = MILLIGRAMS_PER_LITER
