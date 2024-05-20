@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.connectors.nmenv.transformer import DWBSiteTransformer, DWBAnalyteTransformer
+from backend.connectors.nmenv.transformer import (
+    DWBSiteTransformer,
+    DWBAnalyteTransformer,
+)
 from backend.connectors.st_connector import STSiteSource, STAnalyteSource
 from backend.source import get_analyte_search_param
 
-URL = 'https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/'
+URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
 
 class DWBSiteSource(STSiteSource):
@@ -44,7 +47,7 @@ ANALYTE_MAP = {
     "Sulfate": 41,
     "TDS": 90,
     "Uranium-238": 386,
-    "Combined Uranium": 385
+    "Combined Uranium": 385,
 }
 
 
@@ -53,7 +56,7 @@ class DWBAnalyteSource(STAnalyteSource):
     transformer_klass = DWBAnalyteTransformer
 
     def _parse_result(self, result):
-        return float(result.split(' ')[0])
+        return float(result.split(" ")[0])
 
     def get_records(self, site, *args, **kw):
         service = self.get_service()
@@ -62,7 +65,9 @@ class DWBAnalyteSource(STAnalyteSource):
         ds = service.datastreams()
         q = ds.query()
         q = q.expand("Thing/Locations, ObservedProperty, Observations")
-        q = q.filter(f"Thing/Locations/id eq {site.id} and ObservedProperty/id eq {analyte}")
+        q = q.filter(
+            f"Thing/Locations/id eq {site.id} and ObservedProperty/id eq {analyte}"
+        )
 
         ds = q.list().entities[0]
         rs = []
@@ -78,9 +83,10 @@ class DWBAnalyteSource(STAnalyteSource):
         return rs
 
     def _extract_parameter_results(self, records):
-        return [self._parse_result(r['observation'].result) for r in records]
+        return [self._parse_result(r["observation"].result) for r in records]
 
     def _extract_parameter_units(self, records):
-        return [r['datastream'].unit_of_measurement.symbol for r in records]
+        return [r["datastream"].unit_of_measurement.symbol for r in records]
+
 
 # ============= EOF =============================================

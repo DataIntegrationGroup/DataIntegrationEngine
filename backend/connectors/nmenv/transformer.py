@@ -18,9 +18,11 @@ from backend.transformer import SiteTransformer, AnalyteTransformer
 
 
 class DWBSiteTransformer(STSiteTransformer):
-    source_id = 'ST/DWB'
+    source_id = "ST/DWB"
 
 
 class DWBAnalyteTransformer(AnalyteTransformer):
-    source_tag = 'ST/DWB'
+    source_tag = "ST/DWB"
+
+
 # ============= EOF =============================================

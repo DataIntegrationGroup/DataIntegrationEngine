@@ -15,7 +15,12 @@
 # ===============================================================================
 import frost_sta_client as fsc
 
-from backend.source import BaseSiteSource, BaseWaterLevelSource, BaseAnalyteSource, get_most_recent
+from backend.source import (
+    BaseSiteSource,
+    BaseWaterLevelSource,
+    BaseAnalyteSource,
+    get_most_recent,
+)
 from backend.transformer import SiteTransformer
 
 
@@ -29,18 +34,15 @@ class STSource:
 
     def get_service(self):
         if self.url is None:
-            raise ValueError('URL not set')
+            raise ValueError("URL not set")
 
         return get_service(self.url)
 
-    def _get_things(self, service, site,
-                    additional_filters=None,
-                    expand='Locations,Datastreams'):
+    def _get_things(
+        self, service, site, additional_filters=None, expand="Locations,Datastreams"
+    ):
         things = (
-            service.things()
-            .query()
-            .expand(expand)
-            .filter(f"Locations/id eq {site.id}")
+            service.things().query().expand(expand).filter(f"Locations/id eq {site.id}")
         )
         if additional_filters:
             for a in additional_filters:
@@ -72,10 +74,12 @@ class STSiteSource(BaseSiteSource, STSource):
 
         fs = []
         if config.has_bounds():
-            fs.append(f"st_within(Location/location, geography'{config.bounding_wkt()}')")
+            fs.append(
+                f"st_within(Location/location, geography'{config.bounding_wkt()}')"
+            )
 
         fs = fs + self._get_filters()
-        q = service.locations().query().filter(' and '.join(fs))
+        q = service.locations().query().filter(" and ".join(fs))
 
         return list(q.list())
 
@@ -99,7 +103,7 @@ class STSiteTransformer(SiteTransformer):
 
     def _transform(self, record):
         if self.source_id is None:
-            raise ValueError(f'{self.__class__.__name__} Source ID not set')
+            raise ValueError(f"{self.__class__.__name__} Source ID not set")
 
         lat = record.location["coordinates"][1]
         lng = record.location["coordinates"][0]
@@ -115,4 +119,6 @@ class STSiteTransformer(SiteTransformer):
             "horizontal_datum": "WGS84",
         }
         return self._transform_hook(rec)
+
+
 # ============= EOF =============================================

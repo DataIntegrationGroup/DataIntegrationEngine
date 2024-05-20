@@ -76,13 +76,12 @@ SOURCE_OPTIONS = [
         help="Exclude CKAN data. Default is to include",
     ),
     click.option(
-        '--no-dwb',
+        "--no-dwb",
         is_flag=True,
         default=True,
         show_default=True,
-        help='Exclude DWB data. Default is to include'
-
-    )
+        help="Exclude DWB data. Default is to include",
+    ),
 ]
 
 
@@ -141,7 +140,7 @@ def waterlevels(
     no_bor,
     no_wqp,
     no_ckan,
-    no_dwb
+    no_dwb,
 ):
     config = setup_config("waterlevels", bbox, county)
 
@@ -164,7 +163,17 @@ def waterlevels(
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 def analytes(
-    analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp, no_ckan, no_dwb
+    analyte,
+    bbox,
+    county,
+    no_amp,
+    no_nwis,
+    no_st2,
+    no_isc_seven_rivers,
+    no_bor,
+    no_wqp,
+    no_ckan,
+    no_dwb,
 ):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte
