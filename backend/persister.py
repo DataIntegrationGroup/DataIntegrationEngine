@@ -55,7 +55,9 @@ class BasePersister(Loggable):
             self.log(f"dumping {site.id} to {os.path.abspath(path)}")
             self._dump_single(path, records)
 
-        self._dump_sites(os.path.join(root, self.add_extension('sites')), [s[0] for s in singles])
+        self._dump_sites(
+            os.path.join(root, self.add_extension("sites")), [s[0] for s in singles]
+        )
 
     def dump_combined(self, path, combined):
         if combined:
@@ -139,6 +141,7 @@ class GeoJSONPersister(BasePersister):
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(path, driver="GeoJSON")
+
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

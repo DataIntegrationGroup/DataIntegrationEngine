@@ -83,9 +83,9 @@ def _site_wrapper(config, site_source, parameter_source, persister, use_summariz
             #     break
 
         if combined:
-            persister.dump_combined(f'{config.output_path}.combined', combined)
+            persister.dump_combined(f"{config.output_path}.combined", combined)
         if singles:
-            persister.dump_singles(f'{config.output_path}_timeseries', singles)
+            persister.dump_singles(f"{config.output_path}_timeseries", singles)
             # for ci in combined:
             #     per
 
@@ -105,8 +105,6 @@ def _unify_parameter(config, sources, use_summarize):
 
     if use_summarize:
         persister.save(config.output_path)
-
-
 
 
 def test_analyte_unification():

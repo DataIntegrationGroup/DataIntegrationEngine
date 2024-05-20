@@ -32,7 +32,8 @@ from backend.record import (
     WaterLevelSummaryRecord,
     WaterLevelRecord,
     SiteRecord,
-    AnalyteSummaryRecord, SummaryRecord,
+    AnalyteSummaryRecord,
+    SummaryRecord,
 )
 
 
@@ -182,7 +183,9 @@ class BaseTransformer:
             record.update(horizontal_datum=datum)
 
             e, eunit = transform_units(
-                record.elevation, record.elevation_units, self.config.output_elevation_units
+                record.elevation,
+                record.elevation_units,
+                self.config.output_elevation_units,
             )
             record.update(elevation=e)
             record.update(elevation_units=eunit)
