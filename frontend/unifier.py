@@ -65,7 +65,7 @@ def _site_wrapper(site_source, parameter_source, persister, use_summarize):
         sites = site_source.read_sites()
 
         for i, sites in enumerate(site_source.chunks(sites)):
-            if i>40:
+            if i > 40:
                 break
             if use_summarize:
                 summary_records = parameter_source.load(sites, use_summarize)

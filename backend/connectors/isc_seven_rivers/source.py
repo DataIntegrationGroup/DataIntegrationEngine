@@ -18,7 +18,17 @@ from datetime import datetime
 import httpx
 
 from backend.connectors.mappings import ISC_SEVEN_RIVERS_ANALYTE_MAPPING
-from backend.constants import TDS, FEET, URANIUM, SULFATE, FLUORIDE, CHLORIDE, DTW_DT_MEASURED, DTW_UNITS, DTW
+from backend.constants import (
+    TDS,
+    FEET,
+    URANIUM,
+    SULFATE,
+    FLUORIDE,
+    CHLORIDE,
+    DTW_DT_MEASURED,
+    DTW_UNITS,
+    DTW,
+)
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
     ISCSevenRiversWaterLevelTransformer,

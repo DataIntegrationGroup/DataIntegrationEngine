@@ -52,13 +52,14 @@ class BasePersister(Loggable):
             os.mkdir(root)
 
             for site, records in self.timeseries:
-                path = os.path.join(root, str(site.id).replace(' ', '_'))
+                path = os.path.join(root, str(site.id).replace(" ", "_"))
                 path = self.add_extension(path)
                 self.log(f"dumping {site.id} to {os.path.abspath(path)}")
                 self._dump_timeseries(path, records)
 
             self._dump_sites(
-                os.path.join(root, self.add_extension("sites")), [s[0] for s in self.timeseries]
+                os.path.join(root, self.add_extension("sites")),
+                [s[0] for s in self.timeseries],
             )
         else:
             self.log("no timeseries records to dump", fg="red")
@@ -151,6 +152,7 @@ class GeoJSONPersister(BasePersister):
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(path, driver="GeoJSON")
+
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

@@ -106,4 +106,6 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         record[DTW_DT_MEASURED] = record["Date"]
         record[DTW_UNITS] = FEET
         return record
+
+
 # ============= EOF =============================================

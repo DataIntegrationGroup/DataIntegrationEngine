@@ -132,7 +132,7 @@ def waterlevels(
     no_isc_seven_rivers,
     no_bor,
     no_wqp,
-        no_ckan
+    no_ckan,
 ):
     config = setup_config("waterlevels", bbox, county)
 
@@ -154,8 +154,7 @@ def waterlevels(
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 def analytes(
-    analyte, bbox, county, no_amp, no_nwis, no_st2,
-        no_isc_seven_rivers, no_bor, no_wqp
+    analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp
 ):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte

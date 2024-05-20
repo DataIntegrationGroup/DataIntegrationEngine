@@ -19,7 +19,10 @@ from backend.constants import (
     MILLIGRAMS_PER_LITER,
     FEET,
     METERS,
-    PARTS_PER_MILLION, DTW, DTW_UNITS, DTW_DT_MEASURED,
+    PARTS_PER_MILLION,
+    DTW,
+    DTW_UNITS,
+    DTW_DT_MEASURED,
 )
 from backend.persister import BasePersister, CSVPersister
 from backend.transformer import BaseTransformer, convert_units
@@ -74,7 +77,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -210,8 +213,12 @@ class BaseParameterSource(BaseSource):
                         )
                         ret.append(trec)
                     else:
-                        cs = [self.transformer.do_transform(
-                            self._extract_parameter(r), pi) for r in cleaned]
+                        cs = [
+                            self.transformer.do_transform(
+                                self._extract_parameter(r), pi
+                            )
+                            for r in cleaned
+                        ]
                         cs = sorted(cs, key=self._sort_func)
                         ret.append((pi, cs))
             return ret
@@ -259,5 +266,6 @@ class BaseWaterLevelSource(BaseParameterSource):
 
     def _sort_func(self, x):
         return x.date_measured
+
 
 # ============= EOF =============================================
