@@ -23,30 +23,22 @@ from backend.connectors.st2.transformer import (
     PVACDWaterLevelTransformer,
     EBIDWaterLevelTransformer,
 )
+from backend.connectors.st_connector import STSiteSource, STWaterLevelSource
 from backend.constants import DTW, DTW_UNITS, DTW_DT_MEASURED
 from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
 
 
-class ST2Mixin:
-    def get_service(self):
-        return fsc.SensorThingsService(URL)
+class ST2SiteSource(STSiteSource):
+    agency = None
+    url = URL
 
+    def _get_filters(self):
+        if self.agency is None:
+            raise ValueError(f"{self.__class__.__name__}. Agency not set")
 
-class ST2SiteSource(BaseSiteSource, ST2Mixin):
-    agency = "ST2"
-
-    def get_records(self, *args, **kw):
-        service = self.get_service()
-        config = self.config
-
-        f = f"properties/agency eq '{self.agency}'"
-        if config.has_bounds():
-            f = f"{f} and st_within(Location/location, geography'{config.bounding_wkt()}')"
-
-        q = service.locations().query().filter(f)
-        return list(q.list())
+        return [f"properties/agency eq '{self.agency}'"]
 
 
 class PVACDSiteSource(ST2SiteSource):
@@ -59,7 +51,9 @@ class EBIDSiteSource(ST2SiteSource):
     agency = "EBID"
 
 
-class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
+class ST2WaterLevelSource(STWaterLevelSource):
+    url = URL
+
     def _extract_most_recent(self, records):
         record = get_most_recent(
             records, tag=lambda x: x["observation"].phenomenon_time
@@ -84,14 +78,14 @@ class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
         service = self.get_service()
         config = self.config
 
-        things = (
-            service.things()
-            .query()
-            .expand("Locations,Datastreams")
-            .filter(f"Locations/id eq {parent_record.id}")
-        )
+        # things = (
+        #     service.things()
+        #     .query()
+        #     .expand("Locations,Datastreams")
+        #     .filter(f"Locations/id eq {parent_record.id}")
+        # )
         records = []
-        for t in things.list():
+        for t in self._get_things(service, parent_record):
             if t.name == "Water Well":
                 for di in t.datastreams:
                     q = di.get_observations().query()
@@ -120,6 +114,5 @@ class PVACDWaterLevelSource(ST2WaterLevelSource):
 class EBIDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = EBIDWaterLevelTransformer
     agency = "EBID"
-
 
 # ============= EOF =============================================

@@ -34,6 +34,7 @@ from backend.connectors.ckan.source import (
     OSERoswellSiteSource,
     OSERoswellWaterLevelSource,
 )
+from backend.connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
 from backend.constants import MILLIGRAMS_PER_LITER, WGS84, FEET
 from backend.connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
@@ -64,6 +65,7 @@ class Config:
     use_source_ose_roswell = True
     use_source_st2 = True
     use_source_bor = True
+    use_source_dwb = True
 
     analyte = None
 
@@ -105,6 +107,8 @@ class Config:
             sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource()))
         if self.use_source_ampapi:
             sources.append((AMPAPISiteSource(), AMPAPIAnalyteSource()))
+        if self.use_source_dwb:
+            sources.append((DWBSiteSource(), DWBAnalyteSource()))
 
         for s, ss in sources:
             s.set_config(self)

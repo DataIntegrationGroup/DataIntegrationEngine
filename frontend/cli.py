@@ -75,6 +75,14 @@ SOURCE_OPTIONS = [
         show_default=True,
         help="Exclude CKAN data. Default is to include",
     ),
+    click.option(
+        '--no-dwb',
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help='Exclude DWB data. Default is to include'
+
+    )
 ]
 
 
@@ -133,6 +141,7 @@ def waterlevels(
     no_bor,
     no_wqp,
     no_ckan,
+    no_dwb
 ):
     config = setup_config("waterlevels", bbox, county)
 
@@ -145,6 +154,7 @@ def waterlevels(
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
     config.use_source_ose_roswell = no_ckan
+    config.use_source_dwb = no_dwb
 
     unify_waterlevels(config)
 
@@ -154,7 +164,7 @@ def waterlevels(
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 def analytes(
-    analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp
+    analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp, no_ckan, no_dwb
 ):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte
@@ -165,6 +175,8 @@ def analytes(
     config.use_source_isc_seven_rivers = no_isc_seven_rivers
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
+    config.use_source_ose_roswell = no_ckan
+    config.use_source_dwb = no_dwb
 
     unify_analytes(config)
 

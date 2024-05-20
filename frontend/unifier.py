@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import logging
+
 import click
 
 from backend.config import Config
@@ -115,7 +117,7 @@ def test_analyte_unification():
     cfg.output_summary = True
 
     # analyte testing
-    # cfg.use_source_wqp = False
+    cfg.use_source_wqp = False
     cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_bor = False
@@ -128,7 +130,7 @@ def test_waterlevel_unification():
     cfg.county = "chaves"
     cfg.county = "eddy"
 
-    cfg.output_summary = False
+    cfg.output_summary = True
 
     cfg.use_source_nwis = False
     cfg.use_source_ampapi = False
@@ -140,7 +142,11 @@ def test_waterlevel_unification():
 
 
 if __name__ == "__main__":
-    test_waterlevel_unification()
-    # test_analyte_unification()
+    # test_waterlevel_unification()
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    shandler = logging.StreamHandler()
+
+    test_analyte_unification()
 
 # ============= EOF =============================================

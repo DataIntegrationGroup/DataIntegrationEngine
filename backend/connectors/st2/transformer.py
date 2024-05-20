@@ -15,34 +15,12 @@
 # ===============================================================================
 import pprint
 
+from backend.connectors.st_connector import STSiteTransformer
 from backend.record import SiteRecord, WaterLevelRecord
 from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
 
 
-class ST2SiteTransformer(SiteTransformer):
-    source_id = "ST2"
-
-    def _transform(self, record):
-        lat = record.location["coordinates"][1]
-        lng = record.location["coordinates"][0]
-        if not self.contained(lng, lat):
-            return
-
-        rec = {
-            "source": self.source_id,
-            "id": record.id,
-            "name": record.name,
-            "latitude": lat,
-            "longitude": lng,
-            "horizontal_datum": "WGS84",
-        }
-        return self._transform_hook(rec)
-
-    def _transform_hook(self, rec):
-        return rec
-
-
-class PVACDSiteTransformer(ST2SiteTransformer):
+class PVACDSiteTransformer(STSiteTransformer):
     source_id = "ST2/PVACD"
 
     def _transform_hook(self, rec):
@@ -50,7 +28,7 @@ class PVACDSiteTransformer(ST2SiteTransformer):
             return rec
 
 
-class EBIDSiteTransformer(ST2SiteTransformer):
+class EBIDSiteTransformer(STSiteTransformer):
     source_tag = "ST2/EBID"
 
 
@@ -85,6 +63,5 @@ class PVACDWaterLevelTransformer(WaterLevelTransformer):
 
 class EBIDWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ST2/EBID"
-
 
 # ============= EOF =============================================
