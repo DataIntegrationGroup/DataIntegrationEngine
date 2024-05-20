@@ -51,11 +51,6 @@ class AMPAPIAnalyteTransformer(AnalyteTransformer):
 
 class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "AMPAPI"
-
-    def _post_transform(self, record, *args, **kw):
-        record[DTW] = record["DepthToWaterBGS"]
-        record["datetime_measured"] = (record["DateMeasured"], record["TimeMeasured"])
-
     # def _transform_hook(self, record, config, parent_record):
     #     rec = {
     #         "source": "AMPAPI",

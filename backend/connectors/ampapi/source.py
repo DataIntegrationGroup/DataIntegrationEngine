@@ -23,7 +23,8 @@ from backend.connectors.ampapi.transformer import (
     AMPAPIAnalyteTransformer,
 )
 from backend.connectors.mappings import AMPAPI_ANALYTE_MAPPING
-from backend.constants import TDS, FEET, URANIUM, SULFATE, ARSENIC, CHLORIDE, FLUORIDE
+from backend.constants import TDS, FEET, URANIUM, SULFATE, ARSENIC, CHLORIDE, FLUORIDE, DTW, DTW_UNITS, \
+    DTW_DT_MEASURED
 from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
@@ -100,6 +101,12 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
 
     def _clean_records(self, records):
         return [r for r in records if r["DepthToWaterBGS"] is not None]
+
+    def _extract_parameter_record(self, record, *args, **kw):
+        record[DTW] = record["DepthToWaterBGS"]
+        record[DTW_DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
+        record[DTW_UNITS] = FEET
+        return record
 
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "DateMeasured")

@@ -68,6 +68,13 @@ SOURCE_OPTIONS = [
         show_default=True,
         help="Exclude WQP data. Default is to include",
     ),
+    click.option(
+        "--no-ckan",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude CKAN data. Default is to include",
+    ),
 ]
 
 
@@ -108,26 +115,28 @@ def wells(bbox, county):
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
 @click.option(
-    "--summarize/--no-summarize",
+    "--timeseries",
     is_flag=True,
-    default=True,
+    default=False,
     show_default=True,
-    help="Summarize water levels",
+    help="Include timeseries data",
 )
 @add_options(SOURCE_OPTIONS)
 def waterlevels(
     bbox,
     county,
-    summarize,
+    timeseries,
     no_amp,
     no_nwis,
     no_st2,
     no_isc_seven_rivers,
     no_bor,
     no_wqp,
+        no_ckan
 ):
     config = setup_config("waterlevels", bbox, county)
-    config.output_summary = summarize
+
+    config.output_summary = not timeseries
 
     config.use_source_ampapi = no_amp
     config.use_source_nwis = no_nwis
@@ -135,6 +144,7 @@ def waterlevels(
     config.use_source_isc_seven_rivers = no_isc_seven_rivers
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
+    config.use_source_ose_roswell = no_ckan
 
     unify_waterlevels(config)
 
@@ -144,7 +154,8 @@ def waterlevels(
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 def analytes(
-    analyte, bbox, county, no_amp, no_nwis, no_st2, no_isc_seven_rivers, no_bor, no_wqp
+    analyte, bbox, county, no_amp, no_nwis, no_st2,
+        no_isc_seven_rivers, no_bor, no_wqp
 ):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte

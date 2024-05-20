@@ -26,12 +26,12 @@ def log(msg, fg="green"):
 def unify_sites(config):
     log("Unifying sites")
 
-    def func(config, persister):
-        for source in config.site_sources():
-            s = source()
-            persister.load(s.read(config))
+    # def func(config, persister):
+    #     for source in config.site_sources():
+    #         s = source()
+    #         persister.load(s.read(config))
 
-    _unify_wrapper(config, func)
+    # _unify_wrapper(config, func)
 
 
 def unify_analytes(config):
@@ -60,34 +60,30 @@ def _perister_factory(config):
 #     persister.save(config.output_path)
 
 
-def _site_wrapper(config, site_source, parameter_source, persister, use_summarize):
+def _site_wrapper(site_source, parameter_source, persister, use_summarize):
     try:
         sites = site_source.read_sites()
-        combined = []
-        singles = []
+
         for i, sites in enumerate(site_source.chunks(sites)):
+            if i>40:
+                break
             if use_summarize:
                 summary_records = parameter_source.load(sites, use_summarize)
                 if summary_records:
                     persister.records.extend(summary_records)
             else:
                 results = parameter_source.load(sites, use_summarize)
+                if results is None:
+                    continue
+
                 # combine sites that only have one record
                 for site, records in results:
                     if len(records) == 1:
-                        combined.append((site, records[0]))
+                        persister.combined.append((site, records[0]))
+                        # combined.append((site, records[0]))
                     else:
-                        singles.append((site, records))
-
-            # if single??s:
-            #     break
-
-        if combined:
-            persister.dump_combined(f"{config.output_path}.combined", combined)
-        if singles:
-            persister.dump_singles(f"{config.output_path}_timeseries", singles)
-            # for ci in combined:
-            #     per
+                        persister.timeseries.append((site, records))
+                        # singles.append((site, records))
 
     except BaseException:
         import traceback
@@ -101,10 +97,13 @@ def _unify_parameter(config, sources, use_summarize):
     # def func(persister):
     persister = _perister_factory(config)
     for site_source, ss in sources:
-        _site_wrapper(config, site_source, ss, persister, use_summarize)
+        _site_wrapper(site_source, ss, persister, use_summarize)
 
     if use_summarize:
         persister.save(config.output_path)
+    else:
+        persister.dump_combined(f"{config.output_path}.combined")
+        persister.dump_timeseries(f"{config.output_path}_timeseries")
 
 
 def test_analyte_unification():
@@ -132,9 +131,9 @@ def test_waterlevel_unification():
     cfg.output_summary = False
 
     cfg.use_source_nwis = False
-    # cfg.use_source_ampapi = False
+    cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
-    cfg.use_source_st2 = False
+    # cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
 
     unify_waterlevels(cfg)

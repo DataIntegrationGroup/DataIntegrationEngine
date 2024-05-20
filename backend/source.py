@@ -19,7 +19,7 @@ from backend.constants import (
     MILLIGRAMS_PER_LITER,
     FEET,
     METERS,
-    PARTS_PER_MILLION,
+    PARTS_PER_MILLION, DTW, DTW_UNITS, DTW_DT_MEASURED,
 )
 from backend.persister import BasePersister, CSVPersister
 from backend.transformer import BaseTransformer, convert_units
@@ -74,7 +74,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -131,14 +131,29 @@ class BaseParameterSource(BaseSource):
             f"{self.__class__.__name__} Must implement _extract_parameter_units"
         )
 
+    def _extract_parameter_record(self, record):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parameter_record"
+        )
+
     def _extract_parameter_results(self, records):
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _extract_parameter_results"
         )
 
+    def _validate_record(self, record):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _validate_record"
+        )
+
     def _get_output_units(self):
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _get_output_units"
+        )
+
+    def _sort_func(self, x):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _sort_func"
         )
 
     def load(self, parent_record, use_summarize):
@@ -195,7 +210,9 @@ class BaseParameterSource(BaseSource):
                         )
                         ret.append(trec)
                     else:
-                        cs = [self.transformer.do_transform(r, pi) for r in cleaned]
+                        cs = [self.transformer.do_transform(
+                            self._extract_parameter(r), pi) for r in cleaned]
+                        cs = sorted(cs, key=self._sort_func)
                         ret.append((pi, cs))
             return ret
         else:
@@ -203,6 +220,11 @@ class BaseParameterSource(BaseSource):
 
     def no_records(self):
         self.warn("No records found")
+
+    def _extract_parameter(self, record):
+        record = self._extract_parameter_record(record)
+        self._validate_record(record)
+        return record
 
 
 def get_analyte_search_param(parameter, mapping):
@@ -230,5 +252,12 @@ class BaseWaterLevelSource(BaseParameterSource):
     def _extract_parameter_units(self, records):
         return [FEET for _ in records]
 
+    def _validate_record(self, record):
+        for k in (DTW, DTW_UNITS, DTW_DT_MEASURED):
+            if k not in record:
+                raise ValueError(f"Invalid record. Missing {k}")
+
+    def _sort_func(self, x):
+        return x.date_measured
 
 # ============= EOF =============================================

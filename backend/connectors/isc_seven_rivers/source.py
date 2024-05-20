@@ -18,7 +18,7 @@ from datetime import datetime
 import httpx
 
 from backend.connectors.mappings import ISC_SEVEN_RIVERS_ANALYTE_MAPPING
-from backend.constants import TDS, FEET, URANIUM, SULFATE, FLUORIDE, CHLORIDE
+from backend.constants import TDS, FEET, URANIUM, SULFATE, FLUORIDE, CHLORIDE, DTW_DT_MEASURED, DTW_UNITS, DTW
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
     ISCSevenRiversWaterLevelTransformer,
@@ -94,6 +94,10 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             return resp.json()["data"]
 
 
+def get_datetime(record):
+    return datetime.fromtimestamp(record["dateTime"] / 1000)
+
+
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
 
@@ -111,6 +115,12 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     def _clean_records(self, records):
         return [r for r in records if r["depthToWaterFeet"] is not None]
 
+    def _extract_parameter_record(self, record):
+        record[DTW] = record["depthToWaterFeet"]
+        record[DTW_UNITS] = FEET
+        record[DTW_DT_MEASURED] = get_datetime(record)
+        return record
+
     def _extract_parameter_results(self, records):
         return [
             r["depthToWaterFeet"] for r in records if not r["invalid"] and not r["dry"]
@@ -118,7 +128,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "dateTime")
-        t = datetime.fromtimestamp(record["dateTime"] / 1000)
+        t = get_datetime(record)
         return {"value": record["depthToWaterFeet"], "datetime": t, "units": FEET}
 
 

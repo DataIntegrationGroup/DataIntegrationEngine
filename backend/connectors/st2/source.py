@@ -23,6 +23,7 @@ from backend.connectors.st2.transformer import (
     PVACDWaterLevelTransformer,
     EBIDWaterLevelTransformer,
 )
+from backend.constants import DTW, DTW_UNITS, DTW_DT_MEASURED
 from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
@@ -69,6 +70,12 @@ class ST2WaterLevelSource(BaseWaterLevelSource, ST2Mixin):
             "datetime": record["observation"].phenomenon_time,
             "units": record["datastream"].unit_of_measurement.symbol,
         }
+
+    def _extract_parameter_record(self, record):
+        record[DTW] = record["observation"].result
+        record[DTW_UNITS] = record["datastream"].unit_of_measurement.symbol
+        record[DTW_DT_MEASURED] = record["observation"].phenomenon_time
+        return record
 
     def _extract_parameter_results(self, records):
         return [r["observation"].result for r in records]

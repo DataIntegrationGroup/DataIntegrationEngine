@@ -36,35 +36,39 @@ class BasePersister(Loggable):
 
     def __init__(self):
         self.records = []
-
+        self.combined = []
+        self.timeseries = []
         # self.keys = record_klass.keys
 
     def load(self, records):
         self.records.extend(records)
 
-    def dump_singles(self, root, singles):
-        if os.path.isdir(root):
-            self.log(f"root {root} already exists", fg="red")
-            shutil.rmtree(root)
+    def dump_timeseries(self, root):
+        if self.timeseries:
+            if os.path.isdir(root):
+                self.log(f"root {root} already exists", fg="red")
+                shutil.rmtree(root)
 
-        os.mkdir(root)
+            os.mkdir(root)
 
-        for site, records in singles:
-            path = os.path.join(root, site.id)
-            path = self.add_extension(path)
-            self.log(f"dumping {site.id} to {os.path.abspath(path)}")
-            self._dump_single(path, records)
+            for site, records in self.timeseries:
+                path = os.path.join(root, str(site.id).replace(' ', '_'))
+                path = self.add_extension(path)
+                self.log(f"dumping {site.id} to {os.path.abspath(path)}")
+                self._dump_timeseries(path, records)
 
-        self._dump_sites(
-            os.path.join(root, self.add_extension("sites")), [s[0] for s in singles]
-        )
+            self._dump_sites(
+                os.path.join(root, self.add_extension("sites")), [s[0] for s in self.timeseries]
+            )
+        else:
+            self.log("no timeseries records to dump", fg="red")
 
-    def dump_combined(self, path, combined):
-        if combined:
+    def dump_combined(self, path):
+        if self.combined:
             path = self.add_extension(path)
 
             self.log(f"dumping combined to {os.path.abspath(path)}")
-            self._dump_combined(path, combined)
+            self._dump_combined(path, self.combined)
         else:
             self.log("no combined records to dump", fg="red")
 
@@ -90,6 +94,12 @@ class BasePersister(Loggable):
     def _dump_combined(self, path, combined):
         raise NotImplementedError
 
+    def _dump_timeseries(self, root, timeseries):
+        raise NotImplementedError
+
+    def _dump_sites(self, path, sites):
+        raise NotImplementedError
+
 
 class CSVPersister(BasePersister):
     extension = "csv"
@@ -103,7 +113,7 @@ class CSVPersister(BasePersister):
 
                 writer.writerow(site.to_row())
 
-    def _dump_single(self, path, records):
+    def _dump_timeseries(self, path, records):
         with open(path, "w") as f:
             writer = csv.writer(f)
             for i, record in enumerate(records):
@@ -141,7 +151,6 @@ class GeoJSONPersister(BasePersister):
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(path, driver="GeoJSON")
-
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

@@ -15,7 +15,7 @@
 # ===============================================================================
 import httpx
 
-from backend.constants import FEET
+from backend.constants import FEET, DTW, DTW_UNITS, DTW_DT_MEASURED
 from backend.connectors.usgs.transformer import (
     USGSSiteTransformer,
     USGSWaterLevelTransformer,
@@ -103,10 +103,15 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "lev_dt")
         return {
-            "value": record["lev_va"],
+            "value": float(record["lev_va"]),
             "datetime": (record["lev_dt"], record["lev_tm"]),
             "units": FEET,
         }
 
+    def _extract_parameter_record(self, record):
+        record[DTW] = float(record["lev_va"])
+        record[DTW_UNITS] = FEET
+        record[DTW_DT_MEASURED] = (record["lev_dt"], record["lev_tm"])
+        return record
 
 # ============= EOF =============================================
