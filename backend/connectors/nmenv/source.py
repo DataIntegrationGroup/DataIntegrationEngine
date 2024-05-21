@@ -14,7 +14,10 @@
 # limitations under the License.
 # ===============================================================================
 from backend.connectors.mappings import DWB_ANALYTE_MAP
-from backend.connectors.nmenv.transformer import DWBSiteTransformer, DWBAnalyteTransformer
+from backend.connectors.nmenv.transformer import (
+    DWBSiteTransformer,
+    DWBAnalyteTransformer,
+)
 from backend.connectors.st_connector import STSiteSource, STAnalyteSource
 from backend.constants import PARAMETER, PARAMETER_UNITS, DT_MEASURED, PARAMETER_VALUE
 from backend.source import get_analyte_search_param
@@ -36,9 +39,11 @@ class DWBSiteSource(STSiteSource):
         q = ds.query()
         fs = [f"ObservedProperty/id eq {analyte}"]
         if self.config.has_bounds():
-            fs.append(f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')")
+            fs.append(
+                f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
+            )
 
-        q = q.filter(' and '.join(fs))
+        q = q.filter(" and ".join(fs))
         q = q.expand("Thing/Locations")
         return [ds.thing.locations.entities[0] for ds in q.list()]
 

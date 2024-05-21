@@ -38,7 +38,9 @@ def unify_sites(config):
 
 def unify_analytes(config, site_limit):
     log("Unifying analytes")
-    _unify_parameter(config, config.analyte_sources(), config.output_summary, site_limit)
+    _unify_parameter(
+        config, config.analyte_sources(), config.output_summary, site_limit
+    )
 
 
 def unify_waterlevels(config):

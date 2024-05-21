@@ -46,7 +46,7 @@ DWB_ANALYTE_MAP = {
     TDS: 90,
     # "Uranium-238": 386,
     URANIUM: 385,  # "Combined Uranium"
-    PH: None
+    PH: None,
 }
 # ISC Seven Rivers ===============================================================================
 """
@@ -246,23 +246,30 @@ def get_var_name(var):
             return name
 
 
-for m in (DWB_ANALYTE_MAP, ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
-          AMPAPI_ANALYTE_MAPPING, WQP_ANALYTE_MAPPING, BOR_ANALYTE_MAPPING):
+for m in (
+    DWB_ANALYTE_MAP,
+    ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
+    AMPAPI_ANALYTE_MAPPING,
+    WQP_ANALYTE_MAPPING,
+    BOR_ANALYTE_MAPPING,
+):
 
-    for k in (ARSENIC,
-              BICARBONATE,
-              CALCIUM,
-              CARBONATE,
-              CHLORIDE,
-              FLUORIDE,
-              MAGNESIUM,
-              NITRATE,
-              POTASSIUM,
-              SODIUM,
-              SULFATE,
-              TDS,
-              URANIUM,
-              PH):
+    for k in (
+        ARSENIC,
+        BICARBONATE,
+        CALCIUM,
+        CARBONATE,
+        CHLORIDE,
+        FLUORIDE,
+        MAGNESIUM,
+        NITRATE,
+        POTASSIUM,
+        SODIUM,
+        SULFATE,
+        TDS,
+        URANIUM,
+        PH,
+    ):
 
         if k not in m:
             name = get_var_name(m)
