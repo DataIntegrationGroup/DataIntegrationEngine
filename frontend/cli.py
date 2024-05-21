@@ -150,7 +150,7 @@ def waterlevels(
     no_wqp,
     no_ckan,
     no_dwb,
-    site_limit
+    site_limit,
 ):
     config = setup_config("waterlevels", bbox, county)
 
@@ -182,7 +182,7 @@ def waterlevels(
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
-        timeseries,
+    timeseries,
     bbox,
     county,
     no_amp,
@@ -193,7 +193,7 @@ def analytes(
     no_wqp,
     no_ckan,
     no_dwb,
-    site_limit
+    site_limit,
 ):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte

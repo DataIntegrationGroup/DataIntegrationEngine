@@ -45,8 +45,9 @@ def unify_analytes(config, site_limit):
 
 def unify_waterlevels(config, site_limit=None):
     log("Unifying waterlevels")
-    _unify_parameter(config, config.water_level_sources(), config.output_summary,
-                     site_limit)
+    _unify_parameter(
+        config, config.water_level_sources(), config.output_summary, site_limit
+    )
 
 
 def _perister_factory(config):
