@@ -71,7 +71,7 @@ def test_unify_analytes_bor():
 
 
 def test_unify_analytes_isc_seven_rivers():
-    _analyte_tester("isc-seven-rivers", combined_flag=False)
+    _analyte_tester("isc-seven-rivers")
 
 
 def test_unify_analytes_dwb():
@@ -81,7 +81,7 @@ def test_unify_analytes_dwb():
 # ====== End Analyte Tests =======================================================
 
 
-# ====== Waterlevel Tests =======================================================
+# ====== Water Level Tests =======================================================
 def test_unify_waterlevels_nwis():
     _timeseries_tester("nwis", waterlevels, timeseries_flag=False)
 
@@ -101,6 +101,5 @@ def test_unify_waterlevels_isc_seven_rivers():
 def test_unify_waterlevels_ckan():
     _timeseries_tester("ckan", waterlevels)
 
-
-# ====== End Waterlevel Tests =======================================================
+# ====== End Water Level Tests =======================================================
 # ============= EOF =============================================
