@@ -97,6 +97,14 @@ SPATIAL_OPTIONS = [
         help="New Mexico county name",
     ),
 ]
+DEBUG_OPTIONS = [
+    click.option(
+        "--site-limit",
+        type=int,
+        default=None,
+        help="Bounding box in the form 'x1 y1, x2 y2'",
+    ),
+]
 
 
 def add_options(options):
@@ -120,7 +128,6 @@ def wells(bbox, county):
 
 
 @cli.command()
-@add_options(SPATIAL_OPTIONS)
 @click.option(
     "--timeseries",
     is_flag=True,
@@ -128,11 +135,13 @@ def wells(bbox, county):
     show_default=True,
     help="Include timeseries data",
 )
+@add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
+@add_options(DEBUG_OPTIONS)
 def waterlevels(
+    timeseries,
     bbox,
     county,
-    timeseries,
     no_amp,
     no_nwis,
     no_st2,
@@ -141,6 +150,7 @@ def waterlevels(
     no_wqp,
     no_ckan,
     no_dwb,
+    site_limit
 ):
     config = setup_config("waterlevels", bbox, county)
 
@@ -155,15 +165,24 @@ def waterlevels(
     config.use_source_ose_roswell = no_ckan
     config.use_source_dwb = no_dwb
 
-    unify_waterlevels(config)
+    unify_waterlevels(config, site_limit)
 
 
 @cli.command()
 @click.argument("analyte", type=click.Choice(ANALYTE_CHOICES))
+@click.option(
+    "--timeseries",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Include timeseries data",
+)
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
+@add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
+        timeseries,
     bbox,
     county,
     no_amp,
@@ -174,9 +193,11 @@ def analytes(
     no_wqp,
     no_ckan,
     no_dwb,
+    site_limit
 ):
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte
+    config.output_summary = not timeseries
 
     config.use_source_ampapi = no_amp
     config.use_source_nwis = no_nwis
@@ -187,7 +208,7 @@ def analytes(
     config.use_source_ose_roswell = no_ckan
     config.use_source_dwb = no_dwb
 
-    unify_analytes(config)
+    unify_analytes(config, site_limit)
 
 
 def setup_config(tag, bbox, county):

@@ -43,9 +43,10 @@ def unify_analytes(config, site_limit):
     )
 
 
-def unify_waterlevels(config):
+def unify_waterlevels(config, site_limit=None):
     log("Unifying waterlevels")
-    _unify_parameter(config, config.water_level_sources(), config.output_summary)
+    _unify_parameter(config, config.water_level_sources(), config.output_summary,
+                     site_limit)
 
 
 def _perister_factory(config):
@@ -117,11 +118,11 @@ def test_analyte_unification():
     # cfg.output_summary = True
 
     # analyte testing
-    # cfg.use_source_wqp = False
+    cfg.use_source_wqp = False
     cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_bor = False
-    cfg.use_source_dwb = False
+    # cfg.use_source_dwb = False
 
     unify_analytes(cfg, 10)
 
