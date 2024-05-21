@@ -27,7 +27,7 @@ from backend.constants import (
     CHLORIDE,
     DT_MEASURED,
     DTW_UNITS,
-    DTW,
+    DTW, PARAMETER_VALUE, PARAMETER_UNITS,
 )
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
@@ -70,12 +70,18 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         if analyte:
             return self._analyte_ids.get(analyte)
 
+    def _extract_parameter_record(self, record):
+        record[PARAMETER_VALUE] = record["result"]
+        record[PARAMETER_UNITS] = record["units"]
+        record[DT_MEASURED] = get_datetime(record)
+        return record
+
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "dateTime")
 
         return {
             "value": record["result"],
-            "datetime": datetime.fromtimestamp(record["dateTime"] / 1000),
+            "datetime": get_datetime(record),
             "units": record["units"],
         }
 
