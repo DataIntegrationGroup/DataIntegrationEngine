@@ -27,7 +27,9 @@ from backend.constants import (
     CHLORIDE,
     DT_MEASURED,
     DTW_UNITS,
-    DTW, PARAMETER_VALUE, PARAMETER_UNITS,
+    DTW,
+    PARAMETER_VALUE,
+    PARAMETER_UNITS,
 )
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,

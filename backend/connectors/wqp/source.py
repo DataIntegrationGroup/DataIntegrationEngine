@@ -18,8 +18,17 @@ import pprint
 import httpx
 
 from backend.connectors.mappings import WQP_ANALYTE_MAPPING
-from backend.constants import TDS, URANIUM, NITRATE, SULFATE, ARSENIC, CHLORIDE, PARAMETER_VALUE, PARAMETER_UNITS, \
-    DT_MEASURED
+from backend.constants import (
+    TDS,
+    URANIUM,
+    NITRATE,
+    SULFATE,
+    ARSENIC,
+    CHLORIDE,
+    PARAMETER_VALUE,
+    PARAMETER_UNITS,
+    DT_MEASURED,
+)
 from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer
 from backend.source import (
     BaseSource,
