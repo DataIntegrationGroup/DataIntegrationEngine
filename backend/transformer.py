@@ -25,7 +25,7 @@ from backend.constants import (
     FEET,
     METERS,
     TONS_PER_ACRE_FOOT,
-    MICROGRAMS_PER_LITER,
+    MICROGRAMS_PER_LITER, DT_MEASURED,
 )
 from backend.geo_utils import datum_transform
 from backend.record import (
@@ -33,7 +33,7 @@ from backend.record import (
     WaterLevelRecord,
     SiteRecord,
     AnalyteSummaryRecord,
-    SummaryRecord,
+    SummaryRecord, AnalyteRecord,
 )
 
 
@@ -145,14 +145,14 @@ class BaseTransformer:
     _cached_polygon = None
     config = None
 
-    def do_transform(self, record, *args, **kw):
-        record = self._transform(record, *args, **kw)
+    def do_transform(self, inrecord, *args, **kw):
+        record = self._transform(inrecord, *args, **kw)
         if not record:
             return
 
         self._post_transform(record, *args, **kw)
 
-        dt = record.get("datetime_measured")
+        dt = record.get(DT_MEASURED)
         if dt:
             d, t = standardize_datetime(dt)
             record["date_measured"] = d
@@ -167,6 +167,7 @@ class BaseTransformer:
         # convert to proper record type
         klass = self._get_record_klass()
         record = klass(record)
+
         if isinstance(record, (SiteRecord, SummaryRecord)):
             x = float(record.latitude)
             y = float(record.longitude)
@@ -296,7 +297,10 @@ class WaterLevelTransformer(ParameterTransformer):
 
 class AnalyteTransformer(ParameterTransformer):
     def _get_record_klass(self):
-        return AnalyteSummaryRecord
+        if self.config.output_summary:
+            return AnalyteSummaryRecord
+        else:
+            return AnalyteRecord
 
     def _get_parameter(self):
         return self.config.analyte, self.config.analyte_output_units

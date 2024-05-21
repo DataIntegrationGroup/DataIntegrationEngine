@@ -22,7 +22,7 @@ from backend.constants import (
     PARTS_PER_MILLION,
     DTW,
     DTW_UNITS,
-    DTW_DT_MEASURED,
+    DT_MEASURED, PARAMETER, PARAMETER_UNITS, PARAMETER_VALUE
 )
 from backend.persister import BasePersister, CSVPersister
 from backend.transformer import BaseTransformer, convert_units
@@ -77,7 +77,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -154,11 +154,6 @@ class BaseParameterSource(BaseSource):
             f"{self.__class__.__name__} Must implement _get_output_units"
         )
 
-    def _sort_func(self, x):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _sort_func"
-        )
-
     def load(self, parent_record, use_summarize):
         if isinstance(parent_record, list):
             self.log(
@@ -233,6 +228,9 @@ class BaseParameterSource(BaseSource):
         self._validate_record(record)
         return record
 
+    def _sort_func(self, x):
+        return x.date_measured
+
 
 def get_analyte_search_param(parameter, mapping):
     try:
@@ -249,6 +247,12 @@ class BaseAnalyteSource(BaseParameterSource):
     def _get_output_units(self):
         return self.config.analyte_output_units
 
+    def _validate_record(self, record):
+        record[PARAMETER] = self.config.analyte
+        for k in (PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED):
+            if k not in record:
+                raise ValueError(f"Invalid record. Missing {k}")
+
 
 class BaseWaterLevelSource(BaseParameterSource):
     name = "water levels"
@@ -260,12 +264,8 @@ class BaseWaterLevelSource(BaseParameterSource):
         return [FEET for _ in records]
 
     def _validate_record(self, record):
-        for k in (DTW, DTW_UNITS, DTW_DT_MEASURED):
+        for k in (DTW, DTW_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
-
-    def _sort_func(self, x):
-        return x.date_measured
-
 
 # ============= EOF =============================================

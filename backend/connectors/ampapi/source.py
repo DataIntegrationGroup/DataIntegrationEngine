@@ -32,8 +32,7 @@ from backend.constants import (
     CHLORIDE,
     FLUORIDE,
     DTW,
-    DTW_UNITS,
-    DTW_DT_MEASURED,
+    DTW_UNITS, DT_MEASURED, PARAMETER, PARAMETER_UNITS, PARAMETER_VALUE,
 )
 from backend.source import (
     BaseWaterLevelSource,
@@ -105,6 +104,13 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
     def _extract_parameter_results(self, records):
         return [r["SampleValue"] for r in records]
 
+    def _extract_parameter_record(self, record):
+        record[PARAMETER] = self.config.analyte
+        record[PARAMETER_VALUE] = record["SampleValue"]
+        record[PARAMETER_UNITS] = record["Units"]
+        record[DT_MEASURED] = record["info"]["CollectionDate"]
+        return record
+
 
 class AMPAPIWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = AMPAPIWaterLevelTransformer
@@ -114,7 +120,7 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_parameter_record(self, record, *args, **kw):
         record[DTW] = record["DepthToWaterBGS"]
-        record[DTW_DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
+        record[DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
         record[DTW_UNITS] = FEET
         return record
 

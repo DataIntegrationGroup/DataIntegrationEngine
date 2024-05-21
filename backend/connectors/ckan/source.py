@@ -21,7 +21,7 @@ from backend.connectors.ckan.transformer import (
     OSERoswellSiteTransformer,
     OSERoswellWaterLevelTransformer,
 )
-from backend.constants import FEET, DTW, DTW_UNITS, DTW_DT_MEASURED
+from backend.constants import FEET, DTW, DTW_UNITS, DT_MEASURED
 from backend.source import (
     BaseSource,
     BaseSiteSource,
@@ -103,7 +103,7 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
 
     def _extract_parameter_record(self, record):
         record[DTW] = float(record["DTWGS"])
-        record[DTW_DT_MEASURED] = record["Date"]
+        record[DT_MEASURED] = record["Date"]
         record[DTW_UNITS] = FEET
         return record
 

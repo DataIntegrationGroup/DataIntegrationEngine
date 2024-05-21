@@ -108,6 +108,7 @@ class STSiteTransformer(SiteTransformer):
         lat = record.location["coordinates"][1]
         lng = record.location["coordinates"][0]
         if not self.contained(lng, lat):
+            print('not contained')
             return
 
         rec = {

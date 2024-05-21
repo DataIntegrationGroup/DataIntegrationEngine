@@ -36,9 +36,9 @@ def unify_sites(config):
     # _unify_wrapper(config, func)
 
 
-def unify_analytes(config):
+def unify_analytes(config, site_limit):
     log("Unifying analytes")
-    _unify_parameter(config, config.analyte_sources(), config.output_summary)
+    _unify_parameter(config, config.analyte_sources(), config.output_summary, site_limit)
 
 
 def unify_waterlevels(config):
@@ -62,13 +62,14 @@ def _perister_factory(config):
 #     persister.save(config.output_path)
 
 
-def _site_wrapper(site_source, parameter_source, persister, use_summarize):
+def _site_wrapper(site_source, parameter_source, persister, use_summarize, site_limit):
     try:
         sites = site_source.read_sites()
 
         for i, sites in enumerate(site_source.chunks(sites)):
-            if i > 40:
+            if site_limit and i > site_limit:
                 break
+
             if use_summarize:
                 summary_records = parameter_source.load(sites, use_summarize)
                 if summary_records:
@@ -82,10 +83,8 @@ def _site_wrapper(site_source, parameter_source, persister, use_summarize):
                 for site, records in results:
                     if len(records) == 1:
                         persister.combined.append((site, records[0]))
-                        # combined.append((site, records[0]))
                     else:
                         persister.timeseries.append((site, records))
-                        # singles.append((site, records))
 
     except BaseException:
         import traceback
@@ -95,11 +94,10 @@ def _site_wrapper(site_source, parameter_source, persister, use_summarize):
         click.secho(f"Failed to unify {site_source}", fg="red")
 
 
-def _unify_parameter(config, sources, use_summarize):
-    # def func(persister):
+def _unify_parameter(config, sources, use_summarize, site_limit=None):
     persister = _perister_factory(config)
     for site_source, ss in sources:
-        _site_wrapper(site_source, ss, persister, use_summarize)
+        _site_wrapper(site_source, ss, persister, use_summarize, site_limit)
 
     if use_summarize:
         persister.save(config.output_path)
@@ -114,15 +112,16 @@ def test_analyte_unification():
     cfg.county = "eddy"
 
     cfg.analyte = "TDS"
-    cfg.output_summary = True
+    # cfg.output_summary = True
 
     # analyte testing
     cfg.use_source_wqp = False
     cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_bor = False
+    # cfg.use_source_dwb = False
 
-    unify_analytes(cfg)
+    unify_analytes(cfg, 10)
 
 
 def test_waterlevel_unification():
@@ -143,9 +142,9 @@ def test_waterlevel_unification():
 
 if __name__ == "__main__":
     # test_waterlevel_unification()
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
-    shandler = logging.StreamHandler()
+    # root = logging.getLogger()
+    # root.setLevel(logging.DEBUG)
+    # shandler = logging.StreamHandler()
 
     test_analyte_unification()
 

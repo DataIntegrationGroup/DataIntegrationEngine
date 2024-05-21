@@ -52,10 +52,13 @@ weave waterlevels --county eddy --no-amp --no-nwis
 
 Available data source flags:
  - --no-amp
+ - --no-bor
+ - --no-ckan
+ - --no-dwb
+ - --no-isc-seven-rivers
  - --no-nwis
  - --no-st2
- - --no-ckan
- - --no-isc-seven-rivers
+ - --no-wqp
 
 
 

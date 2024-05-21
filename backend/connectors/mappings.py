@@ -30,6 +30,24 @@ from backend.constants import (
     BICARBONATE,
 )
 
+# DWB ===============================================================================
+DWB_ANALYTE_MAP = {
+    ARSENIC: 3,
+    BICARBONATE: None,
+    CALCIUM: None,
+    CARBONATE: None,
+    CHLORIDE: 15,
+    FLUORIDE: 19,
+    MAGNESIUM: None,
+    NITRATE: 35,
+    POTASSIUM: None,
+    SODIUM: None,
+    SULFATE: 41,
+    TDS: 90,
+    # "Uranium-238": 386,
+    URANIUM: 385,  # "Combined Uranium"
+    PH: None
+}
 # ISC Seven Rivers ===============================================================================
 """
 pH
@@ -206,6 +224,7 @@ Zn
 """
 BOR_ANALYTE_MAPPING = {
     ARSENIC: "As",
+    BICARBONATE: "ALK HCO3",
     CALCIUM: "Ca",
     CARBONATE: "ALK CO3",
     CHLORIDE: "Cl",
@@ -219,4 +238,33 @@ BOR_ANALYTE_MAPPING = {
     URANIUM: "U",
     PH: "pH",
 }
+
+
+def get_var_name(var):
+    for name, value in globals().items():
+        if value is var:
+            return name
+
+
+for m in (DWB_ANALYTE_MAP, ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
+          AMPAPI_ANALYTE_MAPPING, WQP_ANALYTE_MAPPING, BOR_ANALYTE_MAPPING):
+
+    for k in (ARSENIC,
+              BICARBONATE,
+              CALCIUM,
+              CARBONATE,
+              CHLORIDE,
+              FLUORIDE,
+              MAGNESIUM,
+              NITRATE,
+              POTASSIUM,
+              SODIUM,
+              SULFATE,
+              TDS,
+              URANIUM,
+              PH):
+
+        if k not in m:
+            name = get_var_name(m)
+            raise NotImplementedError(f"Mapping for {k} not implemented by {name}")
 # ============= EOF =============================================

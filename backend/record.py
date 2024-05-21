@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.constants import DTW
+from backend.constants import DTW, PARAMETER, PARAMETER_VALUE
 
 
 class BaseRecord:
@@ -31,16 +31,16 @@ class BaseRecord:
             #     v = self.defaults.get(attr)
             v = self.__getattr__(attr)
             for key, sigfigs in (
-                ("elevation", 2),
-                ("depth_to_water_ft_below_ground_surface", 2),
-                ("surface_elevation_ft", 2),
-                ("well_depth_ft_below_ground_surface", 2),
-                ("well_depth", 2),
-                ("latitude", 6),
-                ("longitude", 6),
-                ("min", 2),
-                ("max", 2),
-                ("mean", 2),
+                    ("elevation", 2),
+                    ("depth_to_water_ft_below_ground_surface", 2),
+                    ("surface_elevation_ft", 2),
+                    ("well_depth_ft_below_ground_surface", 2),
+                    ("well_depth", 2),
+                    ("latitude", 6),
+                    ("longitude", 6),
+                    ("min", 2),
+                    ("max", 2),
+                    ("mean", 2),
             ):
                 if v is not None and key == attr:
                     try:
@@ -73,6 +73,24 @@ class WaterLevelRecord(BaseRecord):
         # "surface_elevation_ft",
         # "well_depth_ft_below_ground_surface",
         DTW,
+        "date_measured",
+        "time_measured",
+    )
+
+    defaults = {}
+
+
+class AnalyteRecord(BaseRecord):
+    keys = (
+        # "source",
+        # "id",
+        # "location",
+        # "latitude",
+        # "longitude",
+        # "surface_elevation_ft",
+        # "well_depth_ft_below_ground_surface",
+        PARAMETER,
+        PARAMETER_VALUE,
         "date_measured",
         "time_measured",
     )
@@ -149,6 +167,5 @@ class SiteRecord(BaseRecord):
         "aquifer": "",
         "well_depth": None,
     }
-
 
 # ============= EOF =============================================

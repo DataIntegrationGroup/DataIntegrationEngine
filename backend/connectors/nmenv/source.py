@@ -13,11 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.connectors.nmenv.transformer import (
-    DWBSiteTransformer,
-    DWBAnalyteTransformer,
-)
+from backend.connectors.mappings import DWB_ANALYTE_MAP
+from backend.connectors.nmenv.transformer import DWBSiteTransformer, DWBAnalyteTransformer
 from backend.connectors.st_connector import STSiteSource, STAnalyteSource
+from backend.constants import PARAMETER, PARAMETER_UNITS, DT_MEASURED, PARAMETER_VALUE
 from backend.source import get_analyte_search_param
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
@@ -28,27 +27,20 @@ class DWBSiteSource(STSiteSource):
     transformer_klass = DWBSiteTransformer
 
     def get_records(self, *args, **kw):
-        # rs = super(DWBSiteSource, self).get_records(*args, **kw)
-        # return rs[:10]
+        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAP)
+        if analyte is None:
+            return []
+
         service = self.get_service()
-        analyte = get_analyte_search_param(self.config.analyte, ANALYTE_MAP)
         ds = service.datastreams()
         q = ds.query()
-        q = q.filter(f"ObservedProperty/id eq {analyte}")
+        fs = [f"ObservedProperty/id eq {analyte}"]
+        if self.config.has_bounds():
+            fs.append(f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')")
+
+        q = q.filter(' and '.join(fs))
         q = q.expand("Thing/Locations")
         return [ds.thing.locations.entities[0] for ds in q.list()]
-
-
-ANALYTE_MAP = {
-    "Arsenic": 3,
-    "Chloride": 15,
-    "Fluoride": 19,
-    "Nitrate": 35,
-    "Sulfate": 41,
-    "TDS": 90,
-    "Uranium-238": 386,
-    "Combined Uranium": 385,
-}
 
 
 class DWBAnalyteSource(STAnalyteSource):
@@ -61,7 +53,7 @@ class DWBAnalyteSource(STAnalyteSource):
     def get_records(self, site, *args, **kw):
         service = self.get_service()
 
-        analyte = get_analyte_search_param(self.config.analyte, ANALYTE_MAP)
+        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAP)
         ds = service.datastreams()
         q = ds.query()
         q = q.expand("Thing/Locations, ObservedProperty, Observations")
@@ -81,6 +73,12 @@ class DWBAnalyteSource(STAnalyteSource):
             )
 
         return rs
+
+    def _extract_parameter_record(self, record):
+        record[PARAMETER_VALUE] = self._parse_result(record["observation"].result)
+        record[PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
+        record[DT_MEASURED] = record["observation"].phenomenon_time
+        return record
 
     def _extract_parameter_results(self, records):
         return [self._parse_result(r["observation"].result) for r in records]

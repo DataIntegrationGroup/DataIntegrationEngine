@@ -25,7 +25,7 @@ from backend.constants import (
     SULFATE,
     FLUORIDE,
     CHLORIDE,
-    DTW_DT_MEASURED,
+    DT_MEASURED,
     DTW_UNITS,
     DTW,
 )
@@ -128,7 +128,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     def _extract_parameter_record(self, record):
         record[DTW] = record["depthToWaterFeet"]
         record[DTW_UNITS] = FEET
-        record[DTW_DT_MEASURED] = get_datetime(record)
+        record[DT_MEASURED] = get_datetime(record)
         return record
 
     def _extract_parameter_results(self, records):

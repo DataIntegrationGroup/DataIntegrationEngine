@@ -40,10 +40,15 @@ FEET = "ft"
 METERS = "m"
 WGS84 = "WGS84"
 
+DT_MEASURED = "datetime_measured"
+
 DTW = "depth_to_water_ft_below_ground_surface"
 DTW_UNITS = FEET
 
-DTW_DT_MEASURED = "datetime_measured"
+PARAMETER = 'parameter'
+PARAMETER_UNITS = 'parameter_units'
+PARAMETER_VALUE = 'parameter_value'
+
 
 ANALYTE_CHOICES = [
     ARSENIC,
