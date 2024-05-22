@@ -57,39 +57,42 @@ def _tester(source, func, county, bbox, args=None):
 
 def _summary_tester(source, func, county=None, bbox=None, args=None):
     if not (county or bbox):
-        county = 'eddy'
+        county = "eddy"
 
     runner = CliRunner()
     with runner.isolated_filesystem():
         result = _tester(source, func, county, bbox, args)
-        print('read', result.stdout)
+        print("read", result.stdout)
         assert result.exit_code == 0
         assert os.path.isfile("output.csv")
 
 
 def _timeseries_tester(
-        source, func, combined_flag=True, timeseries_flag=True,
-        county = None,
-        bbox = None,
-        args = None
+    source,
+    func,
+    combined_flag=True,
+    timeseries_flag=True,
+    county=None,
+    bbox=None,
+    args=None,
 ):
     if args is None:
         args = []
     runner = CliRunner()
     with runner.isolated_filesystem():
-        result = _tester(source, func, county, bbox, args=args+["--timeseries"])
+        result = _tester(source, func, county, bbox, args=args + ["--timeseries"])
         assert result.exit_code == 0
         assert os.path.isfile("output.combined.csv") == combined_flag
         assert os.path.isdir("output_timeseries") == timeseries_flag
 
+
 def _analyte_summary_tester(key):
-    _summary_tester(key, analytes, args=['TDS'])
+    _summary_tester(key, analytes, args=["TDS"])
+
 
 # ====== Analyte Tests =======================================================
 def _analyte_county_tester(source, **kw):
-    _timeseries_tester(source, analytes, ["TDS"],
-                       county="eddy",
-                       **kw)
+    _timeseries_tester(source, analytes, ["TDS"], county="eddy", **kw)
 
 
 def test_unify_analytes_amp():
@@ -117,9 +120,8 @@ def test_unify_analytes_dwb():
 
 # ====== Water Level Tests =======================================================
 def _waterlevel_county_tester(source, **kw):
-    _timeseries_tester(source, waterlevels,
-                       county="eddy",
-                       **kw)
+    _timeseries_tester(source, waterlevels, county="eddy", **kw)
+
 
 def test_unify_waterlevels_nwis():
     _waterlevel_county_tester("nwis", timeseries_flag=False)
@@ -160,8 +162,10 @@ def test_unify_waterlevels_isc_seven_rivers_summary():
 def test_unify_analyte_wqp_summary():
     _analyte_summary_tester("wqp")
 
+
 def test_unify_analyte_bor_summary():
     _analyte_summary_tester("bor")
+
 
 # ====== End Water Level Tests =======================================================
 # ============= EOF =============================================
