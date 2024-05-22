@@ -38,16 +38,12 @@ def unify_sites(config):
 
 def unify_analytes(config):
     log("Unifying analytes")
-    _unify_parameter(
-        config, config.analyte_sources()
-    )
+    _unify_parameter(config, config.analyte_sources())
 
 
 def unify_waterlevels(config):
     log("Unifying waterlevels")
-    _unify_parameter(
-        config, config.water_level_sources()
-    )
+    _unify_parameter(config, config.water_level_sources())
 
 
 def _perister_factory(config):
@@ -101,7 +97,10 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         click.secho(f"Failed to unify {site_source}", fg="red")
 
 
-def _unify_parameter(config, sources, ):
+def _unify_parameter(
+    config,
+    sources,
+):
     use_summarize = config.output_summary
     persister = _perister_factory(config)
     for site_source, ss in sources:
