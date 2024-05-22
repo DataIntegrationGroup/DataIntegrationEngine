@@ -19,8 +19,35 @@ from click.testing import CliRunner
 from frontend.cli import analytes, waterlevels
 
 
+def _summary_tester(source, func):
+    runner = CliRunner()
+
+    nosources = [
+        f
+        for f in (
+            "--no-amp",
+            "--no-nwis",
+            "--no-st2",
+            "--no-bor",
+            "--no-dwb",
+            "--no-wqp",
+            "--no-isc-seven-rivers",
+            "--no-ckan",
+        )
+        if f != f"--no-{source}"
+    ]
+
+    with runner.isolated_filesystem():
+        dargs = nosources + ["--site-limit", 10, "--county", "eddy"]
+        print(" ".join([str(f) for f in dargs]))
+        result = runner.invoke(func, dargs)
+
+        assert result.exit_code == 0
+        assert os.path.isfile("output.csv")
+
+
 def _timeseries_tester(
-    source, func, args=None, combined_flag=True, timeseries_flag=True
+        source, func, args=None, combined_flag=True, timeseries_flag=True
 ):
     runner = CliRunner()
 
@@ -101,6 +128,21 @@ def test_unify_waterlevels_isc_seven_rivers():
 def test_unify_waterlevels_ckan():
     _timeseries_tester("ckan", waterlevels)
 
+
+def test_unify_waterlevels_nwis_summary():
+    _summary_tester("nwis", waterlevels)
+
+
+def test_unify_waterlevels_amp_summary():
+    _summary_tester("amp", waterlevels)
+
+
+def test_unify_waterlevels_st2_summary():
+    _summary_tester("st2", waterlevels)
+
+
+def test_unify_waterlevels_isc_seven_rivers_summary():
+    _summary_tester("isc-seven-rivers", waterlevels)
 
 # ====== End Water Level Tests =======================================================
 # ============= EOF =============================================

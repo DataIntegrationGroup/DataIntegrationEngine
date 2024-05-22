@@ -97,7 +97,15 @@ def get_county_polygon(name, as_wkt=True):
 
         county = county.lower()
         for f in obj["features"]:
-            if f["properties"]["name"].lower() == county:
+            #get county name
+            name = f["properties"].get('name')
+            if name is None:
+                name = f["properties"].get('NAME')
+
+            if name is None:
+                continue
+
+            if name.lower() == county:
                 poly = Polygon(f["geometry"]["coordinates"][0][0])
                 if as_wkt:
                     return poly.wkt

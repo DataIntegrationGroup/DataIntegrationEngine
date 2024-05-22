@@ -102,10 +102,10 @@ def _unify_parameter(
     sources,
 ):
     use_summarize = config.output_summary
+    print('asdf', use_summarize)
     persister = _perister_factory(config)
     for site_source, ss in sources:
         _site_wrapper(site_source, ss, persister, config)
-
     if use_summarize:
         persister.save(config.output_path)
     else:
@@ -139,8 +139,8 @@ def waterlevel_unification_test():
 
     cfg.output_summary = True
 
-    cfg.use_source_nwis = False
-    # cfg.use_source_ampapi = False
+    # cfg.use_source_nwis = False
+    cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
 
-    # waterlevel_unification_test()
-    analyte_unification_test()
+    waterlevel_unification_test()
+    # analyte_unification_test()
 
 # ============= EOF =============================================
