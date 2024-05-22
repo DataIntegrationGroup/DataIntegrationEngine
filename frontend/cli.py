@@ -155,6 +155,7 @@ def waterlevels(
     config = setup_config("waterlevels", bbox, county)
 
     config.output_summary = not timeseries
+    config.site_limit = site_limit
 
     config.use_source_ampapi = no_amp
     config.use_source_nwis = no_nwis
@@ -165,7 +166,7 @@ def waterlevels(
     config.use_source_ose_roswell = no_ckan
     config.use_source_dwb = no_dwb
 
-    unify_waterlevels(config, site_limit)
+    unify_waterlevels(config)
 
 
 @cli.command()
@@ -198,6 +199,7 @@ def analytes(
     config = setup_config(f"analytes ({analyte})", bbox, county)
     config.analyte = analyte
     config.output_summary = not timeseries
+    config.site_limit = site_limit
 
     config.use_source_ampapi = no_amp
     config.use_source_nwis = no_nwis
@@ -208,7 +210,7 @@ def analytes(
     config.use_source_ose_roswell = no_ckan
     config.use_source_dwb = no_dwb
 
-    unify_analytes(config, site_limit)
+    unify_analytes(config)
 
 
 def setup_config(tag, bbox, county):
