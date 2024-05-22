@@ -97,10 +97,10 @@ def get_county_polygon(name, as_wkt=True):
 
         county = county.lower()
         for f in obj["features"]:
-            #get county name
-            name = f["properties"].get('name')
+            # get county name
+            name = f["properties"].get("name")
             if name is None:
-                name = f["properties"].get('NAME')
+                name = f["properties"].get("NAME")
 
             if name is None:
                 continue

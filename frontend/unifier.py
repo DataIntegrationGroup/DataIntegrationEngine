@@ -102,7 +102,7 @@ def _unify_parameter(
     sources,
 ):
     use_summarize = config.output_summary
-    print('asdf', use_summarize)
+    print("asdf", use_summarize)
     persister = _perister_factory(config)
     for site_source, ss in sources:
         _site_wrapper(site_source, ss, persister, config)

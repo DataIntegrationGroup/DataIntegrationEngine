@@ -47,7 +47,7 @@ def _summary_tester(source, func):
 
 
 def _timeseries_tester(
-        source, func, args=None, combined_flag=True, timeseries_flag=True
+    source, func, args=None, combined_flag=True, timeseries_flag=True
 ):
     runner = CliRunner()
 
@@ -143,6 +143,7 @@ def test_unify_waterlevels_st2_summary():
 
 def test_unify_waterlevels_isc_seven_rivers_summary():
     _summary_tester("isc-seven-rivers", waterlevels)
+
 
 # ====== End Water Level Tests =======================================================
 # ============= EOF =============================================
