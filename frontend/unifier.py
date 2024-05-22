@@ -36,17 +36,17 @@ def unify_sites(config):
     # _unify_wrapper(config, func)
 
 
-def unify_analytes(config, site_limit):
+def unify_analytes(config):
     log("Unifying analytes")
     _unify_parameter(
-        config, config.analyte_sources(), config.output_summary, site_limit
+        config, config.analyte_sources()
     )
 
 
-def unify_waterlevels(config, site_limit=None):
+def unify_waterlevels(config):
     log("Unifying waterlevels")
     _unify_parameter(
-        config, config.water_level_sources(), config.output_summary, site_limit
+        config, config.water_level_sources()
     )
 
 
@@ -66,8 +66,11 @@ def _perister_factory(config):
 #     persister.save(config.output_path)
 
 
-def _site_wrapper(site_source, parameter_source, persister, use_summarize, site_limit):
+def _site_wrapper(site_source, parameter_source, persister, config):
     try:
+        use_summarize = config.output_summary
+        site_limit = config.site_limit
+
         sites = site_source.read_sites()
 
         for i, sites in enumerate(site_source.chunks(sites)):
@@ -98,10 +101,11 @@ def _site_wrapper(site_source, parameter_source, persister, use_summarize, site_
         click.secho(f"Failed to unify {site_source}", fg="red")
 
 
-def _unify_parameter(config, sources, use_summarize, site_limit=None):
+def _unify_parameter(config, sources, ):
+    use_summarize = config.output_summary
     persister = _perister_factory(config)
     for site_source, ss in sources:
-        _site_wrapper(site_source, ss, persister, use_summarize, site_limit)
+        _site_wrapper(site_source, ss, persister, config)
 
     if use_summarize:
         persister.save(config.output_path)
@@ -110,7 +114,7 @@ def _unify_parameter(config, sources, use_summarize, site_limit=None):
         persister.dump_timeseries(f"{config.output_path}_timeseries")
 
 
-def test_analyte_unification():
+def analyte_unification_test():
     cfg = Config()
     cfg.county = "chaves"
     cfg.county = "eddy"
@@ -120,15 +124,16 @@ def test_analyte_unification():
 
     # analyte testing
     cfg.use_source_wqp = False
-    cfg.use_source_ampapi = False
+    # cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_bor = False
-    # cfg.use_source_dwb = False
+    cfg.use_source_dwb = False
+    cfg.site_limit = 10
 
-    unify_analytes(cfg, 10)
+    unify_analytes(cfg)
 
 
-def test_waterlevel_unification():
+def waterlevel_unification_test():
     cfg = Config()
     cfg.county = "chaves"
     cfg.county = "eddy"
@@ -136,10 +141,11 @@ def test_waterlevel_unification():
     cfg.output_summary = True
 
     cfg.use_source_nwis = False
-    cfg.use_source_ampapi = False
+    # cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
-    # cfg.use_source_st2 = False
+    cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
+    cfg.site_limit = 10
 
     unify_waterlevels(cfg)
 
@@ -150,6 +156,7 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
 
-    test_analyte_unification()
+    # waterlevel_unification_test()
+    analyte_unification_test()
 
 # ============= EOF =============================================

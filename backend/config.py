@@ -52,6 +52,8 @@ from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 
 class Config:
+    site_limit = None
+
     # spatial
     bbox = None  # dict or str
     county = None

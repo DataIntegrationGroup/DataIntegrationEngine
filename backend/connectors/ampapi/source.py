@@ -62,6 +62,9 @@ class AMPAPISiteSource(BaseSiteSource):
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
 
+        if config.site_limit:
+            params["limit"] = config.site_limit
+
         if config.analyte:
             params["has_analyte"] = get_analyte_search_param(
                 config.analyte, AMPAPI_ANALYTE_MAPPING
