@@ -159,7 +159,7 @@ def waterlevels(
     no_ckan,
     no_dwb,
     site_limit,
-    dry
+    dry,
 ):
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
@@ -201,9 +201,11 @@ def analytes(
     no_ckan,
     no_dwb,
     site_limit,
-        dry
+    dry,
 ):
-    config = setup_config(f"analytes ({analyte})",timeseries, bbox, county, site_limit, dry)
+    config = setup_config(
+        f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
+    )
     config.analyte = analyte
 
     config.use_source_ampapi = no_amp

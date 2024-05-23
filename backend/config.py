@@ -57,7 +57,7 @@ from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 class Config(object):
     site_limit: int
     dry: bool = False
-    
+
     # date
     start_date = None
     end_date = None
@@ -266,5 +266,6 @@ class Config(object):
     @property
     def output_path(self):
         return os.path.join(self.output_dir, f"{self.output_name}")
+
 
 # ============= EOF =============================================

@@ -60,24 +60,28 @@ def waterlevel_timeseries_cfg():
 def analyte_summary_cfg():
     cfg = config_factory()
     cfg.output_summary = True
-    cfg.analyte = 'TDS'
+    cfg.analyte = "TDS"
     return cfg
 
 
 # def test_unify_analytes(cfg):
 #     unify_analytes(cfg)
 
+
 def _setup(tmp_path, cfg, source, tag):
     d = tmp_path / tag
     d.mkdir()
     cfg.output_dir = str(d)
-    for stag in ("ampapi", "nwis",
-                 "st2",
-                 "bor",
-                 "dwb",
-                 "wqp",
-                 "isc_seven_rivers",
-                 "ose_roswell"):
+    for stag in (
+        "ampapi",
+        "nwis",
+        "st2",
+        "bor",
+        "dwb",
+        "wqp",
+        "isc_seven_rivers",
+        "ose_roswell",
+    ):
         if stag == source:
             setattr(cfg, f"use_source_{stag}", True)
     return d
@@ -105,7 +109,9 @@ def _test_waterlevels_summary(tmp_path, cfg, source):
     assert (d / "output.csv").is_file()
 
 
-def _test_waterlevels_timeseries(tmp_path, cfg, source, combined_flag=True, timeseries_flag=False):
+def _test_waterlevels_timeseries(
+    tmp_path, cfg, source, combined_flag=True, timeseries_flag=False
+):
     d = _setup_waterlevels(tmp_path, cfg, source)
     print("combined", os.path.isfile(d / "output.combined.csv"), combined_flag)
     assert (d / "output.combined.csv").is_file() == combined_flag
@@ -140,20 +146,37 @@ def test_unify_waterlevels_nwis_timeseries(tmp_path, waterlevel_timeseries_cfg):
 
 
 def test_unify_waterlevels_amp_timeseries(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "ampapi", timeseries_flag=True)
+    _test_waterlevels_timeseries(
+        tmp_path, waterlevel_timeseries_cfg, "ampapi", timeseries_flag=True
+    )
 
 
 def test_unify_waterlevels_st2_timeseries(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "st2", combined_flag=False, timeseries_flag=True)
+    _test_waterlevels_timeseries(
+        tmp_path,
+        waterlevel_timeseries_cfg,
+        "st2",
+        combined_flag=False,
+        timeseries_flag=True,
+    )
 
 
-def test_unify_waterlevels_isc_seven_rivers_timeseries(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "isc_seven_rivers", combined_flag=False,
-                                 timeseries_flag=True)
+def test_unify_waterlevels_isc_seven_rivers_timeseries(
+    tmp_path, waterlevel_timeseries_cfg
+):
+    _test_waterlevels_timeseries(
+        tmp_path,
+        waterlevel_timeseries_cfg,
+        "isc_seven_rivers",
+        combined_flag=False,
+        timeseries_flag=True,
+    )
 
 
 def test_unify_waterlevels_ose_roswell_timeseries(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "ose_roswell", timeseries_flag=True)
+    _test_waterlevels_timeseries(
+        tmp_path, waterlevel_timeseries_cfg, "ose_roswell", timeseries_flag=True
+    )
 
 
 # Analyte summary tests ===============================================================================================
@@ -175,4 +198,6 @@ def test_unify_analytes_isc_seven_rivers_summary(tmp_path, analyte_summary_cfg):
 
 def test_unify_analytes_dwb_summary(tmp_path, analyte_summary_cfg):
     _test_analytes_summary(tmp_path, analyte_summary_cfg, "dwb")
+
+
 # ============= EOF =============================================

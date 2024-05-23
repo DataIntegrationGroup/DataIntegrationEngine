@@ -21,10 +21,10 @@ from frontend.cli import analytes, waterlevels
 
 def _tester(function, args, fail=False):
     runner = CliRunner()
-    print(f'invoked with {args}')
+    print(f"invoked with {args}")
     result = runner.invoke(function, args)
-    print(f'result.exit_code={result.exit_code}')
-    print(f'result.output=\n{result.output}')
+    print(f"result.exit_code={result.exit_code}")
+    print(f"result.output=\n{result.output}")
 
     if fail:
         assert result.exit_code != 0
@@ -51,13 +51,13 @@ def _make_args(source):
         ]
         args += nosources
 
-    args += ["--site-limit", 10, '--dry']
+    args += ["--site-limit", 10, "--dry"]
 
     return args
 
 
 def _make_tds_args(source):
-    return ['TDS'] + _make_args(source)
+    return ["TDS"] + _make_args(source)
 
 
 def _make_wl_args(source=None):
@@ -86,106 +86,107 @@ def test_waterlevels_isc_seven_rivers():
 
 def test_waterlevels_invalid_source():
     args = _make_wl_args()
-    args.append('--no-foo')
+    args.append("--no-foo")
     _tester(waterlevels, args, fail=True)
 
 
 def test_waterlevels_invalid_bbox():
     args = _make_wl_args()
-    args.append('--bbox')
+    args.append("--bbox")
     _tester(waterlevels, args, fail=True)
 
 
 def test_waterlevels_invalid_bbox_format():
     args = _make_wl_args()
-    args.extend(['--bbox', '1 2 3'])
+    args.extend(["--bbox", "1 2 3"])
     _tester(waterlevels, args, fail=True)
 
 
 def test_waterlevels_valid_bbox_format():
     args = _make_wl_args()
-    args.extend(['--bbox', '1 2,3 4'])
+    args.extend(["--bbox", "1 2,3 4"])
     _tester(waterlevels, args)
 
 
 def test_waterlevels_invalid_county():
     args = _make_wl_args()
-    args.append('--county')
+    args.append("--county")
     _tester(waterlevels, args, fail=True)
 
 
 def test_waterlevels_invalid_county_name():
     args = _make_wl_args()
-    args.extend(['--county', 'foo'])
+    args.extend(["--county", "foo"])
     _tester(waterlevels, args, fail=True)
 
 
 # Analyte Tests =======================================================
 def test_analytes_wqp():
-    args = _make_tds_args('wqp')
+    args = _make_tds_args("wqp")
     _tester(analytes, args)
 
 
 def test_analytes_bor():
-    args = _make_tds_args('bor')
+    args = _make_tds_args("bor")
     _tester(analytes, args)
 
 
 def test_analytes_amp():
-    args = _make_tds_args('amp')
+    args = _make_tds_args("amp")
     _tester(analytes, args)
 
 
 def test_analytes_dwb():
-    args = _make_tds_args('dwb')
+    args = _make_tds_args("dwb")
     _tester(analytes, args)
 
 
 def test_analytes_isc_seven_rivers():
-    args = _make_tds_args('isc-seven-rivers')
+    args = _make_tds_args("isc-seven-rivers")
     _tester(analytes, args)
 
 
 def test_analytes_invalid_analyte():
-    args = _make_args('wqp')
-    args[0] = 'Foo'
+    args = _make_args("wqp")
+    args[0] = "Foo"
     _tester(analytes, args, fail=True)
 
 
 def test_analytes_invalid_source():
-    args = _make_tds_args('wqp')
-    args.append('--no-foo')
+    args = _make_tds_args("wqp")
+    args.append("--no-foo")
     _tester(analytes, args, fail=True)
 
 
 def test_analytes_invalid_bbox():
-    args = _make_tds_args('wqp')
-    args.append('--bbox')
+    args = _make_tds_args("wqp")
+    args.append("--bbox")
     _tester(analytes, args, fail=True)
 
 
 def test_analytes_invalid_bbox_format():
-    args = _make_tds_args('wqp')
-    args.extend(['--bbox', '1 2 3'])
+    args = _make_tds_args("wqp")
+    args.extend(["--bbox", "1 2 3"])
     _tester(analytes, args, fail=True)
 
 
 def test_analytes_valid_bbox_format():
-    args = _make_tds_args('wqp')
-    args.extend(['--bbox', '1 2,3 4'])
+    args = _make_tds_args("wqp")
+    args.extend(["--bbox", "1 2,3 4"])
     _tester(analytes, args)
 
 
 def test_analytes_invalid_county():
-    args = _make_tds_args('wqp')
-    args.append('--county')
+    args = _make_tds_args("wqp")
+    args.append("--county")
     _tester(analytes, args, fail=True)
 
 
 def test_analytes_invalid_county_name():
-    args = _make_tds_args('wqp')
-    args.extend(['--county', 'foo'])
+    args = _make_tds_args("wqp")
+    args.extend(["--county", "foo"])
     _tester(analytes, args, fail=True)
+
 
 #
 # def _tester(source, func, county, bbox, args=None):
