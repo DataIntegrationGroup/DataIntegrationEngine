@@ -247,28 +247,28 @@ def get_var_name(var):
 
 
 for mapping in (
-        DWB_ANALYTE_MAPPING,
-        ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
-        AMPAPI_ANALYTE_MAPPING,
-        WQP_ANALYTE_MAPPING,
-        BOR_ANALYTE_MAPPING,
+    DWB_ANALYTE_MAPPING,
+    ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
+    AMPAPI_ANALYTE_MAPPING,
+    WQP_ANALYTE_MAPPING,
+    BOR_ANALYTE_MAPPING,
 ):
 
     for k in (
-            ARSENIC,
-            BICARBONATE,
-            CALCIUM,
-            CARBONATE,
-            CHLORIDE,
-            FLUORIDE,
-            MAGNESIUM,
-            NITRATE,
-            POTASSIUM,
-            SODIUM,
-            SULFATE,
-            TDS,
-            URANIUM,
-            PH,
+        ARSENIC,
+        BICARBONATE,
+        CALCIUM,
+        CARBONATE,
+        CHLORIDE,
+        FLUORIDE,
+        MAGNESIUM,
+        NITRATE,
+        POTASSIUM,
+        SODIUM,
+        SULFATE,
+        TDS,
+        URANIUM,
+        PH,
     ):
 
         if k not in mapping:

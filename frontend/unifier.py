@@ -144,7 +144,7 @@ def waterlevel_unification_test():
     # cfg.output_summary = True
 
     # cfg.use_source_nwis = False
-    cfg.use_source_ampapi = 'afs'
+    cfg.use_source_ampapi = "afs"
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
