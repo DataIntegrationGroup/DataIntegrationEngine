@@ -38,12 +38,18 @@ def unify_sites(config):
 
 def unify_analytes(config):
     log("Unifying analytes")
-    _unify_parameter(config, config.analyte_sources())
+    config.validate()
+    if config.dry:
+        _unify_parameter(config, config.analyte_sources())
 
 
 def unify_waterlevels(config):
     log("Unifying waterlevels")
-    _unify_parameter(config, config.water_level_sources())
+
+    config.validate()
+
+    if not config.dry:
+        _unify_parameter(config, config.water_level_sources())
 
 
 def _perister_factory(config):
@@ -143,8 +149,8 @@ def waterlevel_unification_test():
     cfg.end_date = "2020-5-01"
     # cfg.output_summary = True
 
-    # cfg.use_source_nwis = False
-    cfg.use_source_ampapi = "afs"
+    cfg.use_source_nwis = False
+    # cfg.use_source_ampapi = "afs"
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False

@@ -13,9 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import os
+import sys
 import time
 from datetime import datetime, timedelta
 
+import click
 import shapely.wkt
 
 from backend.bounding_polygons import get_county_polygon
@@ -53,7 +56,8 @@ from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 class Config(object):
     site_limit: int
-
+    dry: bool = False
+    
     # date
     start_date = None
     end_date = None
@@ -76,7 +80,8 @@ class Config(object):
     analyte: str = ""
 
     # output
-    output_path: str = "output"
+    output_dir: str = ""
+    output_name: str = "output"
     output_horizontal_datum: str = WGS84
     output_elevation_units: str = FEET
     output_well_depth_units: str = FEET
@@ -187,9 +192,12 @@ class Config(object):
             sources.append(BORSiteSource)
         return sources
 
-    def bbox_bounding_points(self):
-        if isinstance(self.bbox, str):
-            p1, p2 = self.bbox.split(",")
+    def bbox_bounding_points(self, bbox=None):
+        if bbox is None:
+            bbox = self.bbox
+
+        if isinstance(bbox, str):
+            p1, p2 = bbox.split(",")
             x1, y1 = [float(a) for a in p1.strip().split(" ")]
             x2, y2 = [float(a) for a in p2.strip().split(" ")]
         else:
@@ -202,10 +210,10 @@ class Config(object):
             if shp:
                 x1, y1, x2, y2 = shp.bounds
             else:
-                x1 = self.bbox["minLng"]
-                x2 = self.bbox["maxLng"]
-                y1 = self.bbox["minLat"]
-                y2 = self.bbox["maxLat"]
+                x1 = bbox["minLng"]
+                x2 = bbox["maxLng"]
+                y1 = bbox["minLat"]
+                y2 = bbox["maxLat"]
 
         if x1 > x2:
             x1, x2 = x2, x1
@@ -232,5 +240,31 @@ class Config(object):
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
 
+    def validate(self):
+        if not self._validate_bbox():
+            click.secho("Invalid bounding box", fg="red")
+            sys.exit(2)
+
+        if not self._validate_county():
+            click.secho("Invalid county", fg="red")
+            sys.exit(2)
+
+    def _validate_bbox(self):
+        try:
+            if self.bbox:
+                self.bbox_bounding_points()
+            return True
+        except ValueError:
+            return False
+
+    def _validate_county(self):
+        if self.county:
+            return bool(get_county_polygon(self.county))
+
+        return True
+
+    @property
+    def output_path(self):
+        return os.path.join(self.output_dir, f"{self.output_name}")
 
 # ============= EOF =============================================

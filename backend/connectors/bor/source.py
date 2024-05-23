@@ -48,7 +48,7 @@ class BORSiteSource(BaseSiteSource):
         # locationTypeId 10 is for wells
         url = "https://data.usbr.gov/rise/api/location"
         params = {"stateId": "NM", "locationTypeId": 10}
-        self._execute_json_request(url, params)
+        return self._execute_json_request(url, params)
 
 
 def parse_dt(dt):

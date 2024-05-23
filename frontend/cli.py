@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import sys
+
 import click
 
 from backend.config import Config
@@ -104,6 +106,12 @@ DEBUG_OPTIONS = [
         default=None,
         help="Bounding box in the form 'x1 y1, x2 y2'",
     ),
+    click.option(
+        "--dry",
+        is_flag=True,
+        default=False,
+        help="Dry run. Do not execute unifier. Used by unit tests",
+    ),
 ]
 
 
@@ -151,11 +159,9 @@ def waterlevels(
     no_ckan,
     no_dwb,
     site_limit,
+    dry
 ):
-    config = setup_config("waterlevels", bbox, county)
-
-    config.output_summary = not timeseries
-    config.site_limit = site_limit
+    config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
     config.use_source_ampapi = no_amp
     config.use_source_nwis = no_nwis
@@ -195,11 +201,10 @@ def analytes(
     no_ckan,
     no_dwb,
     site_limit,
+        dry
 ):
-    config = setup_config(f"analytes ({analyte})", bbox, county)
+    config = setup_config(f"analytes ({analyte})",timeseries, bbox, county, site_limit, dry)
     config.analyte = analyte
-    config.output_summary = not timeseries
-    config.site_limit = site_limit
 
     config.use_source_ampapi = no_amp
     config.use_source_nwis = no_nwis
@@ -213,16 +218,19 @@ def analytes(
     unify_analytes(config)
 
 
-def setup_config(tag, bbox, county):
+def setup_config(tag, timeseries, bbox, county, site_limit, dry):
     config = Config()
     if county:
         click.echo(f"Getting {tag} for county {county}")
         config.county = county
     elif bbox:
         click.echo(f"Getting {tag} for bounding box {bbox}")
-
         # bbox = -105.396826 36.219290, -106.024162 35.384307
         config.bbox = bbox
+
+    config.output_summary = not timeseries
+    config.site_limit = site_limit
+    config.dry = dry
 
     return config
 
