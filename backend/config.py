@@ -216,7 +216,7 @@ class Config:
         elif self.bbox:
             x1, y1, x2, y2 = self.bbox_bounding_points()
             pts = f"{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}"
-            return f"POLYGON({pts})"
+            return f"POLYGON(({pts}))"
         elif self.county:
             return get_county_polygon(self.county)
 
