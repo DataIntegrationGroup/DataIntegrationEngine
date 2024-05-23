@@ -62,8 +62,7 @@ class WQPSiteSource(BaseSiteSource):
             )
 
         text = self._execute_text_request(
-            "https://www.waterqualitydata.us/data/Station/search?", params,
-            timeout=30
+            "https://www.waterqualitydata.us/data/Station/search?", params, timeout=30
         )
         if text:
             return parse_tsv(text)
