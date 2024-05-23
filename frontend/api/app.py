@@ -51,7 +51,7 @@ class ConfigModel(BaseModel):
     wkt: str
 
 
-active_processes = []
+active_processes: list = []
 
 
 def cleanup():

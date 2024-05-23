@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.connectors.mappings import DWB_ANALYTE_MAP
+from backend.connectors.mappings import DWB_ANALYTE_MAPPING
 from backend.connectors.nmenv.transformer import (
     DWBSiteTransformer,
     DWBAnalyteTransformer,
@@ -30,7 +30,7 @@ class DWBSiteSource(STSiteSource):
     transformer_klass = DWBSiteTransformer
 
     def get_records(self, *args, **kw):
-        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAP)
+        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAPPING)
         if analyte is None:
             return []
 
@@ -58,7 +58,7 @@ class DWBAnalyteSource(STAnalyteSource):
     def get_records(self, site, *args, **kw):
         service = self.get_service()
 
-        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAP)
+        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAPPING)
         ds = service.datastreams()
         q = ds.query()
         q = q.expand("Thing/Locations, ObservedProperty, Observations")

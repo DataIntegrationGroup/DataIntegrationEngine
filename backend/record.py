@@ -64,7 +64,7 @@ class BaseRecord:
 
 
 class WaterLevelRecord(BaseRecord):
-    keys = (
+    keys: tuple = (
         # "source",
         # "id",
         # "location",
@@ -77,11 +77,11 @@ class WaterLevelRecord(BaseRecord):
         "time_measured",
     )
 
-    defaults = {}
+    defaults: dict = {}
 
 
 class AnalyteRecord(BaseRecord):
-    keys = (
+    keys: tuple = (
         # "source",
         # "id",
         # "location",
@@ -95,11 +95,11 @@ class AnalyteRecord(BaseRecord):
         "time_measured",
     )
 
-    defaults = {}
+    defaults: dict = {}
 
 
 class SummaryRecord(BaseRecord):
-    keys = (
+    keys: tuple = (
         "source",
         "id",
         "location",
@@ -122,7 +122,7 @@ class SummaryRecord(BaseRecord):
         "most_recent_value",
         "most_recent_units",
     )
-    defaults = {}
+    defaults: dict = {}
 
 
 class WaterLevelSummaryRecord(SummaryRecord):
@@ -134,7 +134,7 @@ class AnalyteSummaryRecord(SummaryRecord):
 
 
 class SiteRecord(BaseRecord):
-    keys = (
+    keys: tuple = (
         "source",
         "id",
         "name",
@@ -151,7 +151,7 @@ class SiteRecord(BaseRecord):
         "well_depth",
     )
 
-    defaults = {
+    defaults: dict = {
         "source": None,
         "id": None,
         "name": "",

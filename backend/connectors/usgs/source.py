@@ -64,6 +64,11 @@ class USGSSiteSource(BaseSiteSource):
         else:
             params["stateCd"] = "NM"
 
+        if config.start_date:
+            params["startDt"] = config.start_date
+        if config.end_date:
+            params["endDt"] = config.end_date
+
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/site/", params
         )

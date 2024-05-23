@@ -239,7 +239,7 @@ class SiteTransformer(BaseTransformer):
 
 
 class ParameterTransformer(BaseTransformer):
-    source_tag = None
+    source_tag: str
 
     def _get_parameter(self):
         raise NotImplementedError(

@@ -31,7 +31,7 @@ from backend.source import (
 
 
 class CKANSource:
-    base_url = None
+    base_url: str
     _cached_response = None
 
     def get_records(self, *args, **kw):

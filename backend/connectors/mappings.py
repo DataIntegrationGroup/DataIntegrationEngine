@@ -31,7 +31,7 @@ from backend.constants import (
 )
 
 # DWB ===============================================================================
-DWB_ANALYTE_MAP = {
+DWB_ANALYTE_MAPPING: dict = {
     ARSENIC: 3,
     BICARBONATE: None,
     CALCIUM: None,
@@ -85,7 +85,7 @@ Hardness
 Alkalinity as CaCO3
 Cations total
 Barium"""
-ISC_SEVEN_RIVERS_ANALYTE_MAPPING = {
+ISC_SEVEN_RIVERS_ANALYTE_MAPPING: dict = {
     ARSENIC: None,
     BICARBONATE: "Bicarbonate (HCO3)",
     CHLORIDE: "Chloride",
@@ -127,7 +127,7 @@ TAn
 TCat
 TDS
 """
-AMPAPI_ANALYTE_MAPPING = {
+AMPAPI_ANALYTE_MAPPING: dict = {
     ARSENIC: "As",  #  ampapi can't handle multiple analytes yet "As,As(total)",
     BICARBONATE: "HCO3",
     CALCIUM: "Ca",
@@ -145,7 +145,7 @@ AMPAPI_ANALYTE_MAPPING = {
 }
 
 # WQP ===============================================================================
-WQP_ANALYTE_MAPPING = {
+WQP_ANALYTE_MAPPING: dict = {
     ARSENIC: ["Arsenic"],
     BICARBONATE: ["Bicarbonate"],
     CALCIUM: ["Calcium"],
@@ -222,7 +222,7 @@ St
 U
 Zn
 """
-BOR_ANALYTE_MAPPING = {
+BOR_ANALYTE_MAPPING: dict = {
     ARSENIC: "As",
     BICARBONATE: "ALK HCO3",
     CALCIUM: "Ca",
@@ -246,32 +246,32 @@ def get_var_name(var):
             return name
 
 
-for m in (
-    DWB_ANALYTE_MAP,
-    ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
-    AMPAPI_ANALYTE_MAPPING,
-    WQP_ANALYTE_MAPPING,
-    BOR_ANALYTE_MAPPING,
+for mapping in (
+        DWB_ANALYTE_MAPPING,
+        ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
+        AMPAPI_ANALYTE_MAPPING,
+        WQP_ANALYTE_MAPPING,
+        BOR_ANALYTE_MAPPING,
 ):
 
     for k in (
-        ARSENIC,
-        BICARBONATE,
-        CALCIUM,
-        CARBONATE,
-        CHLORIDE,
-        FLUORIDE,
-        MAGNESIUM,
-        NITRATE,
-        POTASSIUM,
-        SODIUM,
-        SULFATE,
-        TDS,
-        URANIUM,
-        PH,
+            ARSENIC,
+            BICARBONATE,
+            CALCIUM,
+            CARBONATE,
+            CHLORIDE,
+            FLUORIDE,
+            MAGNESIUM,
+            NITRATE,
+            POTASSIUM,
+            SODIUM,
+            SULFATE,
+            TDS,
+            URANIUM,
+            PH,
     ):
 
-        if k not in m:
-            name = get_var_name(m)
+        if k not in mapping:
+            name = get_var_name(mapping)
             raise NotImplementedError(f"Mapping for {k} not implemented by {name}")
 # ============= EOF =============================================

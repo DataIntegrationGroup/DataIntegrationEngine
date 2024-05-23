@@ -31,7 +31,7 @@ URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.0"
 
 
 class ST2SiteSource(STSiteSource):
-    agency = None
+    agency: str
     url = URL
 
     def _get_filters(self):

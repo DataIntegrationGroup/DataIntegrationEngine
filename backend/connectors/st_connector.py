@@ -30,7 +30,7 @@ def get_service(url):
 
 
 class STSource:
-    url = None
+    url: str
 
     def get_service(self):
         if self.url is None:
@@ -96,7 +96,7 @@ class STAnalyteSource(STSource, BaseAnalyteSource):
 
 
 class STSiteTransformer(SiteTransformer):
-    source_id = None
+    source_id: str
 
     def _transform_hook(self, rec):
         return rec

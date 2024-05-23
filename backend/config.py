@@ -51,41 +51,44 @@ from backend.connectors.usgs.source import USGSSiteSource, USGSWaterLevelSource
 from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 
-class Config:
-    site_limit = None
+class Config(object):
+    site_limit: int
+
+    # date
+    start_date = None
+    end_date = None
 
     # spatial
-    bbox = None  # dict or str
-    county = None
-    wkt = None
+    bbox: dict  # dict or str
+    county: str
+    wkt: str
 
     # sources
-    use_source_ampapi = True
-    use_source_wqp = True
-    use_source_isc_seven_rivers = True
-    use_source_nwis = True
-    use_source_ose_roswell = True
-    use_source_st2 = True
-    use_source_bor = True
-    use_source_dwb = True
+    use_source_ampapi: bool = True
+    use_source_wqp: bool = True
+    use_source_isc_seven_rivers: bool = True
+    use_source_nwis: bool = True
+    use_source_ose_roswell: bool = True
+    use_source_st2: bool = True
+    use_source_bor: bool = True
+    use_source_dwb: bool = True
 
-    analyte = None
+    analyte: str
 
     # output
-    output_path = "output"
-    output_horizontal_datum = WGS84
-    output_elevation_units = FEET
-    output_well_depth_units = FEET
-    output_summary = False
-    # output_summary_waterlevel_stats = False
-    # output_summary_analyte_stats = False
-    latest_water_level_only = False
+    output_path: str = "output"
+    output_horizontal_datum: str = WGS84
+    output_elevation_units: str = FEET
+    output_well_depth_units: str = FEET
+    output_summary: bool = False
 
-    analyte_output_units = MILLIGRAMS_PER_LITER
-    waterlevel_output_units = FEET
+    latest_water_level_only: bool = False
 
-    use_csv = True
-    use_geojson = False
+    analyte_output_units: str = MILLIGRAMS_PER_LITER
+    waterlevel_output_units: str = FEET
+
+    use_csv: bool = True
+    use_geojson: bool = False
 
     def __init__(self, model=None):
         if model:

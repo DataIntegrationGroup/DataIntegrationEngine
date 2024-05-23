@@ -139,11 +139,12 @@ def waterlevel_unification_test():
     cfg.county = "chaves"
     cfg.county = "eddy"
     cfg.bbox = "-104.5 32.5,-104 33"
-
+    cfg.start_date = "2020-01-01"
+    cfg.end_date = "2020-5-01"
     # cfg.output_summary = True
 
-    cfg.use_source_nwis = False
-    # cfg.use_source_ampapi = False
+    # cfg.use_source_nwis = False
+    cfg.use_source_ampapi = 'afs'
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False

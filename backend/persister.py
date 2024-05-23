@@ -32,7 +32,7 @@ class Loggable:
 
 
 class BasePersister(Loggable):
-    extension = None
+    extension: str
 
     def __init__(self):
         self.records = []
