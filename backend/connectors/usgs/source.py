@@ -92,7 +92,7 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
         if config.start_date:
             params["startDt"] = config.start_date
         else:
-            params["startDt"] = '1900-01-01'
+            params["startDt"] = "1900-01-01"
 
         if config.end_date:
             params["endDt"] = config.end_date

@@ -116,15 +116,12 @@ DEBUG_OPTIONS = [
 
 DT_OPTIONS = [
     click.option(
-
         "--start-date",
         default="",
         help="Start date in the form 'YYYY', 'YYYY-MM', 'YYYY-MM-DD', 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'",
     ),
     click.option(
-
         "--end-date",
-
         default="",
         help="End date in the form 'YYYY', 'YYYY-MM', 'YYYY-MM-DD', 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'",
     ),
@@ -212,7 +209,8 @@ def waterlevels(
 def analytes(
     analyte,
     timeseries,
-        start_date, end_date,
+    start_date,
+    end_date,
     bbox,
     county,
     no_amp,

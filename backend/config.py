@@ -59,8 +59,8 @@ class Config(object):
     dry: bool = False
 
     # date
-    start_date: str = ''
-    end_date: str = ''
+    start_date: str = ""
+    end_date: str = ""
 
     # spatial
     bbox: dict  # dict or str
@@ -256,7 +256,6 @@ class Config(object):
         if not self._validate_date(self.end_date):
             click.secho("Invalid end date", fg="red")
             sys.exit(2)
-
 
     def _validate_date(self, d):
         if d:
