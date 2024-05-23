@@ -127,8 +127,8 @@ def analyte_unification_test():
     # analyte testing
     cfg.use_source_wqp = False
     cfg.use_source_ampapi = False
-    cfg.use_source_isc_seven_rivers = False
-    # cfg.use_source_bor = False
+    # cfg.use_source_isc_seven_rivers = False
+    cfg.use_source_bor = False
     cfg.use_source_dwb = False
     cfg.site_limit = 10
 
