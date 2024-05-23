@@ -84,7 +84,7 @@ def router_unify_waterlevels(item: ConfigModel):
             os.remove(pp)
 
     if not os.path.isfile(pp):
-        cfg.output_path = pp
+        cfg.output_name = pp
 
         cleanup()
         # spawn a new process to do the work
