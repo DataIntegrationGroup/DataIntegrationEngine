@@ -114,7 +114,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
                     "start": 0,
                     "end": config.now_ms(days=1),
                 },
-                tag="data"
+                tag="data",
             )
             #
             # resp = httpx.get(
