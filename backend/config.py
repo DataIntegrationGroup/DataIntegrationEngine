@@ -73,7 +73,7 @@ class Config(object):
     use_source_bor: bool = True
     use_source_dwb: bool = True
 
-    analyte: str
+    analyte: str = ''
 
     # output
     output_path: str = "output"
