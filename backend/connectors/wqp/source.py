@@ -61,10 +61,12 @@ class WQPSiteSource(BaseSiteSource):
                 config.analyte, WQP_ANALYTE_MAPPING
             )
 
-        resp = httpx.get(
-            "https://www.waterqualitydata.us/data/Station/search?", params=params
-        )
-        return parse_tsv(resp.text)
+        # resp = httpx.get(
+        #     "https://www.waterqualitydata.us/data/Station/search?", params=params
+        # )
+        text = self._execute_text_request("https://www.waterqualitydata.us/data/Station/search?", params)
+        if text:
+            return parse_tsv(text)
 
 
 class WQPAnalyteSource(BaseAnalyteSource):
@@ -111,12 +113,14 @@ class WQPAnalyteSource(BaseAnalyteSource):
             ),
         }
 
-        resp = httpx.get(
-            "https://www.waterqualitydata.us/data/Result/search?",
-            params=params,
-            timeout=10,
-        )
-        return parse_tsv(resp.text)
+        # resp = httpx.get(
+        #     "https://www.waterqualitydata.us/data/Result/search?",
+        #     params=params,
+        #     timeout=10,
+        # )
+        text = self._execute_text_request("https://www.waterqualitydata.us/data/Result/search?", params)
+        if text:
+            return parse_tsv(text)
 
 
 # ============= EOF =============================================

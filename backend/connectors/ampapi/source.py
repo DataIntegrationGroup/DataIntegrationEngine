@@ -72,16 +72,19 @@ class AMPAPISiteSource(BaseSiteSource):
         else:
             params["has_waterlevels"] = True
 
-        resp = httpx.get(_make_url("locations"), params=params, timeout=30)
-
-        if resp.status_code != 200:
-            self.warn(f"Failed url {resp.url}")
-            self.warn(f"Failed with status code {resp.status_code}")
-            self.warn(f"Failed with response {resp.text}")
-
-            return []
-
-        return resp.json()["features"]
+        return self._execute_json_request(_make_url("locations"),
+                                          params,
+                                          tag="features",
+                                          timeout=30)
+        # resp = httpx.get(_make_url("locations"), params=params, timeout=30)
+        #
+        # if resp.status_code != 200:
+        #     self.warn(f"Failed url {resp.url}")
+        #     self.warn(f"Failed with status code {resp.status_code}")
+        #     self.warn(f"Failed with response {resp.text}")
+        #
+        #     return []
+        # return resp.json()["features"]
 
 
 class AMPAPIAnalyteSource(BaseAnalyteSource):
@@ -89,13 +92,17 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
 
     def get_records(self, parent_record):
         analyte = get_analyte_search_param(self.config.analyte, AMPAPI_ANALYTE_MAPPING)
-        resp = httpx.get(
+        return self._execute_json_request(
             _make_url("waterchemistry/major"),
             params={"pointid": parent_record.id, "analyte": analyte},
         )
-        if resp.status_code != 200:
-            return []
-        return resp.json()
+        # resp = httpx.get(
+        #     _make_url("waterchemistry/major"),
+        #     params={"pointid": parent_record.id, "analyte": analyte},
+        # )
+        # if resp.status_code != 200:
+        #     return []
+        # return resp.json()
 
     def _extract_parameter_units(self, records):
         return [r["Units"] for r in records]
@@ -151,8 +158,8 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
             # just use manual waterlevels temporarily
             url = _make_url("waterlevels/manual")
 
-        resp = httpx.get(url, params=params)
-        return resp.json()
-
+        # resp = httpx.get(url, params=params)
+        # return resp.json()
+        return self._execute_json_request(url, params)
 
 # ============= EOF =============================================

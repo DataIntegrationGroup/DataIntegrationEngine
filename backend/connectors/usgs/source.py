@@ -64,13 +64,14 @@ class USGSSiteSource(BaseSiteSource):
         else:
             params["stateCd"] = "NM"
 
-        resp = httpx.get(
-            "https://waterservices.usgs.gov/nwis/site/", params=params, timeout=10
-        )
-        records = parse_rdb(resp.text)
-
-        self.log(f"Retrieved {len(records)} records")
-        return records
+        # resp = httpx.get(
+        #     "https://waterservices.usgs.gov/nwis/site/", params=params, timeout=10
+        # )
+        text = self._execute_text_request("https://waterservices.usgs.gov/nwis/site/", params)
+        if text:
+            records = parse_rdb(text)
+            self.log(f"Retrieved {len(records)} records")
+            return records
 
 
 class USGSWaterLevelSource(BaseWaterLevelSource):
@@ -85,11 +86,17 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
             # "endDT": config.end_date,
         }
 
-        resp = httpx.get(
-            "https://waterservices.usgs.gov/nwis/gwlevels/", params=params, timeout=10
-        )
-        records = parse_rdb(resp.text)
-        return records
+        # resp = httpx.get(
+        #     "https://waterservices.usgs.gov/nwis/gwlevels/", params=params, timeout=10
+        # )
+        # records = parse_rdb(resp.text)
+        # return records
+        text = self._execute_text_request("https://waterservices.usgs.gov/nwis/gwlevels/", params)
+        if text:
+            records = parse_rdb(text)
+            self.log(f"Retrieved {len(records)} records")
+            return records
+
 
     def _extract_parent_records(self, records, parent_record):
         return [ri for ri in records if ri["site_no"] == parent_record.id]

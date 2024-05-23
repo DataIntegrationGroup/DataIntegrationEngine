@@ -68,6 +68,9 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         site_limit = config.site_limit
 
         sites = site_source.read_sites()
+        if not sites:
+            click.secho(f"No sites found for {site_source}", fg="red")
+            return
 
         for i, sites in enumerate(site_source.chunks(sites)):
             if site_limit and i > site_limit:
@@ -119,13 +122,13 @@ def analyte_unification_test():
     cfg.county = "eddy"
 
     cfg.analyte = "TDS"
-    cfg.output_summary = True
+    # cfg.output_summary = True
 
     # analyte testing
-    # cfg.use_source_wqp = False
+    cfg.use_source_wqp = False
     cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
-    cfg.use_source_bor = False
+    # cfg.use_source_bor = False
     cfg.use_source_dwb = False
     cfg.site_limit = 10
 
@@ -156,7 +159,7 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
 
-    waterlevel_unification_test()
-    # analyte_unification_test()
+    # waterlevel_unification_test()
+    analyte_unification_test()
 
 # ============= EOF =============================================

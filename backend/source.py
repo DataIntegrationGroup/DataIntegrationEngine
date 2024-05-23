@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from json import JSONDecodeError
+
 import click
+import httpx
 
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
@@ -53,6 +56,34 @@ class BaseSource:
             f"get_records not implemented by {self.__class__.__name__}"
         )
 
+    def _execute_text_request(self, url, params=None, **kw):
+        if 'timeout' not in kw:
+            kw['timeout'] = 10
+
+        resp = httpx.get(url, params=params, **kw)
+        if resp.status_code == 200:
+            return resp.text
+        else:
+            self.warn(f"service responded with status {resp.status_code}")
+            self.warn(f"service responded with text {resp.text}")
+            return ""
+
+    def _execute_json_request(self, url, params=None, tag=None, **kw):
+        resp = httpx.get(url, params=params, **kw)
+        if resp.status_code == 200:
+            try:
+                obj = resp.json()
+                if tag:
+                    return obj[tag]
+                return obj
+            except JSONDecodeError:
+                self.warn(f"service responded but with no data. \n{resp.text}")
+                return []
+        else:
+            self.warn(f"service responded with status {resp.status_code}")
+            self.warn(f"service responded with text {resp.text}")
+            return []
+
 
 class BaseSiteSource(BaseSource):
     chunk_size = 1
@@ -60,8 +91,11 @@ class BaseSiteSource(BaseSource):
     def read_sites(self, *args, **kw):
         self.log("Gathering site records")
         records = self.get_records()
-        self.log(f"total records={len(records)}")
-        return self._transform_sites(records)
+        if records:
+            self.log(f"total records={len(records)}")
+            return self._transform_sites(records)
+        else:
+            self.warn('No site records returned')
 
     def _transform_sites(self, records):
         ns = []

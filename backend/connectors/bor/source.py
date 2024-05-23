@@ -14,6 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 import pprint
+from json import JSONDecodeError
 
 import httpx
 
@@ -45,9 +46,19 @@ class BORSiteSource(BaseSiteSource):
 
     def get_records(self):
         # locationTypeId 10 is for wells
+        # params = {"stateId": "NM", "locationTypeId": 10}
+        # resp = httpx.get("https://data.usbr.gov/rise/api/location", params=params)
+        # if resp.status_code == 200:
+        #     try:
+        #         return resp.json()["data"]
+        #     except JSONDecodeError:
+        #         self.warn(f"BOR service responded but with no data. \n{resp.text}")
+        #         return []
+
+        url = "https://data.usbr.gov/rise/api/location"
         params = {"stateId": "NM", "locationTypeId": 10}
-        resp = httpx.get("https://data.usbr.gov/rise/api/location", params=params)
-        return resp.json()["data"]
+        self._execute_json_request(url, params, tag='data')
+
 
 
 def parse_dt(dt):
@@ -96,21 +107,27 @@ class BORAnalyteSource(BaseAnalyteSource):
         for i, item in enumerate(
             self._reorder_catalog_items(parent_record.catalogItems)
         ):
-            resp = httpx.get(
-                f'https://data.usbr.gov{item["id"]}',
-            )
-            data = resp.json()["data"]
+            # resp = httpx.get(
+            #     f'https://data.usbr.gov{item["id"]}',
+            # )
+            # data = resp.json()["data"]
+            data = self._execute_json_request(f'https://data.usbr.gov{item["id"]}', tag='data')
+            if not data:
+                continue
+
             pcode = data["attributes"]["parameterSourceCode"]
             if pcode == code:
                 if not self._catalog_item_idx:
                     self._catalog_item_idx = i
 
-                params = {
-                    "itemId": data["attributes"]["_id"],
-                }
-                resp = httpx.get("https://data.usbr.gov/rise/api/result", params=params)
-                return resp.json()["data"]
-
+                # params = {
+                #     "itemId": data["attributes"]["_id"],
+                # }
+                # resp = httpx.get("https://data.usbr.gov/rise/api/result", params=params)
+                # return resp.json()["data"]
+                return self._execute_json_request("https://data.usbr.gov/rise/api/result",
+                                                  params={"itemId": data["attributes"]["_id"]},
+                                                  tag='data')
 
 # class BORWaterLevelSource(BaseWaterLevelSource):
 #     transformer_klass = BORWaterLevelTransformer

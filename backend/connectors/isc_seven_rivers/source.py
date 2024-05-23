@@ -54,8 +54,9 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
     transformer_klass = ISCSevenRiversSiteTransformer
 
     def get_records(self):
-        resp = httpx.get(_make_url("getMonitoringPoints.ashx"))
-        return resp.json()["data"]
+        # resp = httpx.get(_make_url("getMonitoringPoints.ashx"))
+        # return resp.json()["data"]
+        return self._execute_json_request(_make_url("getMonitoringPoints.ashx"), tag="data")
 
 
 class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
@@ -65,8 +66,10 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     def _get_analyte_id(self, analyte):
         """ """
         if self._analyte_ids is None:
-            resp = httpx.get(_make_url("getAnalytes.ashx"))
-            self._analyte_ids = {r["name"]: r["id"] for r in resp.json()["data"]}
+
+            resp = self._execute_json_request(_make_url("getAnalytes.ashx"), tag="data")
+            if resp:
+                self._analyte_ids = {r["name"]: r["id"] for r in resp}
 
         analyte = get_analyte_search_param(analyte, ISC_SEVEN_RIVERS_ANALYTE_MAPPING)
         if analyte:
@@ -100,16 +103,27 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         config = self.config
         analyte_id = self._get_analyte_id(config.analyte)
         if analyte_id:
-            resp = httpx.get(
+
+            return self._execute_json_request(
                 _make_url("getReadings.ashx"),
                 params={
                     "monitoringPointId": parent_record.id,
-                    "analyteId": self._get_analyte_id(config.analyte),
+                    "analyteId": analyte_id,
                     "start": 0,
                     "end": config.now_ms(days=1),
                 },
             )
-            return resp.json()["data"]
+            #
+            # resp = httpx.get(
+            #     _make_url("getReadings.ashx"),
+            #     params={
+            #         "monitoringPointId": parent_record.id,
+            #         "analyteId": self._get_analyte_id(config.analyte),
+            #         "start": 0,
+            #         "end": config.now_ms(days=1),
+            #     },
+            # )
+            # return resp.json()["data"]
 
 
 def get_datetime(record):
@@ -120,15 +134,14 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
 
     def get_records(self, parent_record):
-        resp = httpx.get(
+        return self._execute_json_request(
             _make_url("getWaterLevels.ashx"),
             params={
                 "id": parent_record.id,
                 "start": 0,
                 "end": self.config.now_ms(days=1),
-            },
+            }, tag="data"
         )
-        return resp.json()["data"]
 
     def _clean_records(self, records):
         return [r for r in records if r["depthToWaterFeet"] is not None]
