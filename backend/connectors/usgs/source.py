@@ -64,9 +64,6 @@ class USGSSiteSource(BaseSiteSource):
         else:
             params["stateCd"] = "NM"
 
-        # resp = httpx.get(
-        #     "https://waterservices.usgs.gov/nwis/site/", params=params, timeout=10
-        # )
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/site/", params
         )
@@ -88,11 +85,6 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
             # "endDT": config.end_date,
         }
 
-        # resp = httpx.get(
-        #     "https://waterservices.usgs.gov/nwis/gwlevels/", params=params, timeout=10
-        # )
-        # records = parse_rdb(resp.text)
-        # return records
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/gwlevels/", params
         )

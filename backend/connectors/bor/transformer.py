@@ -66,40 +66,4 @@ class BORAnalyteTransformer(AnalyteTransformer):
     source_tag = "BOR-RISE"
 
 
-# class BORWaterLevelTransformer(WaterLevelTransformer):
-#     def transform(self, record, config, parent_record):
-#         rec = {
-#             "source": "BOR-NWIS",
-#             "id": parent_record.id,
-#             "location": parent_record.name,
-#             "BOR_site_id": parent_record.id,
-#             "latitude": parent_record.latitude,
-#             "longitude": parent_record.longitude,
-#             "elevation": parent_record.elevation,
-#             "elevation_units": parent_record.elevation_units,
-#             "well_depth": parent_record.well_depth,
-#             "well_depth_units": parent_record.well_depth_units,
-#             # "date": record["datetime"],
-#             # "value": record["lev_va"],
-#             # "units": "ft",
-#             # "qualifiers": record["lev_status_cd"],
-#         }
-#
-#         if config.output_summary_waterlevel_stats:
-#             rec.update(record)
-#             # rec["nrecords"] = record["nrecords"]
-#             # rec["min"] = record["min"]
-#             # rec["max"] = record["max"]
-#             # rec["mean"] = record["mean"]
-#             # rec["most_recent_datetime"] = record["most_recent_datetime"]
-#             # rec["date_measured"] = record["most_recent_date"]
-#             # rec["time_measured"] = record["most_recent_time"]
-#         # else:
-#         #     rec["date_measured"] = record["DateMeasured"]
-#         #     rec["time_measured"] = record["TimeMeasured"]
-#         #     rec["depth_to_water_ft_below_ground_surface"] = record["DepthToWaterBGS"]
-#
-#         return rec
-
-
 # ============= EOF =============================================

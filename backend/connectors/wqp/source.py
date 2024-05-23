@@ -61,9 +61,6 @@ class WQPSiteSource(BaseSiteSource):
                 config.analyte, WQP_ANALYTE_MAPPING
             )
 
-        # resp = httpx.get(
-        #     "https://www.waterqualitydata.us/data/Station/search?", params=params
-        # )
         text = self._execute_text_request(
             "https://www.waterqualitydata.us/data/Station/search?", params
         )
@@ -115,11 +112,6 @@ class WQPAnalyteSource(BaseAnalyteSource):
             ),
         }
 
-        # resp = httpx.get(
-        #     "https://www.waterqualitydata.us/data/Result/search?",
-        #     params=params,
-        #     timeout=10,
-        # )
         text = self._execute_text_request(
             "https://www.waterqualitydata.us/data/Result/search?", params
         )

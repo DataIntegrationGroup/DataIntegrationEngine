@@ -46,18 +46,9 @@ class BORSiteSource(BaseSiteSource):
 
     def get_records(self):
         # locationTypeId 10 is for wells
-        # params = {"stateId": "NM", "locationTypeId": 10}
-        # resp = httpx.get("https://data.usbr.gov/rise/api/location", params=params)
-        # if resp.status_code == 200:
-        #     try:
-        #         return resp.json()["data"]
-        #     except JSONDecodeError:
-        #         self.warn(f"BOR service responded but with no data. \n{resp.text}")
-        #         return []
-
         url = "https://data.usbr.gov/rise/api/location"
         params = {"stateId": "NM", "locationTypeId": 10}
-        self._execute_json_request(url, params, tag="data")
+        self._execute_json_request(url, params)
 
 
 def parse_dt(dt):
@@ -106,12 +97,9 @@ class BORAnalyteSource(BaseAnalyteSource):
         for i, item in enumerate(
             self._reorder_catalog_items(parent_record.catalogItems)
         ):
-            # resp = httpx.get(
-            #     f'https://data.usbr.gov{item["id"]}',
-            # )
-            # data = resp.json()["data"]
+
             data = self._execute_json_request(
-                f'https://data.usbr.gov{item["id"]}', tag="data"
+                f'https://data.usbr.gov{item["id"]}'
             )
             if not data:
                 continue
@@ -121,57 +109,9 @@ class BORAnalyteSource(BaseAnalyteSource):
                 if not self._catalog_item_idx:
                     self._catalog_item_idx = i
 
-                # params = {
-                #     "itemId": data["attributes"]["_id"],
-                # }
-                # resp = httpx.get("https://data.usbr.gov/rise/api/result", params=params)
-                # return resp.json()["data"]
                 return self._execute_json_request(
                     "https://data.usbr.gov/rise/api/result",
                     params={"itemId": data["attributes"]["_id"]},
-                    tag="data",
                 )
-
-
-# class BORWaterLevelSource(BaseWaterLevelSource):
-#     transformer_klass = BORWaterLevelTransformer
-
-# def get_records(self, parent_record, config):
-#     for item in parent_record.catalogItems:
-#         print("get records", item)
-#         resp = httpx.get(
-#             f'https://data.usbr.gov{item["id"]}',
-#         )
-#         data = resp.json()["data"]
-#         # pprint.pprint(data)
-#         print("asdf", data["attributes"]["parameterName"])
-#
-#     # print('get records', parent_record.catalogItems)
-#     # crec = parent_record.catalogItems[0]['id']
-#     # pprint.pprint(resp.json())
-#     # print('get records', parent_record)
-#     # params = {
-#     #     "format": "rdb",
-#     #     "siteType": "GW",
-#     #     "sites": parent_record.id,
-#     #     # "startDT": config.start_date,
-#     #     # "endDT": config.end_date,
-#     # }
-#     #
-#     # resp = httpx.get(
-#     #     "https://waterservices.BOR.gov/nwis/gwlevels/", params=params, timeout=10
-#     # )
-#     # records = parse_rdb(resp.text)
-#     # return records
-#
-# def _extract_parameter_results(self, records):
-#     return [float(r["lev_va"]) for r in records if r["lev_va"] is not None]
-#
-# def _extract_most_recent(self, records):
-#
-#     return [(r["lev_dt"], r["lev_tm"]) for r in records if r["lev_dt"] is not None][
-#         -1
-#     ]
-
 
 # ============= EOF =============================================
