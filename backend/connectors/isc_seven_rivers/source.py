@@ -56,7 +56,9 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
     def get_records(self):
         # resp = httpx.get(_make_url("getMonitoringPoints.ashx"))
         # return resp.json()["data"]
-        return self._execute_json_request(_make_url("getMonitoringPoints.ashx"), tag="data")
+        return self._execute_json_request(
+            _make_url("getMonitoringPoints.ashx"), tag="data"
+        )
 
 
 class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
@@ -140,7 +142,8 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
                 "id": parent_record.id,
                 "start": 0,
                 "end": self.config.now_ms(days=1),
-            }, tag="data"
+            },
+            tag="data",
         )
 
     def _clean_records(self, records):

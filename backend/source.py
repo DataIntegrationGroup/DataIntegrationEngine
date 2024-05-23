@@ -57,8 +57,8 @@ class BaseSource:
         )
 
     def _execute_text_request(self, url, params=None, **kw):
-        if 'timeout' not in kw:
-            kw['timeout'] = 10
+        if "timeout" not in kw:
+            kw["timeout"] = 10
 
         resp = httpx.get(url, params=params, **kw)
         if resp.status_code == 200:
@@ -95,7 +95,7 @@ class BaseSiteSource(BaseSource):
             self.log(f"total records={len(records)}")
             return self._transform_sites(records)
         else:
-            self.warn('No site records returned')
+            self.warn("No site records returned")
 
     def _transform_sites(self, records):
         ns = []

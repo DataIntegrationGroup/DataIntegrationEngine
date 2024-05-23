@@ -57,8 +57,7 @@ class BORSiteSource(BaseSiteSource):
 
         url = "https://data.usbr.gov/rise/api/location"
         params = {"stateId": "NM", "locationTypeId": 10}
-        self._execute_json_request(url, params, tag='data')
-
+        self._execute_json_request(url, params, tag="data")
 
 
 def parse_dt(dt):
@@ -111,7 +110,9 @@ class BORAnalyteSource(BaseAnalyteSource):
             #     f'https://data.usbr.gov{item["id"]}',
             # )
             # data = resp.json()["data"]
-            data = self._execute_json_request(f'https://data.usbr.gov{item["id"]}', tag='data')
+            data = self._execute_json_request(
+                f'https://data.usbr.gov{item["id"]}', tag="data"
+            )
             if not data:
                 continue
 
@@ -125,9 +126,12 @@ class BORAnalyteSource(BaseAnalyteSource):
                 # }
                 # resp = httpx.get("https://data.usbr.gov/rise/api/result", params=params)
                 # return resp.json()["data"]
-                return self._execute_json_request("https://data.usbr.gov/rise/api/result",
-                                                  params={"itemId": data["attributes"]["_id"]},
-                                                  tag='data')
+                return self._execute_json_request(
+                    "https://data.usbr.gov/rise/api/result",
+                    params={"itemId": data["attributes"]["_id"]},
+                    tag="data",
+                )
+
 
 # class BORWaterLevelSource(BaseWaterLevelSource):
 #     transformer_klass = BORWaterLevelTransformer

@@ -64,7 +64,9 @@ class WQPSiteSource(BaseSiteSource):
         # resp = httpx.get(
         #     "https://www.waterqualitydata.us/data/Station/search?", params=params
         # )
-        text = self._execute_text_request("https://www.waterqualitydata.us/data/Station/search?", params)
+        text = self._execute_text_request(
+            "https://www.waterqualitydata.us/data/Station/search?", params
+        )
         if text:
             return parse_tsv(text)
 
@@ -118,7 +120,9 @@ class WQPAnalyteSource(BaseAnalyteSource):
         #     params=params,
         #     timeout=10,
         # )
-        text = self._execute_text_request("https://www.waterqualitydata.us/data/Result/search?", params)
+        text = self._execute_text_request(
+            "https://www.waterqualitydata.us/data/Result/search?", params
+        )
         if text:
             return parse_tsv(text)
 

@@ -72,10 +72,9 @@ class AMPAPISiteSource(BaseSiteSource):
         else:
             params["has_waterlevels"] = True
 
-        return self._execute_json_request(_make_url("locations"),
-                                          params,
-                                          tag="features",
-                                          timeout=30)
+        return self._execute_json_request(
+            _make_url("locations"), params, tag="features", timeout=30
+        )
         # resp = httpx.get(_make_url("locations"), params=params, timeout=30)
         #
         # if resp.status_code != 200:
@@ -161,5 +160,6 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
         # resp = httpx.get(url, params=params)
         # return resp.json()
         return self._execute_json_request(url, params)
+
 
 # ============= EOF =============================================
