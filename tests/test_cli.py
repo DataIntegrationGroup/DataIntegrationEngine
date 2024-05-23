@@ -93,7 +93,9 @@ def _analyte_summary_tester(key):
 
 
 def _analyte_county_tester(source, **kw):
-    _timeseries_tester(source, analytes, ["TDS"], county="eddy", **kw)
+    _timeseries_tester(source, analytes, args=["TDS"],
+                       county="eddy",
+                       **kw)
 
 
 def test_unify_analytes_amp():
