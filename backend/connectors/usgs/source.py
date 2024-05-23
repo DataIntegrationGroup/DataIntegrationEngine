@@ -86,9 +86,16 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
             "format": "rdb",
             "siteType": "GW",
             "sites": ",".join(make_site_list(parent_record)),
-            # "startDT": config.start_date,
-            # "endDT": config.end_date,
         }
+
+        config = self.config
+        if config.start_date:
+            params["startDt"] = config.start_date
+        else:
+            params["startDt"] = '1900-01-01'
+
+        if config.end_date:
+            params["endDt"] = config.end_date
 
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/gwlevels/", params

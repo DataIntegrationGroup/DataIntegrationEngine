@@ -188,6 +188,34 @@ def test_analytes_invalid_county_name():
     _tester(analytes, args, fail=True)
 
 
+def test_waterlevels_date_range_YMD():
+    args = _make_wl_args()
+    args.extend(["--start-date", "2020-01-01", "--end-date", "2020-05-01"])
+    _tester(waterlevels, args)
+
+
+def test_waterlevels_date_range_YM():
+    args = _make_wl_args()
+    args.extend(["--start-date", "2020-01", "--end-date", "2020-05"])
+    _tester(waterlevels, args)
+
+
+def test_waterlevels_date_range_Y():
+    args = _make_wl_args()
+    args.extend(["--start-date", "2020", "--end-date", "2021"])
+    _tester(waterlevels, args)
+
+
+def test_waterlevels_invalid_start():
+    args = _make_wl_args()
+    args.extend(["--start-date", "x-01-01", "--end-date", "2019-05-01"])
+    _tester(waterlevels, args, fail=True)
+
+
+def test_waterlevels_invalid_end():
+    args = _make_wl_args()
+    args.extend(["--start-date", "2020-01-01", "--end-date", "x-05-01"])
+    _tester(waterlevels, args, fail=True)
 #
 # def _tester(source, func, county, bbox, args=None):
 #     runner = CliRunner()

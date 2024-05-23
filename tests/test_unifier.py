@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import datetime
 import os
 
 import pytest
@@ -26,7 +27,7 @@ def config_factory():
     cfg.county = "eddy"
     cfg.bbox = "-104.5 32.5,-104 33"
     cfg.start_date = "2020-01-01"
-    cfg.end_date = "2020-5-01"
+    cfg.end_date = "2024-5-01"
     cfg.output_summary = False
 
     cfg.use_source_ampapi = False
@@ -73,14 +74,14 @@ def _setup(tmp_path, cfg, source, tag):
     d.mkdir()
     cfg.output_dir = str(d)
     for stag in (
-        "ampapi",
-        "nwis",
-        "st2",
-        "bor",
-        "dwb",
-        "wqp",
-        "isc_seven_rivers",
-        "ose_roswell",
+            "ampapi",
+            "nwis",
+            "st2",
+            "bor",
+            "dwb",
+            "wqp",
+            "isc_seven_rivers",
+            "ose_roswell",
     ):
         if stag == source:
             setattr(cfg, f"use_source_{stag}", True)
@@ -110,13 +111,19 @@ def _test_waterlevels_summary(tmp_path, cfg, source):
 
 
 def _test_waterlevels_timeseries(
-    tmp_path, cfg, source, combined_flag=True, timeseries_flag=False
+        tmp_path, cfg, source, combined_flag=True, timeseries_flag=False
 ):
     d = _setup_waterlevels(tmp_path, cfg, source)
-    print("combined", os.path.isfile(d / "output.combined.csv"), combined_flag)
-    assert (d / "output.combined.csv").is_file() == combined_flag
-    print("timeseries", os.path.isfile(d / "output.timeseries"), timeseries_flag)
-    assert (d / "output_timeseries").is_dir() == timeseries_flag
+    combined = d / "output.combined.csv"
+    timeseries = d / "output_timeseries"
+
+
+    print("combined", os.path.isfile(combined), combined_flag)
+    assert combined.is_file() == combined_flag
+    print("timeseries", os.path.isfile(timeseries), timeseries_flag)
+    assert timeseries.is_dir() == timeseries_flag
+
+    return combined, timeseries
 
 
 # Waterlevel Summary tests  ===========================================================================================
@@ -142,7 +149,9 @@ def test_unify_waterlevels_ose_roswell_summary(tmp_path, waterlevel_summary_cfg)
 
 # Waterlevel timeseries tests =========================================================================================
 def test_unify_waterlevels_nwis_timeseries(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "nwis")
+    _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "nwis",
+                                 combined_flag=False,
+                                 timeseries_flag=True)
 
 
 def test_unify_waterlevels_amp_timeseries(tmp_path, waterlevel_timeseries_cfg):
@@ -162,7 +171,7 @@ def test_unify_waterlevels_st2_timeseries(tmp_path, waterlevel_timeseries_cfg):
 
 
 def test_unify_waterlevels_isc_seven_rivers_timeseries(
-    tmp_path, waterlevel_timeseries_cfg
+        tmp_path, waterlevel_timeseries_cfg
 ):
     _test_waterlevels_timeseries(
         tmp_path,
@@ -177,6 +186,27 @@ def test_unify_waterlevels_ose_roswell_timeseries(tmp_path, waterlevel_timeserie
     _test_waterlevels_timeseries(
         tmp_path, waterlevel_timeseries_cfg, "ose_roswell", timeseries_flag=True
     )
+
+
+def test_waterlevels_nwis_summary_date_range(tmp_path, waterlevel_summary_cfg):
+    d = _setup_waterlevels(tmp_path, waterlevel_summary_cfg, "nwis")
+    assert (d / "output.csv").is_file()
+
+
+def test_waterlevels_nwis_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
+    combined, timeseries = _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "nwis",
+                                                        timeseries_flag=True, combined_flag=False)
+    for p in timeseries.iterdir():
+        if os.path.basename(p) == 'sites.csv':
+            continue
+
+        with open(p, "r") as rfile:
+            lines = rfile.readlines()
+            for l in lines[1:]:
+                vs = l.split(',')
+                dd = vs[1]
+                dd = datetime.datetime.strptime(dd, "%Y-%m-%d")
+                assert dd.year >= 2020 and dd.year <= 2024
 
 
 # Analyte summary tests ===============================================================================================
@@ -198,6 +228,5 @@ def test_unify_analytes_isc_seven_rivers_summary(tmp_path, analyte_summary_cfg):
 
 def test_unify_analytes_dwb_summary(tmp_path, analyte_summary_cfg):
     _test_analytes_summary(tmp_path, analyte_summary_cfg, "dwb")
-
 
 # ============= EOF =============================================

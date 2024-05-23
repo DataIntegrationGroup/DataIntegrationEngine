@@ -114,6 +114,22 @@ DEBUG_OPTIONS = [
     ),
 ]
 
+DT_OPTIONS = [
+    click.option(
+
+        "--start-date",
+        default="",
+        help="Start date in the form 'YYYY', 'YYYY-MM', 'YYYY-MM-DD', 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'",
+    ),
+    click.option(
+
+        "--end-date",
+
+        default="",
+        help="End date in the form 'YYYY', 'YYYY-MM', 'YYYY-MM-DD', 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'",
+    ),
+]
+
 
 def add_options(options):
     def _add_options(func):
@@ -143,11 +159,14 @@ def wells(bbox, county):
     show_default=True,
     help="Include timeseries data",
 )
+@add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
     timeseries,
+    start_date,
+    end_date,
     bbox,
     county,
     no_amp,
@@ -171,6 +190,8 @@ def waterlevels(
     config.use_source_wqp = no_wqp
     config.use_source_ose_roswell = no_ckan
     config.use_source_dwb = no_dwb
+    config.start_date = start_date
+    config.end_date = end_date
 
     unify_waterlevels(config)
 
@@ -184,12 +205,14 @@ def waterlevels(
     show_default=True,
     help="Include timeseries data",
 )
+@add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
     timeseries,
+        start_date, end_date,
     bbox,
     county,
     no_amp,
@@ -216,6 +239,8 @@ def analytes(
     config.use_source_wqp = no_wqp
     config.use_source_ose_roswell = no_ckan
     config.use_source_dwb = no_dwb
+    config.start_date = start_date
+    config.end_date = end_date
 
     unify_analytes(config)
 

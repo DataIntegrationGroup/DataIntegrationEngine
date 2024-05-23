@@ -59,8 +59,8 @@ class Config(object):
     dry: bool = False
 
     # date
-    start_date = None
-    end_date = None
+    start_date: str = ''
+    end_date: str = ''
 
     # spatial
     bbox: dict  # dict or str
@@ -248,6 +248,27 @@ class Config(object):
         if not self._validate_county():
             click.secho("Invalid county", fg="red")
             sys.exit(2)
+
+        if not self._validate_date(self.start_date):
+            click.secho(f"Invalid start date {self.start_date}", fg="red")
+            sys.exit(2)
+
+        if not self._validate_date(self.end_date):
+            click.secho("Invalid end date", fg="red")
+            sys.exit(2)
+
+
+    def _validate_date(self, d):
+        if d:
+            for fmt in ("%Y", "%Y-%m", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"):
+                try:
+                    datetime.strptime(d, fmt)
+                    return True
+                except ValueError:
+                    pass
+            else:
+                return False
+        return True
 
     def _validate_bbox(self):
         try:
