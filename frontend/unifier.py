@@ -39,7 +39,7 @@ def unify_sites(config):
 def unify_analytes(config):
     log("Unifying analytes")
     config.validate()
-    if config.dry:
+    if not config.dry:
         _unify_parameter(config, config.analyte_sources())
 
 
@@ -127,11 +127,11 @@ def analyte_unification_test():
     cfg.county = "eddy"
 
     cfg.analyte = "TDS"
-    # cfg.output_summary = True
+    cfg.output_summary = True
 
     # analyte testing
-    cfg.use_source_wqp = False
-    # cfg.use_source_ampapi = False
+    # cfg.use_source_wqp = False
+    cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_bor = False
     cfg.use_source_dwb = False
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
 
-    waterlevel_unification_test()
-    # analyte_unification_test()
+    # waterlevel_unification_test()
+    analyte_unification_test()
 
 # ============= EOF =============================================
