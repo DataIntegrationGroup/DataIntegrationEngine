@@ -85,9 +85,8 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
         return self._execute_json_request(
             _make_url("waterchemistry/major"),
             params={"pointid": parent_record.id, "analyte": analyte},
-            tag=''
+            tag="",
         )
-
 
     def _extract_parameter_units(self, records):
         return [r["Units"] for r in records]

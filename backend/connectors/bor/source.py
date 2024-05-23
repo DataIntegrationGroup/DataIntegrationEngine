@@ -98,9 +98,7 @@ class BORAnalyteSource(BaseAnalyteSource):
             self._reorder_catalog_items(parent_record.catalogItems)
         ):
 
-            data = self._execute_json_request(
-                f'https://data.usbr.gov{item["id"]}'
-            )
+            data = self._execute_json_request(f'https://data.usbr.gov{item["id"]}')
             if not data:
                 continue
 
@@ -113,5 +111,6 @@ class BORAnalyteSource(BaseAnalyteSource):
                     "https://data.usbr.gov/rise/api/result",
                     params={"itemId": data["attributes"]["_id"]},
                 )
+
 
 # ============= EOF =============================================
