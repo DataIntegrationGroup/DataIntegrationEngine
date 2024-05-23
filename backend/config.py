@@ -60,8 +60,8 @@ class Config(object):
 
     # spatial
     bbox: dict  # dict or str
-    county: str
-    wkt: str
+    county: str = ""
+    wkt: str = ""
 
     # sources
     use_source_ampapi: bool = True
@@ -91,6 +91,7 @@ class Config(object):
     use_geojson: bool = False
 
     def __init__(self, model=None):
+        self.bbox = {}
         if model:
             if model.wkt:
                 self.wkt = model.wkt
