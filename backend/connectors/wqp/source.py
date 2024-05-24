@@ -54,6 +54,7 @@ def get_date_range(config):
         params["end"] = config.end_dt.strftime("%m-%d-%Y")
     return params
 
+
 class WQPSiteSource(BaseSiteSource):
     transformer_klass = WQPSiteTransformer
     chunk_size = 100
@@ -70,7 +71,6 @@ class WQPSiteSource(BaseSiteSource):
             )
 
         params.update(get_date_range(config))
-
 
         text = self._execute_text_request(
             "https://www.waterqualitydata.us/data/Station/search?", params, timeout=30

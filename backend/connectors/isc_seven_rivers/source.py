@@ -112,8 +112,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             params.update(get_date_range(config))
 
             return self._execute_json_request(
-                _make_url("getReadings.ashx"),
-                params=params
+                _make_url("getReadings.ashx"), params=params
             )
 
 
@@ -168,5 +167,6 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         record = get_most_recent(records, "dateTime")
         t = get_datetime(record)
         return {"value": record["depthToWaterFeet"], "datetime": t, "units": FEET}
+
 
 # ============= EOF =============================================

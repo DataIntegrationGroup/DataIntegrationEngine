@@ -23,7 +23,11 @@ from backend.connectors.st2.transformer import (
     PVACDWaterLevelTransformer,
     EBIDWaterLevelTransformer,
 )
-from backend.connectors.st_connector import STSiteSource, STWaterLevelSource, make_dt_filter
+from backend.connectors.st_connector import (
+    STSiteSource,
+    STWaterLevelSource,
+    make_dt_filter,
+)
 from backend.constants import DTW, DTW_UNITS, DT_MEASURED
 from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
@@ -85,7 +89,9 @@ class ST2WaterLevelSource(STWaterLevelSource):
 
                     q = di.get_observations().query()
 
-                    fi = make_dt_filter("phenomenonTime", config.start_dt, config.end_dt)
+                    fi = make_dt_filter(
+                        "phenomenonTime", config.start_dt, config.end_dt
+                    )
                     if fi:
                         q = q.filter(fi)
 
@@ -115,5 +121,6 @@ class PVACDWaterLevelSource(ST2WaterLevelSource):
 class EBIDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = EBIDWaterLevelTransformer
     agency = "EBID"
+
 
 # ============= EOF =============================================

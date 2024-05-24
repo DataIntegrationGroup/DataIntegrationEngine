@@ -44,9 +44,7 @@ class STSource:
         self, service, site, expand="Locations,Datastreams", additional_filters=None
     ):
 
-        things = (
-            service.things().query().expand(expand)
-        )
+        things = service.things().query().expand(expand)
         fs = [f"Locations/id eq {site.id}"]
         if additional_filters is not None:
             for fi in additional_filters:
@@ -73,14 +71,14 @@ class STSource:
 
 def make_dt_filter(tag, start, end):
     if start:
-        s = start.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        s = start.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         e = end
         if not e:
             e = datetime.now()
-        e = e.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        e = e.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         return f"overlaps({tag}, {s}/{e})"
     elif end:
-        e = end.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        e = end.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         return f"{tag} le {e}"
 
     return ""
@@ -99,12 +97,19 @@ class STSiteSource(BaseSiteSource, STSource):
                 f"st_within(Location/location, geography'{config.bounding_wkt()}')"
             )
 
-        fi = make_dt_filter("Things/Datastreams/phenomenonTime", config.start_dt, config.end_dt)
+        fi = make_dt_filter(
+            "Things/Datastreams/phenomenonTime", config.start_dt, config.end_dt
+        )
         if fi:
             fs.append(fi)
 
         fs = fs + self._get_filters()
-        q = service.locations().query().expand('Things/Datastreams').filter(" and ".join(fs))
+        q = (
+            service.locations()
+            .query()
+            .expand("Things/Datastreams")
+            .filter(" and ".join(fs))
+        )
 
         return list(q.list())
 

@@ -221,11 +221,17 @@ def test_waterlevels_nwis_summary_date_range(tmp_path, waterlevel_summary_cfg):
 
 # Waterlevel timeseries date range ====================================================================================
 def test_waterlevels_nwis_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterelevels_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg, "nwis")
+    _test_waterelevels_timeseries_date_range(
+        tmp_path, waterlevel_timeseries_cfg, "nwis"
+    )
 
 
-def test_waterlevels_isc_seven_rivers_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterelevels_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg, "isc_seven_rivers")
+def test_waterlevels_isc_seven_rivers_timeseries_date_range(
+    tmp_path, waterlevel_timeseries_cfg
+):
+    _test_waterelevels_timeseries_date_range(
+        tmp_path, waterlevel_timeseries_cfg, "isc_seven_rivers"
+    )
 
 
 def test_waterlevels_st2_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
