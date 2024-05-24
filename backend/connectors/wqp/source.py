@@ -46,6 +46,14 @@ def parse_tsv(text):
     return [dict(zip(header, row.split("\t"))) for row in rows[1:]]
 
 
+def get_date_range(config):
+    params = {}
+    if config.start_date:
+        params["startDateLo"] = config.start_dt.strftime("%m-%d-%Y")
+    if config.end_date:
+        params["end"] = config.end_dt.strftime("%m-%d-%Y")
+    return params
+
 class WQPSiteSource(BaseSiteSource):
     transformer_klass = WQPSiteTransformer
     chunk_size = 100
@@ -60,6 +68,9 @@ class WQPSiteSource(BaseSiteSource):
             params["characteristicName"] = get_analyte_search_param(
                 config.analyte, WQP_ANALYTE_MAPPING
             )
+
+        params.update(get_date_range(config))
+
 
         text = self._execute_text_request(
             "https://www.waterqualitydata.us/data/Station/search?", params, timeout=30
@@ -111,6 +122,7 @@ class WQPAnalyteSource(BaseAnalyteSource):
                 self.config.analyte, WQP_ANALYTE_MAPPING
             ),
         }
+        params.update(get_date_range(self.config))
 
         text = self._execute_text_request(
             "https://www.waterqualitydata.us/data/Result/search?", params

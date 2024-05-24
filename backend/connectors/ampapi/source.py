@@ -134,13 +134,13 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
         return [r["DepthToWaterBGS"] for r in records]
 
     def get_records(self, parent_record):
-        if self.config.latest_water_level_only:
-            params = {"pointids": parent_record.id}
-            url = _make_url("waterlevels/latest")
-        else:
-            params = {"pointid": parent_record.id}
-            # just use manual waterlevels temporarily
-            url = _make_url("waterlevels/manual")
+        # if self.config.latest_water_level_only:
+        #     params = {"pointids": parent_record.id}
+        #     url = _make_url("waterlevels/latest")
+        # else:
+        params = {"pointid": parent_record.id}
+        # just use manual waterlevels temporarily
+        url = _make_url("waterlevels/manual")
 
         return self._execute_json_request(url, params)
 

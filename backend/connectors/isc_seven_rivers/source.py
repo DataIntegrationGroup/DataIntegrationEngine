@@ -103,16 +103,31 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         config = self.config
         analyte_id = self._get_analyte_id(config.analyte)
         if analyte_id:
+            params = {
+                "monitoringPointId": parent_record.id,
+                "analyteId": analyte_id,
+                "start": 0,
+                "end": config.now_ms(days=1),
+            }
+            params.update(get_date_range(config))
 
             return self._execute_json_request(
                 _make_url("getReadings.ashx"),
-                params={
-                    "monitoringPointId": parent_record.id,
-                    "analyteId": analyte_id,
-                    "start": 0,
-                    "end": config.now_ms(days=1),
-                },
+                params=params
             )
+
+
+def get_date_range(config):
+    params = {}
+
+    def to_milliseconds(dt):
+        return int(dt.timestamp() * 1000)
+
+    if config.start_date:
+        params["start"] = to_milliseconds(config.start_dt)
+    if config.end_date:
+        params["end"] = to_milliseconds(config.end_dt)
+    return params
 
 
 def get_datetime(record):
@@ -123,13 +138,16 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
 
     def get_records(self, parent_record):
+        params = {
+            "id": parent_record.id,
+            "start": 0,
+            "end": self.config.now_ms(days=1),
+        }
+        params.update(get_date_range(self.config))
+
         return self._execute_json_request(
             _make_url("getWaterLevels.ashx"),
-            params={
-                "id": parent_record.id,
-                "start": 0,
-                "end": self.config.now_ms(days=1),
-            },
+            params=params,
         )
 
     def _clean_records(self, records):
@@ -150,6 +168,5 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         record = get_most_recent(records, "dateTime")
         t = get_datetime(record)
         return {"value": record["depthToWaterFeet"], "datetime": t, "units": FEET}
-
 
 # ============= EOF =============================================

@@ -61,10 +61,10 @@ class BaseSource:
             kw["timeout"] = 10
 
         resp = httpx.get(url, params=params, **kw)
-        print(resp.url)
         if resp.status_code == 200:
             return resp.text
         else:
+            self.warn(f"service url {resp.url}")
             self.warn(f"service responded with status {resp.status_code}")
             self.warn(f"service responded with text {resp.text}")
             return ""

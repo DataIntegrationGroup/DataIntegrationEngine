@@ -261,8 +261,7 @@ class Config(object):
         if d:
             for fmt in ("%Y", "%Y-%m", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"):
                 try:
-                    datetime.strptime(d, fmt)
-                    return True
+                    return datetime.strptime(d, fmt)
                 except ValueError:
                     pass
             else:
@@ -282,6 +281,14 @@ class Config(object):
             return bool(get_county_polygon(self.county))
 
         return True
+
+    @property
+    def start_dt(self):
+        return self._validate_date(self.start_date)
+
+    @property
+    def end_dt(self):
+        return self._validate_date(self.end_date)
 
     @property
     def output_path(self):

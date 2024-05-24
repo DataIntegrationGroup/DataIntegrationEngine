@@ -23,7 +23,7 @@ from backend.connectors.st2.transformer import (
     PVACDWaterLevelTransformer,
     EBIDWaterLevelTransformer,
 )
-from backend.connectors.st_connector import STSiteSource, STWaterLevelSource
+from backend.connectors.st_connector import STSiteSource, STWaterLevelSource, make_dt_filter
 from backend.constants import DTW, DTW_UNITS, DT_MEASURED
 from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
@@ -78,19 +78,19 @@ class ST2WaterLevelSource(STWaterLevelSource):
         service = self.get_service()
         config = self.config
 
-        # things = (
-        #     service.things()
-        #     .query()
-        #     .expand("Locations,Datastreams")
-        #     .filter(f"Locations/id eq {parent_record.id}")
-        # )
         records = []
         for t in self._get_things(service, parent_record):
             if t.name == "Water Well":
                 for di in t.datastreams:
+
                     q = di.get_observations().query()
-                    if config.latest_water_level_only and not config.output_summary:
-                        q = q.orderby("phenomenonTime", "desc").top(1)
+
+                    fi = make_dt_filter("phenomenonTime", config.start_dt, config.end_dt)
+                    if fi:
+                        q = q.filter(fi)
+
+                    # if config.latest_water_level_only and not config.output_summary:
+                    q = q.orderby("phenomenonTime", "desc")
 
                     for obs in q.list():
                         records.append(
@@ -101,8 +101,9 @@ class ST2WaterLevelSource(STWaterLevelSource):
                                 "observation": obs,
                             }
                         )
-                        if config.latest_water_level_only and not config.output_summary:
-                            break
+
+                        # if config.latest_water_level_only and not config.output_summary:
+                        #     break
         return records
 
 
@@ -114,6 +115,5 @@ class PVACDWaterLevelSource(ST2WaterLevelSource):
 class EBIDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = EBIDWaterLevelTransformer
     agency = "EBID"
-
 
 # ============= EOF =============================================

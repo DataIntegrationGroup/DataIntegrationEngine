@@ -117,12 +117,34 @@ def _test_waterlevels_timeseries(
     combined = d / "output.combined.csv"
     timeseries = d / "output_timeseries"
 
-    print("combined", os.path.isfile(combined), combined_flag)
+    print("combined", combined.is_file(), combined_flag)
     assert combined.is_file() == combined_flag
-    print("timeseries", os.path.isfile(timeseries), timeseries_flag)
+    print("timeseries", timeseries.is_dir(), timeseries_flag)
     assert timeseries.is_dir() == timeseries_flag
 
     return combined, timeseries
+
+
+def _test_waterelevels_timeseries_date_range(tmp_path, cfg, source):
+    combined, timeseries = _test_waterlevels_timeseries(
+        tmp_path,
+        cfg,
+        source,
+        timeseries_flag=True,
+        combined_flag=False,
+    )
+
+    for p in timeseries.iterdir():
+        if os.path.basename(p) == "sites.csv":
+            continue
+
+        with open(p, "r") as rfile:
+            lines = rfile.readlines()
+            for l in lines[1:]:
+                vs = l.split(",")
+                dd = vs[1]
+                dd = datetime.datetime.strptime(dd, "%Y-%m-%d")
+                assert dd.year >= 2020 and dd.year <= 2024
 
 
 # Waterlevel Summary tests  ===========================================================================================
@@ -191,30 +213,23 @@ def test_unify_waterlevels_ose_roswell_timeseries(tmp_path, waterlevel_timeserie
     )
 
 
+# Waterlevel summary date range tests =================================================================================
 def test_waterlevels_nwis_summary_date_range(tmp_path, waterlevel_summary_cfg):
     d = _setup_waterlevels(tmp_path, waterlevel_summary_cfg, "nwis")
     assert (d / "output.csv").is_file()
 
 
+# Waterlevel timeseries date range ====================================================================================
 def test_waterlevels_nwis_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
-    combined, timeseries = _test_waterlevels_timeseries(
-        tmp_path,
-        waterlevel_timeseries_cfg,
-        "nwis",
-        timeseries_flag=True,
-        combined_flag=False,
-    )
-    for p in timeseries.iterdir():
-        if os.path.basename(p) == "sites.csv":
-            continue
+    _test_waterelevels_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg, "nwis")
 
-        with open(p, "r") as rfile:
-            lines = rfile.readlines()
-            for l in lines[1:]:
-                vs = l.split(",")
-                dd = vs[1]
-                dd = datetime.datetime.strptime(dd, "%Y-%m-%d")
-                assert dd.year >= 2020 and dd.year <= 2024
+
+def test_waterlevels_isc_seven_rivers_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
+    _test_waterelevels_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg, "isc_seven_rivers")
+
+
+def test_waterlevels_st2_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
+    _test_waterelevels_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg, "st2")
 
 
 # Analyte summary tests ===============================================================================================
