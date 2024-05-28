@@ -113,10 +113,6 @@ def _unify_parameter(
     config,
     sources,
 ):
-    # prompt user to continue
-    if not click.confirm("Do you want to continue?", default=True):
-        return
-
     use_summarize = config.output_summary
     persister = _perister_factory(config)
     for site_source, ss in sources:

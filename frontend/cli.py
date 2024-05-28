@@ -190,6 +190,12 @@ def waterlevels(
     config.start_date = start_date
     config.end_date = end_date
 
+    if not dry:
+        config.report()
+        # prompt user to continue
+        if not click.confirm("Do you want to continue?", default=True):
+            return
+
     unify_waterlevels(config)
 
 
@@ -239,6 +245,12 @@ def analytes(
     config.use_source_dwb = no_dwb
     config.start_date = start_date
     config.end_date = end_date
+
+    if not dry:
+        config.report()
+        # prompt user to continue
+        if not click.confirm("Do you want to continue?", default=True):
+            return
 
     unify_analytes(config)
 
