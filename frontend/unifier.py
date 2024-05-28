@@ -38,7 +38,9 @@ def unify_sites(config):
 
 def unify_analytes(config):
     log("Unifying analytes")
+    config.report()
     config.validate()
+
     if not config.dry:
         _unify_parameter(config, config.analyte_sources())
 
@@ -46,6 +48,7 @@ def unify_analytes(config):
 def unify_waterlevels(config):
     log("Unifying waterlevels")
 
+    config.report()
     config.validate()
 
     if not config.dry:
@@ -110,6 +113,10 @@ def _unify_parameter(
     config,
     sources,
 ):
+    # prompt user to continue
+    if not click.confirm("Do you want to continue?", default=True):
+        return
+
     use_summarize = config.output_summary
     persister = _perister_factory(config)
     for site_source, ss in sources:
@@ -154,7 +161,7 @@ def waterlevel_unification_test():
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
-    cfg.site_limit = 10
+    cfg.site_limit = 0
 
     unify_waterlevels(cfg)
 
@@ -165,7 +172,7 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
 
-    # waterlevel_unification_test()
-    analyte_unification_test()
+    waterlevel_unification_test()
+    # analyte_unification_test()
 
 # ============= EOF =============================================

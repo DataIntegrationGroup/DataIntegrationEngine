@@ -104,7 +104,7 @@ DEBUG_OPTIONS = [
         "--site-limit",
         type=int,
         default=None,
-        help="Bounding box in the form 'x1 y1, x2 y2'",
+        help="Max number of sites to return",
     ),
     click.option(
         "--dry",
