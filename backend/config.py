@@ -242,26 +242,56 @@ class Config(object):
 
     def report(self):
         def _report_attributes(title, attrs):
-            click.secho(f"---- {title} --------------------------------------------------", fg="yellow")
+            click.secho(
+                f"---- {title} --------------------------------------------------",
+                fg="yellow",
+            )
             for k in attrs:
                 v = getattr(self, k)
                 click.secho(f"{k}: {v}", fg="yellow")
             click.secho("", fg="yellow")
 
-        click.secho("---- Begin configuration -------------------------------------\n", fg="yellow")
+        click.secho(
+            "---- Begin configuration -------------------------------------\n",
+            fg="yellow",
+        )
 
         # inputs
-        _report_attributes('Inputs', ('start_date', 'end_date', 'county', 'bbox', 'wkt', 'analyte', 'site_limit',
-                                                                          'use_source_ampapi', 'use_source_wqp',
-                                      'use_source_isc_seven_rivers', 'use_source_nwis',
-                                      'use_source_ose_roswell', 'use_source_st2', 'use_source_bor', 'use_source_dwb',
-                                      ))
+        _report_attributes(
+            "Inputs",
+            (
+                "start_date",
+                "end_date",
+                "county",
+                "bbox",
+                "wkt",
+                "analyte",
+                "site_limit",
+                "use_source_ampapi",
+                "use_source_wqp",
+                "use_source_isc_seven_rivers",
+                "use_source_nwis",
+                "use_source_ose_roswell",
+                "use_source_st2",
+                "use_source_bor",
+                "use_source_dwb",
+            ),
+        )
 
         # outputs
-        _report_attributes('Outputs',
-                           ('output_dir', 'output_name', 'output_horizontal_datum', 'output_elevation_units'))
+        _report_attributes(
+            "Outputs",
+            (
+                "output_dir",
+                "output_name",
+                "output_horizontal_datum",
+                "output_elevation_units",
+            ),
+        )
 
-        click.secho("---- End configuration -------------------------------------", fg="yellow")
+        click.secho(
+            "---- End configuration -------------------------------------", fg="yellow"
+        )
 
     def validate(self):
         if not self._validate_bbox():
@@ -316,5 +346,6 @@ class Config(object):
     @property
     def output_path(self):
         return os.path.join(self.output_dir, f"{self.output_name}")
+
 
 # ============= EOF =============================================
