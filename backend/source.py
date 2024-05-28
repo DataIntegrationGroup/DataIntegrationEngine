@@ -267,7 +267,7 @@ class BaseParameterSource(BaseSource):
             else:
                 names = [str(parent_record.id)]
 
-            name = ','.join(names)
+            name = ",".join(names)
             self.warn(f"{name}: No records found")
 
     def _extract_parameter(self, record):

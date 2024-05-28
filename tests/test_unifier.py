@@ -180,9 +180,7 @@ def test_unify_waterlevels_nwis_timeseries(tmp_path, waterlevel_timeseries_cfg):
 
 
 def test_unify_waterlevels_amp_timeseries(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterlevels_timeseries(
-        tmp_path, waterlevel_timeseries_cfg, "ampapi"
-    )
+    _test_waterlevels_timeseries(tmp_path, waterlevel_timeseries_cfg, "ampapi")
 
 
 def test_unify_waterlevels_st2_timeseries(tmp_path, waterlevel_timeseries_cfg):
