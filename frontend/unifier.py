@@ -157,7 +157,7 @@ def waterlevel_unification_test():
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
-    cfg.site_limit = 0
+    cfg.site_limit = 10
 
     unify_waterlevels(cfg)
 

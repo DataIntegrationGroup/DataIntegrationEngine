@@ -202,7 +202,7 @@ class BaseParameterSource(BaseSource):
             )
         else:
             self.log(
-                f"Gathering {self.name} summary for record {parent_record.id}, {parent_record.name}"
+                f"{parent_record.id} ({parent_record.id}): Gathering {self.name} summary"
             )
 
         rs = self.get_records(parent_record)
@@ -214,10 +214,12 @@ class BaseParameterSource(BaseSource):
             for pi in parent_record:
                 rrs = self._extract_parent_records(rs, pi)
                 if not rrs:
+                    self.warn(f"{pi.name}: No parent records found")
                     continue
 
                 cleaned = self._clean_records(rrs)
                 if not cleaned:
+                    self.warn(f"{pi.name} No clean records found")
                     continue
 
                 items = self._extract_parameter_results(cleaned)
@@ -229,7 +231,7 @@ class BaseParameterSource(BaseSource):
 
                 if items is not None:
                     n = len(items)
-                    self.log(f"Retrieved {self.name}: {n}")
+                    self.log(f"{pi.name}: Retrieved {self.name}: {n}")
                     if use_summarize:
                         mr = self._extract_most_recent(cleaned)
                         if not mr:
@@ -257,12 +259,16 @@ class BaseParameterSource(BaseSource):
                         ]
                         cs = sorted(cs, key=self._sort_func)
                         ret.append((pi, cs))
+
             return ret
         else:
-            self.no_records()
+            if isinstance(parent_record, list):
+                names = [str(r.id) for r in parent_record]
+            else:
+                names = [str(parent_record.id)]
 
-    def no_records(self):
-        self.warn("No records found")
+            name = ','.join(names)
+            self.warn(f"{name}: No records found")
 
     def _extract_parameter(self, record):
         record = self._extract_parameter_record(record)
