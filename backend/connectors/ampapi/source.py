@@ -43,18 +43,19 @@ from backend.source import (
     BaseSiteSource,
     BaseAnalyteSource,
     get_most_recent,
-    get_analyte_search_param,
+    get_analyte_search_param, make_site_list,
 )
 
 
 def _make_url(endpoint):
-    if bool(os.getenv("DEBUG")):
+    if os.getenv("DEBUG") == '1':
         return f"http://localhost:8000/{endpoint}"
     return f"https://waterdata.nmt.edu/{endpoint}"
 
 
 class AMPAPISiteSource(BaseSiteSource):
     transformer_klass = AMPAPISiteTransformer
+    chunk_size = 100
 
     def get_records(self):
         config = self.config
@@ -133,16 +134,18 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
     def _extract_parameter_results(self, records):
         return [r["DepthToWaterBGS"] for r in records]
 
+    def _extract_parent_records(self, records, parent_record):
+        return [ri for ri in records if ri['Well']["PointID"] == parent_record.id]
+
     def get_records(self, parent_record):
         # if self.config.latest_water_level_only:
         #     params = {"pointids": parent_record.id}
         #     url = _make_url("waterlevels/latest")
         # else:
-        params = {"pointid": parent_record.id}
+        params = {"pointid": ','.join(make_site_list(parent_record))}
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 
         return self._execute_json_request(url, params)
-
 
 # ============= EOF =============================================

@@ -52,6 +52,7 @@ class ConfigModel(BaseModel):
     county: str = ""
     wkt: str = ""
     site_limit: int = 0
+    force: bool = False
 
 
 active_processes: dict = {}
@@ -88,27 +89,28 @@ def router_unify_waterlevels(item: ConfigModel):
     itemhash = hashlib.md5(
         json.dumps(item.model_dump(), sort_keys=True).encode()
     ).hexdigest()
-    name = f"{itemhash}.csv"
 
-    if os.getenv("USE_LOCAL_CACHE", False):
-        pp = os.path.join("cache", name)
+    if not item.force:
+        if os.getenv("USE_LOCAL_CACHE", False):
 
-        if os.path.isfile(pp):
-            # how old is the file
-            st = os.stat(pp)
-            if time.time() - st.st_mtime > 3600:
-                os.remove(pp)
+            pp = os.path.join("cache", itemhash)
 
-        if not os.path.isfile(pp):
-            cfg.output_name = pp
+            if os.path.isfile(pp):
+                # how old is the file
+                st = os.stat(pp)
+                if time.time() - st.st_mtime > 3600:
+                    os.remove(pp)
+
+            if not os.path.isfile(pp):
+                cfg.output_name = pp
+            else:
+                exists = True
         else:
-            exists = True
-    else:
-        # get from storage bucket
-        storage_client = storage.Client()
-        bucket = storage_client.bucket("waterdatainitiative")
-        exists = bucket.blob(f"die/{name}").exists()
-        cfg.output_name = itemhash
+            # get from storage bucket
+            storage_client = storage.Client()
+            bucket = storage_client.bucket("waterdatainitiative")
+            exists = bucket.blob(f"die/{itemhash}").exists()
+            cfg.output_name = itemhash
 
     if not exists:
         cleanup()
