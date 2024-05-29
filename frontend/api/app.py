@@ -140,7 +140,7 @@ def router_status(process_id: Optional[str] = None):
 
         return dict(
             message="active processes",
-            processes=[str(v) for v in active_processes.values() if v.is_alive()],
+            processes=[k for k, v in active_processes.items() if v.is_alive()],
         )
 
 

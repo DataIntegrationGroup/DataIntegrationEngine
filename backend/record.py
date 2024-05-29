@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.constants import DTW, PARAMETER, PARAMETER_VALUE
+from backend.constants import DTW, PARAMETER, PARAMETER_VALUE, FEET
 
 
 class BaseRecord:
@@ -158,7 +158,7 @@ class SiteRecord(BaseRecord):
         "latitude": None,
         "longitude": None,
         "elevation": None,
-        "elevation_units": "feet",
+        "elevation_units": FEET,
         "horizontal_datum": "WGS84",
         "vertical_datum": "",
         "usgs_site_id": "",

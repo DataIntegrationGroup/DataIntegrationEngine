@@ -54,12 +54,17 @@ def transform_units(e, unit, out_unit):
         return None, unit
 
     if unit != out_unit:
-        if unit == "ft" and out_unit == "m":
+        if unit.lower() == 'feet':
+            unit = FEET
+        if unit.lower() == 'meters':
+            unit = METERS
+
+        if unit == FEET and out_unit == METERS:
             e = e * 0.3048
-            unit = "m"
-        elif unit == "m" and out_unit == "ft":
+            unit = METERS
+        elif unit == METERS and out_unit == FEET:
             e = e * 3.28084
-            unit = "ft"
+            unit = FEET
     return e, unit
 
 
@@ -92,6 +97,11 @@ def convert_units(input_value, input_units, output_units):
 
     ft = FEET.lower()
     m = METERS.lower()
+
+    if input_units == 'feet':
+        input_units = ft
+    if input_units == 'meters':
+        input_units = m
 
     if input_units == ft and output_units == m:
         return input_value * 0.3048
