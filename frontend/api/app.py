@@ -49,8 +49,8 @@ class BboxModel(BaseModel):
 
 class ConfigModel(BaseModel):
     bbox: Optional[BboxModel] = None
-    county: str = ''
-    wkt: str = ''
+    county: str = ""
+    wkt: str = ""
     site_limit: int = 0
 
 
@@ -59,7 +59,7 @@ active_processes: dict = {}
 
 def cleanup():
     rm = []
-    for k,v in active_processes.items():
+    for k, v in active_processes.items():
         if not v.is_alive():
             rm.append(k)
 
@@ -90,7 +90,7 @@ def router_unify_waterlevels(item: ConfigModel):
     ).hexdigest()
     name = f"{itemhash}.csv"
 
-    if os.getenv('USE_LOCAL_CACHE', False):
+    if os.getenv("USE_LOCAL_CACHE", False):
         pp = os.path.join("cache", name)
 
         if os.path.isfile(pp):
@@ -107,7 +107,7 @@ def router_unify_waterlevels(item: ConfigModel):
         # get from storage bucket
         storage_client = storage.Client()
         bucket = storage_client.bucket("waterdatainitiative")
-        exists = bucket.blob(f'die/{name}').exists()
+        exists = bucket.blob(f"die/{name}").exists()
         cfg.output_name = itemhash
 
     if not exists:
@@ -116,7 +116,7 @@ def router_unify_waterlevels(item: ConfigModel):
         if len(active_processes.keys()) > 5:
             raise HTTPException(status_code=429, detail="Too many active processes")
 
-        cfg.use_cloud_storage = not os.getenv('USE_LOCAL_CACHE', False)
+        cfg.use_cloud_storage = not os.getenv("USE_LOCAL_CACHE", False)
         proc = multiprocessing.Process(target=unify_waterlevels, args=(cfg,))
         proc.start()
 
@@ -146,7 +146,7 @@ def router_status(process_id: Optional[str] = None):
 
 @app.get("/download_unified_waterlevels")
 def router_download_unified_waterlevels(downloadhash: str):
-    if os.getenv('USE_LOCAL_CACHE', False):
+    if os.getenv("USE_LOCAL_CACHE", False):
         downloadhash = os.path.join("cache", f"{downloadhash}.csv")
         if not os.path.isfile(downloadhash):
             return HTTPException(status_code=404, detail="No such file")
@@ -156,11 +156,13 @@ def router_download_unified_waterlevels(downloadhash: str):
     else:
         storage_client = storage.Client()
         bucket = storage_client.bucket("waterdatainitiative")
-        blob = bucket.blob(f'die/{downloadhash}.csv')
+        blob = bucket.blob(f"die/{downloadhash}.csv")
         if not blob.exists():
             return HTTPException(status_code=404, detail="No such file")
 
-        response = StreamingResponse(iter([blob.download_as_string()]), media_type="text/csv")
+        response = StreamingResponse(
+            iter([blob.download_as_string()]), media_type="text/csv"
+        )
 
     response.headers["Content-Disposition"] = f"attachment; filename=output.csv"
     return response

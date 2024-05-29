@@ -27,7 +27,7 @@ from backend.record import SiteRecord
 try:
     from google.cloud import storage
 except ImportError:
-    print('google cloud storage not available')
+    print("google cloud storage not available")
 
 
 class Loggable:
@@ -128,9 +128,9 @@ class CloudStoragePersister(BasePersister):
     def _upload(self, path, cnt):
         storage_client = storage.Client()
         bucket = storage_client.bucket("waterdatainitiative")
-        path = f'die/{path}'
+        path = f"die/{path}"
         blob = bucket.blob(path)
-        blob.upload_from_string(cnt.encode('utf-8'))
+        blob.upload_from_string(cnt.encode("utf-8"))
 
     def _dump_combined(self, path, combined):
         def func(f, writer):
@@ -179,6 +179,7 @@ class GeoJSONPersister(BasePersister):
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(path, driver="GeoJSON")
+
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"
