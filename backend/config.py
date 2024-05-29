@@ -53,6 +53,16 @@ from backend.connectors.st2.source import (
 from backend.connectors.usgs.source import USGSSiteSource, USGSWaterLevelSource
 from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
+SOURCE_KEYS = (
+    "ampapi",
+    "wqp",
+    "isc_seven_rivers",
+    "nwis",
+    "ose_roswell",
+    "st2",
+    "bor",
+    "dwb",
+)
 
 class Config(object):
     site_limit: int = 0
@@ -104,7 +114,12 @@ class Config(object):
             else:
                 self.county = model.county
                 if not self.county:
-                    self.bbox = model.bbox.model_dump()
+                    if model.bbox:
+                        self.bbox = model.bbox.model_dump()
+
+            if model.sources:
+                for s in SOURCE_KEYS:
+                    setattr(self, f"use_source_{s}", s in model.sources)
 
     def analyte_sources(self):
         sources = []

@@ -53,6 +53,7 @@ class ConfigModel(BaseModel):
     wkt: str = ""
     site_limit: int = 0
     force: bool = False
+    sources: list = []
 
 
 active_processes: dict = {}
@@ -109,7 +110,7 @@ def router_unify_waterlevels(item: ConfigModel):
             # get from storage bucket
             storage_client = storage.Client()
             bucket = storage_client.bucket("waterdatainitiative")
-            exists = bucket.blob(f"die/{itemhash}").exists()
+            exists = bucket.blob(f"die/{itemhash}.csv").exists()
             cfg.output_name = itemhash
 
     if not exists:
