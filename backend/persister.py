@@ -14,6 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 import csv
+import io
 import os
 import shutil
 
@@ -21,9 +22,12 @@ import click
 import pandas as pd
 import geopandas as gpd
 
-# from frost_sta_client import AuthHandler
-
 from backend.record import SiteRecord
+
+try:
+    from google.cloud import storage
+except ImportError:
+    print('google cloud storage not available')
 
 
 class Loggable:
@@ -55,9 +59,9 @@ class BasePersister(Loggable):
                 path = os.path.join(root, str(site.id).replace(" ", "_"))
                 path = self.add_extension(path)
                 self.log(f"dumping {site.id} to {os.path.abspath(path)}")
-                self._dump_timeseries(path, records)
+                self._write(path, records)
 
-            self._dump_sites(
+            self._write(
                 os.path.join(root, self.add_extension("sites")),
                 [s[0] for s in self.timeseries],
             )
@@ -77,7 +81,7 @@ class BasePersister(Loggable):
         if self.records:
             path = self.add_extension(path)
             self.log(f"saving to {path}")
-            self._save(path)
+            self._write(path, self.records)
         else:
             self.log("no records to save", fg="red")
 
@@ -89,70 +93,92 @@ class BasePersister(Loggable):
             path = f"{path}.{self.extension}"
         return path
 
-    def _save(self, path):
+    def _write(self, path, records):
         raise NotImplementedError
 
     def _dump_combined(self, path, combined):
         raise NotImplementedError
 
-    def _dump_timeseries(self, root, timeseries):
-        raise NotImplementedError
 
-    def _dump_sites(self, path, sites):
-        raise NotImplementedError
+def write_file(path, func):
+    with open(path, "w") as f:
+        func(csv.writer(f))
 
 
-class CSVPersister(BasePersister):
+def write_memory(func):
+    f = io.StringIO()
+    func(f, csv.writer(f))
+
+
+class CloudStoragePersister(BasePersister):
     extension = "csv"
 
-    def _dump_sites(self, path, sites):
-        with open(path, "w") as f:
-            writer = csv.writer(f)
-            for i, site in enumerate(sites):
+    def _write(self, path, records):
+        def func(f, writer):
+            for i, site in enumerate(records):
                 if i == 0:
                     writer.writerow(site.keys)
 
                 writer.writerow(site.to_row())
 
-    def _dump_timeseries(self, path, records):
-        with open(path, "w") as f:
-            writer = csv.writer(f)
-            for i, record in enumerate(records):
-                if i == 0:
-                    writer.writerow(record.keys)
+            self._upload(path, f.getvalue())
 
-                writer.writerow(record.to_row())
+        write_memory(func)
+
+    def _upload(self, path, cnt):
+        storage_client = storage.Client()
+        bucket = storage_client.bucket("waterdatainitiative")
+        path = f'die/{path}'
+        blob = bucket.blob(path)
+        blob.upload_from_string(cnt.encode('utf-8'))
 
     def _dump_combined(self, path, combined):
-        with open(path, "w") as f:
-            writer = csv.writer(f)
+        def func(f, writer):
             for i, (site, record) in enumerate(combined):
                 if i == 0:
                     writer.writerow(site.keys + record.keys)
 
                 writer.writerow(site.to_row() + record.to_row())
 
-    def _save(self, path):
-        with open(path, "w") as f:
-            writer = csv.writer(f)
-            for i, record in enumerate(self.records):
-                if i == 0:
-                    writer.writerow(record.keys)
+            self._upload(path, f.getvalue())
 
-                writer.writerow(record.to_row())
+        write_memory(func)
+
+
+class CSVPersister(BasePersister):
+    extension = "csv"
+
+    def _write(self, path, records):
+        def func(writer):
+            for i, site in enumerate(records):
+                if i == 0:
+                    writer.writerow(site.keys)
+                writer.writerow(site.to_row())
+
+        write_file(path, func)
+
+    def _dump_combined(self, path, combined):
+        def func(writer):
+            for i, (site, record) in enumerate(combined):
+                if i == 0:
+                    writer.writerow(site.keys + record.keys)
+
+                writer.writerow(site.to_row() + record.to_row())
+
+        write_file(path, func)
 
 
 class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
-    def _save(self, path):
-        df = pd.DataFrame([r.to_row() for r in self.records], columns=self.keys)
+    def _write(self, path, records):
+        r0 = records[0]
+        df = pd.DataFrame([r.to_row() for r in records], columns=r0.keys)
 
         gdf = gpd.GeoDataFrame(
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(path, driver="GeoJSON")
-
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

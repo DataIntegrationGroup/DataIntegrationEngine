@@ -55,7 +55,7 @@ from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 
 class Config(object):
-    site_limit: int
+    site_limit: int = 0
     dry: bool = False
 
     # date
@@ -80,6 +80,7 @@ class Config(object):
     analyte: str = ""
 
     # output
+    use_cloud_storage: bool = False
     output_dir: str = ""
     output_name: str = "output"
     output_horizontal_datum: str = WGS84
@@ -310,15 +311,17 @@ class Config(object):
             click.secho("Invalid end date", fg="red")
             sys.exit(2)
 
-    def _validate_date(self, d):
+    def _extract_date(self, d):
         if d:
             for fmt in ("%Y", "%Y-%m", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"):
                 try:
                     return datetime.strptime(d, fmt)
                 except ValueError:
                     pass
-            else:
-                return False
+
+    def _validate_date(self, d):
+        if d:
+            return bool(self._extract_date(d))
         return True
 
     def _validate_bbox(self):
@@ -337,11 +340,11 @@ class Config(object):
 
     @property
     def start_dt(self):
-        return self._validate_date(self.start_date)
+        return self._extract_date(self.start_date)
 
     @property
     def end_dt(self):
-        return self._validate_date(self.end_date)
+        return self._extract_date(self.end_date)
 
     @property
     def output_path(self):

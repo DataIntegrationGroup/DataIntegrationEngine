@@ -1,0 +1,4 @@
+service: die
+runtime: python310
+
+entrypoint: gunicorn --timeout 120 -w 1 -k uvicorn.workers.UvicornWorker frontend.api.app:app

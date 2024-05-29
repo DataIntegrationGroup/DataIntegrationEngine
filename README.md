@@ -35,6 +35,11 @@ Get water levels for a county. Return a summary csv
 ```bash
 weave waterlevels --county eddy
 ```
+Get water levels for a bounding box. Return a summary csv
+```bash
+weave waterlevels --bbox -106.5 32.5 -106.0 33.0
+```
+
 
 Get water levels for a county. Return timeseries of water levels for each site
 ```bash

@@ -18,7 +18,7 @@ import logging
 import click
 
 from backend.config import Config
-from backend.persister import CSVPersister, GeoJSONPersister
+from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 
 
 def log(msg, fg="green"):
@@ -57,7 +57,9 @@ def unify_waterlevels(config):
 
 def _perister_factory(config):
     persister_klass = CSVPersister
-    if config.use_csv:
+    if config.use_cloud_storage:
+        persister_klass = CloudStoragePersister
+    elif config.use_csv:
         persister_klass = CSVPersister
     elif config.use_geojson:
         persister_klass = GeoJSONPersister

@@ -1,6 +1,8 @@
+fastapi>=0.111.0, <0.112.0
+gunicorn
+uvicorn
 httpx
 pandas
 geopandas
-click
 frost_sta_client
-fastapi==0.111.0
+google-cloud-storage
