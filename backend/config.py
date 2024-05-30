@@ -122,12 +122,12 @@ class Config(object):
                 for s in SOURCE_KEYS:
                     setattr(self, f"use_source_{s}", s in model.sources)
         elif payload:
-            self.wkt = payload.get('wkt', '')
-            self.county = payload.get('county', '')
-            self.output_summary = payload.get('output_summary', False)
-            self.output_name = payload.get('output_name', 'output')
+            self.wkt = payload.get("wkt", "")
+            self.county = payload.get("county", "")
+            self.output_summary = payload.get("output_summary", False)
+            self.output_name = payload.get("output_name", "output")
             for s in SOURCE_KEYS:
-                setattr(self, f"use_source_{s}", s in payload.get('sources', []))
+                setattr(self, f"use_source_{s}", s in payload.get("sources", []))
 
     def analyte_sources(self):
         sources = []

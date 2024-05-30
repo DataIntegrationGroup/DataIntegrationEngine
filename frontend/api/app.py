@@ -81,6 +81,7 @@ def create_queue(project: str, location: str, queue_id: str) -> tasks_v2.Queue:
             )
         )
 
+
 @app.post("/trigger_unify_waterlevels")
 def router_unify_waterlevels(item: ConfigModel):
     print("unify waterlevels", item)
@@ -101,12 +102,12 @@ def router_unify_waterlevels(item: ConfigModel):
         project = os.getenv("PROJECT_ID")
         location = os.getenv("LOCATION")
         url = os.getenv("WORKER_URL")
-        queue = 'die-queue'
+        queue = "die-queue"
 
         create_queue(project, location, queue)
         task_id = None
 
-        cfgobj['output_name'] = itemhash
+        cfgobj["output_name"] = itemhash
         # Construct the task.
         name = None
         if task_id is not None:
@@ -115,11 +116,11 @@ def router_unify_waterlevels(item: ConfigModel):
         task = tasks_v2.Task(
             http_request=tasks_v2.HttpRequest(
                 http_method=tasks_v2.HttpMethod.POST,
-                url=f'{url}/unify_waterlevels',
+                url=f"{url}/unify_waterlevels",
                 headers={"Content-type": "application/json"},
                 body=json.dumps(cfgobj).encode(),
             ),
-            name=name
+            name=name,
         )
         response = client.create_task(
             tasks_v2.CreateTaskRequest(
@@ -139,22 +140,25 @@ def router_unify_waterlevels(item: ConfigModel):
         # }
         # response = client.create_task(parent=parent, task=task)
 
-        response = {'name': response.name, 'dispatch_count': response.dispatch_count}
+        response = {"name": response.name, "dispatch_count": response.dispatch_count}
 
-    return dict(message="triggered unify waterlevels", downloadhash=itemhash,
-                task_response=response)
+    return dict(
+        message="triggered unify waterlevels",
+        downloadhash=itemhash,
+        task_response=response,
+    )
 
 
 @app.get("/status")
 def router_status(task_id: str):
-    status = 'running'
+    status = "running"
     client = tasks_v2.CloudTasksClient()
     try:
         task = client.get_task(name=task_id)
     except NotFound as e:
-        status = 'finished'
+        status = "finished"
 
-    return {'status': status}
+    return {"status": status}
 
 
 @app.get("/download_unified_waterlevels")

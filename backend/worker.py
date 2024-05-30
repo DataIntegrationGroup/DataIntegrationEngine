@@ -20,13 +20,14 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-@app.route('/unify_waterlevels', methods=['POST'])
+
+@app.route("/unify_waterlevels", methods=["POST"])
 def unify_waterlevels_handler():
     from backend.config import Config
     from backend.unifier import unify_waterlevels
 
     payload = request.get_json()
-    print(f'Recieved payload {payload}')
+    print(f"Recieved payload {payload}")
     cfg = Config(payload=payload)
     cfg.use_cloud_storage = True
 
@@ -48,7 +49,9 @@ def unify_waterlevels_handler():
     # cfg.site_limit = 10
 
     if unify_waterlevels(cfg):
-        return 'OK'
+        return "OK"
     else:
-        return 'Failed'
+        return "Failed"
+
+
 # ============= EOF =============================================

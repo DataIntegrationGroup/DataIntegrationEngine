@@ -18,8 +18,6 @@ from backend.config import Config
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 
 
-
-
 def unify_sites(config):
     print("Unifying sites")
 
@@ -52,6 +50,7 @@ def unify_waterlevels(config):
         _unify_parameter(config, config.water_level_sources())
 
     return True
+
 
 def _perister_factory(config):
     persister_klass = CSVPersister
