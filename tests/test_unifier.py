@@ -19,7 +19,7 @@ import os
 import pytest
 
 from backend.config import Config
-from frontend.unifier import unify_analytes, unify_waterlevels
+from backend.unifier import unify_analytes, unify_waterlevels
 
 
 def config_factory():

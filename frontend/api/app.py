@@ -21,13 +21,12 @@ import time
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
+from google.api_core.exceptions import NotFound
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
 
-from backend.config import Config
-from frontend.unifier import unify_waterlevels
-
+from google.cloud import tasks_v2
 from google.cloud import storage
 
 app = FastAPI()
@@ -54,118 +53,121 @@ class ConfigModel(BaseModel):
     site_limit: int = 0
     force: bool = False
     sources: list = []
+    output_name: str = ""
+    output_summary: bool = True
 
 
-active_processes: dict = {}
+def create_queue(project: str, location: str, queue_id: str) -> tasks_v2.Queue:
+    """Create a queue.
+    Args:
+        project: The project ID to create the queue in.
+        location: The location to create the queue in.
+        queue_id: The ID to use for the new queue.
 
+    Returns:
+        The newly created queue.
+    """
 
-def cleanup():
-    rm = []
-    for k, v in active_processes.items():
-        if not v.is_alive():
-            rm.append(k)
-
-    if rm:
-        for r in rm:
-            del active_processes[r]
-
+    # Create a client.
+    client = tasks_v2.CloudTasksClient()
+    queue_path = client.queue_path(project, location, queue_id)
+    queue = client.get_queue(name=queue_path)
+    if not queue:
+        # Use the client to send a CreateQueueRequest.
+        client.create_queue(
+            tasks_v2.CreateQueueRequest(
+                parent=client.common_location_path(project, location),
+                queue=tasks_v2.Queue(name=queue_path),
+            )
+        )
 
 @app.post("/trigger_unify_waterlevels")
 def router_unify_waterlevels(item: ConfigModel):
     print("unify waterlevels", item)
-    cfg = Config(model=item)
-    cfg.output_summary = True
-
-    # cfg.use_source_nwis = True
-    # cfg.use_source_isc_seven_rivers = False
-    # cfg.use_source_bor = False
-    # cfg.use_source_dwb = False
-    # cfg.use_source_wqp = False
-    # cfg.use_source_ampapi = False
-    # cfg.use_source_st2 = False
-    # cfg.use_source_ose_roswell = False
 
     exists = False
 
-    itemhash = hashlib.md5(
-        json.dumps(item.model_dump(), sort_keys=True).encode()
-    ).hexdigest()
+    cfgobj = item.model_dump()
+    itemhash = hashlib.md5(json.dumps(cfgobj, sort_keys=True).encode()).hexdigest()
 
     if not item.force:
-        if os.getenv("USE_LOCAL_CACHE", False):
+        storage_client = storage.Client()
+        bucket = storage_client.bucket("waterdatainitiative")
+        exists = bucket.blob(f"die/{itemhash}.csv").exists()
 
-            pp = os.path.join("cache", itemhash)
-
-            if os.path.isfile(pp):
-                # how old is the file
-                st = os.stat(pp)
-                if time.time() - st.st_mtime > 3600:
-                    os.remove(pp)
-
-            if not os.path.isfile(pp):
-                cfg.output_name = pp
-            else:
-                exists = True
-        else:
-            # get from storage bucket
-            storage_client = storage.Client()
-            bucket = storage_client.bucket("waterdatainitiative")
-            exists = bucket.blob(f"die/{itemhash}.csv").exists()
-            cfg.output_name = itemhash
-
+    response = None
     if not exists:
-        cleanup()
-        # spawn a new process to do the work
-        if len(active_processes.keys()) > 5:
-            raise HTTPException(status_code=429, detail="Too many active processes")
+        client = tasks_v2.CloudTasksClient()
+        project = os.getenv("PROJECT_ID")
+        location = os.getenv("LOCATION")
+        url = os.getenv("WORKER_URL")
+        queue = 'die-queue'
 
-        cfg.use_cloud_storage = not os.getenv("USE_LOCAL_CACHE", False)
-        proc = multiprocessing.Process(target=unify_waterlevels, args=(cfg,))
-        proc.start()
+        create_queue(project, location, queue)
+        task_id = None
 
-        active_processes[str(itemhash)] = proc
-    return dict(message="triggered unify waterlevels", downloadhash=itemhash)
+        cfgobj['output_name'] = itemhash
+        # Construct the task.
+        name = None
+        if task_id is not None:
+            name = client.task_path(project, location, queue, task_id)
+
+        task = tasks_v2.Task(
+            http_request=tasks_v2.HttpRequest(
+                http_method=tasks_v2.HttpMethod.POST,
+                url=f'{url}/unify_waterlevels',
+                headers={"Content-type": "application/json"},
+                body=json.dumps(cfgobj).encode(),
+            ),
+            name=name
+        )
+        response = client.create_task(
+            tasks_v2.CreateTaskRequest(
+                # The queue to add the task to
+                parent=client.queue_path(project, location, queue),
+                # The task itself
+                task=task,
+            )
+        )
+        # parent = client.queue_path(project, location, queue)
+        # task = {
+        #     'app_engine_http_request': {
+        #         'http_method': 'POST',
+        #         'relative_uri': f'{url}/unify_waterlevels',
+        #         'body': jcfg
+        #     }
+        # }
+        # response = client.create_task(parent=parent, task=task)
+
+        response = {'name': response.name, 'dispatch_count': response.dispatch_count}
+
+    return dict(message="triggered unify waterlevels", downloadhash=itemhash,
+                task_response=response)
 
 
 @app.get("/status")
-def router_status(process_id: Optional[str] = None):
-    cleanup()
+def router_status(task_id: str):
+    status = 'running'
+    client = tasks_v2.CloudTasksClient()
+    try:
+        task = client.get_task(name=task_id)
+    except NotFound as e:
+        status = 'finished'
 
-    if process_id:
-        if process_id not in active_processes:
-            return dict(message=f"no such process {active_processes.keys()}")
-        else:
-            return dict(
-                message="active process",
-                process=str(active_processes[process_id]),
-            )
-    else:
-
-        return dict(
-            message="active processes",
-            processes=[k for k, v in active_processes.items() if v.is_alive()],
-        )
+    return {'status': status}
 
 
 @app.get("/download_unified_waterlevels")
 def router_download_unified_waterlevels(downloadhash: str):
-    if os.getenv("USE_LOCAL_CACHE", False):
-        downloadhash = os.path.join("cache", f"{downloadhash}.csv")
-        if not os.path.isfile(downloadhash):
-            return HTTPException(status_code=404, detail="No such file")
+    storage_client = storage.Client()
+    bucket = storage_client.bucket("waterdatainitiative")
+    blob = bucket.blob(f"die/{downloadhash}.csv")
+    if not blob.exists():
+        return HTTPException(status_code=404, detail="No such file")
 
-        with open(downloadhash, "r") as f:
-            response = StreamingResponse(iter([f.read()]), media_type="text/csv")
-    else:
-        storage_client = storage.Client()
-        bucket = storage_client.bucket("waterdatainitiative")
-        blob = bucket.blob(f"die/{downloadhash}.csv")
-        if not blob.exists():
-            return HTTPException(status_code=404, detail="No such file")
-
-        response = StreamingResponse(
-            iter([blob.download_as_string()]), media_type="text/csv"
-        )
+    response = StreamingResponse(
+        iter([blob.download_as_string()]), media_type="text/csv"
+    )
 
     response.headers["Content-Disposition"] = f"attachment; filename=output.csv"
     return response

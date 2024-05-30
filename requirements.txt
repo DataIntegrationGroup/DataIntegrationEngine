@@ -1,6 +1,5 @@
-fastapi>=0.111.0, <0.112.0
+flask
 gunicorn
-uvicorn
 httpx
 pandas
 geopandas

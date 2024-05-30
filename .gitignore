@@ -2,6 +2,9 @@
 .idea/
 
 locallauncher.sh
+worker.yaml
+app.yaml
+frontend/requirements.txt
 
 
 # Byte-compiled / optimized / DLL files

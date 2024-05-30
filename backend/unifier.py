@@ -13,20 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import logging
-
-import click
 
 from backend.config import Config
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 
 
-def log(msg, fg="green"):
-    click.secho(msg, fg=fg)
 
 
 def unify_sites(config):
-    log("Unifying sites")
+    print("Unifying sites")
 
     # def func(config, persister):
     #     for source in config.site_sources():
@@ -37,16 +32,18 @@ def unify_sites(config):
 
 
 def unify_analytes(config):
-    log("Unifying analytes")
+    print("Unifying analytes")
     config.report()
     config.validate()
 
     if not config.dry:
         _unify_parameter(config, config.analyte_sources())
 
+    return True
+
 
 def unify_waterlevels(config):
-    log("Unifying waterlevels")
+    print("Unifying waterlevels")
 
     config.report()
     config.validate()
@@ -54,6 +51,7 @@ def unify_waterlevels(config):
     if not config.dry:
         _unify_parameter(config, config.water_level_sources())
 
+    return True
 
 def _perister_factory(config):
     persister_klass = CSVPersister
@@ -80,7 +78,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
         sites = site_source.read_sites()
         if not sites:
-            click.secho(f"No sites found for {site_source}", fg="red")
+            print(f"No sites found for {site_source}")
             return
 
         for i, sites in enumerate(site_source.chunks(sites)):
@@ -107,8 +105,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         import traceback
 
         exc = traceback.format_exc()
-        click.secho(exc, fg="blue")
-        click.secho(f"Failed to unify {site_source}", fg="red")
+        print(exc)
+        print(f"Failed to unify {site_source}")
 
 
 def _unify_parameter(
@@ -152,14 +150,14 @@ def waterlevel_unification_test():
     cfg.bbox = "-104.5 32.5,-104 33"
     cfg.start_date = "2020-01-01"
     cfg.end_date = "2020-5-01"
-    # cfg.output_summary = True
+    cfg.output_summary = True
 
     cfg.use_source_nwis = False
-    # cfg.use_source_ampapi = "afs"
+    # cfg.use_source_ampapi = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_st2 = False
     cfg.use_source_ose_roswell = False
-    cfg.site_limit = 10
+    # cfg.site_limit = 10
 
     unify_waterlevels(cfg)
 

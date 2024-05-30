@@ -21,37 +21,37 @@ from datetime import datetime, timedelta
 import click
 import shapely.wkt
 
-from backend.bounding_polygons import get_county_polygon
-from backend.connectors.ampapi.source import (
+from .bounding_polygons import get_county_polygon
+from .connectors.ampapi.source import (
     AMPAPISiteSource,
     AMPAPIWaterLevelSource,
     AMPAPIAnalyteSource,
 )
-from backend.connectors.bor.source import BORSiteSource, BORAnalyteSource
-from backend.connectors.ckan import (
+from .connectors.bor.source import BORSiteSource, BORAnalyteSource
+from .connectors.ckan import (
     HONDO_RESOURCE_ID,
     FORT_SUMNER_RESOURCE_ID,
     ROSWELL_RESOURCE_ID,
 )
-from backend.connectors.ckan.source import (
+from .connectors.ckan.source import (
     OSERoswellSiteSource,
     OSERoswellWaterLevelSource,
 )
-from backend.connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
-from backend.constants import MILLIGRAMS_PER_LITER, WGS84, FEET
-from backend.connectors.isc_seven_rivers.source import (
+from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
+from .constants import MILLIGRAMS_PER_LITER, WGS84, FEET
+from .connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
     ISCSevenRiversAnalyteSource,
 )
-from backend.connectors.st2.source import (
+from .connectors.st2.source import (
     ST2SiteSource,
     PVACDSiteSource,
     EBIDSiteSource,
     PVACDWaterLevelSource,
 )
-from backend.connectors.usgs.source import USGSSiteSource, USGSWaterLevelSource
-from backend.connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
+from .connectors.usgs.source import USGSSiteSource, USGSWaterLevelSource
+from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 SOURCE_KEYS = (
     "ampapi",
@@ -107,7 +107,7 @@ class Config(object):
     use_csv: bool = True
     use_geojson: bool = False
 
-    def __init__(self, model=None):
+    def __init__(self, model=None, payload=None):
         self.bbox = {}
         if model:
             if model.wkt:
@@ -121,6 +121,13 @@ class Config(object):
             if model.sources:
                 for s in SOURCE_KEYS:
                     setattr(self, f"use_source_{s}", s in model.sources)
+        elif payload:
+            self.wkt = payload.get('wkt', '')
+            self.county = payload.get('county', '')
+            self.output_summary = payload.get('output_summary', False)
+            self.output_name = payload.get('output_name', 'output')
+            for s in SOURCE_KEYS:
+                setattr(self, f"use_source_{s}", s in payload.get('sources', []))
 
     def analyte_sources(self):
         sources = []
