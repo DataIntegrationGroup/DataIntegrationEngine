@@ -84,7 +84,7 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
 
     def get_records(self, parent_record):
         analyte = get_analyte_search_param(self.config.analyte, AMPAPI_ANALYTE_MAPPING)
-        return self._execute_json_request(
+        records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
                 "pointid": ",".join(make_site_list(parent_record)),
@@ -92,9 +92,10 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
             },
             tag="",
         )
+        return records[analyte]
 
     def _extract_parent_records(self, records, parent_record):
-        return [ri for ri in records if ri["SamplePointID"][:-1] == parent_record.id]
+        return records.get(parent_record.id, [])
 
     def _extract_parameter_units(self, records):
         return [r["Units"] for r in records]
@@ -154,6 +155,5 @@ class AMPAPIWaterLevelSource(BaseWaterLevelSource):
         url = _make_url("waterlevels/manual")
 
         return self._execute_json_request(url, params)
-
 
 # ============= EOF =============================================
