@@ -85,6 +85,8 @@ def make_dt_filter(tag, start, end):
 
 
 class STSiteSource(BaseSiteSource, STSource):
+    def health(self):
+        return self.get_records(top=10, analyte='TDS')
 
     def get_records(self, *args, **kw):
         service = self.get_service()
@@ -92,16 +94,17 @@ class STSiteSource(BaseSiteSource, STSource):
         config = self.config
 
         fs = []
-        if config.has_bounds():
-            fs.append(
-                f"st_within(Location/location, geography'{config.bounding_wkt()}')"
-            )
+        if config:
+            if config.has_bounds():
+                fs.append(
+                    f"st_within(Location/location, geography'{config.bounding_wkt()}')"
+                )
 
-        fi = make_dt_filter(
-            "Things/Datastreams/phenomenonTime", config.start_dt, config.end_dt
-        )
-        if fi:
-            fs.append(fi)
+            fi = make_dt_filter(
+                "Things/Datastreams/phenomenonTime", config.start_dt, config.end_dt
+            )
+            if fi:
+                fs.append(fi)
 
         fs = fs + self._get_filters()
         q = (
@@ -110,6 +113,8 @@ class STSiteSource(BaseSiteSource, STSource):
             .expand("Things/Datastreams")
             .filter(" and ".join(fs))
         )
+        if "top" in kw:
+            q = q.top(kw["top"])
 
         return list(q.list())
 

@@ -37,6 +37,7 @@ class Loggable:
 
 class BasePersister(Loggable):
     extension: str
+    output_id: str
 
     def __init__(self):
         self.records = []
@@ -46,6 +47,9 @@ class BasePersister(Loggable):
 
     def load(self, records):
         self.records.extend(records)
+
+    def finalize(self, output_id):
+        pass
 
     def dump_timeseries(self, root):
         if self.timeseries:
@@ -112,6 +116,24 @@ def write_memory(func):
 
 class CloudStoragePersister(BasePersister):
     extension = "csv"
+    _content = []
+
+    def finalize(self, output_id):
+        """
+        zip content and upload to google cloud storage
+        :return:
+        """
+        import zipfile
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for path, cnt in self._content:
+                zf.writestr(path, cnt)
+
+        storage_client = storage.Client()
+        bucket = storage_client.bucket("waterdatainitiative")
+        blob = bucket.blob(f'die/{output_id}.zip')
+        blob.upload_from_string(cnt.getvalue().encode("utf-8"))
 
     def _write(self, path, records):
         def func(f, writer):
@@ -121,16 +143,13 @@ class CloudStoragePersister(BasePersister):
 
                 writer.writerow(site.to_row())
 
-            self._upload(path, f.getvalue())
+            self._add_content(path, f.getvalue())
 
         write_memory(func)
 
-    def _upload(self, path, cnt):
-        storage_client = storage.Client()
-        bucket = storage_client.bucket("waterdatainitiative")
+    def _add_content(self, path, cnt):
         path = f"die/{path}"
-        blob = bucket.blob(path)
-        blob.upload_from_string(cnt.encode("utf-8"))
+        self._content.append((path, cnt))
 
     def _dump_combined(self, path, combined):
         def func(f, writer):
@@ -140,7 +159,7 @@ class CloudStoragePersister(BasePersister):
 
                 writer.writerow(site.to_row() + record.to_row())
 
-            self._upload(path, f.getvalue())
+            self._add_content(path, f.getvalue())
 
         write_memory(func)
 

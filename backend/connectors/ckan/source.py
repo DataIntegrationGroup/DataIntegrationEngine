@@ -73,6 +73,12 @@ class OSERoswellSource(NMWDICKANSource):
 class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
     transformer_klass = OSERoswellSiteTransformer
 
+    def health(self):
+        params = self._get_params()
+        params['limit'] = 1
+        resp = httpx.get(self.base_url, params=params)
+        return resp.status_code == 200
+
     def _parse_response(self, resp):
         records = resp.json()["result"]["records"]
         # group records by site_no

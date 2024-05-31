@@ -44,6 +44,13 @@ from backend.source import (
 class BORSiteSource(BaseSiteSource):
     transformer_klass = BORSiteTransformer
 
+    def health(self):
+        try:
+            self.get_records()
+            return True
+        except Exception:
+            return False
+
     def get_records(self):
         # locationTypeId 10 is for wells
         url = "https://data.usbr.gov/rise/api/location"

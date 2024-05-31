@@ -15,43 +15,52 @@
 # ===============================================================================
 # this is a Google App Engine task handler
 
-from flask import Flask, request
-
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
 
-@app.route("/unify_waterlevels", methods=["POST"])
-def unify_waterlevels_handler():
+def handler(unifier):
     from backend.config import Config
-    from backend.unifier import unify_waterlevels
-
     payload = request.get_json()
     print(f"Recieved payload {payload}")
     cfg = Config(payload=payload)
     cfg.use_cloud_storage = True
 
-    # cfg.county = "eddy"
-    # cfg.bbox = "-104.5 32.5,-104 33"
-    # cfg.start_date = "2020-01-01"
-    # cfg.end_date = "2024-5-01"
-    # cfg.output_summary = False
-    #
-    # cfg.use_source_ampapi = False
-    # cfg.use_source_wqp = False
-    # cfg.use_source_isc_seven_rivers = False
-    # cfg.use_source_nwis = False
-    # cfg.use_source_ose_roswell = False
-    # cfg.use_source_st2 = False
-    # cfg.use_source_bor = False
-    # cfg.use_source_dwb = False
-    #
-    # cfg.site_limit = 10
-
-    if unify_waterlevels(cfg):
-        return "OK"
+    if unifier(cfg):
+        result = "OK"
     else:
-        return "Failed"
+        result = "Failed"
+    return make_cors_response({"result": result})
 
 
+def make_cors_response(payload):
+    response = jsonify(payload)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
+@app.route("/health", methods=["GET"])
+def health_handler():
+    from backend.unifier import health_check
+    source = request.args.get('source')
+    health_response = health_check(source)
+
+    return make_cors_response({'health': 'healthy' if health_response else 'unhealthy'})
+
+
+@app.route("/unify_analytes", methods=["POST"])
+def unify_analytes_handler():
+    from backend.unifier import unify_analytes
+    return handler(unify_analytes)
+
+
+@app.route("/unify_waterlevels", methods=["POST"])
+def unify_waterlevels_handler():
+    from backend.unifier import unify_waterlevels
+    return handler(unify_waterlevels)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
 # ============= EOF =============================================

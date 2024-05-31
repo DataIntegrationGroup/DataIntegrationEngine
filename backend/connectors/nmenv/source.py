@@ -30,7 +30,12 @@ class DWBSiteSource(STSiteSource):
     transformer_klass = DWBSiteTransformer
 
     def get_records(self, *args, **kw):
-        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAPPING)
+        if 'analyte' in kw:
+            analyte = kw['analyte']
+        else:
+            analyte = self.config.analyte
+
+        analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
         if analyte is None:
             return []
 
@@ -38,10 +43,11 @@ class DWBSiteSource(STSiteSource):
         ds = service.datastreams()
         q = ds.query()
         fs = [f"ObservedProperty/id eq {analyte}"]
-        if self.config.has_bounds():
-            fs.append(
-                f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
-            )
+        if self.config:
+            if self.config.has_bounds():
+                fs.append(
+                    f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
+                )
 
         q = q.filter(" and ".join(fs))
         q = q.expand("Thing/Locations")

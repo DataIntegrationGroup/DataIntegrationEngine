@@ -14,8 +14,14 @@
 # limitations under the License.
 # ===============================================================================
 
-from backend.config import Config
+from backend.config import Config, get_source
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
+
+
+def health_check(source):
+    source = get_source(source)
+    if source:
+        return bool(source.health())
 
 
 def unify_sites(config):
@@ -109,8 +115,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
 
 def _unify_parameter(
-    config,
-    sources,
+        config,
+        sources,
 ):
     use_summarize = config.output_summary
     persister = _perister_factory(config)
@@ -121,6 +127,8 @@ def _unify_parameter(
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
+
+    persister.finalize(config.output_name)
 
 
 def analyte_unification_test():
@@ -149,7 +157,9 @@ def waterlevel_unification_test():
     cfg.bbox = "-104.5 32.5,-104 33"
     cfg.start_date = "2020-01-01"
     cfg.end_date = "2020-5-01"
-    cfg.output_summary = True
+    cfg.output_summary = False
+    cfg.output_name = "test00112233"
+    # cfg.output_summary = True
 
     cfg.use_source_nwis = False
     # cfg.use_source_ampapi = False
@@ -167,7 +177,8 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
 
-    waterlevel_unification_test()
+    # waterlevel_unification_test()
     # analyte_unification_test()
+    print(health_check('nwis'))
 
 # ============= EOF =============================================

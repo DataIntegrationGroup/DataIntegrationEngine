@@ -53,6 +53,13 @@ def _make_url(endpoint):
 class ISCSevenRiversSiteSource(BaseSiteSource):
     transformer_klass = ISCSevenRiversSiteTransformer
 
+    def health(self):
+        try:
+            self.get_records()
+            return True
+        except Exception:
+            return False
+
     def get_records(self):
         return self._execute_json_request(
             _make_url("getMonitoringPoints.ashx"),

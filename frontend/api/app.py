@@ -93,8 +93,14 @@ def router_unify_waterlevels(item: ConfigModel):
 
     if not item.force:
         storage_client = storage.Client()
-        bucket = storage_client.bucket("waterdatainitiative")
-        exists = bucket.blob(f"die/{itemhash}.csv").exists()
+        if item.output_summary:
+            bucket = storage_client.bucket("waterdatainitiative")
+            exists = bucket.blob(f"die/{itemhash}.csv").exists()
+        else:
+            bucket = storage_client.bucket("waterdatainitiative")
+            combined_exists = bucket.blob(f"die/{itemhash}.combined.csv").exists()
+            timeseries_exists = bucket.blob(f"die/{itemhash}_timeseries/sites.csv").exists()
+            exists = combined_exists or timeseries_exists
 
     response = None
     if not exists:
@@ -161,18 +167,29 @@ def router_status(task_id: str):
 
 
 @app.get("/download_unified_waterlevels")
-def router_download_unified_waterlevels(downloadhash: str):
+def router_download_unified_waterlevels(downloadhash: str,
+                                        output_summary: bool):
+
     storage_client = storage.Client()
     bucket = storage_client.bucket("waterdatainitiative")
-    blob = bucket.blob(f"die/{downloadhash}.csv")
-    if not blob.exists():
-        return HTTPException(status_code=404, detail="No such file")
 
-    response = StreamingResponse(
-        iter([blob.download_as_string()]), media_type="text/csv"
-    )
+    if output_summary:
+        blob = bucket.blob(f"die/{downloadhash}.csv")
+        if not blob.exists():
+            return HTTPException(status_code=404, detail="No such file")
 
-    response.headers["Content-Disposition"] = f"attachment; filename=output.csv"
+        response = StreamingResponse(
+            iter([blob.download_as_string()]), media_type="text/csv"
+        )
+
+        response.headers["Content-Disposition"] = f"attachment; filename=output.csv"
+    else:
+        blob = bucket.blob(f"die/{downloadhash}.zip")
+        if not blob.exists():
+            return HTTPException(status_code=404, detail="No such file")
+        response = StreamingResponse(
+            iter([blob.download_as_string()]), media_type="application/zip"
+        )
     return response
 
 

@@ -65,6 +65,27 @@ SOURCE_KEYS = (
 )
 
 
+def get_source(source):
+    if source == "ampapi":
+        return AMPAPISiteSource()
+    elif source == "wqp":
+        return WQPSiteSource()
+    elif source == "isc_seven_rivers":
+        return ISCSevenRiversSiteSource()
+    elif source == "nwis":
+        return USGSSiteSource()
+    elif source == "ose_roswell":
+        return OSERoswellSiteSource(HONDO_RESOURCE_ID)
+    elif source == "st2":
+        return PVACDSiteSource()
+    elif source == "bor":
+        return BORSiteSource()
+    elif source == "dwb":
+        return DWBSiteSource()
+
+    return None
+
+
 class Config(object):
     site_limit: int = 0
     dry: bool = False
