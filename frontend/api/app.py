@@ -57,29 +57,29 @@ class ConfigModel(BaseModel):
     output_summary: bool = True
 
 
-def create_queue(project: str, location: str, queue_id: str) -> tasks_v2.Queue:
-    """Create a queue.
-    Args:
-        project: The project ID to create the queue in.
-        location: The location to create the queue in.
-        queue_id: The ID to use for the new queue.
-
-    Returns:
-        The newly created queue.
-    """
-
-    # Create a client.
-    client = tasks_v2.CloudTasksClient()
-    queue_path = client.queue_path(project, location, queue_id)
-    queue = client.get_queue(name=queue_path)
-    if not queue:
-        # Use the client to send a CreateQueueRequest.
-        client.create_queue(
-            tasks_v2.CreateQueueRequest(
-                parent=client.common_location_path(project, location),
-                queue=tasks_v2.Queue(name=queue_path),
-            )
-        )
+# def create_queue(project: str, location: str, queue_id: str) -> tasks_v2.Queue:
+#     """Create a queue.
+#     Args:
+#         project: The project ID to create the queue in.
+#         location: The location to create the queue in.
+#         queue_id: The ID to use for the new queue.
+#
+#     Returns:
+#         The newly created queue.
+#     """
+#
+#     # Create a client.
+#     client = tasks_v2.CloudTasksClient()
+#     queue_path = client.queue_path(project, location, queue_id)
+#     queue = client.get_queue(name=queue_path)
+#     if not queue:
+#         # Use the client to send a CreateQueueRequest.
+#         client.create_queue(
+#             tasks_v2.CreateQueueRequest(
+#                 parent=client.common_location_path(project, location),
+#                 queue=tasks_v2.Queue(name=queue_path),
+#             )
+#         )
 
 
 @app.post("/trigger_unify_waterlevels")
@@ -104,7 +104,6 @@ def router_unify_waterlevels(item: ConfigModel):
         url = os.getenv("WORKER_URL")
         queue = "die-queue"
 
-        create_queue(project, location, queue)
         task_id = None
 
         cfgobj["output_name"] = itemhash
