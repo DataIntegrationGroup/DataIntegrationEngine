@@ -59,9 +59,9 @@ class AMPAPISiteSource(BaseSiteSource):
     chunk_size = 100
 
     def health(self):
-        resp = self._execute_json_request(_make_url("locations"),
-                                          tag="features",
-                                          params={"limit": 1})
+        resp = self._execute_json_request(
+            _make_url("locations"), tag="features", params={"limit": 1}
+        )
         return bool(resp)
 
     def get_records(self):

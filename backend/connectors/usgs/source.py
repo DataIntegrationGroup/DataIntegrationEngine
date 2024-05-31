@@ -56,9 +56,15 @@ class USGSSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            self._execute_text_request("https://waterservices.usgs.gov/nwis/site/",
-                                       {"format": "rdb", "siteOutput": "expanded", "siteType": "GW",
-                                        'site': '325754103461301'})
+            self._execute_text_request(
+                "https://waterservices.usgs.gov/nwis/site/",
+                {
+                    "format": "rdb",
+                    "siteOutput": "expanded",
+                    "siteType": "GW",
+                    "site": "325754103461301",
+                },
+            )
             return True
         except httpx.HTTPStatusError:
             pass
@@ -136,5 +142,6 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
         record[DTW_UNITS] = FEET
         record[DT_MEASURED] = (record["lev_dt"], record["lev_tm"])
         return record
+
 
 # ============= EOF =============================================

@@ -46,9 +46,7 @@ class BaseSource:
         self.transformer.config = config
 
     def health(self):
-        raise NotImplementedError(
-            f"test not implemented by {self.__class__.__name__}"
-        )
+        raise NotImplementedError(f"test not implemented by {self.__class__.__name__}")
 
     def warn(self, msg):
         self.log(msg, fg="red")

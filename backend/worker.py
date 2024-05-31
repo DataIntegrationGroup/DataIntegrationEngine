@@ -22,6 +22,7 @@ app = Flask(__name__)
 
 def handler(unifier):
     from backend.config import Config
+
     payload = request.get_json()
     print(f"Recieved payload {payload}")
     cfg = Config(payload=payload)
@@ -36,28 +37,31 @@ def handler(unifier):
 
 def make_cors_response(payload):
     response = jsonify(payload)
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add("Access-Control-Allow-Origin", "*")
     return response
 
 
 @app.route("/health", methods=["GET"])
 def health_handler():
     from backend.unifier import health_check
-    source = request.args.get('source')
+
+    source = request.args.get("source")
     health_response = health_check(source)
 
-    return make_cors_response({'health': 'healthy' if health_response else 'unhealthy'})
+    return make_cors_response({"health": "healthy" if health_response else "unhealthy"})
 
 
 @app.route("/unify_analytes", methods=["POST"])
 def unify_analytes_handler():
     from backend.unifier import unify_analytes
+
     return handler(unify_analytes)
 
 
 @app.route("/unify_waterlevels", methods=["POST"])
 def unify_waterlevels_handler():
     from backend.unifier import unify_waterlevels
+
     return handler(unify_waterlevels)
 
 

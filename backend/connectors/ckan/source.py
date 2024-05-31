@@ -75,7 +75,7 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
 
     def health(self):
         params = self._get_params()
-        params['limit'] = 1
+        params["limit"] = 1
         resp = httpx.get(self.base_url, params=params)
         return resp.status_code == 200
 

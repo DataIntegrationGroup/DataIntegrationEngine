@@ -115,8 +115,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
 
 def _unify_parameter(
-        config,
-        sources,
+    config,
+    sources,
 ):
     use_summarize = config.output_summary
     persister = _perister_factory(config)
@@ -179,6 +179,6 @@ if __name__ == "__main__":
 
     # waterlevel_unification_test()
     # analyte_unification_test()
-    print(health_check('nwis'))
+    print(health_check("nwis"))
 
 # ============= EOF =============================================

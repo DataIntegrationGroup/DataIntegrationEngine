@@ -75,14 +75,14 @@ def _setup(tmp_path, cfg, source, tag):
     d.mkdir()
     cfg.output_dir = str(d)
     for stag in (
-            "ampapi",
-            "nwis",
-            "st2",
-            "bor",
-            "dwb",
-            "wqp",
-            "isc_seven_rivers",
-            "ose_roswell",
+        "ampapi",
+        "nwis",
+        "st2",
+        "bor",
+        "dwb",
+        "wqp",
+        "isc_seven_rivers",
+        "ose_roswell",
     ):
         if stag == source:
             setattr(cfg, f"use_source_{stag}", True)
@@ -112,7 +112,7 @@ def _test_waterlevels_summary(tmp_path, cfg, source):
 
 
 def _test_waterlevels_timeseries(
-        tmp_path, cfg, source, combined_flag=True, timeseries_flag=False
+    tmp_path, cfg, source, combined_flag=True, timeseries_flag=False
 ):
     d = _setup_waterlevels(tmp_path, cfg, source)
     combined = d / "output.combined.csv"
@@ -150,48 +150,56 @@ def _test_waterelevels_timeseries_date_range(tmp_path, cfg, source):
 
 def test_nwis_site_health_check():
     from backend.connectors.usgs.source import USGSSiteSource
+
     n = USGSSiteSource()
     assert n.health()
 
 
 def test_ampapi_site_health_check():
     from backend.connectors.ampapi.source import AMPAPISiteSource
+
     n = AMPAPISiteSource()
     assert n.health()
 
 
 def test_wqp_site_health_check():
     from backend.connectors.wqp.source import WQPSiteSource
+
     n = WQPSiteSource()
     assert n.health()
 
 
 def test_bor_site_health_check():
     from backend.connectors.bor.source import BORSiteSource
+
     n = BORSiteSource()
     assert n.health()
 
 
 def test_dwb_site_health_check():
     from backend.connectors.nmenv.source import DWBSiteSource
+
     n = DWBSiteSource()
     assert n.health()
 
 
 def test_isc_seven_rivers_site_health_check():
     from backend.connectors.isc_seven_rivers.source import ISCSevenRiversSiteSource
+
     n = ISCSevenRiversSiteSource()
     assert n.health()
 
 
 def test_ckan_site_health_check():
     from backend.connectors.ckan.source import OSERoswellSiteSource
+
     n = OSERoswellSiteSource(HONDO_RESOURCE_ID)
     assert n.health()
 
 
 def test_pvacd_site_health_check():
     from backend.connectors.st2.source import PVACDSiteSource
+
     n = PVACDSiteSource()
     assert n.health()
 
@@ -249,7 +257,7 @@ def test_unify_waterlevels_st2_timeseries(tmp_path, waterlevel_timeseries_cfg):
 
 
 def test_unify_waterlevels_isc_seven_rivers_timeseries(
-        tmp_path, waterlevel_timeseries_cfg
+    tmp_path, waterlevel_timeseries_cfg
 ):
     _test_waterlevels_timeseries(
         tmp_path,
@@ -280,7 +288,7 @@ def test_waterlevels_nwis_timeseries_date_range(tmp_path, waterlevel_timeseries_
 
 
 def test_waterlevels_isc_seven_rivers_timeseries_date_range(
-        tmp_path, waterlevel_timeseries_cfg
+    tmp_path, waterlevel_timeseries_cfg
 ):
     _test_waterelevels_timeseries_date_range(
         tmp_path, waterlevel_timeseries_cfg, "isc_seven_rivers"
@@ -310,5 +318,6 @@ def test_unify_analytes_isc_seven_rivers_summary(tmp_path, analyte_summary_cfg):
 
 def test_unify_analytes_dwb_summary(tmp_path, analyte_summary_cfg):
     _test_analytes_summary(tmp_path, analyte_summary_cfg, "dwb")
+
 
 # ============= EOF =============================================

@@ -132,7 +132,7 @@ class CloudStoragePersister(BasePersister):
 
         storage_client = storage.Client()
         bucket = storage_client.bucket("waterdatainitiative")
-        blob = bucket.blob(f'die/{output_id}.zip')
+        blob = bucket.blob(f"die/{output_id}.zip")
         blob.upload_from_string(cnt.getvalue().encode("utf-8"))
 
     def _write(self, path, records):

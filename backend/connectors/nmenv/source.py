@@ -30,8 +30,8 @@ class DWBSiteSource(STSiteSource):
     transformer_klass = DWBSiteTransformer
 
     def get_records(self, *args, **kw):
-        if 'analyte' in kw:
-            analyte = kw['analyte']
+        if "analyte" in kw:
+            analyte = kw["analyte"]
         else:
             analyte = self.config.analyte
 

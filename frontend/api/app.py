@@ -99,7 +99,9 @@ def router_unify_waterlevels(item: ConfigModel):
         else:
             bucket = storage_client.bucket("waterdatainitiative")
             combined_exists = bucket.blob(f"die/{itemhash}.combined.csv").exists()
-            timeseries_exists = bucket.blob(f"die/{itemhash}_timeseries/sites.csv").exists()
+            timeseries_exists = bucket.blob(
+                f"die/{itemhash}_timeseries/sites.csv"
+            ).exists()
             exists = combined_exists or timeseries_exists
 
     response = None
@@ -167,8 +169,7 @@ def router_status(task_id: str):
 
 
 @app.get("/download_unified_waterlevels")
-def router_download_unified_waterlevels(downloadhash: str,
-                                        output_summary: bool):
+def router_download_unified_waterlevels(downloadhash: str, output_summary: bool):
 
     storage_client = storage.Client()
     bucket = storage_client.bucket("waterdatainitiative")

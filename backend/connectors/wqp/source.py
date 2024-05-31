@@ -61,8 +61,10 @@ class WQPSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            r = httpx.get("https://www.waterqualitydata.us/data/Station/search",
-                          params={"mimeType": "tsv", "siteid": "325754103461301"})
+            r = httpx.get(
+                "https://www.waterqualitydata.us/data/Station/search",
+                params={"mimeType": "tsv", "siteid": "325754103461301"},
+            )
             return r.status_code == 200
         except Exception as e:
             return False
@@ -137,5 +139,6 @@ class WQPAnalyteSource(BaseAnalyteSource):
         )
         if text:
             return parse_tsv(text)
+
 
 # ============= EOF =============================================
