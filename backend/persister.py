@@ -116,7 +116,11 @@ def write_memory(func):
 
 class CloudStoragePersister(BasePersister):
     extension = "csv"
-    _content = []
+    _content: list
+
+    def __init__(self):
+        super(CloudStoragePersister, self).__init__()
+        self._content = []
 
     def finalize(self, output_id):
         """
