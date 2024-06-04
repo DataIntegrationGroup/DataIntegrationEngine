@@ -80,9 +80,9 @@ class USGSSiteSource(BaseSiteSource):
             params["stateCd"] = "NM"
 
         if config.start_date:
-            params["startDt"] = config.start_date
+            params["startDt"] = config.start_dt.isoformat()
         if config.end_date:
-            params["endDt"] = config.end_date
+            params["endDt"] = config.end_dt.isoformat()
 
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/site/", params
@@ -105,12 +105,12 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
 
         config = self.config
         if config.start_date:
-            params["startDt"] = config.start_date
+            params["startDt"] = config.start_dt.isoformat()
         else:
             params["startDt"] = "1900-01-01"
 
         if config.end_date:
-            params["endDt"] = config.end_date
+            params["endDt"] = config.end_dt.isoformat()
 
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/gwlevels/", params

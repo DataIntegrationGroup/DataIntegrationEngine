@@ -132,7 +132,7 @@ class CloudStoragePersister(BasePersister):
             return
 
         storage_client = storage.Client()
-        bucket = storage_client.bucket("waterdatainitiative")
+        bucket = storage_client.bucket("die_cache")
         if len(self._content) > 1:
             import zipfile
 
@@ -140,7 +140,7 @@ class CloudStoragePersister(BasePersister):
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                 for path, cnt in self._content:
                     zf.writestr(path, cnt)
-            blob = bucket.blob(f"die/{output_id}.zip")
+            blob = bucket.blob(f"{output_id}.zip")
             blob.upload_from_string(zip_buffer.getvalue().decode("utf-8"))
         else:
             path, cnt = self._content[0]
@@ -160,7 +160,6 @@ class CloudStoragePersister(BasePersister):
         write_memory(func)
 
     def _add_content(self, path, cnt):
-        path = f"die/{path}"
         self._content.append((path, cnt))
 
     def _dump_combined(self, path, combined):

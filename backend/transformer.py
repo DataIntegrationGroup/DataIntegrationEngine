@@ -128,6 +128,7 @@ def standardize_datetime(dt):
             "%Y-%m-%d %H:%M",
             "%Y-%m-%d",
             "%Y-%m",
+            '%Y',
             "%Y/%m/%d %H:%M:%S",
             "%Y/%m/%d %H:%M",
             "%Y/%m/%d",
@@ -146,6 +147,8 @@ def standardize_datetime(dt):
         return dt.strftime("%Y-%m-%d"), ""
     elif fmt == "%Y-%m":
         return dt.strftime("%Y-%m"), ""
+    elif fmt == "%Y":
+        return dt.strftime("%Y"), ""
 
     tt = dt.strftime("%H:%M:%S")
     if tt == "00:00:00":

@@ -147,6 +147,10 @@ class Config(object):
             self.county = payload.get("county", "")
             self.output_summary = payload.get("output_summary", False)
             self.output_name = payload.get("output_name", "output")
+            self.start_date = payload.get("start_date", "")
+            self.end_date = payload.get("end_date", "")
+            self.analyte = payload.get("analyte", "")
+
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
 
@@ -358,7 +362,7 @@ class Config(object):
 
     def _extract_date(self, d):
         if d:
-            for fmt in ("%Y", "%Y-%m", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"):
+            for fmt in ("%Y", "%Y-%m", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ",):
                 try:
                     return datetime.strptime(d, fmt)
                 except ValueError:

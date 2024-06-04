@@ -55,6 +55,8 @@ class ConfigModel(BaseModel):
     sources: list = []
     output_name: str = ""
     output_summary: bool = True
+    start_date: str = ""
+    end_date: str = ""
 
 
 # def create_queue(project: str, location: str, queue_id: str) -> tasks_v2.Queue:
@@ -94,13 +96,13 @@ def router_unify_waterlevels(item: ConfigModel):
     if not item.force:
         storage_client = storage.Client()
         if item.output_summary:
-            bucket = storage_client.bucket("waterdatainitiative")
-            exists = bucket.blob(f"die/{itemhash}.csv").exists()
+            bucket = storage_client.bucket("die_cache")
+            exists = bucket.blob(f"{itemhash}.csv").exists()
         else:
-            bucket = storage_client.bucket("waterdatainitiative")
-            combined_exists = bucket.blob(f"die/{itemhash}.combined.csv").exists()
+            bucket = storage_client.bucket("die_cache")
+            combined_exists = bucket.blob(f"{itemhash}.combined.csv").exists()
             timeseries_exists = bucket.blob(
-                f"die/{itemhash}_timeseries/sites.csv"
+                f"{itemhash}_timeseries/sites.csv"
             ).exists()
             exists = combined_exists or timeseries_exists
 
@@ -172,10 +174,10 @@ def router_status(task_id: str):
 def router_download_unified_waterlevels(downloadhash: str, output_summary: bool):
 
     storage_client = storage.Client()
-    bucket = storage_client.bucket("waterdatainitiative")
+    bucket = storage_client.bucket("die_cache")
 
     if output_summary:
-        blob = bucket.blob(f"die/{downloadhash}.csv")
+        blob = bucket.blob(f"{downloadhash}.csv")
         if not blob.exists():
             return HTTPException(status_code=404, detail="No such file")
 
@@ -185,7 +187,7 @@ def router_download_unified_waterlevels(downloadhash: str, output_summary: bool)
 
         response.headers["Content-Disposition"] = f"attachment; filename=output.csv"
     else:
-        blob = bucket.blob(f"die/{downloadhash}.zip")
+        blob = bucket.blob(f"{downloadhash}.zip")
         if not blob.exists():
             return HTTPException(status_code=404, detail="No such file")
         response = StreamingResponse(
