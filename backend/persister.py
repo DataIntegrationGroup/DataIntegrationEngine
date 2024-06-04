@@ -211,6 +211,7 @@ class GeoJSONPersister(BasePersister):
         )
         gdf.to_file(path, driver="GeoJSON")
 
+
 # class ST2Persister(BasePersister):
 #     extension = "st2"
 #
