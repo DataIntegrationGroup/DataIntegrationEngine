@@ -131,17 +131,21 @@ class CloudStoragePersister(BasePersister):
             self.log("no content to save", fg="red")
             return
 
-        import zipfile
-
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for path, cnt in self._content:
-                zf.writestr(path, cnt)
-
         storage_client = storage.Client()
         bucket = storage_client.bucket("waterdatainitiative")
-        blob = bucket.blob(f"die/{output_id}.zip")
-        blob.upload_from_string(zip_buffer.getvalue().decode("utf-8"))
+        if len(self._content) > 1:
+            import zipfile
+
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                for path, cnt in self._content:
+                    zf.writestr(path, cnt)
+            blob = bucket.blob(f"die/{output_id}.zip")
+            blob.upload_from_string(zip_buffer.getvalue().decode("utf-8"))
+        else:
+            path, cnt = self._content[0]
+            blob = bucket.blob(path)
+            blob.upload_from_string(cnt)
 
     def _write(self, path, records):
         def func(f, writer):
@@ -206,7 +210,6 @@ class GeoJSONPersister(BasePersister):
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(path, driver="GeoJSON")
-
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

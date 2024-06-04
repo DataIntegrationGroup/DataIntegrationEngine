@@ -127,7 +127,7 @@ def _unify_parameter(
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
-        persister.finalize(config.output_name)
+    persister.finalize(config.output_name)
 
 
 def analyte_unification_test():
