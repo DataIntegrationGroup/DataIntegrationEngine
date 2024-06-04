@@ -128,7 +128,7 @@ def standardize_datetime(dt):
             "%Y-%m-%d %H:%M",
             "%Y-%m-%d",
             "%Y-%m",
-            '%Y',
+            "%Y",
             "%Y/%m/%d %H:%M:%S",
             "%Y/%m/%d %H:%M",
             "%Y/%m/%d",

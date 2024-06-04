@@ -362,7 +362,13 @@ class Config(object):
 
     def _extract_date(self, d):
         if d:
-            for fmt in ("%Y", "%Y-%m", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ",):
+            for fmt in (
+                "%Y",
+                "%Y-%m",
+                "%Y-%m-%d",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+            ):
                 try:
                     return datetime.strptime(d, fmt)
                 except ValueError:

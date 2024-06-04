@@ -101,9 +101,7 @@ def router_unify_waterlevels(item: ConfigModel):
         else:
             bucket = storage_client.bucket("die_cache")
             combined_exists = bucket.blob(f"{itemhash}.combined.csv").exists()
-            timeseries_exists = bucket.blob(
-                f"{itemhash}_timeseries/sites.csv"
-            ).exists()
+            timeseries_exists = bucket.blob(f"{itemhash}_timeseries/sites.csv").exists()
             exists = combined_exists or timeseries_exists
 
     response = None
