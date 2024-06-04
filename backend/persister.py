@@ -127,6 +127,10 @@ class CloudStoragePersister(BasePersister):
         zip content and upload to google cloud storage
         :return:
         """
+        if not self._content:
+            self.log("no content to save", fg="red")
+            return
+
         import zipfile
 
         zip_buffer = io.BytesIO()
@@ -137,7 +141,7 @@ class CloudStoragePersister(BasePersister):
         storage_client = storage.Client()
         bucket = storage_client.bucket("waterdatainitiative")
         blob = bucket.blob(f"die/{output_id}.zip")
-        blob.upload_from_string(cnt.getvalue().encode("utf-8"))
+        blob.upload_from_string(zip_buffer.getvalue().decode("utf-8"))
 
     def _write(self, path, records):
         def func(f, writer):
