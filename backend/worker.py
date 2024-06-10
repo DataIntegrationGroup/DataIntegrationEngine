@@ -83,6 +83,7 @@ def source_bounds_handler():
 def county_bounds_handler():
     county = request.args.get("county")
     from backend.unifier import get_county_bounds
+
     bounds = get_county_bounds(county)
 
     return make_cors_response({"wkt": bounds})
