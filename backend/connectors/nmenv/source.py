@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.mappings import DWB_ANALYTE_MAPPING
 from backend.connectors.nmenv.transformer import (
     DWBSiteTransformer,
@@ -28,6 +29,7 @@ URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 class DWBSiteSource(STSiteSource):
     url = URL
     transformer_klass = DWBSiteTransformer
+    bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def get_records(self, *args, **kw):
         if "analyte" in kw:
@@ -96,6 +98,5 @@ class DWBAnalyteSource(STAnalyteSource):
 
     def _extract_parameter_units(self, records):
         return [r["datastream"].unit_of_measurement.symbol for r in records]
-
 
 # ============= EOF =============================================

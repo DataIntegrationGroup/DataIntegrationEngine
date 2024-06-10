@@ -65,8 +65,8 @@ class BaseRecord:
 
 class WaterLevelRecord(BaseRecord):
     keys: tuple = (
-        # "source",
-        # "id",
+        "source",
+        "id",
         # "location",
         # "latitude",
         # "longitude",

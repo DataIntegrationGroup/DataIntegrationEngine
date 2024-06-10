@@ -17,6 +17,7 @@ from datetime import datetime
 
 import httpx
 
+from backend.connectors import ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 from backend.connectors.mappings import ISC_SEVEN_RIVERS_ANALYTE_MAPPING
 from backend.constants import (
     TDS,
@@ -52,7 +53,7 @@ def _make_url(endpoint):
 
 class ISCSevenRiversSiteSource(BaseSiteSource):
     transformer_klass = ISCSevenRiversSiteTransformer
-
+    bounding_polygon = ISC_SEVEN_RIVERS_BOUNDING_POLYGON
     def health(self):
         try:
             self.get_records()

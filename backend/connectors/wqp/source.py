@@ -17,6 +17,7 @@ import pprint
 
 import httpx
 
+from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.mappings import WQP_ANALYTE_MAPPING
 from backend.constants import (
     TDS,
@@ -58,6 +59,8 @@ def get_date_range(config):
 class WQPSiteSource(BaseSiteSource):
     transformer_klass = WQPSiteTransformer
     chunk_size = 100
+
+    bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def health(self):
         try:

@@ -17,12 +17,13 @@ import os
 
 import httpx
 
-from backend.connectors.ampapi.transformer import (
-    AMPAPISiteTransformer,
-    AMPAPIWaterLevelTransformer,
-    AMPAPIAnalyteTransformer,
+from backend.connectors import NM_STATE_BOUNDING_POLYGON
+from backend.connectors.nmbgmr.transformer import (
+    NMBGMRSiteTransformer,
+    NMBGMRWaterLevelTransformer,
+    NMBGMRAnalyteTransformer,
 )
-from backend.connectors.mappings import AMPAPI_ANALYTE_MAPPING
+from backend.connectors.mappings import NMBGMR_ANALYTE_MAPPING
 from backend.constants import (
     TDS,
     FEET,
@@ -54,9 +55,10 @@ def _make_url(endpoint):
     return f"https://waterdata.nmt.edu/{endpoint}"
 
 
-class AMPAPISiteSource(BaseSiteSource):
-    transformer_klass = AMPAPISiteTransformer
+class NMBGMRSiteSource(BaseSiteSource):
+    transformer_klass = NMBGMRSiteTransformer
     chunk_size = 100
+    bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def health(self):
         resp = self._execute_json_request(
@@ -75,7 +77,7 @@ class AMPAPISiteSource(BaseSiteSource):
 
         if config.analyte:
             params["has_analyte"] = get_analyte_search_param(
-                config.analyte, AMPAPI_ANALYTE_MAPPING
+                config.analyte, NMBGMR_ANALYTE_MAPPING
             )
         else:
             params["has_waterlevels"] = True
@@ -85,11 +87,11 @@ class AMPAPISiteSource(BaseSiteSource):
         )
 
 
-class AMPAPIAnalyteSource(BaseAnalyteSource):
-    transformer_klass = AMPAPIAnalyteTransformer
+class NMBGMRAnalyteSource(BaseAnalyteSource):
+    transformer_klass = NMBGMRAnalyteTransformer
 
     def get_records(self, parent_record):
-        analyte = get_analyte_search_param(self.config.analyte, AMPAPI_ANALYTE_MAPPING)
+        analyte = get_analyte_search_param(self.config.analyte, NMBGMR_ANALYTE_MAPPING)
         records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
@@ -125,8 +127,8 @@ class AMPAPIAnalyteSource(BaseAnalyteSource):
         return record
 
 
-class AMPAPIWaterLevelSource(BaseWaterLevelSource):
-    transformer_klass = AMPAPIWaterLevelTransformer
+class NMBGMRWaterLevelSource(BaseWaterLevelSource):
+    transformer_klass = NMBGMRWaterLevelTransformer
 
     def _clean_records(self, records):
         return [r for r in records if r["DepthToWaterBGS"] is not None]

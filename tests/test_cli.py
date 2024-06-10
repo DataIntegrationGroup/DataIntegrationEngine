@@ -40,7 +40,7 @@ def _make_args(source):
             for f in (
                 "--no-amp",
                 "--no-nwis",
-                "--no-st2",
+                "--no-pvacd",
                 "--no-bor",
                 "--no-dwb",
                 "--no-wqp",
@@ -65,22 +65,22 @@ def _make_wl_args(source=None):
 
 
 def test_waterlevels_nwis():
-    args = _make_wl_args()
+    args = _make_wl_args("nwis")
     _tester(waterlevels, args)
 
 
-def test_waterlevels_st2():
-    args = _make_wl_args()
+def test_waterlevels_pvacd():
+    args = _make_wl_args("pvacd")
     _tester(waterlevels, args)
 
 
-def test_waterlevels_amp():
-    args = _make_wl_args()
+def test_waterlevels_nmbgmr():
+    args = _make_wl_args("nmbgmr")
     _tester(waterlevels, args)
 
 
 def test_waterlevels_isc_seven_rivers():
-    args = _make_wl_args()
+    args = _make_wl_args("isc_seven_rivers")
     _tester(waterlevels, args)
 
 

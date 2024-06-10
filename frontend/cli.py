@@ -43,11 +43,11 @@ SOURCE_OPTIONS = [
         help="Exclude NWIS data. Default is to include",
     ),
     click.option(
-        "--no-st2",
+        "--no-pvacd",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Exclude ST2 data. Default is to include",
+        help="Exclude PVACD data. Default is to include",
     ),
     click.option(
         "--no-isc-seven-rivers",
@@ -168,7 +168,7 @@ def waterlevels(
     county,
     no_amp,
     no_nwis,
-    no_st2,
+    no_pvacd,
     no_isc_seven_rivers,
     no_bor,
     no_wqp,
@@ -179,9 +179,9 @@ def waterlevels(
 ):
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
-    config.use_source_ampapi = no_amp
+    config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
-    config.use_source_st2 = no_st2
+    config.use_source_pvacd = no_pvacd
     config.use_source_isc_seven_rivers = no_isc_seven_rivers
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
@@ -221,7 +221,7 @@ def analytes(
     county,
     no_amp,
     no_nwis,
-    no_st2,
+    no_pvacd,
     no_isc_seven_rivers,
     no_bor,
     no_wqp,
@@ -235,9 +235,9 @@ def analytes(
     )
     config.analyte = analyte
 
-    config.use_source_ampapi = no_amp
+    config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
-    config.use_source_st2 = no_st2
+    config.use_source_pvacd = no_pvacd
     config.use_source_isc_seven_rivers = no_isc_seven_rivers
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
@@ -253,6 +253,24 @@ def analytes(
             return
 
     unify_analytes(config)
+
+
+@cli.command()
+@add_options(SPATIAL_OPTIONS)
+def sources(bbox, county):
+    """
+    List available sources
+    """
+    from backend.unifier import get_sources
+    config = Config()
+    if county:
+        config.county = county
+    elif bbox:
+        config.bbox = bbox
+
+    sources = get_sources(config)
+    for s in sources:
+        click.echo(s)
 
 
 def setup_config(tag, timeseries, bbox, county, site_limit, dry):

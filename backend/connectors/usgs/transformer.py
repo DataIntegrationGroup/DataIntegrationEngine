@@ -17,7 +17,7 @@ from backend.record import SiteRecord, WaterLevelRecord
 from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
 
 
-class USGSSiteTransformer(SiteTransformer):
+class NWISSiteTransformer(SiteTransformer):
     def _transform(self, record):
         elevation = record["alt_va"]
         try:
@@ -49,7 +49,7 @@ class USGSSiteTransformer(SiteTransformer):
         return rec
 
 
-class USGSWaterLevelTransformer(WaterLevelTransformer):
+class NWISWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "USGS-NWIS"
 
     # def _transform_hook(self, record, config, parent_record):

@@ -100,9 +100,10 @@ def router_unify_waterlevels(item: ConfigModel):
             exists = bucket.blob(f"{itemhash}.csv").exists()
         else:
             bucket = storage_client.bucket("die_cache")
-            combined_exists = bucket.blob(f"{itemhash}.combined.csv").exists()
-            timeseries_exists = bucket.blob(f"{itemhash}_timeseries/sites.csv").exists()
-            exists = combined_exists or timeseries_exists
+            # combined_exists = bucket.blob(f"{itemhash}.combined.csv").exists()
+            # timeseries_exists = bucket.blob(f"{itemhash}_timeseries/sites.csv").exists()
+            # exists = combined_exists or timeseries_exists
+            exists = bucket.blob(f"{itemhash}.zip").exists()
 
     response = None
     if not exists:
@@ -155,6 +156,12 @@ def router_unify_waterlevels(item: ConfigModel):
         task_response=response,
     )
 
+@app.get('/parameters')
+def router_parameters():
+    parameters = [{"name": 'Depth To Groundwater', "code": 'dtw'},
+                  {"name": "TDS", "code": "tds"},
+    ]
+    return parameters
 
 @app.get("/status")
 def router_status(task_id: str):

@@ -127,8 +127,8 @@ TAn
 TCat
 TDS
 """
-AMPAPI_ANALYTE_MAPPING: dict = {
-    ARSENIC: "As",  #  ampapi can't handle multiple analytes yet "As,As(total)",
+NMBGMR_ANALYTE_MAPPING: dict = {
+    ARSENIC: "As",  #  nmbgmr can't handle multiple analytes yet "As,As(total)",
     BICARBONATE: "HCO3",
     CALCIUM: "Ca",
     CARBONATE: "CO3",
@@ -249,7 +249,7 @@ def get_var_name(var):
 for mapping in (
     DWB_ANALYTE_MAPPING,
     ISC_SEVEN_RIVERS_ANALYTE_MAPPING,
-    AMPAPI_ANALYTE_MAPPING,
+    NMBGMR_ANALYTE_MAPPING,
     WQP_ANALYTE_MAPPING,
     BOR_ANALYTE_MAPPING,
 ):

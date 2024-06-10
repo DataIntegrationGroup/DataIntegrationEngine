@@ -17,6 +17,8 @@ from json import JSONDecodeError
 
 import click
 import httpx
+import shapely.wkt
+from shapely import MultiPoint
 
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
@@ -40,6 +42,10 @@ class BaseSource:
 
     def __init__(self):
         self.transformer = self.transformer_klass()
+
+    @property
+    def tag(self):
+        return self.__class__.__name__.lower()
 
     def set_config(self, config):
         self.config = config
@@ -73,6 +79,7 @@ class BaseSource:
             return ""
 
     def _execute_json_request(self, url, params=None, tag=None, **kw):
+        print(url)
         resp = httpx.get(url, params=params, **kw)
         if tag is None:
             tag = "data"
@@ -94,6 +101,25 @@ class BaseSource:
 
 class BaseSiteSource(BaseSource):
     chunk_size = 1
+    bounding_polygon = None
+
+    @property
+    def tag(self):
+        return self.__class__.__name__.lower().replace("sitesource", "")
+
+    def generate_bounding_polygon(self):
+        records = self.read_sites()
+        print(records[0].latitude)
+        mpt = MultiPoint([(r.longitude, r.latitude) for r in records])
+        print(mpt.convex_hull.buffer(1/60.).wkt)
+        # print(mpt.convex_hull.wkt)
+
+    def intersects(self, wkt):
+        if self.bounding_polygon:
+            wkt = shapely.wkt.loads(wkt)
+            return self.bounding_polygon.intersects(wkt)
+
+        return True
 
     def read_sites(self, *args, **kw):
         self.log("Gathering site records")

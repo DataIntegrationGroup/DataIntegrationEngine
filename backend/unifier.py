@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import shapely
 
 from backend.config import Config, get_source
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
@@ -115,8 +116,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
 
 def _unify_parameter(
-    config,
-    sources,
+        config,
+        sources,
 ):
     use_summarize = config.output_summary
     persister = _perister_factory(config)
@@ -130,6 +131,61 @@ def _unify_parameter(
     persister.finalize(config.output_name)
 
 
+def get_sources_in_polygon(polygon):
+    # polygon = shapely.wkt.loads(polygon)
+    sources = get_sources()
+    rets = []
+    for source in sources:
+        print(source)
+        if source.intersects(polygon):
+            rets.append(source.tag)
+    return rets
+
+
+def get_source_bounds(sourcekeys, as_str=False):
+    config = Config()
+    sourcekeys = sourcekeys.lower().replace('_', '')
+
+    rets = []
+    for sourcekey in sourcekeys.split(','):
+        for sources in (config.analyte_sources(), config.water_level_sources()):
+            for source, _ in sources:
+                if source.__class__.__name__.lower().startswith(sourcekey):
+                    bp = source.bounding_polygon
+                    if bp and bp not in rets:
+                        rets.append(bp)
+
+    if rets:
+        if len(rets) > 1:
+            rets = shapely.GeometryCollection(rets)
+        else:
+            rets = rets[0]
+        if as_str:
+            rets = rets.wkt
+        return rets
+
+
+def get_sources(config=None):
+    if config is None:
+        config = Config()
+
+    sources = []
+    if config.analyte:
+        allsources = config.analyte_sources()
+    else:
+        allsources = config.water_level_sources()
+
+    for source, _ in allsources:
+        if source.intersects(config.bounding_wkt()):
+            sources.append(source)
+    return sources
+
+
+def generate_site_bounds():
+    source = get_source("st2")
+    source.generate_bounding_polygon()
+
+
 def analyte_unification_test():
     cfg = Config()
     cfg.county = "chaves"
@@ -140,7 +196,7 @@ def analyte_unification_test():
 
     # analyte testing
     # cfg.use_source_wqp = False
-    cfg.use_source_ampapi = False
+    cfg.use_source_nmbgmr = False
     cfg.use_source_isc_seven_rivers = False
     cfg.use_source_bor = False
     cfg.use_source_dwb = False
@@ -158,12 +214,12 @@ def waterlevel_unification_test():
     cfg.end_date = "2020-5-01"
     cfg.output_summary = False
     cfg.output_name = "test00112233"
-    # cfg.output_summary = True
+    cfg.output_summary = True
 
     cfg.use_source_nwis = False
-    # cfg.use_source_ampapi = False
+    # cfg.use_source_nmbgmr = False
     cfg.use_source_isc_seven_rivers = False
-    cfg.use_source_st2 = False
+    cfg.use_source_pvacd = False
     cfg.use_source_ose_roswell = False
     # cfg.site_limit = 10
 
@@ -175,9 +231,10 @@ if __name__ == "__main__":
     # root = logging.getLogger()
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
-
+    # get_sources(Config())
     # waterlevel_unification_test()
     # analyte_unification_test()
-    print(health_check("nwis"))
+    # print(health_check("nwis"))
+    generate_site_bounds()
 
 # ============= EOF =============================================

@@ -184,15 +184,23 @@ class BaseTransformer:
         record = klass(record)
 
         if isinstance(record, (SiteRecord, SummaryRecord)):
-            x = float(record.latitude)
-            y = float(record.longitude)
+            y = float(record.latitude)
+            x = float(record.longitude)
             datum = record.horizontal_datum
+
+            oeu = ''
+            wdu = ''
+            ohd = 'WGS84'
+            if self.config:
+                oeu = self.config.output_elevation_units
+                wdu = self.config.output_well_depth_units
+                ohd = self.config.output_horizontal_datum
 
             lng, lat, datum = transform_horizontal_datum(
                 x,
                 y,
                 datum,
-                self.config.output_horizontal_datum,
+                ohd,
             )
             record.update(latitude=lat)
             record.update(longitude=lng)
@@ -201,7 +209,7 @@ class BaseTransformer:
             e, eunit = transform_units(
                 record.elevation,
                 record.elevation_units,
-                self.config.output_elevation_units,
+                oeu,
             )
             record.update(elevation=e)
             record.update(elevation_units=eunit)
@@ -209,7 +217,7 @@ class BaseTransformer:
             wd, wdunit = transform_units(
                 record.well_depth,
                 record.well_depth_units,
-                self.config.output_well_depth_units,
+                wdu,
             )
             record.update(well_depth=wd)
             record.update(well_depth_units=wdunit)
@@ -230,7 +238,7 @@ class BaseTransformer:
         lat,
     ):
         config = self.config
-        if config.has_bounds():
+        if config and config.has_bounds():
             if not self._cached_polygon:
                 poly = shapely.wkt.loads(config.bounding_wkt())
                 self._cached_polygon = poly
@@ -265,16 +273,18 @@ class ParameterTransformer(BaseTransformer):
                 f"{self.__class__.__name__} source_tag is not set"
             )
 
-        rec = {}
+        rec = {"source": self.source_tag,
+               "id": site_record.id,
+               }
+
         if self.config.output_summary:
             self._transform_most_recents(record)
 
             p, u = self._get_parameter()
-            rec = {
-                "source": self.source_tag,
-                "id": site_record.id,
+            rec.update({
                 "location": site_record.name,
-                "usgs_site_id": site_record.id,
+                "usgs_site_id": site_record.usgs_site_id,
+                "alternate_site_id": site_record.alternate_site_id,
                 "latitude": site_record.latitude,
                 "longitude": site_record.longitude,
                 "elevation": site_record.elevation,
@@ -283,7 +293,7 @@ class ParameterTransformer(BaseTransformer):
                 "well_depth_units": site_record.well_depth_units,
                 "parameter": p,
                 "parameter_units": u,
-            }
+            })
         rec.update(record)
         return rec
 

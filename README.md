@@ -63,7 +63,7 @@ Available data source flags:
  - --no-dwb
  - --no-isc-seven-rivers
  - --no-nwis
- - --no-st2
+ - --no-pvacd
  - --no-wqp
 
 

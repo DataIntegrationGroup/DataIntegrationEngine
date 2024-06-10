@@ -51,6 +51,41 @@ def health_handler():
     return make_cors_response({"health": "healthy" if health_response else "unhealthy"})
 
 
+@app.route("/sources", methods=["GET"])
+def sources_handler():
+    from backend.unifier import get_sources
+    from backend.config import Config
+
+    polygon = request.args.get("wkt")
+    parameter = request.args.get("parameter")
+    config = Config()
+    if polygon:
+        config.wkt = polygon
+
+    if parameter:
+        config.analyte = parameter
+
+    sources = get_sources(config)
+    return make_cors_response({"sources": [s.tag for s in sources]})
+
+
+@app.route('/source_bounds', methods=['GET'])
+def source_bounds_handler():
+    sourcekey = request.args.get("sources")
+    from backend.unifier import get_source_bounds
+    bounds = get_source_bounds(sourcekey, as_str=True)
+
+    return make_cors_response({"wkt": bounds})
+
+
+# @app.route("/sources_in_polygon")
+# def sources_in_polygon_handler():
+#     from backend.unifier import get_sources_in_polygon
+#     polygon = request.args.get("wkt")
+#     sources = get_sources_in_polygon(polygon)
+#
+#     return make_cors_response({"sources": sources})
+
 @app.route("/unify_analytes", methods=["POST"])
 def unify_analytes_handler():
     from backend.unifier import unify_analytes
@@ -66,5 +101,5 @@ def unify_waterlevels_handler():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
 # ============= EOF =============================================

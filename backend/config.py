@@ -22,10 +22,10 @@ import click
 import shapely.wkt
 
 from .bounding_polygons import get_county_polygon
-from .connectors.ampapi.source import (
-    AMPAPISiteSource,
-    AMPAPIWaterLevelSource,
-    AMPAPIAnalyteSource,
+from .connectors.nmbgmr.source import (
+    NMBGMRSiteSource,
+    NMBGMRWaterLevelSource,
+    NMBGMRAnalyteSource,
 )
 from .connectors.bor.source import BORSiteSource, BORAnalyteSource
 from .connectors.ckan import (
@@ -50,33 +50,33 @@ from .connectors.st2.source import (
     EBIDSiteSource,
     PVACDWaterLevelSource,
 )
-from .connectors.usgs.source import USGSSiteSource, USGSWaterLevelSource
+from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 SOURCE_KEYS = (
-    "ampapi",
+    "nmbgmr",
     "wqp",
     "isc_seven_rivers",
     "nwis",
     "ose_roswell",
-    "st2",
+    "pvacd",
     "bor",
     "dwb",
 )
 
 
 def get_source(source):
-    if source == "ampapi":
-        return AMPAPISiteSource()
+    if source == "nmbgmr":
+        return NMBGMRSiteSource()
     elif source == "wqp":
         return WQPSiteSource()
     elif source == "isc_seven_rivers":
         return ISCSevenRiversSiteSource()
     elif source == "nwis":
-        return USGSSiteSource()
+        return NWISSiteSource()
     elif source == "ose_roswell":
         return OSERoswellSiteSource(HONDO_RESOURCE_ID)
-    elif source == "st2":
+    elif source == "pvacd":
         return PVACDSiteSource()
     elif source == "bor":
         return BORSiteSource()
@@ -100,12 +100,12 @@ class Config(object):
     wkt: str = ""
 
     # sources
-    use_source_ampapi: bool = True
+    use_source_nmbgmr: bool = True
     use_source_wqp: bool = True
     use_source_isc_seven_rivers: bool = True
     use_source_nwis: bool = True
     use_source_ose_roswell: bool = True
-    use_source_st2: bool = True
+    use_source_pvacd: bool = True
     use_source_bor: bool = True
     use_source_dwb: bool = True
 
@@ -165,8 +165,8 @@ class Config(object):
             sources.append((WQPSiteSource(), WQPAnalyteSource()))
         if self.use_source_isc_seven_rivers:
             sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource()))
-        if self.use_source_ampapi:
-            sources.append((AMPAPISiteSource(), AMPAPIAnalyteSource()))
+        if self.use_source_nmbgmr:
+            sources.append((NMBGMRSiteSource(), NMBGMRAnalyteSource()))
         if self.use_source_dwb:
             sources.append((DWBSiteSource(), DWBAnalyteSource()))
 
@@ -181,8 +181,8 @@ class Config(object):
 
     def water_level_sources(self):
         sources = []
-        if self.use_source_ampapi:
-            sources.append((AMPAPISiteSource(), AMPAPIWaterLevelSource()))
+        if self.use_source_nmbgmr:
+            sources.append((NMBGMRSiteSource(), NMBGMRWaterLevelSource()))
 
         if self.use_source_isc_seven_rivers:
             sources.append(
@@ -190,7 +190,7 @@ class Config(object):
             )
 
         if self.use_source_nwis:
-            sources.append((USGSSiteSource(), USGSWaterLevelSource()))
+            sources.append((NWISSiteSource(), NWISWaterLevelSource()))
 
         if self.use_source_ose_roswell:
             sources.append(
@@ -211,7 +211,7 @@ class Config(object):
                     OSERoswellWaterLevelSource(ROSWELL_RESOURCE_ID),
                 )
             )
-        if self.use_source_st2:
+        if self.use_source_pvacd:
             sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
             # sources.append((EBIDSiteSource, EBIDWaterLevelSource))
 
@@ -225,20 +225,33 @@ class Config(object):
         return sources
 
     def site_sources(self):
-        sources = []
-        if self.use_source_ampapi:
-            sources.append(AMPAPISiteSource)
-        if self.use_source_isc_seven_rivers:
-            sources.append(ISCSevenRiversSiteSource)
-        if self.use_source_ose_roswell:
-            sources.append(OSERoswellSiteSource)
-        if self.use_source_nwis:
-            sources.append(USGSSiteSource)
-        if self.use_source_st2:
-            sources.append(PVACDSiteSource)
-            sources.append(EBIDSiteSource)
-        if self.use_source_bor:
-            sources.append(BORSiteSource)
+        sources = [
+            NMBGMRSiteSource(),
+            WQPSiteSource(),
+            ISCSevenRiversSiteSource(),
+            NWISSiteSource(),
+            DWBSiteSource(),
+            BORSiteSource(),
+            PVACDSiteSource(),
+            EBIDSiteSource(),
+            OSERoswellSiteSource(HONDO_RESOURCE_ID),
+            OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
+            OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
+        ]
+
+        # if self.use_source_nmbgmr:
+        #     sources.append(NMBGMRSiteSource)
+        # if self.use_source_isc_seven_rivers:
+        #     sources.append(ISCSevenRiversSiteSource)
+        # if self.use_source_ose_roswell:
+        #     sources.append(OSERoswellSiteSource)
+        # if self.use_source_nwis:
+        #     sources.append(USGSSiteSource)
+        # if self.use_source_st2:
+        #     sources.append(PVACDSiteSource)
+        #     sources.append(EBIDSiteSource)
+        # if self.use_source_bor:
+        #     sources.append(BORSiteSource)
         return sources
 
     def bbox_bounding_points(self, bbox=None):
@@ -316,12 +329,12 @@ class Config(object):
                 "wkt",
                 "analyte",
                 "site_limit",
-                "use_source_ampapi",
+                "use_source_nmbgmr",
                 "use_source_wqp",
                 "use_source_isc_seven_rivers",
                 "use_source_nwis",
                 "use_source_ose_roswell",
-                "use_source_st2",
+                "use_source_pvacd",
                 "use_source_bor",
                 "use_source_dwb",
             ),

@@ -15,10 +15,11 @@
 # ===============================================================================
 import httpx
 
+from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import FEET, DTW, DTW_UNITS, DT_MEASURED
 from backend.connectors.usgs.transformer import (
-    USGSSiteTransformer,
-    USGSWaterLevelTransformer,
+    NWISSiteTransformer,
+    NWISWaterLevelTransformer,
 )
 from backend.source import (
     BaseSource,
@@ -50,9 +51,14 @@ def parse_rdb(text):
     return list(line_generator())
 
 
-class USGSSiteSource(BaseSiteSource):
-    transformer_klass = USGSSiteTransformer
+class NWISSiteSource(BaseSiteSource):
+    transformer_klass = NWISSiteTransformer
     chunk_size = 500
+    bounding_polygon = NM_STATE_BOUNDING_POLYGON
+
+    @property
+    def tag(self):
+        return 'nwis'
 
     def health(self):
         try:
@@ -80,9 +86,9 @@ class USGSSiteSource(BaseSiteSource):
             params["stateCd"] = "NM"
 
         if config.start_date:
-            params["startDt"] = config.start_dt.isoformat()
+            params["startDt"] = config.start_dt.date().isoformat()
         if config.end_date:
-            params["endDt"] = config.end_dt.isoformat()
+            params["endDt"] = config.end_dt.date().isoformat()
 
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/site/", params
@@ -93,8 +99,8 @@ class USGSSiteSource(BaseSiteSource):
             return records
 
 
-class USGSWaterLevelSource(BaseWaterLevelSource):
-    transformer_klass = USGSWaterLevelTransformer
+class NWISWaterLevelSource(BaseWaterLevelSource):
+    transformer_klass = NWISWaterLevelTransformer
 
     def get_records(self, parent_record):
         params = {
@@ -105,12 +111,12 @@ class USGSWaterLevelSource(BaseWaterLevelSource):
 
         config = self.config
         if config.start_date:
-            params["startDt"] = config.start_dt.isoformat()
+            params["startDt"] = config.start_dt.date().isoformat()
         else:
             params["startDt"] = "1900-01-01"
 
         if config.end_date:
-            params["endDt"] = config.end_dt.isoformat()
+            params["endDt"] = config.end_dt.date().isoformat()
 
         text = self._execute_text_request(
             "https://waterservices.usgs.gov/nwis/gwlevels/", params

@@ -23,11 +23,11 @@ from backend.transformer import (
 )
 
 
-class AMPAPISiteTransformer(SiteTransformer):
+class NMBGMRSiteTransformer(SiteTransformer):
     def _transform(self, record):
         props = record["properties"]
         rec = {
-            "source": "AMPAPI",
+            "source": "NMBGMR",
             "id": props["point_id"],
             "name": props["point_id"],
             "latitude": record["geometry"]["coordinates"][1],
@@ -45,15 +45,15 @@ class AMPAPISiteTransformer(SiteTransformer):
         return rec
 
 
-class AMPAPIAnalyteTransformer(AnalyteTransformer):
-    source_tag = "AMPAPI"
+class NMBGMRAnalyteTransformer(AnalyteTransformer):
+    source_tag = "NMBGMR"
 
 
-class AMPAPIWaterLevelTransformer(WaterLevelTransformer):
-    source_tag = "AMPAPI"
+class NMBGMRWaterLevelTransformer(WaterLevelTransformer):
+    source_tag = "NMBGMR"
     # def _transform_hook(self, record, config, parent_record):
     #     rec = {
-    #         "source": "AMPAPI",
+    #         "source": "NMBGMR",
     #         "id": parent_record.id,
     #         "location": parent_record.name,
     #         "usgs_site_id": parent_record.usgs_site_id,

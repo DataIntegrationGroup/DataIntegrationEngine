@@ -57,7 +57,7 @@ class BasePersister(Loggable):
                 self.log(f"root {root} already exists", fg="red")
                 shutil.rmtree(root)
 
-            os.mkdir(root)
+            self._make_root_directory(root)
 
             for site, records in self.timeseries:
                 path = os.path.join(root, str(site.id).replace(" ", "_"))
@@ -103,6 +103,9 @@ class BasePersister(Loggable):
     def _dump_combined(self, path, combined):
         raise NotImplementedError
 
+    def _make_root_directory(self, root):
+        os.mkdir(root)
+
 
 def write_file(path, func):
     with open(path, "w") as f:
@@ -141,11 +144,15 @@ class CloudStoragePersister(BasePersister):
                 for path, cnt in self._content:
                     zf.writestr(path, cnt)
             blob = bucket.blob(f"{output_id}.zip")
-            blob.upload_from_string(zip_buffer.getvalue().decode("utf-8"))
+            blob.upload_from_string(zip_buffer.getvalue())
         else:
             path, cnt = self._content[0]
             blob = bucket.blob(path)
             blob.upload_from_string(cnt)
+
+    def _make_root_directory(self, root):
+        # prevent making root directory, because we are not saving to disk
+        pass
 
     def _write(self, path, records):
         def func(f, writer):

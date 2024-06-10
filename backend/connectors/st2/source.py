@@ -17,6 +17,7 @@ import datetime
 
 import frost_sta_client as fsc
 
+from backend.connectors import PVACD_BOUNDING_POLYGON
 from backend.connectors.st2.transformer import (
     PVACDSiteTransformer,
     EBIDSiteTransformer,
@@ -48,6 +49,7 @@ class ST2SiteSource(STSiteSource):
 class PVACDSiteSource(ST2SiteSource):
     transformer_klass = PVACDSiteTransformer
     agency = "PVACD"
+    bounding_polygon = PVACD_BOUNDING_POLYGON
 
 
 class EBIDSiteSource(ST2SiteSource):
