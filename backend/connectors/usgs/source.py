@@ -58,7 +58,7 @@ class NWISSiteSource(BaseSiteSource):
 
     @property
     def tag(self):
-        return 'nwis'
+        return "nwis"
 
     def health(self):
         try:

@@ -69,10 +69,11 @@ def sources_handler():
     return make_cors_response({"sources": [s.tag for s in sources]})
 
 
-@app.route('/source_bounds', methods=['GET'])
+@app.route("/source_bounds", methods=["GET"])
 def source_bounds_handler():
     sourcekey = request.args.get("sources")
     from backend.unifier import get_source_bounds
+
     bounds = get_source_bounds(sourcekey, as_str=True)
 
     return make_cors_response({"wkt": bounds})
@@ -85,6 +86,7 @@ def source_bounds_handler():
 #     sources = get_sources_in_polygon(polygon)
 #
 #     return make_cors_response({"sources": sources})
+
 
 @app.route("/unify_analytes", methods=["POST"])
 def unify_analytes_handler():

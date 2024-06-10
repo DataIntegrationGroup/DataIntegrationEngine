@@ -17,9 +17,16 @@ from itertools import groupby
 
 import httpx
 
-from backend.connectors import OSE_ROSWELL_HONDO_BOUNDING_POLYGON, OSE_ROSWELL_FORT_SUMNER_BOUNDING_POLYGON, \
-    OSE_ROSWELL_ROSWELL_BOUNDING_POLYGON
-from backend.connectors.ckan import HONDO_RESOURCE_ID, FORT_SUMNER_RESOURCE_ID, ROSWELL_RESOURCE_ID
+from backend.connectors import (
+    OSE_ROSWELL_HONDO_BOUNDING_POLYGON,
+    OSE_ROSWELL_FORT_SUMNER_BOUNDING_POLYGON,
+    OSE_ROSWELL_ROSWELL_BOUNDING_POLYGON,
+)
+from backend.connectors.ckan import (
+    HONDO_RESOURCE_ID,
+    FORT_SUMNER_RESOURCE_ID,
+    ROSWELL_RESOURCE_ID,
+)
 from backend.connectors.ckan.transformer import (
     OSERoswellSiteTransformer,
     OSERoswellWaterLevelTransformer,
@@ -124,5 +131,6 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         record[DT_MEASURED] = record["Date"]
         record[DTW_UNITS] = FEET
         return record
+
 
 # ============= EOF =============================================

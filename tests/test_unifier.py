@@ -76,14 +76,14 @@ def _setup(tmp_path, cfg, source, tag):
     d.mkdir()
     cfg.output_dir = str(d)
     for stag in (
-            "nmbgmr",
-            "nwis",
-            "pvacd",
-            "bor",
-            "dwb",
-            "wqp",
-            "isc_seven_rivers",
-            "ose_roswell",
+        "nmbgmr",
+        "nwis",
+        "pvacd",
+        "bor",
+        "dwb",
+        "wqp",
+        "isc_seven_rivers",
+        "ose_roswell",
     ):
         if stag == source:
             setattr(cfg, f"use_source_{stag}", True)
@@ -113,7 +113,7 @@ def _test_waterlevels_summary(tmp_path, cfg, source):
 
 
 def _test_waterlevels_timeseries(
-        tmp_path, cfg, source, combined_flag=True, timeseries_flag=False
+    tmp_path, cfg, source, combined_flag=True, timeseries_flag=False
 ):
     d = _setup_waterlevels(tmp_path, cfg, source)
     combined = d / "output.combined.csv"
@@ -210,10 +210,12 @@ def test_pvacd_site_health_check():
 #     n = OSESiteSource()
 #     assert n.health()
 
+
 # Source tests ========================================================================================================
 def test_source_bounds_nmbgmr():
     from backend.unifier import get_source_bounds
-    sourcekey = 'nmbgmr'
+
+    sourcekey = "nmbgmr"
     bounds = get_source_bounds(sourcekey)
     print(bounds)
     assert bounds is None
@@ -223,29 +225,34 @@ def test_source_bounds_is_seven_rivers():
     from backend.unifier import get_source_bounds
     from backend.connectors import ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 
-    sourcekey = 'isc_seven_rivers'
+    sourcekey = "isc_seven_rivers"
     bounds = get_source_bounds(sourcekey)
     assert bounds
     assert bounds.is_valid
-    assert bounds.geom_type == 'Polygon'
+    assert bounds.geom_type == "Polygon"
     assert bounds == ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 
 
 def test_source_bounds_oser():
     from backend.unifier import get_source_bounds
-    from backend.connectors import (OSE_ROSWELL_HONDO_BOUNDING_POLYGON,
-                                    OSE_ROSWELL_ROSWELL_BOUNDING_POLYGON,
-                                    OSE_ROSWELL_FORT_SUMNER_BOUNDING_POLYGON)
+    from backend.connectors import (
+        OSE_ROSWELL_HONDO_BOUNDING_POLYGON,
+        OSE_ROSWELL_ROSWELL_BOUNDING_POLYGON,
+        OSE_ROSWELL_FORT_SUMNER_BOUNDING_POLYGON,
+    )
 
-    sourcekey = 'ose_roswell'
+    sourcekey = "ose_roswell"
     bounds = get_source_bounds(sourcekey)
     assert bounds
     assert bounds.is_valid
-    assert bounds.geom_type == 'GeometryCollection'
-    assert bounds == shapely.GeometryCollection([OSE_ROSWELL_HONDO_BOUNDING_POLYGON,
-                                                 OSE_ROSWELL_FORT_SUMNER_BOUNDING_POLYGON,
-                                                 OSE_ROSWELL_ROSWELL_BOUNDING_POLYGON,
-                                                 ])
+    assert bounds.geom_type == "GeometryCollection"
+    assert bounds == shapely.GeometryCollection(
+        [
+            OSE_ROSWELL_HONDO_BOUNDING_POLYGON,
+            OSE_ROSWELL_FORT_SUMNER_BOUNDING_POLYGON,
+            OSE_ROSWELL_ROSWELL_BOUNDING_POLYGON,
+        ]
+    )
 
 
 def test_sources_socorro(tmp_path):
@@ -253,11 +260,13 @@ def test_sources_socorro(tmp_path):
     cfg.county = "socorro"
 
     from backend.unifier import get_sources
+
     sources = get_sources(cfg)
     assert sources
     assert len(sources) == 2
-    assert sorted([s.__class__.__name__ for s in sources]) == sorted(['NMBGMRSiteSource',
-                                                                      'USGSSiteSource'])
+    assert sorted([s.__class__.__name__ for s in sources]) == sorted(
+        ["NMBGMRSiteSource", "USGSSiteSource"]
+    )
 
 
 def test_sources_eddy_dtw(tmp_path):
@@ -265,14 +274,19 @@ def test_sources_eddy_dtw(tmp_path):
     cfg.county = "eddy"
 
     from backend.unifier import get_sources
+
     sources = get_sources(cfg)
     assert sources
     assert len(sources) == 5
-    assert sorted([s.__class__.__name__ for s in sources]) == sorted(['ISCSevenRiversSiteSource',
-                                                                      'NMBGMRSiteSource',
-                                                                      'OSERoswellSiteSource',
-                                                                      'PVACDSiteSource',
-                                                                      'USGSSiteSource'])
+    assert sorted([s.__class__.__name__ for s in sources]) == sorted(
+        [
+            "ISCSevenRiversSiteSource",
+            "NMBGMRSiteSource",
+            "OSERoswellSiteSource",
+            "PVACDSiteSource",
+            "USGSSiteSource",
+        ]
+    )
 
 
 def test_sources_eddy_tds(tmp_path):
@@ -281,12 +295,19 @@ def test_sources_eddy_tds(tmp_path):
     cfg.analyte = "TDS"
 
     from backend.unifier import get_sources
+
     sources = get_sources(cfg)
     assert sources
     assert len(sources) == 5
-    assert sorted([s.__class__.__name__ for s in sources]) == sorted(['BORSiteSource', 'DWBSiteSource',
-                                                                      'ISCSevenRiversSiteSource', 'NMBGMRSiteSource',
-                                                                      'WQPSiteSource'])
+    assert sorted([s.__class__.__name__ for s in sources]) == sorted(
+        [
+            "BORSiteSource",
+            "DWBSiteSource",
+            "ISCSevenRiversSiteSource",
+            "NMBGMRSiteSource",
+            "WQPSiteSource",
+        ]
+    )
 
 
 # Waterlevel Summary tests  ===========================================================================================
@@ -336,7 +357,7 @@ def test_unify_waterlevels_pvacd_timeseries(tmp_path, waterlevel_timeseries_cfg)
 
 
 def test_unify_waterlevels_isc_seven_rivers_timeseries(
-        tmp_path, waterlevel_timeseries_cfg
+    tmp_path, waterlevel_timeseries_cfg
 ):
     _test_waterlevels_timeseries(
         tmp_path,
@@ -367,7 +388,7 @@ def test_waterlevels_nwis_timeseries_date_range(tmp_path, waterlevel_timeseries_
 
 
 def test_waterlevels_isc_seven_rivers_timeseries_date_range(
-        tmp_path, waterlevel_timeseries_cfg
+    tmp_path, waterlevel_timeseries_cfg
 ):
     _test_waterelevels_timeseries_date_range(
         tmp_path, waterlevel_timeseries_cfg, "isc_seven_rivers"
@@ -375,7 +396,9 @@ def test_waterlevels_isc_seven_rivers_timeseries_date_range(
 
 
 def test_waterlevels_pvacd_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
-    _test_waterelevels_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg, "pvacd")
+    _test_waterelevels_timeseries_date_range(
+        tmp_path, waterlevel_timeseries_cfg, "pvacd"
+    )
 
 
 # Analyte summary tests ===============================================================================================
@@ -397,5 +420,6 @@ def test_unify_analytes_isc_seven_rivers_summary(tmp_path, analyte_summary_cfg):
 
 def test_unify_analytes_dwb_summary(tmp_path, analyte_summary_cfg):
     _test_analytes_summary(tmp_path, analyte_summary_cfg, "dwb")
+
 
 # ============= EOF =============================================

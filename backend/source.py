@@ -111,7 +111,7 @@ class BaseSiteSource(BaseSource):
         records = self.read_sites()
         print(records[0].latitude)
         mpt = MultiPoint([(r.longitude, r.latitude) for r in records])
-        print(mpt.convex_hull.buffer(1/60.).wkt)
+        print(mpt.convex_hull.buffer(1 / 60.0).wkt)
         # print(mpt.convex_hull.wkt)
 
     def intersects(self, wkt):

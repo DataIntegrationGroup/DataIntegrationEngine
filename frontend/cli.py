@@ -262,6 +262,7 @@ def sources(bbox, county):
     List available sources
     """
     from backend.unifier import get_sources
+
     config = Config()
     if county:
         config.county = county

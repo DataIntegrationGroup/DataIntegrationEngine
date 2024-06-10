@@ -116,8 +116,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
 
 def _unify_parameter(
-        config,
-        sources,
+    config,
+    sources,
 ):
     use_summarize = config.output_summary
     persister = _perister_factory(config)
@@ -144,10 +144,10 @@ def get_sources_in_polygon(polygon):
 
 def get_source_bounds(sourcekeys, as_str=False):
     config = Config()
-    sourcekeys = sourcekeys.lower().replace('_', '')
+    sourcekeys = sourcekeys.lower().replace("_", "")
 
     rets = []
-    for sourcekey in sourcekeys.split(','):
+    for sourcekey in sourcekeys.split(","):
         for sources in (config.analyte_sources(), config.water_level_sources()):
             for source, _ in sources:
                 if source.__class__.__name__.lower().startswith(sourcekey):

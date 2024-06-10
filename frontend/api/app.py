@@ -156,12 +156,15 @@ def router_unify_waterlevels(item: ConfigModel):
         task_response=response,
     )
 
-@app.get('/parameters')
+
+@app.get("/parameters")
 def router_parameters():
-    parameters = [{"name": 'Depth To Groundwater', "code": 'dtw'},
-                  {"name": "TDS", "code": "tds"},
+    parameters = [
+        {"name": "Depth To Groundwater", "code": "dtw"},
+        {"name": "TDS", "code": "tds"},
     ]
     return parameters
+
 
 @app.get("/status")
 def router_status(task_id: str):

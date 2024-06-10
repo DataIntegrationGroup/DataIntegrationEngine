@@ -99,4 +99,5 @@ class DWBAnalyteSource(STAnalyteSource):
     def _extract_parameter_units(self, records):
         return [r["datastream"].unit_of_measurement.symbol for r in records]
 
+
 # ============= EOF =============================================
