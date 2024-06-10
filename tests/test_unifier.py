@@ -144,7 +144,7 @@ def _test_waterelevels_timeseries_date_range(tmp_path, cfg, source):
             lines = rfile.readlines()
             for l in lines[1:]:
                 vs = l.split(",")
-                dd = vs[2]
+                dd = vs[3]
                 dd = datetime.datetime.strptime(dd, "%Y-%m-%d")
                 assert dd.year >= 2020 and dd.year <= 2024
 
@@ -214,11 +214,14 @@ def test_pvacd_site_health_check():
 # Source tests ========================================================================================================
 def test_source_bounds_nmbgmr():
     from backend.unifier import get_source_bounds
+    from backend.connectors import NM_STATE_BOUNDING_POLYGON
 
     sourcekey = "nmbgmr"
     bounds = get_source_bounds(sourcekey)
-    print(bounds)
-    assert bounds is None
+    assert bounds
+    assert bounds.is_valid
+    assert bounds.geom_type == "Polygon"
+    assert bounds == NM_STATE_BOUNDING_POLYGON
 
 
 def test_source_bounds_is_seven_rivers():
@@ -265,7 +268,7 @@ def test_sources_socorro(tmp_path):
     assert sources
     assert len(sources) == 2
     assert sorted([s.__class__.__name__ for s in sources]) == sorted(
-        ["NMBGMRSiteSource", "USGSSiteSource"]
+        ["NMBGMRSiteSource", "NWISSiteSource"]
     )
 
 
@@ -284,7 +287,7 @@ def test_sources_eddy_dtw(tmp_path):
             "NMBGMRSiteSource",
             "OSERoswellSiteSource",
             "PVACDSiteSource",
-            "USGSSiteSource",
+            "NWISSiteSource",
         ]
     )
 

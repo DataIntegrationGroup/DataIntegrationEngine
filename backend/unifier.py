@@ -142,6 +142,13 @@ def get_sources_in_polygon(polygon):
     return rets
 
 
+def get_county_bounds(county):
+    config = Config()
+    config.county = county
+    bp = config.bounding_wkt()
+    return bp
+
+
 def get_source_bounds(sourcekeys, as_str=False):
     config = Config()
     sourcekeys = sourcekeys.lower().replace("_", "")
