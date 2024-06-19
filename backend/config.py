@@ -70,11 +70,11 @@ def get_source(source):
         return NMBGMRSiteSource()
     elif source == "wqp":
         return WQPSiteSource()
-    elif source == "isc_seven_rivers":
+    elif source == "iscsevenrivers":
         return ISCSevenRiversSiteSource()
     elif source == "nwis":
         return NWISSiteSource()
-    elif source == "ose_roswell":
+    elif source == "oseroswell":
         return OSERoswellSiteSource(HONDO_RESOURCE_ID)
     elif source == "pvacd":
         return PVACDSiteSource()
