@@ -25,7 +25,19 @@ class PVACDSiteTransformer(STSiteTransformer):
 
     def _transform_hook(self, rec):
         # if rec["id"] in [9402, 9403, 9404, 9405, 9406, 9408, 9409, 9410, 9411, 9417]:
-        if rec['id'] in [9640, 4641, 4642, 4643, 4644, 4645, 4646, 4647, 4648, 4649, 9650]:
+        if rec["id"] in [
+            9640,
+            4641,
+            4642,
+            4643,
+            4644,
+            4645,
+            4646,
+            4647,
+            4648,
+            4649,
+            9650,
+        ]:
             return rec
 
 
