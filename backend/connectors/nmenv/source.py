@@ -32,7 +32,7 @@ class DWBSiteSource(STSiteSource):
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def health(self):
-        return self.get_records(top=10, analyte='TDS')
+        return self.get_records(top=10, analyte="TDS")
 
     def get_records(self, *args, **kw):
         analyte = None

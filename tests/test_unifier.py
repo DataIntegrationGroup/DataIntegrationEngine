@@ -85,7 +85,7 @@ def _setup(tmp_path, cfg, source, tag):
         "wqp",
         "iscsevenrivers",
         "oseroswell",
-        "bernco"
+        "bernco",
     ):
         if stag == source:
             setattr(cfg, f"use_source_{stag}", True)
@@ -181,6 +181,7 @@ def test_bor_site_health_check():
 
 def test_dwb_site_health_check():
     from backend.connectors.nmenv.source import DWBSiteSource
+
     n = DWBSiteSource()
     assert n.health()
 

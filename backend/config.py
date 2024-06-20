@@ -48,7 +48,9 @@ from .connectors.st2.source import (
     ST2SiteSource,
     PVACDSiteSource,
     EBIDSiteSource,
-    PVACDWaterLevelSource, BernCoSiteSource, BernCoWaterLevelSource,
+    PVACDWaterLevelSource,
+    BernCoSiteSource,
+    BernCoWaterLevelSource,
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
@@ -112,7 +114,6 @@ class Config(object):
     use_source_bor: bool = True
     use_source_dwb: bool = True
     use_source_bernco: bool = True
-
 
     analyte: str = ""
 
@@ -324,13 +325,15 @@ class Config(object):
             fg="yellow",
         )
         sources = [f"use_source_{s}" for s in SOURCE_KEYS]
-        attrs = ["start_date",
-                 "end_date",
-                 "county",
-                 "bbox",
-                 "wkt",
-                 "analyte",
-                 "site_limit"]+sources
+        attrs = [
+            "start_date",
+            "end_date",
+            "county",
+            "bbox",
+            "wkt",
+            "analyte",
+            "site_limit",
+        ] + sources
         # inputs
         _report_attributes(
             "Inputs",

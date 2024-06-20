@@ -22,7 +22,9 @@ from backend.connectors.st2.transformer import (
     PVACDSiteTransformer,
     EBIDSiteTransformer,
     PVACDWaterLevelTransformer,
-    EBIDWaterLevelTransformer, BernCoSiteTransformer, BernCoWaterLevelTransformer,
+    EBIDWaterLevelTransformer,
+    BernCoSiteTransformer,
+    BernCoWaterLevelTransformer,
 )
 from backend.connectors.st_connector import (
     STSiteSource,
@@ -134,5 +136,6 @@ class EBIDWaterLevelSource(ST2WaterLevelSource):
 class BernCoWaterLevelSource(ST2WaterLevelSource):
     agency = "BernCo"
     transformer_klass = BernCoWaterLevelTransformer
+
 
 # ============= EOF =============================================
