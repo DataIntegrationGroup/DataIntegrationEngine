@@ -25,19 +25,15 @@ class PVACDSiteTransformer(STSiteTransformer):
 
     def _transform_hook(self, rec):
         # if rec["id"] in [9402, 9403, 9404, 9405, 9406, 9408, 9409, 9410, 9411, 9417]:
-        if rec["id"] in [
-            9640,
-            4641,
-            4642,
-            4643,
-            4644,
-            4645,
-            4646,
-            4647,
-            4648,
-            4649,
-            9650,
-        ]:
+        if rec['id'] in [9640, 9641, 9642, 9643, 9644, 9645, 9646, 9647, 9648, 9649, 9650]:
+            return rec
+
+
+class BernCoSiteTransformer(STSiteTransformer):
+    source_id = "ST2/BernCo"
+
+    def _transform_hook(self, rec):
+        if rec['id'] not in [9652, ]:
             return rec
 
 
@@ -78,4 +74,6 @@ class EBIDWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ST2/EBID"
 
 
+class BernCoWaterLevelTransformer(WaterLevelTransformer):
+    source_tag = "ST2/BernCo"
 # ============= EOF =============================================

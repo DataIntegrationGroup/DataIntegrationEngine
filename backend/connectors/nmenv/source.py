@@ -31,10 +31,14 @@ class DWBSiteSource(STSiteSource):
     transformer_klass = DWBSiteTransformer
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
+    def health(self):
+        return self.get_records(top=10, analyte='TDS')
+
     def get_records(self, *args, **kw):
+        analyte = None
         if "analyte" in kw:
             analyte = kw["analyte"]
-        else:
+        elif self.config:
             analyte = self.config.analyte
 
         analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)

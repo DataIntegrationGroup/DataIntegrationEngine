@@ -189,7 +189,7 @@ def get_sources(config=None):
 
 
 def generate_site_bounds():
-    source = get_source("st2")
+    source = get_source("bernco")
     source.generate_bounding_polygon()
 
 
@@ -204,7 +204,7 @@ def analyte_unification_test():
     # analyte testing
     # cfg.use_source_wqp = False
     cfg.use_source_nmbgmr = False
-    cfg.use_source_isc_seven_rivers = False
+    cfg.use_source_iscsevenrivers = False
     cfg.use_source_bor = False
     cfg.use_source_dwb = False
     cfg.site_limit = 10
@@ -215,19 +215,19 @@ def analyte_unification_test():
 def waterlevel_unification_test():
     cfg = Config()
     cfg.county = "chaves"
-    cfg.county = "eddy"
-    cfg.bbox = "-104.5 32.5,-104 33"
-    cfg.start_date = "2020-01-01"
-    cfg.end_date = "2020-5-01"
+    # cfg.county = "eddy"
+    # cfg.bbox = "-104.5 32.5,-104 33"
+    # cfg.start_date = "2020-01-01"
+    # cfg.end_date = "2020-5-01"
     cfg.output_summary = False
     cfg.output_name = "test00112233"
     cfg.output_summary = True
 
     cfg.use_source_nwis = False
-    # cfg.use_source_nmbgmr = False
-    cfg.use_source_isc_seven_rivers = False
-    cfg.use_source_pvacd = False
-    cfg.use_source_ose_roswell = False
+    cfg.use_source_nmbgmr = False
+    cfg.use_source_iscsevenrivers = False
+    # cfg.use_source_pvacd = False
+    cfg.use_source_oseroswell = False
     # cfg.site_limit = 10
 
     unify_waterlevels(cfg)

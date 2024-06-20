@@ -40,8 +40,9 @@ class BaseSource:
     transformer_klass = BaseTransformer
     config = None
 
-    def __init__(self):
+    def __init__(self, config=None):
         self.transformer = self.transformer_klass()
+        self.set_config(config)
 
     @property
     def tag(self):

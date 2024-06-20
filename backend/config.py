@@ -48,7 +48,7 @@ from .connectors.st2.source import (
     ST2SiteSource,
     PVACDSiteSource,
     EBIDSiteSource,
-    PVACDWaterLevelSource,
+    PVACDWaterLevelSource, BernCoSiteSource, BernCoWaterLevelSource,
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
@@ -56,12 +56,13 @@ from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 SOURCE_KEYS = (
     "nmbgmr",
     "wqp",
-    "isc_seven_rivers",
+    "iscsevenrivers",
     "nwis",
-    "ose_roswell",
+    "oseroswell",
     "pvacd",
     "bor",
     "dwb",
+    "bernco",
 )
 
 
@@ -82,6 +83,8 @@ def get_source(source):
         return BORSiteSource()
     elif source == "dwb":
         return DWBSiteSource()
+    elif source == "bernco":
+        return BernCoSiteSource()
 
     return None
 
@@ -102,12 +105,14 @@ class Config(object):
     # sources
     use_source_nmbgmr: bool = True
     use_source_wqp: bool = True
-    use_source_isc_seven_rivers: bool = True
+    use_source_iscsevenrivers: bool = True
     use_source_nwis: bool = True
-    use_source_ose_roswell: bool = True
+    use_source_oseroswell: bool = True
     use_source_pvacd: bool = True
     use_source_bor: bool = True
     use_source_dwb: bool = True
+    use_source_bernco: bool = True
+
 
     analyte: str = ""
 
@@ -163,7 +168,7 @@ class Config(object):
             sources.append((BORSiteSource(), BORAnalyteSource()))
         if self.use_source_wqp:
             sources.append((WQPSiteSource(), WQPAnalyteSource()))
-        if self.use_source_isc_seven_rivers:
+        if self.use_source_iscsevenrivers:
             sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource()))
         if self.use_source_nmbgmr:
             sources.append((NMBGMRSiteSource(), NMBGMRAnalyteSource()))
@@ -184,7 +189,7 @@ class Config(object):
         if self.use_source_nmbgmr:
             sources.append((NMBGMRSiteSource(), NMBGMRWaterLevelSource()))
 
-        if self.use_source_isc_seven_rivers:
+        if self.use_source_iscsevenrivers:
             sources.append(
                 (ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource())
             )
@@ -192,7 +197,7 @@ class Config(object):
         if self.use_source_nwis:
             sources.append((NWISSiteSource(), NWISWaterLevelSource()))
 
-        if self.use_source_ose_roswell:
+        if self.use_source_oseroswell:
             sources.append(
                 (
                     OSERoswellSiteSource(HONDO_RESOURCE_ID),
@@ -214,7 +219,8 @@ class Config(object):
         if self.use_source_pvacd:
             sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
             # sources.append((EBIDSiteSource, EBIDWaterLevelSource))
-
+        if self.use_source_bernco:
+            sources.append((BernCoSiteSource(), BernCoWaterLevelSource()))
         # if self.use_source_bor:
         #     sources.append((BORSiteSource(), BORWaterLevelSource()))
 
@@ -317,27 +323,18 @@ class Config(object):
             "---- Begin configuration -------------------------------------\n",
             fg="yellow",
         )
-
+        sources = [f"use_source_{s}" for s in SOURCE_KEYS]
+        attrs = ["start_date",
+                 "end_date",
+                 "county",
+                 "bbox",
+                 "wkt",
+                 "analyte",
+                 "site_limit"]+sources
         # inputs
         _report_attributes(
             "Inputs",
-            (
-                "start_date",
-                "end_date",
-                "county",
-                "bbox",
-                "wkt",
-                "analyte",
-                "site_limit",
-                "use_source_nmbgmr",
-                "use_source_wqp",
-                "use_source_isc_seven_rivers",
-                "use_source_nwis",
-                "use_source_ose_roswell",
-                "use_source_pvacd",
-                "use_source_bor",
-                "use_source_dwb",
-            ),
+            attrs,
         )
 
         # outputs

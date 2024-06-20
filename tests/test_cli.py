@@ -80,7 +80,7 @@ def test_waterlevels_nmbgmr():
 
 
 def test_waterlevels_isc_seven_rivers():
-    args = _make_wl_args("isc_seven_rivers")
+    args = _make_wl_args("iscsevenrivers")
     _tester(waterlevels, args)
 
 

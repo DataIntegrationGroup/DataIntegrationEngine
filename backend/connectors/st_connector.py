@@ -86,7 +86,7 @@ def make_dt_filter(tag, start, end):
 
 class STSiteSource(BaseSiteSource, STSource):
     def health(self):
-        return self.get_records(top=10, analyte="TDS")
+        return self.get_records(top=10)
 
     def get_records(self, *args, **kw):
         service = self.get_service()
@@ -140,11 +140,17 @@ class STSiteTransformer(SiteTransformer):
         if self.source_id is None:
             raise ValueError(f"{self.__class__.__name__} Source ID not set")
 
-        lat = record.location["coordinates"][1]
-        lng = record.location["coordinates"][0]
+        coordinates = record.location["coordinates"]
+
+        lat = coordinates[1]
+        lng = coordinates[0]
         if not self.contained(lng, lat):
             print("not contained")
             return
+
+        ele = None
+        if len(coordinates) == 3:
+            ele = coordinates[2]
 
         rec = {
             "source": self.source_id,
@@ -152,6 +158,8 @@ class STSiteTransformer(SiteTransformer):
             "name": record.name,
             "latitude": lat,
             "longitude": lng,
+            "elevation": ele,
+            "elevation_units": "m",
             "horizontal_datum": "WGS84",
         }
         return self._transform_hook(rec)

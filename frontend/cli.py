@@ -182,10 +182,10 @@ def waterlevels(
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
-    config.use_source_isc_seven_rivers = no_isc_seven_rivers
+    config.use_source_iscsevenrivers = no_isc_seven_rivers
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
-    config.use_source_ose_roswell = no_ckan
+    config.use_source_oseroswell = no_ckan
     config.use_source_dwb = no_dwb
     config.start_date = start_date
     config.end_date = end_date
@@ -238,10 +238,10 @@ def analytes(
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
-    config.use_source_isc_seven_rivers = no_isc_seven_rivers
+    config.use_source_iscsevenrivers = no_isc_seven_rivers
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
-    config.use_source_ose_roswell = no_ckan
+    config.use_source_oseroswell = no_ckan
     config.use_source_dwb = no_dwb
     config.start_date = start_date
     config.end_date = end_date

@@ -59,7 +59,8 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
         try:
             self.get_records()
             return True
-        except Exception:
+        except Exception as e:
+            print("Failed to get records", e)
             return False
 
     def get_records(self):

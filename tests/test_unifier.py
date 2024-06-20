@@ -34,12 +34,13 @@ def config_factory():
 
     cfg.use_source_nmbgmr = False
     cfg.use_source_wqp = False
-    cfg.use_source_isc_seven_rivers = False
+    cfg.use_source_iscsevenrivers = False
     cfg.use_source_nwis = False
-    cfg.use_source_ose_roswell = False
+    cfg.use_source_oseroswell = False
     cfg.use_source_pvacd = False
     cfg.use_source_bor = False
     cfg.use_source_dwb = False
+    cfg.use_source_bernco = False
 
     cfg.site_limit = 10
     return cfg
@@ -82,8 +83,9 @@ def _setup(tmp_path, cfg, source, tag):
         "bor",
         "dwb",
         "wqp",
-        "isc_seven_rivers",
-        "ose_roswell",
+        "iscsevenrivers",
+        "oseroswell",
+        "bernco"
     ):
         if stag == source:
             setattr(cfg, f"use_source_{stag}", True)
@@ -179,7 +181,6 @@ def test_bor_site_health_check():
 
 def test_dwb_site_health_check():
     from backend.connectors.nmenv.source import DWBSiteSource
-
     n = DWBSiteSource()
     assert n.health()
 
@@ -202,6 +203,13 @@ def test_pvacd_site_health_check():
     from backend.connectors.st2.source import PVACDSiteSource
 
     n = PVACDSiteSource()
+    assert n.health()
+
+
+def test_bernco_site_health_check():
+    from backend.connectors.st2.source import BernCoSiteSource
+
+    n = BernCoSiteSource()
     assert n.health()
 
 
@@ -228,7 +236,7 @@ def test_source_bounds_is_seven_rivers():
     from backend.unifier import get_source_bounds
     from backend.connectors import ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 
-    sourcekey = "isc_seven_rivers"
+    sourcekey = "iscsevenrivers"
     bounds = get_source_bounds(sourcekey)
     assert bounds
     assert bounds.is_valid
@@ -244,7 +252,7 @@ def test_source_bounds_oser():
         OSE_ROSWELL_FORT_SUMNER_BOUNDING_POLYGON,
     )
 
-    sourcekey = "ose_roswell"
+    sourcekey = "oseroswell"
     bounds = get_source_bounds(sourcekey)
     assert bounds
     assert bounds.is_valid
@@ -314,6 +322,12 @@ def test_sources_eddy_tds(tmp_path):
 
 
 # Waterlevel Summary tests  ===========================================================================================
+def test_unify_waterlevels_bernco_summary(tmp_path, waterlevel_summary_cfg):
+    waterlevel_summary_cfg.county = "bernalillo"
+    waterlevel_summary_cfg.bbox = None
+    _test_waterlevels_summary(tmp_path, waterlevel_summary_cfg, "bernco")
+
+
 def test_unify_waterlevels_nwis_summary(tmp_path, waterlevel_summary_cfg):
     _test_waterlevels_summary(tmp_path, waterlevel_summary_cfg, "nwis")
 
@@ -327,11 +341,11 @@ def test_unify_waterlevels_pvacd_summary(tmp_path, waterlevel_summary_cfg):
 
 
 def test_unify_waterlevels_isc_seven_rivers_summary(tmp_path, waterlevel_summary_cfg):
-    _test_waterlevels_summary(tmp_path, waterlevel_summary_cfg, "isc_seven_rivers")
+    _test_waterlevels_summary(tmp_path, waterlevel_summary_cfg, "iscsevenrivers")
 
 
 def test_unify_waterlevels_ose_roswell_summary(tmp_path, waterlevel_summary_cfg):
-    _test_waterlevels_summary(tmp_path, waterlevel_summary_cfg, "ose_roswell")
+    _test_waterlevels_summary(tmp_path, waterlevel_summary_cfg, "oseroswell")
 
 
 # Waterlevel timeseries tests =========================================================================================
@@ -365,7 +379,7 @@ def test_unify_waterlevels_isc_seven_rivers_timeseries(
     _test_waterlevels_timeseries(
         tmp_path,
         waterlevel_timeseries_cfg,
-        "isc_seven_rivers",
+        "iscsevenrivers",
         combined_flag=False,
         timeseries_flag=True,
     )
@@ -373,7 +387,7 @@ def test_unify_waterlevels_isc_seven_rivers_timeseries(
 
 def test_unify_waterlevels_ose_roswell_timeseries(tmp_path, waterlevel_timeseries_cfg):
     _test_waterlevels_timeseries(
-        tmp_path, waterlevel_timeseries_cfg, "ose_roswell", timeseries_flag=True
+        tmp_path, waterlevel_timeseries_cfg, "oseroswell", timeseries_flag=True
     )
 
 
@@ -394,7 +408,7 @@ def test_waterlevels_isc_seven_rivers_timeseries_date_range(
     tmp_path, waterlevel_timeseries_cfg
 ):
     _test_waterelevels_timeseries_date_range(
-        tmp_path, waterlevel_timeseries_cfg, "isc_seven_rivers"
+        tmp_path, waterlevel_timeseries_cfg, "iscsevenrivers"
     )
 
 
@@ -418,7 +432,7 @@ def test_unify_analytes_bor_summary(tmp_path, analyte_summary_cfg):
 
 
 def test_unify_analytes_isc_seven_rivers_summary(tmp_path, analyte_summary_cfg):
-    _test_analytes_summary(tmp_path, analyte_summary_cfg, "isc_seven_rivers")
+    _test_analytes_summary(tmp_path, analyte_summary_cfg, "iscsevenrivers")
 
 
 def test_unify_analytes_dwb_summary(tmp_path, analyte_summary_cfg):

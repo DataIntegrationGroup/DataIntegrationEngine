@@ -70,9 +70,9 @@ class NMWDICKANSource(CKANSource):
 class OSERoswellSource(NMWDICKANSource):
     resource_id = None
 
-    def __init__(self, resource_id):
+    def __init__(self, resource_id, **kw):
         self.resource_id = resource_id
-        super().__init__()
+        super().__init__(**kw)
 
     def _get_params(self):
         return {
@@ -83,8 +83,8 @@ class OSERoswellSource(NMWDICKANSource):
 class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
     transformer_klass = OSERoswellSiteTransformer
 
-    def __init__(self, resource_id):
-        super().__init__(resource_id)
+    def __init__(self, resource_id, **kw):
+        super().__init__(resource_id, **kw)
         if resource_id == HONDO_RESOURCE_ID:
             self.bounding_polygon = OSE_ROSWELL_HONDO_BOUNDING_POLYGON
         elif resource_id == FORT_SUMNER_RESOURCE_ID:
