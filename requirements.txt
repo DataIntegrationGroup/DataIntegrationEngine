@@ -5,3 +5,4 @@ pandas
 geopandas
 frost_sta_client
 google-cloud-storage
+pytest
