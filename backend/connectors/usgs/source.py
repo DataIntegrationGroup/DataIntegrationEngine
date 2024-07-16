@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from datetime import datetime
 import httpx
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
@@ -31,6 +32,9 @@ from backend.source import (
 
 
 def parse_rdb(text):
+    """'
+    Parses rdb tab-delimited responses for NWIS Site Services
+    """
     def line_generator():
         header = None
         for line in text.split("\n"):
@@ -49,6 +53,25 @@ def parse_rdb(text):
                 yield dict(zip(header, vals))
 
     return list(line_generator())
+
+
+def parse_json(data):
+    """
+    Parses JSON responses for NWIS Groundwater Level Services
+    """
+    records = []
+
+    for location in data["timeSeries"]:
+        site_code = location["sourceInfo"]["siteCode"][0]["value"]
+        for value in location["values"][0]["value"]:
+            record = {
+                "site_code": site_code,
+                "value": value["value"],
+                "date_measured": value["dateTime"].split("T")[0],
+                "time_measured": value["dateTime"].split("T")[1]
+                }
+            records.append(record)
+    return records
 
 
 class NWISSiteSource(BaseSiteSource):
@@ -104,8 +127,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
 
     def get_records(self, parent_record):
         params = {
-            "format": "rdb",
+            "format": "json",
             "siteType": "GW",
+            "siteStatus": "all",
+            "parameterCd": "72019",
             "sites": ",".join(make_site_list(parent_record)),
         }
 
@@ -118,35 +143,37 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         if config.end_date:
             params["endDt"] = config.end_dt.date().isoformat()
 
-        text = self._execute_text_request(
-            "https://waterservices.usgs.gov/nwis/gwlevels/", params
+        data = self._execute_json_request(
+            url="https://waterservices.usgs.gov/nwis/gwlevels/",
+            params=params,
+            tag="value"
         )
-        if text:
-            records = parse_rdb(text)
+        if data:
+            records = parse_json(data)
             self.log(f"Retrieved {len(records)} records")
             return records
 
     def _extract_parent_records(self, records, parent_record):
-        return [ri for ri in records if ri["site_no"] == parent_record.id]
+        return [ri for ri in records if ri["site_code"] == parent_record.id]
 
     def _clean_records(self, records):
-        return [r for r in records if r["lev_va"] is not None and r["lev_va"].strip()]
+        return [r for r in records if r["value"] is not None and r["value"].strip()]
 
     def _extract_parameter_results(self, records):
-        return [float(r["lev_va"]) for r in records]
+        return [float(r["value"]) for r in records]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, "lev_dt")
+        record = get_most_recent(records, "date_measured")
         return {
-            "value": float(record["lev_va"]),
-            "datetime": (record["lev_dt"], record["lev_tm"]),
+            "value": float(record["value"]),
+            "datetime": (record["date_measured"], record["time_measured"]),
             "units": FEET,
         }
 
     def _extract_parameter_record(self, record):
-        record[DTW] = float(record["lev_va"])
+        record[DTW] = float(record["value"])
         record[DTW_UNITS] = FEET
-        record[DT_MEASURED] = (record["lev_dt"], record["lev_tm"])
+        record[DT_MEASURED] = (record["date_measured"], record["time_measured"])
         return record
 
 
