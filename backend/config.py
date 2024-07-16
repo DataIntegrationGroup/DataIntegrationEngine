@@ -231,35 +231,35 @@ class Config(object):
 
         return sources
 
-    def site_sources(self):
-        sources = [
-            NMBGMRSiteSource(),
-            WQPSiteSource(),
-            ISCSevenRiversSiteSource(),
-            NWISSiteSource(),
-            DWBSiteSource(),
-            BORSiteSource(),
-            PVACDSiteSource(),
-            EBIDSiteSource(),
-            OSERoswellSiteSource(HONDO_RESOURCE_ID),
-            OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
-            OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
-        ]
-
-        # if self.use_source_nmbgmr:
-        #     sources.append(NMBGMRSiteSource)
-        # if self.use_source_isc_seven_rivers:
-        #     sources.append(ISCSevenRiversSiteSource)
-        # if self.use_source_ose_roswell:
-        #     sources.append(OSERoswellSiteSource)
-        # if self.use_source_nwis:
-        #     sources.append(USGSSiteSource)
-        # if self.use_source_st2:
-        #     sources.append(PVACDSiteSource)
-        #     sources.append(EBIDSiteSource)
-        # if self.use_source_bor:
-        #     sources.append(BORSiteSource)
-        return sources
+    # def site_sources(self):
+    #     sources = [
+    #         NMBGMRSiteSource(),
+    #         WQPSiteSource(),
+    #         ISCSevenRiversSiteSource(),
+    #         NWISSiteSource(),
+    #         DWBSiteSource(),
+    #         BORSiteSource(),
+    #         PVACDSiteSource(),
+    #         EBIDSiteSource(),
+    #         OSERoswellSiteSource(HONDO_RESOURCE_ID),
+    #         OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
+    #         OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
+    #     ]
+    #
+    #     # if self.use_source_nmbgmr:
+    #     #     sources.append(NMBGMRSiteSource)
+    #     # if self.use_source_isc_seven_rivers:
+    #     #     sources.append(ISCSevenRiversSiteSource)
+    #     # if self.use_source_ose_roswell:
+    #     #     sources.append(OSERoswellSiteSource)
+    #     # if self.use_source_nwis:
+    #     #     sources.append(USGSSiteSource)
+    #     # if self.use_source_st2:
+    #     #     sources.append(PVACDSiteSource)
+    #     #     sources.append(EBIDSiteSource)
+    #     # if self.use_source_bor:
+    #     #     sources.append(BORSiteSource)
+    #     return sources
 
     def bbox_bounding_points(self, bbox=None):
         if bbox is None:
