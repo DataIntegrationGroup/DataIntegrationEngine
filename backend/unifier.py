@@ -116,8 +116,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
 
 def _unify_parameter(
-        config,
-        sources,
+    config,
+    sources,
 ):
     use_summarize = config.output_summary
     persister = _perister_factory(config)
@@ -235,7 +235,10 @@ def waterlevel_unification_test():
 
 def get_datastream(siteid):
     import httpx
-    resp = httpx.get(f"https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations({siteid})?$expand=Things/Datastreams")
+
+    resp = httpx.get(
+        f"https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations({siteid})?$expand=Things/Datastreams"
+    )
     obj = resp.json()
     return obj["Things"][0]["Datastreams"][0]
 
@@ -244,7 +247,7 @@ def get_datastreams():
     s = get_source("pvacd")
     for si in s.read_sites():
         ds = get_datastream(si.id)
-        print(si, si.id, ds['@iot.id'])
+        print(si, si.id, ds["@iot.id"])
 
 
 if __name__ == "__main__":
