@@ -79,10 +79,21 @@ def _perister_factory(config):
 
 def _site_wrapper(site_source, parameter_source, persister, config):
     try:
+
+        if site_source.check():
+            print(f"Skipping {site_source}. check failed")
+
+        schemas = site_source.discover()
+        if not schemas:
+            print(f"No schemas found for {site_source}")
+
+            # in the future make discover required
+            # return
+
         use_summarize = config.output_summary
         site_limit = config.site_limit
 
-        sites = site_source.read_sites()
+        sites = site_source.read()
         if not sites:
             print(f"No sites found for {site_source}")
             return
@@ -92,11 +103,11 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                 break
 
             if use_summarize:
-                summary_records = parameter_source.load(sites, use_summarize)
+                summary_records = parameter_source.read(sites, use_summarize)
                 if summary_records:
                     persister.records.extend(summary_records)
             else:
-                results = parameter_source.load(sites, use_summarize)
+                results = parameter_source.read(sites, use_summarize)
                 if results is None:
                     continue
 
@@ -256,9 +267,9 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
-    # waterlevel_unification_test()
+    waterlevel_unification_test()
     # analyte_unification_test()
     # print(health_check("nwis"))
-    generate_site_bounds()
+    # generate_site_bounds()
 
 # ============= EOF =============================================

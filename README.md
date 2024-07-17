@@ -12,11 +12,11 @@ This package provides a command line interface to New Mexico Water Data Initiaiv
  - [ST2 (NMWDI)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/)
    - Pecos Valley Artesian Conservancy District
    - Elephant Butte Irrigation District
-   - Bernalillo County (Coming Soon)
+   - Bernalillo County
  - [NM Water Data CKAN catalog](https://catalog.newmexicowaterdata.org/)
    - OSE Roswell District Office
  - ISC Seven Rivers
- - New Mexico Bureau of Geology and Mineral Resources (AMP)
+ - [New Mexico Bureau of Geology and Mineral Resources (AMP)](https://waterdata.nmt.edu/)
  - [Water Quality Portal](https://www.waterqualitydata.us/)
    - USGS
    - EPA
@@ -65,6 +65,7 @@ Available data source flags:
  - --no-nwis
  - --no-pvacd
  - --no-wqp
+ - --no-bernco
 
 
 

@@ -84,8 +84,14 @@ SOURCE_OPTIONS = [
         show_default=True,
         help="Exclude DWB data. Default is to include",
     ),
+    click.option(
+        "--no-bernco",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude Bernalillo County Water Authority data. Default is to include",
+    ),
 ]
-
 
 SPATIAL_OPTIONS = [
     click.option(
@@ -161,21 +167,22 @@ def wells(bbox, county):
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
-    timeseries,
-    start_date,
-    end_date,
-    bbox,
-    county,
-    no_amp,
-    no_nwis,
-    no_pvacd,
-    no_isc_seven_rivers,
-    no_bor,
-    no_wqp,
-    no_ckan,
-    no_dwb,
-    site_limit,
-    dry,
+        timeseries,
+        start_date,
+        end_date,
+        bbox,
+        county,
+        no_amp,
+        no_nwis,
+        no_pvacd,
+        no_isc_seven_rivers,
+        no_bor,
+        no_wqp,
+        no_ckan,
+        no_dwb,
+        no_bernco,
+        site_limit,
+        dry,
 ):
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
@@ -187,6 +194,8 @@ def waterlevels(
     config.use_source_wqp = no_wqp
     config.use_source_oseroswell = no_ckan
     config.use_source_dwb = no_dwb
+    config.use_source_bernco = no_bernco
+
     config.start_date = start_date
     config.end_date = end_date
 
@@ -213,22 +222,23 @@ def waterlevels(
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
-    analyte,
-    timeseries,
-    start_date,
-    end_date,
-    bbox,
-    county,
-    no_amp,
-    no_nwis,
-    no_pvacd,
-    no_isc_seven_rivers,
-    no_bor,
-    no_wqp,
-    no_ckan,
-    no_dwb,
-    site_limit,
-    dry,
+        analyte,
+        timeseries,
+        start_date,
+        end_date,
+        bbox,
+        county,
+        no_amp,
+        no_nwis,
+        no_pvacd,
+        no_isc_seven_rivers,
+        no_bor,
+        no_wqp,
+        no_ckan,
+        no_dwb,
+        no_bernco,
+        site_limit,
+        dry,
 ):
     config = setup_config(
         f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
@@ -243,6 +253,8 @@ def analytes(
     config.use_source_wqp = no_wqp
     config.use_source_oseroswell = no_ckan
     config.use_source_dwb = no_dwb
+    config.use_source_bernco = no_bernco
+
     config.start_date = start_date
     config.end_date = end_date
 
@@ -289,6 +301,5 @@ def setup_config(tag, timeseries, bbox, county, site_limit, dry):
     config.dry = dry
 
     return config
-
 
 # ============= EOF =============================================

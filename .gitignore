@@ -5,7 +5,9 @@ locallauncher.sh
 worker.yaml
 app.yaml
 frontend/requirements.txt
-
+frontend/output_timeseries
+backend/test00112233.csv
+frontend/api/cache
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

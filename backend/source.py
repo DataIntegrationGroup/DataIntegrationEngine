@@ -52,9 +52,22 @@ class BaseSource:
         self.config = config
         self.transformer.config = config
 
+    # required interface
     def health(self):
         raise NotImplementedError(f"test not implemented by {self.__class__.__name__}")
 
+    def check(self, *args, **kw):
+        return True
+        # raise NotImplementedError(f"check not implemented by {self.__class__.__name__}")
+
+    def discover(self, *args, **kw):
+        return []
+        # raise NotImplementedError(f"discover not implemented by {self.__class__.__name__}")
+
+    def read(self, *args, **kw):
+        raise NotImplementedError(f"read not implemented by {self.__class__.__name__}")
+
+    # =====================================================================================
     def warn(self, msg):
         self.log(msg, fg="red")
 
@@ -100,6 +113,28 @@ class BaseSource:
             return []
 
 
+class BaseContainerSource(BaseSource):
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+
+        # locate image
+        # make container
+        # container writes messages to stdout
+        # this class captures the messages from stdout
+
+    def check(self):
+        # run the container with the check command
+        pass
+
+    def discover(self, *args, **kw):
+        # run the container with the discover command
+        pass
+
+    def read(self, *args, **kw):
+        # run the container with the read command
+        pass
+
+
 class BaseSiteSource(BaseSource):
     chunk_size = 1
     bounding_polygon = None
@@ -122,7 +157,7 @@ class BaseSiteSource(BaseSource):
 
         return True
 
-    def read_sites(self, *args, **kw):
+    def read(self, *args, **kw):
         self.log("Gathering site records")
         records = self.get_records()
         if records:
@@ -148,7 +183,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -225,7 +260,7 @@ class BaseParameterSource(BaseSource):
             f"{self.__class__.__name__} Must implement _get_output_units"
         )
 
-    def load(self, parent_record, use_summarize):
+    def read(self, parent_record, use_summarize):
         if isinstance(parent_record, list):
             self.log(
                 f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
@@ -344,6 +379,5 @@ class BaseWaterLevelSource(BaseParameterSource):
         for k in (DTW, DTW_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
-
 
 # ============= EOF =============================================
