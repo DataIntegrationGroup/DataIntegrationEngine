@@ -183,7 +183,7 @@ class BaseSiteSource(BaseSource):
 
         if chunk_size > 1:
             return [
-                records[i: i + chunk_size] for i in range(0, len(records), chunk_size)
+                records[i : i + chunk_size] for i in range(0, len(records), chunk_size)
             ]
         else:
             return records
@@ -379,5 +379,6 @@ class BaseWaterLevelSource(BaseParameterSource):
         for k in (DTW, DTW_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
+
 
 # ============= EOF =============================================

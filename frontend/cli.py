@@ -167,22 +167,22 @@ def wells(bbox, county):
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
-        timeseries,
-        start_date,
-        end_date,
-        bbox,
-        county,
-        no_amp,
-        no_nwis,
-        no_pvacd,
-        no_isc_seven_rivers,
-        no_bor,
-        no_wqp,
-        no_ckan,
-        no_dwb,
-        no_bernco,
-        site_limit,
-        dry,
+    timeseries,
+    start_date,
+    end_date,
+    bbox,
+    county,
+    no_amp,
+    no_nwis,
+    no_pvacd,
+    no_isc_seven_rivers,
+    no_bor,
+    no_wqp,
+    no_ckan,
+    no_dwb,
+    no_bernco,
+    site_limit,
+    dry,
 ):
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
@@ -222,23 +222,23 @@ def waterlevels(
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
-        analyte,
-        timeseries,
-        start_date,
-        end_date,
-        bbox,
-        county,
-        no_amp,
-        no_nwis,
-        no_pvacd,
-        no_isc_seven_rivers,
-        no_bor,
-        no_wqp,
-        no_ckan,
-        no_dwb,
-        no_bernco,
-        site_limit,
-        dry,
+    analyte,
+    timeseries,
+    start_date,
+    end_date,
+    bbox,
+    county,
+    no_amp,
+    no_nwis,
+    no_pvacd,
+    no_isc_seven_rivers,
+    no_bor,
+    no_wqp,
+    no_ckan,
+    no_dwb,
+    no_bernco,
+    site_limit,
+    dry,
 ):
     config = setup_config(
         f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
@@ -301,5 +301,6 @@ def setup_config(tag, timeseries, bbox, county, site_limit, dry):
     config.dry = dry
 
     return config
+
 
 # ============= EOF =============================================
