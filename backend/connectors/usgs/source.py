@@ -35,6 +35,7 @@ def parse_rdb(text):
     """'
     Parses rdb tab-delimited responses for NWIS Site Services
     """
+
     def line_generator():
         header = None
         for line in text.split("\n"):
@@ -68,8 +69,8 @@ def parse_json(data):
                 "site_code": site_code,
                 "value": value["value"],
                 "date_measured": value["dateTime"].split("T")[0],
-                "time_measured": value["dateTime"].split("T")[1]
-                }
+                "time_measured": value["dateTime"].split("T")[1],
+            }
             records.append(record)
     return records
 
@@ -146,7 +147,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         data = self._execute_json_request(
             url="https://waterservices.usgs.gov/nwis/gwlevels/",
             params=params,
-            tag="value"
+            tag="value",
         )
         if data:
             records = parse_json(data)
