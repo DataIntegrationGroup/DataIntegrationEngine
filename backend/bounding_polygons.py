@@ -19,81 +19,98 @@ import os
 import click
 import httpx
 from shapely import Polygon, box
+from shapely.geometry import shape
 
 
-def warning(msg):
-    click.secho(msg, fg="red")
+# polygon retrivial functions
+# multiple polygons
+def get_congressional_district_boundaries(state, district):
+    pass
 
 
-def cache_path(name):
-    return os.path.join(os.path.expanduser("~"), f".sta.{name}.json")
+def get_tribal_boundaries(state=None):
+    state, statefp = _get_statefp(state)
+
+    # use the processes service to get all tribal boundaries that intersect the state
+    def func():
+        payload = {'inputs': {'collection': f'aiannh',
+                              'url': f'https://geoconnex.us/ref/states/{statefp}'}}
+        resp = httpx.post('https://reference.geoconnex.us/processes/intersector/execution', json=payload)
+        return resp.json()
+
+    obj = _get_cached_object(f'{state}.aiannh', f'{state} AIANNH',
+                             func)
+
+    return obj
 
 
-def statelookup(shortname):
-    p = cache_path("states")
-    if not os.path.isfile(p):
-        click.secho(f"Caching states to {p}")
-        url = f"https://reference.geoconnex.us/collections/states/items?f=json"
-        resp = httpx.get(url)
-        with open(p, "w") as wfile:
-            json.dump(resp.json(), wfile)
+def get_state_hucs_boundaries(state=None, level=8):
+    state, statefp = _get_statefp(state)
 
-    with open(p, "r") as rfile:
-        obj = json.load(rfile)
+    # use the processes service to get all hucs from this level that intersect the state of NM
+    def func():
+        payload = {'inputs': {'collection': f'hu{level:02n}',
+                              'url': f'https://geoconnex.us/ref/states/{statefp}'}}
+        resp = httpx.post('https://reference.geoconnex.us/processes/intersector/execution', json=payload)
+        return resp.json()
 
-    shortname = shortname.lower()
-    for f in obj["features"]:
-        props = f["properties"]
-        if props["STUSPS"].lower() == shortname:
-            return props["STATEFP"]
+    obj = _get_cached_object(f'{state}.hucs.{level}', f'{state} HU{level:02n}',
+                             func)
+
+    return obj
 
 
-def get_state_polygon(state):
-    statefp = statelookup(state)
-    if statefp:
-        p = cache_path(state)
-        if not os.path.isfile(p):
-            click.secho(f"Caching {state} counties to {p}")
-            url = f"https://reference.geoconnex.us/collections/states/items/{statefp}?&f=json"
-            resp = httpx.get(url)
+def get_state_pwss_boundaries(state=None):
+    state, statefp = _get_statefp(state)
+    obj = _get_cached_object(f'{state}.pws', f'{state} PWSs',
+                             f'https://reference.geoconnex.us/collections/pws/items?f=json&state_code={state}')
 
-            obj = resp.json()
-            with open(p, "w") as wfile:
-                json.dump(obj, wfile)
-
-        with open(p, "r") as rfile:
-            obj = json.load(rfile)
-
-        return Polygon(obj["geometry"]["coordinates"][0][0])
+    return obj
 
 
-def get_state_bb(state):
-    p = get_state_polygon(state)
-    return box(*p.bounds).wkt
+# single polygons
+
+def get_pws_polygon(pwsid, as_wkt=True):
+    obj = _get_cached_object(pwsid, pwsid,
+                             f"https://reference.geoconnex.us/collections/pws/items/{pwsid}?f=json")
+    return _make_shape(obj, as_wkt)
+
+
+def get_huc_polygon(huc, as_wkt=True):
+    if len(huc) == 2:
+        collection = 'hu02'
+    elif len(huc) == 4:
+        collection = 'hu04'
+    elif len(huc) == 6:
+        collection = 'hu06'
+    elif len(huc) == 8:
+        collection = 'hu08'
+    elif len(huc) == 10:
+        collection = 'hu10'
+    else:
+        _warning(f"Invalid HUC {huc}. length must be 2, 4, 6, 8, or 10")
+        return
+
+    obj = _get_cached_object(huc, huc,
+                             f"https://reference.geoconnex.us/collections/{collection}/items/{huc}?f=json")
+
+    return _make_shape(obj, as_wkt)
 
 
 def get_county_polygon(name, as_wkt=True):
     if ":" in name:
         state, county = name.split(":")
-        statefp = statelookup(state)
+        statefp = _statelookup(state)
     else:
         state = "NM"
         county = name
         statefp = 35
 
     if statefp:
-        p = cache_path(f"{state}.counties")
-        if not os.path.isfile(p):
-            click.secho(f"Caching {state} counties to {p}")
-            url = f"https://reference.geoconnex.us/collections/counties/items?statefp={statefp}&f=json"
-            resp = httpx.get(url)
 
-            obj = resp.json()
-            with open(p, "w") as wfile:
-                json.dump(obj, wfile)
-
-        with open(p, "r") as rfile:
-            obj = json.load(rfile)
+        obj = _get_cached_object(f"{state}.counties", f"{state} counties",
+                                 f"https://reference.geoconnex.us"
+                                 f"/collections/counties/items?statefp={statefp}&f=json")
 
         county = county.lower()
         for f in obj["features"]:
@@ -106,18 +123,84 @@ def get_county_polygon(name, as_wkt=True):
                 continue
 
             if name.lower() == county:
-                poly = Polygon(f["geometry"]["coordinates"][0][0])
-                if as_wkt:
-                    return poly.wkt
-                return poly
+                return _make_shape(f, as_wkt)
         else:
-            warning(f"county '{county}' does not exist")
-            warning("---------- Valid county names -------------")
+            _warning(f"county '{county}' does not exist")
+            _warning("---------- Valid county names -------------")
             for f in obj["features"]:
-                warning(f["properties"]["name"])
-            warning("--------------------------------------------")
+                _warning(f["properties"]["name"])
+            _warning("--------------------------------------------")
     else:
-        warning(f"Invalid state. {state}")
+        _warning(f"Invalid state. {state}")
 
 
+def get_state_polygon(state):
+    statefp = _statelookup(state)
+    if statefp:
+        obj = _get_cached_object(f"{state}.state", f"{state} state",
+                                 f"https://reference.geoconnex.us/collections/states/items/{statefp}?&f=json")
+
+        return shape(obj["geometry"])
+
+
+# private helpers ============================
+def _make_shape(obj, as_wkt):
+    poly = shape(obj['geometry'])
+    if as_wkt:
+        return poly.wkt
+    return poly
+
+def _warning(msg):
+    click.secho(msg, fg="red")
+
+
+def _cache_path(name):
+    return os.path.join(os.path.expanduser("~"), f".die.{name}.json")
+
+
+def _statelookup(shortname):
+    obj = _get_cached_object(f"{shortname}.state", shortname,
+                             f"https://reference.geoconnex.us/collections/states/items?f=json&stusps={shortname}")
+
+    # return obj["features"][0]["properties"]["statefp"]
+    shortname = shortname.lower()
+    for f in obj["features"]:
+        props = f["properties"]
+        if props["stusps"].lower() == shortname:
+            return props["statefp"]
+
+
+def _get_statefp(state):
+    if state is None:
+        state = 'NM'
+        statefp = 35
+    else:
+        statefp = _statelookup(state)
+    return state, statefp
+
+
+def _get_cached_object(name, msg, url):
+    path = _cache_path(name)
+
+    if not os.path.isfile(path):
+        click.secho(f"Caching {msg} to {path}")
+        if callable(url):
+            obj = url()
+        else:
+            resp = httpx.get(url, timeout=30)
+            obj = resp.json()
+        with open(path, "w") as wfile:
+            json.dump(obj, wfile)
+    else:
+        click.secho(f"Using cached version of {msg}. Path={path}")
+
+    with open(path, "r") as rfile:
+        obj = json.load(rfile)
+    return obj
+
+
+if __name__ == '__main__':
+    # w = get_huc_polygon('0101000201')
+    # print(w)
+    print(get_state_hucs_boundaries(state='CO', level=4))
 # ============= EOF =============================================
