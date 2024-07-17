@@ -108,7 +108,7 @@ class BasePersister(Loggable):
 
 
 def write_file(path, func):
-    with open(path, "w") as f:
+    with open(path, "w", newline="") as f:
         func(csv.writer(f))
 
 
