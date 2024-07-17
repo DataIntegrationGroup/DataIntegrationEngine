@@ -33,13 +33,19 @@ def get_tribal_boundaries(state=None):
 
     # use the processes service to get all tribal boundaries that intersect the state
     def func():
-        payload = {'inputs': {'collection': f'aiannh',
-                              'url': f'https://geoconnex.us/ref/states/{statefp}'}}
-        resp = httpx.post('https://reference.geoconnex.us/processes/intersector/execution', json=payload)
+        payload = {
+            "inputs": {
+                "collection": f"aiannh",
+                "url": f"https://geoconnex.us/ref/states/{statefp}",
+            }
+        }
+        resp = httpx.post(
+            "https://reference.geoconnex.us/processes/intersector/execution",
+            json=payload,
+        )
         return resp.json()
 
-    obj = _get_cached_object(f'{state}.aiannh', f'{state} AIANNH',
-                             func)
+    obj = _get_cached_object(f"{state}.aiannh", f"{state} AIANNH", func)
 
     return obj
 
@@ -49,50 +55,66 @@ def get_state_hucs_boundaries(state=None, level=8):
 
     # use the processes service to get all hucs from this level that intersect the state of NM
     def func():
-        payload = {'inputs': {'collection': f'hu{level:02n}',
-                              'url': f'https://geoconnex.us/ref/states/{statefp}'}}
-        resp = httpx.post('https://reference.geoconnex.us/processes/intersector/execution', json=payload)
+        payload = {
+            "inputs": {
+                "collection": f"hu{level:02n}",
+                "url": f"https://geoconnex.us/ref/states/{statefp}",
+            }
+        }
+        resp = httpx.post(
+            "https://reference.geoconnex.us/processes/intersector/execution",
+            json=payload,
+        )
         return resp.json()
 
-    obj = _get_cached_object(f'{state}.hucs.{level}', f'{state} HU{level:02n}',
-                             func)
+    obj = _get_cached_object(f"{state}.hucs.{level}", f"{state} HU{level:02n}", func)
 
     return obj
 
 
 def get_state_pwss_boundaries(state=None):
     state, statefp = _get_statefp(state)
-    obj = _get_cached_object(f'{state}.pws', f'{state} PWSs',
-                             f'https://reference.geoconnex.us/collections/pws/items?f=json&state_code={state}')
+    obj = _get_cached_object(
+        f"{state}.pws",
+        f"{state} PWSs",
+        f"https://reference.geoconnex.us/collections/pws/items?f=json&state_code={state}",
+    )
 
     return obj
 
 
 # single polygons
 
+
 def get_pws_polygon(pwsid, as_wkt=True):
-    obj = _get_cached_object(pwsid, pwsid,
-                             f"https://reference.geoconnex.us/collections/pws/items/{pwsid}?f=json")
+    obj = _get_cached_object(
+        pwsid,
+        pwsid,
+        f"https://reference.geoconnex.us/collections/pws/items/{pwsid}?f=json",
+    )
     return _make_shape(obj, as_wkt)
 
 
 def get_huc_polygon(huc, as_wkt=True):
     if len(huc) == 2:
-        collection = 'hu02'
+        collection = "hu02"
     elif len(huc) == 4:
-        collection = 'hu04'
+        collection = "hu04"
     elif len(huc) == 6:
-        collection = 'hu06'
+        collection = "hu06"
     elif len(huc) == 8:
-        collection = 'hu08'
+        collection = "hu08"
     elif len(huc) == 10:
-        collection = 'hu10'
+        collection = "hu10"
     else:
         _warning(f"Invalid HUC {huc}. length must be 2, 4, 6, 8, or 10")
         return
 
-    obj = _get_cached_object(huc, huc,
-                             f"https://reference.geoconnex.us/collections/{collection}/items/{huc}?f=json")
+    obj = _get_cached_object(
+        huc,
+        huc,
+        f"https://reference.geoconnex.us/collections/{collection}/items/{huc}?f=json",
+    )
 
     return _make_shape(obj, as_wkt)
 
@@ -108,9 +130,12 @@ def get_county_polygon(name, as_wkt=True):
 
     if statefp:
 
-        obj = _get_cached_object(f"{state}.counties", f"{state} counties",
-                                 f"https://reference.geoconnex.us"
-                                 f"/collections/counties/items?statefp={statefp}&f=json")
+        obj = _get_cached_object(
+            f"{state}.counties",
+            f"{state} counties",
+            f"https://reference.geoconnex.us"
+            f"/collections/counties/items?statefp={statefp}&f=json",
+        )
 
         county = county.lower()
         for f in obj["features"]:
@@ -137,18 +162,22 @@ def get_county_polygon(name, as_wkt=True):
 def get_state_polygon(state):
     statefp = _statelookup(state)
     if statefp:
-        obj = _get_cached_object(f"{state}.state", f"{state} state",
-                                 f"https://reference.geoconnex.us/collections/states/items/{statefp}?&f=json")
+        obj = _get_cached_object(
+            f"{state}.state",
+            f"{state} state",
+            f"https://reference.geoconnex.us/collections/states/items/{statefp}?&f=json",
+        )
 
         return shape(obj["geometry"])
 
 
 # private helpers ============================
 def _make_shape(obj, as_wkt):
-    poly = shape(obj['geometry'])
+    poly = shape(obj["geometry"])
     if as_wkt:
         return poly.wkt
     return poly
+
 
 def _warning(msg):
     click.secho(msg, fg="red")
@@ -159,8 +188,11 @@ def _cache_path(name):
 
 
 def _statelookup(shortname):
-    obj = _get_cached_object(f"{shortname}.state", shortname,
-                             f"https://reference.geoconnex.us/collections/states/items?f=json&stusps={shortname}")
+    obj = _get_cached_object(
+        f"{shortname}.state",
+        shortname,
+        f"https://reference.geoconnex.us/collections/states/items?f=json&stusps={shortname}",
+    )
 
     # return obj["features"][0]["properties"]["statefp"]
     shortname = shortname.lower()
@@ -172,7 +204,7 @@ def _statelookup(shortname):
 
 def _get_statefp(state):
     if state is None:
-        state = 'NM'
+        state = "NM"
         statefp = 35
     else:
         statefp = _statelookup(state)
@@ -199,8 +231,8 @@ def _get_cached_object(name, msg, url):
     return obj
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # w = get_huc_polygon('0101000201')
     # print(w)
-    print(get_state_hucs_boundaries(state='CO', level=4))
+    print(get_state_hucs_boundaries(state="CO", level=4))
 # ============= EOF =============================================
