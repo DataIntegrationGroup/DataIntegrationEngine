@@ -93,7 +93,7 @@ class BaseSource:
             return ""
 
     def _execute_json_request(self, url, params=None, tag=None, **kw):
-        print(url)
+        # print(url)
         resp = httpx.get(url, params=params, **kw)
         if tag is None:
             tag = "data"
