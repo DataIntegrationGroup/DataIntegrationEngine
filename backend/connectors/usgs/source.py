@@ -68,8 +68,9 @@ def parse_json(data):
             record = {
                 "site_code": site_code,
                 "value": value["value"],
-                "date_measured": value["dateTime"].split("T")[0],
-                "time_measured": value["dateTime"].split("T")[1],
+                'datetime_measured': value["dateTime"],
+                # "date_measured": value["dateTime"].split("T")[0],
+                # "time_measured": value["dateTime"].split("T")[1],
             }
             records.append(record)
     return records
@@ -164,17 +165,19 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return [float(r["value"]) for r in records]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, "date_measured")
+        record = get_most_recent(records, "datetime_measured")
         return {
             "value": float(record["value"]),
-            "datetime": (record["date_measured"], record["time_measured"]),
+            # "datetime": (record["date_measured"], record["time_measured"]),
+            "datetime": record['datetime_measured'],
             "units": FEET,
         }
 
     def _extract_parameter_record(self, record):
         record[DTW] = float(record["value"])
         record[DTW_UNITS] = FEET
-        record[DT_MEASURED] = (record["date_measured"], record["time_measured"])
+        # record[DT_MEASURED] = (record["date_measured"], record["time_measured"])
+        record[DT_MEASURED] = record['datetime_measured']
         return record
 
 
