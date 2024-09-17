@@ -45,13 +45,13 @@ class BasePersister(Loggable):
         self.timeseries = []
         # self.keys = record_klass.keys
 
-    def load(self, records):
+    def load(self, records: list):
         self.records.extend(records)
 
-    def finalize(self, output_id):
+    def finalize(self, output_name: str):
         pass
 
-    def dump_timeseries(self, root):
+    def dump_timeseries(self, root: str):
         if self.timeseries:
             if os.path.isdir(root):
                 self.log(f"root {root} already exists", fg="red")
@@ -72,7 +72,7 @@ class BasePersister(Loggable):
         else:
             self.log("no timeseries records to dump", fg="red")
 
-    def dump_combined(self, path):
+    def dump_combined(self, path: str):
         if self.combined:
             path = self.add_extension(path)
 
@@ -81,7 +81,7 @@ class BasePersister(Loggable):
         else:
             self.log("no combined records to dump", fg="red")
 
-    def dump_single_timeseries(self, path):
+    def dump_single_timeseries(self, path: str):
         if self.timeseries:
             path = self.add_extension(path)
             self.log(f"dumping single timeseries to {os.path.abspath(path)}")
@@ -89,7 +89,7 @@ class BasePersister(Loggable):
         else:
             self.log("no timeseries records to dump", fg="red")
 
-    def save(self, path):
+    def save(self, path: str):
         if self.records:
             path = self.add_extension(path)
             self.log(f"saving to {path}")
@@ -97,7 +97,7 @@ class BasePersister(Loggable):
         else:
             self.log("no records to save", fg="red")
 
-    def add_extension(self, path):
+    def add_extension(self, path: str):
         if not self.extension:
             raise NotImplementedError
 
@@ -105,16 +105,16 @@ class BasePersister(Loggable):
             path = f"{path}.{self.extension}"
         return path
 
-    def _write(self, path, records):
+    def _write(self, path: str, records):
         raise NotImplementedError
 
-    def _dump_combined(self, path, combined):
+    def _dump_combined(self, path: str, combined: list):
         raise NotImplementedError
 
-    def _dump_single_timeseries(self, path, timeseries):
+    def _dump_single_timeseries(self, path: str, timeseries: list):
         raise NotImplementedError
 
-    def _make_root_directory(self, root):
+    def _make_root_directory(self, root: str):
         os.mkdir(root)
 
 
@@ -125,7 +125,8 @@ def write_file(path, func, records):
 
 def write_memory(path, func, records):
     f = io.StringIO()
-    func(f, csv.writer(f), records)
+    func(csv.writer(f), records)
+    return f.getvalue()
 
 
 def dump_single_timeseries(writer, timeseries):
@@ -156,7 +157,7 @@ class CloudStoragePersister(BasePersister):
         super(CloudStoragePersister, self).__init__()
         self._content = []
 
-    def finalize(self, output_id):
+    def finalize(self, output_name: str):
         """
         zip content and upload to google cloud storage
         :return:
@@ -174,62 +175,50 @@ class CloudStoragePersister(BasePersister):
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                 for path, cnt in self._content:
                     zf.writestr(path, cnt)
-            blob = bucket.blob(f"{output_id}.zip")
+            blob = bucket.blob(f"{output_name}.zip")
             blob.upload_from_string(zip_buffer.getvalue())
         else:
             path, cnt = self._content[0]
             blob = bucket.blob(path)
             blob.upload_from_string(cnt)
 
-    def _make_root_directory(self, root):
+    def _make_root_directory(self, root: str):
         # prevent making root directory, because we are not saving to disk
         pass
 
-    def _write(self, path, records):
-        def func(f, writer, rs):
-            for i, site in enumerate(rs):
-                if i == 0:
-                    writer.writerow(site.keys)
+    def _write(self, path: str, records: list):
+        content = write_memory(path, dump_sites, records)
+        self._add_content(path, content)
 
-                writer.writerow(site.to_row())
-            self._add_content(path, f.getvalue())
+    def _add_content(self, path: str, content: str):
+        self._content.append((path, content))
 
-        write_memory(path, func, records)
+    def _dump_single_timeseries(self, path: str, timeseries: list):
+        content = write_memory(path, dump_single_timeseries, timeseries)
+        self._add_content(path, content)
 
-    def _add_content(self, path, cnt):
-        self._content.append((path, cnt))
-
-    def _dump_single_timeseries(self, path, timeseries):
-        write_memory(path, dump_single_timeseries, timeseries)
-
-    def _dump_combined(self, path, combined):
-        def func(f, writer, cs):
-            for i, (site, record) in enumerate(cs):
-                if i == 0:
-                    writer.writerow(site.keys + record.keys)
-                writer.writerow(site.to_row() + record.to_row())
-            self._add_content(path, f.getvalue())
-
-        write_memory(path, func, combined)
+    def _dump_combined(self, path: str, combined: list):
+        content = write_memory(path, dump_combined, combined)
+        self._add_content(path, content)
 
 
 class CSVPersister(BasePersister):
     extension = "csv"
 
-    def _write(self, path, records):
+    def _write(self, path: str, records: list):
         write_file(path, dump_sites, records)
 
-    def _dump_single_timeseries(self, path, timeseries):
+    def _dump_single_timeseries(self, path: str, timeseries: list):
         write_file(path, dump_single_timeseries, timeseries)
 
-    def _dump_combined(self, path, combined):
+    def _dump_combined(self, path: str, combined: list):
         write_file(path, dump_combined, combined)
 
 
 class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
-    def _write(self, path, records):
+    def _write(self, path: str, records: list):
         r0 = records[0]
         df = pd.DataFrame([r.to_row() for r in records], columns=r0.keys)
 
