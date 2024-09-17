@@ -80,6 +80,7 @@ class BasePersister(Loggable):
             self._dump_combined(path, self.combined)
         else:
             self.log("no combined records to dump", fg="red")
+
     def dump_single_timeseries(self, path):
         if self.timeseries:
             path = self.add_extension(path)

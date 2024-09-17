@@ -157,7 +157,9 @@ class Config(object):
             self.start_date = payload.get("start_date", "")
             self.end_date = payload.get("end_date", "")
             self.analyte = payload.get("analyte", "")
-            self.output_single_timeseries = payload.get("output_single_timeseries", False)
+            self.output_single_timeseries = payload.get(
+                "output_single_timeseries", False
+            )
 
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
