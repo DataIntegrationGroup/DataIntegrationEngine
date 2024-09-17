@@ -111,12 +111,16 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                 if results is None:
                     continue
 
-                # combine sites that only have one record
-                for site, records in results:
-                    if len(records) == 1:
-                        persister.combined.append((site, records[0]))
-                    else:
+                if config.output_single_timeseries:
+                    for site, records in results:
                         persister.timeseries.append((site, records))
+                else:
+                    # combine sites that only have one record
+                    for site, records in results:
+                        if len(records) == 1:
+                            persister.combined.append((site, records[0]))
+                        else:
+                            persister.timeseries.append((site, records))
 
     except BaseException:
         import traceback
@@ -136,6 +140,8 @@ def _unify_parameter(
         _site_wrapper(site_source, ss, persister, config)
     if use_summarize:
         persister.save(config.output_path)
+    elif config.output_single_timeseries:
+        persister.dump_single_timeseries(config.output_path)
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
@@ -213,8 +219,8 @@ def analyte_unification_test():
     cfg.output_summary = True
 
     # analyte testing
-    # cfg.use_source_wqp = False
-    cfg.use_source_nmbgmr = False
+    cfg.use_source_wqp = False
+    # cfg.use_source_nmbgmr = False
     cfg.use_source_iscsevenrivers = False
     cfg.use_source_bor = False
     cfg.use_source_dwb = False
@@ -234,11 +240,12 @@ def waterlevel_unification_test():
     cfg.output_name = "test00112233"
     cfg.output_summary = True
 
-    cfg.use_source_nwis = False
+    # cfg.use_source_nwis = False
     cfg.use_source_nmbgmr = False
     cfg.use_source_iscsevenrivers = False
-    # cfg.use_source_pvacd = False
+    cfg.use_source_pvacd = False
     cfg.use_source_oseroswell = False
+    cfg.use_source_bernco = False
     # cfg.site_limit = 10
 
     unify_waterlevels(cfg)
@@ -267,8 +274,8 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
-    waterlevel_unification_test()
-    # analyte_unification_test()
+    # waterlevel_unification_test()
+    analyte_unification_test()
     # print(health_check("nwis"))
     # generate_site_bounds()
 
