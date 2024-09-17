@@ -76,11 +76,11 @@ class NMBGMRSiteSource(BaseSiteSource):
             params["limit"] = config.site_limit
 
         if config.analyte:
-            params["has_analyte"] = get_analyte_search_param(
+            params["parameter"] = get_analyte_search_param(
                 config.analyte, NMBGMR_ANALYTE_MAPPING
             )
         else:
-            params["has_waterlevels"] = True
+            params["parameter"] = "Manual groundwater levels"
 
         return self._execute_json_request(
             _make_url("locations"), params, tag="features", timeout=30
@@ -91,6 +91,21 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
 
     def get_records(self, parent_record):
+        """
+        Get records for a single analyte for any number of sites. The response
+        is a dictionary of lists, where the keys are site ids (PointIDS for
+        NMBGMR) and the values are analyte records for that site
+
+        Parameters
+        --------
+        parent_record: SiteRecord
+            the site records for the locations whose analyte records are to be retrieved
+
+        Returns
+        -------
+        dict
+            a dictionary of lists, where the keys are site ids and the values are analyte records
+        """
         analyte = get_analyte_search_param(self.config.analyte, NMBGMR_ANALYTE_MAPPING)
         records = self._execute_json_request(
             _make_url("waterchemistry"),
@@ -100,7 +115,11 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
             },
             tag="",
         )
-        return records[analyte]
+        records_sorted_by_pointid = {}
+        for pointid in records.keys():
+            records_sorted_by_pointid[pointid] = records[pointid][analyte]
+
+        return records_sorted_by_pointid
 
     def _extract_parent_records(self, records, parent_record):
         return records.get(parent_record.id, [])

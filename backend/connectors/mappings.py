@@ -128,20 +128,20 @@ TCat
 TDS
 """
 NMBGMR_ANALYTE_MAPPING: dict = {
-    ARSENIC: "As",  #  nmbgmr can't handle multiple analytes yet "As,As(total)",
-    BICARBONATE: "HCO3",
-    CALCIUM: "Ca",
-    CARBONATE: "CO3",
-    CHLORIDE: "Cl",
-    FLUORIDE: "F",
-    MAGNESIUM: "Mg",
-    NITRATE: "NO3",
-    POTASSIUM: "K",
-    SODIUM: "Na",
-    SULFATE: "SO4",
-    TDS: "TDS",
-    URANIUM: "Uranium",
-    PH: "pHL",
+    ARSENIC: "Arsenic",  #  nmbgmr can't handle multiple analytes yet "As,As(total)",
+    BICARBONATE: "Bicarbonate",
+    CALCIUM: "Calcium",
+    CARBONATE: "Carbonate",
+    CHLORIDE: "Chloride",
+    FLUORIDE: "Fluoride",
+    MAGNESIUM: "Magnesium",
+    NITRATE: "Nitrate (as N)",
+    POTASSIUM: "Potassium",
+    SODIUM: "Sodium",
+    SULFATE: "Sulfate",
+    TDS: "Total Dissolved Solids",
+    URANIUM: "Uranium (total, by ICP-MS)",
+    PH: "pH, laboratory",
 }
 
 # WQP ===============================================================================
