@@ -37,12 +37,13 @@ class Loggable:
 
 class BasePersister(Loggable):
     extension: str
-    output_id: str
+    # output_id: str
 
     def __init__(self):
         self.records = []
         self.combined = []
         self.timeseries = []
+        self.sites = []
         # self.keys = record_klass.keys
 
     def load(self, records: list):
@@ -89,6 +90,14 @@ class BasePersister(Loggable):
         else:
             self.log("no timeseries records to dump", fg="red")
 
+    def dump_sites(self, path: str):
+        if self.sites:
+            path = self.add_extension(path)
+            self.log(f"dumping sites to {os.path.abspath(path)}")
+            self._write(path, self.sites)
+        else:
+            self.log("no sites to dump", fg="red")
+
     def save(self, path: str):
         if self.records:
             path = self.add_extension(path)
@@ -130,8 +139,11 @@ def write_memory(path, func, records):
 
 
 def dump_single_timeseries(writer, timeseries):
-    for site, records in timeseries:
-        for record in records:
+    for i, (site, records) in enumerate(timeseries):
+
+        for j, record in enumerate(records):
+            if i==0:
+                writer.writerow(record.keys)
             writer.writerow(record.to_row())
 
 

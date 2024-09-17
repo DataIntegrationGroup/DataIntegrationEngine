@@ -114,6 +114,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                 if config.output_single_timeseries:
                     for site, records in results:
                         persister.timeseries.append((site, records))
+                        persister.sites.append(site)
                 else:
                     # combine sites that only have one record
                     for site, records in results:
@@ -121,6 +122,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                             persister.combined.append((site, records[0]))
                         else:
                             persister.timeseries.append((site, records))
+                        persister.sites.append(site)
 
     except BaseException:
         import traceback
@@ -141,7 +143,8 @@ def _unify_parameter(
     if use_summarize:
         persister.save(config.output_path)
     elif config.output_single_timeseries:
-        persister.dump_single_timeseries(config.output_path)
+        persister.dump_sites(f"{config.output_path}.sites")
+        persister.dump_single_timeseries(f"{config.output_path}.timeseries")
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
@@ -231,17 +234,18 @@ def analyte_unification_test():
 
 def waterlevel_unification_test():
     cfg = Config()
-    cfg.county = "chaves"
+    # cfg.county = "chaves"
     # cfg.county = "eddy"
-    # cfg.bbox = "-104.5 32.5,-104 33"
+    cfg.bbox = "-104.5 32.5,-104 33"
     # cfg.start_date = "2020-01-01"
     # cfg.end_date = "2020-5-01"
     cfg.output_summary = False
     cfg.output_name = "test00112233"
-    cfg.output_summary = True
+    # cfg.output_summary = True
+    cfg.output_single_timeseries = True
 
-    # cfg.use_source_nwis = False
-    cfg.use_source_nmbgmr = False
+    cfg.use_source_nwis = False
+    # cfg.use_source_nmbgmr = False
     cfg.use_source_iscsevenrivers = False
     cfg.use_source_pvacd = False
     cfg.use_source_oseroswell = False
@@ -274,8 +278,8 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
-    # waterlevel_unification_test()
-    analyte_unification_test()
+    waterlevel_unification_test()
+    # analyte_unification_test()
     # print(health_check("nwis"))
     # generate_site_bounds()
 
