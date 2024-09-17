@@ -142,7 +142,7 @@ def dump_single_timeseries(writer, timeseries):
     for i, (site, records) in enumerate(timeseries):
 
         for j, record in enumerate(records):
-            if i==0:
+            if i == 0:
                 writer.writerow(record.keys)
             writer.writerow(record.to_row())
 
