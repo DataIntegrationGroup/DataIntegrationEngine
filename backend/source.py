@@ -39,6 +39,45 @@ from backend.transformer import BaseTransformer, convert_units
 class BaseSource:
     """
     The BaseSource class is a base class for all sources, whether it be a site source or a parameter source.
+
+    ============================================================================
+    Attributes
+    ============================================================================
+    transformer_klass : BaseTransformer
+    
+    config : Config
+        the configuration class for the source
+
+    tag : str
+    ============================================================================
+    Methods With Universal Implementations (Already Implemented)
+    ============================================================================
+    warn
+        Prints warning messages to the console in red
+
+    log
+        Prints the message to the console in yellow
+
+    _execute_text_request
+        Executes a get request to the provided url with query parameters and and returns the text response
+
+    _execute_json_request
+        Executes a get request to the provided url with query parameters and and returns the json response
+
+    ============================================================================
+    Methods Implemented in BaseSiteSource and BaseParameterSource
+    ============================================================================
+    read
+        Returns a list of transformed records
+
+    ============================================================================
+    Methods That Need to be Implemented For Each Source
+    ============================================================================
+    health
+        Determines if the source is healthy
+
+    get_records
+        Returns the site or parameter records from the source
     """
     transformer_klass = BaseTransformer
     config = None
@@ -54,14 +93,7 @@ class BaseSource:
     def set_config(self, config):
         self.config = config
         self.transformer.config = config
-
-    # required interface
-    def health(self):
-        """
-        Checks the health of the source. Implemented in BaseSiteSource and BaseAnalyteSource
-        """
-        raise NotImplementedError(f"test not implemented by {self.__class__.__name__}")
-
+    
     def check(self, *args, **kw):
         return True
         # raise NotImplementedError(f"check not implemented by {self.__class__.__name__}")
@@ -70,13 +102,11 @@ class BaseSource:
         return []
         # raise NotImplementedError(f"discover not implemented by {self.__class__.__name__}")
 
-    def read(self, *args, **kw):
-        """
-        Returns the records. Implemented in BaseSiteSource and BaseAnalyteSource
-        """
-        raise NotImplementedError(f"read not implemented by {self.__class__.__name__}")
 
-    # =====================================================================================
+    # ==========================================================================
+    # Methods Already Implemented
+    # ==========================================================================
+
     def warn(self, msg):
         """
         Prints warning messages to the console in red
@@ -110,15 +140,7 @@ class BaseSource:
         """
         click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
 
-    def get_records(self, *args, **kw):
-        """
-        Gets the records from the source. Called by the read method. Needs to be implemented by all subclasses.
-        """
-        raise NotImplementedError(
-            f"get_records not implemented by {self.__class__.__name__}"
-        )
-
-    def _execute_text_request(self, url, params=None, **kw):
+    def _execute_text_request(self, url: str, params=None, **kw) -> str:
         """
         Executes a get request to the provided url and returns the text response.
 
@@ -147,7 +169,7 @@ class BaseSource:
             self.warn(f"service responded with text {resp.text}")
             return ""
 
-    def _execute_json_request(self, url, params=None, tag=None, **kw):
+    def _execute_json_request(self, url: str, params: dict=None, tag: str=None, **kw) -> dict:
         """
         Executes a get request to the provided url and returns the json response.
 
@@ -185,6 +207,62 @@ class BaseSource:
             self.warn(f"service responded with status {resp.status_code}")
             self.warn(f"service responded with text {resp.text}")
             return []
+
+    # ==========================================================================
+    # Methods Implemented in BaseSiteSource and BaseParameterSource
+    # ==========================================================================
+
+    def read(self, *args, **kw) -> list:
+        """
+        Returns the records. Implemented in BaseSiteSource and BaseAnalyteSource
+        """
+        raise NotImplementedError(f"read not implemented by {self.__class__.__name__}")
+    
+
+    # ==========================================================================
+    # Methods That Need to be Implemented For Each Source
+    # ==========================================================================
+
+    def get_records(self, *args, **kw) -> dict:
+        """
+        Returns records as a dictionary, where the keys are site ids and 
+        the values are site or parameter records.
+        
+        If site records, the values are dictionaries with the site records.
+        
+        If parameter records, the values are lists of dictionaries with parameter records.
+        
+        Called by the read method. Needs to be implemented by all subclasses.
+
+        Parameters
+        ----------
+        If parameter records:
+            parent_record : dict
+                the site record for the location whose parameter records are to be retrieved
+
+        If site records:
+            There are no parameters
+
+        Returns
+        -------
+        dict
+            a dictionary of site or parameter records, where the keys are site ids
+            and the values are site or parameter records
+        """
+        raise NotImplementedError(
+            f"get_records not implemented by {self.__class__.__name__}"
+        )
+    
+    def health(self) -> bool:
+        """
+        Checks the health of the source. Implemented for each site source
+
+        Returns
+        --------
+        bool
+            True if the source is healthy, else False
+        """
+        raise NotImplementedError(f"test not implemented by {self.__class__.__name__}")    
 
 
 class BaseContainerSource(BaseSource):
@@ -324,15 +402,15 @@ class BaseSiteSource(BaseSource):
         list
             a list of transformed site records
         """
-        ns = []
+        transformed_records = []
         for record in records:
             record = self.transformer.do_transform(record)
             if record:
                 record.chunk_size = self.chunk_size
-                ns.append(record)
+                transformed_records.append(record)
 
-        self.log(f"processed nrecords={len(ns)}")
-        return ns
+        self.log(f"processed nrecords={len(transformed_records)}")
+        return transformed_records
 
     def chunks(self, records: list, chunk_size: int = None) -> list:
         """
@@ -364,7 +442,7 @@ class BaseSiteSource(BaseSource):
             return records
 
 
-def make_site_list(site_record: list | BaseSiteSource) -> list:
+def make_site_list(site_record: list | dict) -> list | str:
     """
     Returns a list of site ids, as defined by site_record
 
@@ -384,7 +462,7 @@ def make_site_list(site_record: list | BaseSiteSource) -> list:
     return sites
 
 
-def get_most_recent(records: list, tag):
+def get_most_recent(records: list, tag: str | callable) -> dict:
     """
     Returns the most recent record based on the tag
 
@@ -424,26 +502,35 @@ class BaseParameterSource(BaseSource):
     The BaseParameterSource class is a base class for all parameter sources,
     whether it be an analyte source or a water level source.
 
-    The following methods are implemented in BaseAnalyteSource and BaseWaterLevelSource:
-
-    - _validate_record
-    - _get_output_units
-
+    ============================================================================
     Methods With Universal Implementations (Already Implemented)
-    -------
+    ============================================================================
+    
     read
         Reads the parameter records and returns the transformed records, where the
         transform standardizes the records so the format is the same for all sources
 
-        
+    
+    ============================================================================
+    Methods Implemented in BaseAnalyteSource and BaseWaterLevelSource
+    ============================================================================
+    
+    _validate_record
+        Validates the record to ensure it has the required fields
+
+    _get_output_units
+        Returns the output units for the source
+
+    ============================================================================
     Methods That Need to be Implemented For Each Source
-    -------
+    ============================================================================
+
     get_records
         Returns a dictionary of parameter records where the keys are the site ids
-        and the values are the parameter records
+        and the values are a list of the parameter records (which are dictionaries)
 
     _extract_parent_records
-        Returns all records for a single site as a list of records
+        Returns all records for a single site as a list of records (which are dictionaries)
 
     _extract_most_recent
         Returns the most recent record
@@ -453,87 +540,38 @@ class BaseParameterSource(BaseSource):
         Otherwise returns the records as-is
 
     _extract_parameter_units
-        Returns the units of the parameter records as a list
+        Returns the units of the parameter records as a list, in the same order as the records themselves
 
     _extract_parameter_record
-        Returns a parameter record with standardized fields added
+        Returns a parameter record with standardized fields added.
+
+        For an analyte, the fields are
+
+        - backend.constants.PARAMETER
+        - backend.constants.PARAMETER_VALUE
+        - backend.constants.PARAMETER_UNITS
+
+        For a water level, the fields are
+
+        - backend.constants.DTW
+        - backend.constants.DTW_UNITS
+        - backend.constants.DT_MEASURED 
 
     _extract_parameter_results
-        Returns the parameter results as a list from the records
+        Returns the parameter results as a list from the records, in the same order as the records themselves
     """
+
     name = ""
 
-    def _extract_parent_records(self, records, parent_record):
-        if parent_record.chunk_size == 1:
-            return records
-
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parent_records"
-        )
-
-    def _extract_most_recent(self, records):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_most_recent"
-        )
-
-    def _clean_records(self, records: list) -> list:
-        """
-        Returns cleaned records if this function is defined for each source. 
-        Otherwise returns the records as-is.
-
-        Parameters
-        ----------
-        records : list
-            a list of records
-
-        Returns
-        -------
-        list
-            a list of cleaned records if this function is defined for each
-            source. Otherwise returns the records as is.
-        """
-        return records
-
-    def _extract_parameter_units(self, records):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parameter_units"
-        )
-
-    def _extract_parameter_record(self, record):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parameter_record"
-        )
-
-    def _extract_parameter_results(self, records):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parameter_results"
-        )
-
-    def _validate_record(self, record):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _validate_record"
-        )
-
-    def _get_output_units(self):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _get_output_units"
-        )
+    # ==========================================================================
+    # Methods Already Implemented
+    # ==========================================================================
 
     def read(self, parent_record: BaseSiteSource, use_summarize: bool) -> list:
         """
         Returns a list of transformed parameter records.
         If use_summarize is True, the summary of records for each site are returned.
         Otherwise, the cleaned and sorted records are returned.
-
-        The following methods need to be implemented for each source for this method to work:
-
-        - get_records
-        - _extract_parent_records
-        - _clean_records (optional)
-        - _extract_parameter_results
-        - _extract_parameter_units
-        - _extract_most_recent
-        - transformer.do_transform
         
         Parameters
         ----------
@@ -627,6 +665,182 @@ class BaseParameterSource(BaseSource):
 
             name = ",".join(names)
             self.warn(f"{name}: No records found")
+
+
+    # ==========================================================================
+    # Methods Implemented in BaseAnalyteSource and BaseWaterLevelSource
+    # ==========================================================================
+
+    def _validate_record(self, record: dict) -> None:
+        """
+        Determines that all standardized fields are present in the record.
+        Raises a ValueError if any fields are missing from a record.
+
+        For an analyte, the fields are
+        - backend.constants.PARAMETER
+        - backend.constants.PARAMETER_VALUE
+        - backend.constants.PARAMETER_UNITS
+
+        For a water level, the fields are
+        - backend.constants.DTW
+        - backend.constants.DTW_UNITS
+        - backend.constants.DT_MEASURED 
+
+        Parameters
+        ----------
+        record : dict
+            a record
+
+        Returns
+        -------
+        None
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _validate_record"
+        )
+
+    def _get_output_units(self) -> str:
+        """
+        Determines the output units for the source from the configuration
+
+        If the source is an analyte source, the output units are backend.config.Config.analyte_output_units
+        If the source is a water level source, the output units are backend.config.Config.waterlevel_output_units
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _get_output_units"
+        )
+
+    # ==========================================================================
+    # Methods That Need to be Implemented For Each Source
+    # ==========================================================================
+
+    def _extract_parent_records(self, records: dict, parent_record: dict) -> list:
+        """
+        Returns all records for a single site as a list of records (which are dictionaries).
+
+        Parameters
+        ----------
+        records : dict
+            a dictionary of lists, where the keys are site ids and the values are parameter records
+
+        parent_record : dict
+            the site record for the location whose parameter records are to be retrieved
+
+        Returns
+        -------
+        list
+            a list of records for the site
+        """
+        if parent_record.chunk_size == 1:
+            return records
+
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parent_records"
+        )
+    
+
+    def _clean_records(self, records: list) -> list:
+        """
+        Returns cleaned records if this function is defined for each source. 
+        Otherwise returns the records as-is.
+
+        Parameters
+        ----------
+        records : list
+            a list of records
+
+        Returns
+        -------
+        list
+            a list of cleaned records if this function is defined for each
+            source. Otherwise returns the records as is.
+        """
+        return records
+
+
+    def _extract_most_recent(self, records: list) -> dict:
+        """
+        Returns the most recent record for a particular site
+
+        Parameters
+        ----------
+        records : list
+            a list of records
+
+        Returns
+        -------
+        dict
+            the most recent record
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_most_recent"
+        )
+
+
+    def _extract_parameter_units(self, records: list) -> list:
+        """
+        Returns the units of the parameter records as a list, in the same order as the records themselves
+
+        Parameters
+        ----------
+        records: list
+            a list of parameter records
+
+        Returns
+        -------
+        list
+            a list of units for the parameter records in the same order as the records
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parameter_units"
+        )
+
+    def _extract_parameter_record(self, record: dict) -> dict:
+        """
+        Returns a parameter record with standardized fields added.
+
+        For an analyte, the fields are
+        - backend.constants.PARAMETER
+        - backend.constants.PARAMETER_VALUE
+        - backend.constants.PARAMETER_UNITS
+
+        For a water level, the fields are
+        - backend.constants.DTW
+        - backend.constants.DTW_UNITS
+        - backend.constants.DT_MEASURED 
+
+        Parameters
+        ----------
+        record: dict
+            a parameter record
+
+        Returns
+        -------
+        dict
+            the parameter record with the fields added
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parameter_record"
+        )
+
+    def _extract_parameter_results(self, records: list) -> list:
+        """
+        Returns the parameter results as a list from the records, in the same order as the records themselves
+
+        Parameters
+        ----------
+        records: list
+            a list of parameter records for a site
+
+        Returns
+        -------
+        list
+            a list of parameter results from the records, in the same order as the records
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parameter_results"
+        )
+
 
     def _extract_parameter(self, record: dict) -> dict:
         """
