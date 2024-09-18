@@ -19,6 +19,7 @@ import click
 import httpx
 import shapely.wkt
 from shapely import MultiPoint
+from typing import Union
 
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
@@ -56,7 +57,7 @@ def make_site_list(site_record: list | dict) -> list | str:
     return sites
 
 
-def get_most_recent(records: list, tag: str | callable) -> dict:
+def get_most_recent(records: list, tag: Union[str, callable]) -> dict:
     """
     Returns the most recent record based on the tag
 
