@@ -36,6 +36,85 @@ from backend.persister import BasePersister, CSVPersister
 from backend.transformer import BaseTransformer, convert_units
 
 
+def make_site_list(site_record: list | dict) -> list | str:
+    """
+    Returns a list of site ids, as defined by site_record
+
+    Parameters
+    ----------
+    site_record: SiteRecord or list of SiteRecords
+
+    Returns
+    -------
+    list
+        a list of site ids
+    """
+    if isinstance(site_record, list):
+        sites = [r.id for r in site_record]
+    else:
+        sites = site_record.id
+    return sites
+
+
+def get_most_recent(records: list, tag: str | callable) -> dict:
+    """
+    Returns the most recent record based on the tag
+
+    Parameters
+    ----------
+    records: list
+        a list of records
+
+    tag: str or callable
+        the tag to use to sort the records
+
+    Returns
+    -------
+    dict
+        the most recent record for every site
+    """
+    if callable(tag):
+        func = tag
+    else:
+        if "." in tag:
+
+            def func(x):
+                for t in tag.split("."):
+                    x = x[t]
+                return x
+
+        else:
+
+            def func(x):
+                return x[tag]
+
+    return sorted(records, key=func)[-1]
+
+
+def get_analyte_search_param(parameter: str, mapping: dict) -> str:
+    """
+    Get the search parameter for a provided analyte, as defined by the mapping for a source
+
+    Parameters
+    ----------
+    parameter : str
+        the analyte name used in the query
+
+    mapping : dict
+        a mapping of analytes to search parameters for the source
+
+    Returns
+    -------
+    str
+        the search parameter for the provided analyte for a particular source
+    """
+    try:
+        return mapping[parameter]
+    except KeyError:
+        raise ValueError(
+            f"Invalid parameter name {parameter}. Valid parameters are {list(mapping.keys())}"
+        )
+
 class BaseSource:
     """
     The BaseSource class is a base class for all sources, whether it be a site source or a parameter source.
@@ -442,61 +521,6 @@ class BaseSiteSource(BaseSource):
             return records
 
 
-def make_site_list(site_record: list | dict) -> list | str:
-    """
-    Returns a list of site ids, as defined by site_record
-
-    Parameters
-    ----------
-    site_record: SiteRecord or list of SiteRecords
-
-    Returns
-    -------
-    list
-        a list of site ids
-    """
-    if isinstance(site_record, list):
-        sites = [r.id for r in site_record]
-    else:
-        sites = site_record.id
-    return sites
-
-
-def get_most_recent(records: list, tag: str | callable) -> dict:
-    """
-    Returns the most recent record based on the tag
-
-    Parameters
-    ----------
-    records: list
-        a list of records
-
-    tag: str or callable
-        the tag to use to sort the records
-
-    Returns
-    -------
-    dict
-        the most recent record for every site
-    """
-    if callable(tag):
-        func = tag
-    else:
-        if "." in tag:
-
-            def func(x):
-                for t in tag.split("."):
-                    x = x[t]
-                return x
-
-        else:
-
-            def func(x):
-                return x[tag]
-
-    return sorted(records, key=func)[-1]
-
-
 class BaseParameterSource(BaseSource):
     """
     The BaseParameterSource class is a base class for all parameter sources,
@@ -874,31 +898,6 @@ class BaseParameterSource(BaseSource):
             the date_measured of the record
         """
         return x.date_measured
-
-
-def get_analyte_search_param(parameter: str, mapping: dict) -> str:
-    """
-    Get the search parameter for a provided analyte, as defined by the mapping for a source
-
-    Parameters
-    ----------
-    parameter : str
-        the analyte name used in the query
-
-    mapping : dict
-        a mapping of analytes to search parameters for the source
-
-    Returns
-    -------
-    str
-        the search parameter for the provided analyte for a particular source
-    """
-    try:
-        return mapping[parameter]
-    except KeyError:
-        raise ValueError(
-            f"Invalid parameter name {parameter}. Valid parameters are {list(mapping.keys())}"
-        )
 
 
 class BaseAnalyteSource(BaseParameterSource):
