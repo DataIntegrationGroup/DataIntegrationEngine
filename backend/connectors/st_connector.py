@@ -132,6 +132,7 @@ class STAnalyteSource(STSource, BaseAnalyteSource):
 
 class STSiteTransformer(SiteTransformer):
     source_id: str
+    check_contained = False  # API returns only records within the bounds
 
     def _transform_hook(self, rec):
         return rec
@@ -144,9 +145,9 @@ class STSiteTransformer(SiteTransformer):
 
         lat = coordinates[1]
         lng = coordinates[0]
-        if not self.contained(lng, lat):
-            print("not contained")
-            return
+        # if not self.contained(lng, lat):
+        #     print("not contained")
+        #     return
 
         ele = None
         if len(coordinates) == 3:

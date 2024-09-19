@@ -30,8 +30,8 @@ class ISCSevenRiversSiteTransformer(SiteTransformer):
         lat = record["latitude"]
         lng = record["longitude"]
 
-        if not self.contained(lng, lat):
-            return
+        # if not self.contained(lng, lat):
+        #     return
 
         rec = {
             "source": "ISCSevenRivers",

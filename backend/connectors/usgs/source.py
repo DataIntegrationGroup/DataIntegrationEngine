@@ -68,7 +68,7 @@ def parse_json(data):
             record = {
                 "site_code": site_code,
                 "value": value["value"],
-                'datetime_measured': value["dateTime"],
+                "datetime_measured": value["dateTime"],
                 # "date_measured": value["dateTime"].split("T")[0],
                 # "time_measured": value["dateTime"].split("T")[1],
             }
@@ -169,7 +169,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return {
             "value": float(record["value"]),
             # "datetime": (record["date_measured"], record["time_measured"]),
-            "datetime": record['datetime_measured'],
+            "datetime": record["datetime_measured"],
             "units": FEET,
         }
 
@@ -177,7 +177,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         record[DTW] = float(record["value"])
         record[DTW_UNITS] = FEET
         # record[DT_MEASURED] = (record["date_measured"], record["time_measured"])
-        record[DT_MEASURED] = record['datetime_measured']
+        record[DT_MEASURED] = record["datetime_measured"]
         return record
 
 

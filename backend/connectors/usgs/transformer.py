@@ -29,8 +29,8 @@ class NWISSiteTransformer(SiteTransformer):
         lat = record["dec_lat_va"]
         datum = record["coord_datum_cd"]
 
-        if not self.contained(lng, lat):
-            return
+        # if not self.contained(lng, lat):
+        #     return
 
         rec = {
             "source": "USGS-NWIS",

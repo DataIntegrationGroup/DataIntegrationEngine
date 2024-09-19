@@ -264,6 +264,7 @@ class BaseTransformer:
     """
     _cached_polygon = None
     config = None
+    check_contained = True
 
     # ==========================================================================
     # Methods Already Implemented
@@ -314,6 +315,9 @@ class BaseTransformer:
         # _transform is already implemented in each ParameterTransformer
         record = self._transform(inrecord, *args, **kw)
         if not record:
+            return
+
+        if not self.contained(record["longitude"], record["latitude"]):
             return
 
         self._post_transform(record, *args, **kw)
@@ -404,7 +408,7 @@ class BaseTransformer:
             True if the point is contained within the polygon defined by the bounding_wkt in the config, otherwise False
         """
         config = self.config
-        if config and config.has_bounds():
+        if config and config.has_bounds() and self.check_contained:
             if not self._cached_polygon:
                 poly = shapely.wkt.loads(config.bounding_wkt())
                 self._cached_polygon = poly
