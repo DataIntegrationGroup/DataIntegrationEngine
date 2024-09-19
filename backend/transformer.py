@@ -166,7 +166,7 @@ class BaseTransformer:
         if not record:
             return
 
-        if not self.contained(record['longitude'], record['latitude']):
+        if not self.contained(record["longitude"], record["latitude"]):
             return
 
         self._post_transform(record, *args, **kw)

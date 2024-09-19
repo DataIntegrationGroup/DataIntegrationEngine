@@ -132,7 +132,7 @@ class STAnalyteSource(STSource, BaseAnalyteSource):
 
 class STSiteTransformer(SiteTransformer):
     source_id: str
-    check_contained = False # API returns only records within the bounds
+    check_contained = False  # API returns only records within the bounds
 
     def _transform_hook(self, rec):
         return rec
