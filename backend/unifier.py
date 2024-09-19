@@ -17,9 +17,23 @@ import shapely
 
 from backend.config import Config, get_source
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
+from backend.source import BaseSiteSource
 
 
-def health_check(source):
+def health_check(source: BaseSiteSource) -> bool:
+    """
+    Determines if data can be returned from the source (if it is healthy)
+
+    Parameters
+    -------
+    source: BaseSiteSource
+        The site source to check, specific to the source being queried
+
+    Returns
+    -------
+    bool
+        True if the source is healthy, else False
+    """
     source = get_source(source)
     if source:
         return bool(source.health())
@@ -60,6 +74,24 @@ def unify_waterlevels(config):
 
 
 def _perister_factory(config):
+    """
+    Determines the type of persister to use based on the configuration. The 
+    persister types are:
+
+    - CSVPersister
+    - CloudStoragePersister
+    - GeoJSONPersister
+
+    Parameters
+    -------
+    config: Config
+        The configuration object
+
+    Returns
+    -------
+    Persister
+        The persister object to use
+    """
     persister_klass = CSVPersister
     if config.use_cloud_storage:
         persister_klass = CloudStoragePersister
@@ -78,6 +110,7 @@ def _perister_factory(config):
 
 
 def _site_wrapper(site_source, parameter_source, persister, config):
+    
     try:
 
         if site_source.check():
@@ -132,8 +165,8 @@ def _unify_parameter(
 ):
     use_summarize = config.output_summary
     persister = _perister_factory(config)
-    for site_source, ss in sources:
-        _site_wrapper(site_source, ss, persister, config)
+    for site_source, parameter_source in sources:
+        _site_wrapper(site_source, parameter_source, persister, config)
     if use_summarize:
         persister.save(config.output_path)
     else:
@@ -213,8 +246,8 @@ def analyte_unification_test():
     cfg.output_summary = True
 
     # analyte testing
-    # cfg.use_source_wqp = False
-    cfg.use_source_nmbgmr = False
+    cfg.use_source_wqp = False
+    # cfg.use_source_nmbgmr = False
     cfg.use_source_iscsevenrivers = False
     cfg.use_source_bor = False
     cfg.use_source_dwb = False
@@ -267,8 +300,8 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
-    waterlevel_unification_test()
-    # analyte_unification_test()
+    # waterlevel_unification_test()
+    analyte_unification_test()
     # print(health_check("nwis"))
     # generate_site_bounds()
 
