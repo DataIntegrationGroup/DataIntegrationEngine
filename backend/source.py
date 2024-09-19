@@ -19,7 +19,7 @@ import click
 import httpx
 import shapely.wkt
 from shapely import MultiPoint
-from typing import Union
+from typing import Union, List
 
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
@@ -34,6 +34,7 @@ from backend.constants import (
     PARAMETER_VALUE,
 )
 from backend.persister import BasePersister, CSVPersister
+from backend.record import (AnalyteRecord, AnalyteSummaryRecord, WaterLevelRecord, WaterLevelSummaryRecord, SiteRecord)
 from backend.transformer import BaseTransformer, convert_units
 
 
@@ -450,14 +451,14 @@ class BaseSiteSource(BaseSource):
 
         return True
 
-    def read(self, *args, **kw) -> list:
+    def read(self, *args, **kw) -> List[SiteRecord]:
         """
         Returns a list of transformed site records.
         Calls self.get_records, which needs to be implemented for each source
 
         Returns
         -------
-        list
+        list[SiteRecord]
             a list of transformed site records
         """
         self.log("Gathering site records")
@@ -552,10 +553,10 @@ class BaseParameterSource(BaseSource):
 
     get_records
         Returns a dictionary of parameter records where the keys are the site ids
-        and the values are a list of the parameter records (which are dictionaries)
+        and the values are a list of the parameter records
 
     _extract_parent_records
-        Returns all records for a single site as a list of records (which are dictionaries)
+        Returns all records for a single site as a list of records
 
     _extract_most_recent
         Returns the most recent record
@@ -592,11 +593,15 @@ class BaseParameterSource(BaseSource):
     # Methods Already Implemented
     # ==========================================================================
 
-    def read(self, parent_record: BaseSiteSource, use_summarize: bool) -> list:
+    def read(self, parent_record: BaseSiteSource, use_summarize: bool) -> List[AnalyteRecord | AnalyteSummaryRecord | WaterLevelRecord | WaterLevelSummaryRecord]:
         """
-        Returns a list of transformed parameter records.
+        Returns a list of transformed parameter records. Transformed parameter records
+        are standardized so that all of the records have the same format. They are
+        defined in the record module. They behave just like a dictionary, but also have the
+        to_row() method so that a record can be written to a table.
+
         If use_summarize is True, the summary of records for each site are returned.
-        Otherwise, the cleaned and sorted records are returned.
+        Otherwise, the cleaned and sorted records are returned for a site.
         
         Parameters
         ----------
@@ -608,7 +613,7 @@ class BaseParameterSource(BaseSource):
 
         Returns
         --------
-        list
+        list[AnalyteRecord | AnalyteSummaryRecord | WaterLevelRecord | WaterLevelSummaryRecord]
             a list of transformed parameter records
         """
         if isinstance(parent_record, list):
