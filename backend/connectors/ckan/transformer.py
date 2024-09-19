@@ -24,8 +24,8 @@ class OSERoswellSiteTransformer(SiteTransformer):
         # pprint.pprint(record)
         lat = float(record["DD_lat"])
         lng = float(record["DD_lon"])
-        if not self.contained(lng, lat):
-            return
+        # if not self.contained(lng, lat):
+        #     return
 
         rec = {
             "source": f"CKAN/OSERoswell",

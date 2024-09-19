@@ -159,10 +159,14 @@ def standardize_datetime(dt):
 class BaseTransformer:
     _cached_polygon = None
     config = None
+    check_contained = True
 
     def do_transform(self, inrecord, *args, **kw):
         record = self._transform(inrecord, *args, **kw)
         if not record:
+            return
+
+        if not self.contained(record['longitude'], record['latitude']):
             return
 
         self._post_transform(record, *args, **kw)
@@ -238,7 +242,7 @@ class BaseTransformer:
         lat,
     ):
         config = self.config
-        if config and config.has_bounds():
+        if config and config.has_bounds() and self.check_contained:
             if not self._cached_polygon:
                 poly = shapely.wkt.loads(config.bounding_wkt())
                 self._cached_polygon = poly
