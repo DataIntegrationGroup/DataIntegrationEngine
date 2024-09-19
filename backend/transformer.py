@@ -39,7 +39,9 @@ from backend.record import (
 )
 
 
-def transform_horizontal_datum(x: int | float, y: int | float, in_datum: str, out_datum: str) -> tuple:
+def transform_horizontal_datum(
+    x: int | float, y: int | float, in_datum: str, out_datum: str
+) -> tuple:
     """
     Returns the transformed x, y coordinates and the output datum if the input datum is not the same as the output datum.
     Otherwise returns the original x, y coordinates and the output datum.
@@ -51,7 +53,7 @@ def transform_horizontal_datum(x: int | float, y: int | float, in_datum: str, ou
 
     y: int | float
         The y coordinate to transform
-    
+
     in_datum: str
         The input datum for the coordinataes
 
@@ -71,7 +73,9 @@ def transform_horizontal_datum(x: int | float, y: int | float, in_datum: str, ou
         return x, y, out_datum
 
 
-def transform_length_units(value: str | int | float, in_unit: str, out_unit: str) -> tuple:
+def transform_length_units(
+    value: str | int | float, in_unit: str, out_unit: str
+) -> tuple:
     """
     Transforms feet to meters or meters to feet.
 
@@ -79,7 +83,7 @@ def transform_length_units(value: str | int | float, in_unit: str, out_unit: str
     --------
     value: str | int | float
         The value to transform
-    
+
     in_unit: str
         The input unit of the value, should be either "feet" or "meters"
 
@@ -112,7 +116,9 @@ def transform_length_units(value: str | int | float, in_unit: str, out_unit: str
     return value, out_unit
 
 
-def convert_units(input_value: int | float | str, input_units: str, output_units: str) -> float:
+def convert_units(
+    input_value: int | float | str, input_units: str, output_units: str
+) -> float:
     """
     Converts the following units for any parameter value:
 
@@ -262,6 +268,7 @@ class BaseTransformer:
     ============================================================================
     _get_record_klass
     """
+
     _cached_polygon = None
     config = None
     check_contained = True
@@ -270,7 +277,16 @@ class BaseTransformer:
     # Methods Already Implemented
     # ==========================================================================
 
-    def do_transform(self, inrecord: dict, *args, **kw) -> AnalyteRecord | WaterLevelRecord | SiteRecord | AnalyteSummaryRecord | WaterLevelSummaryRecord | SummaryRecord:
+    def do_transform(
+        self, inrecord: dict, *args, **kw
+    ) -> (
+        AnalyteRecord
+        | WaterLevelRecord
+        | SiteRecord
+        | AnalyteSummaryRecord
+        | WaterLevelSummaryRecord
+        | SummaryRecord
+    ):
         """
         Transforms a record, site or parameter, into a standardized format.
         Populating the correct fields is performed in _transform, then the
@@ -385,7 +401,6 @@ class BaseTransformer:
 
         return record
 
-
     def contained(
         self,
         lng: float | int | str,
@@ -419,7 +434,6 @@ class BaseTransformer:
             return poly.contains(pt)
 
         return True
-
 
     # ==========================================================================
     # Methods That Need to be Implemented For Each SiteTransformer
@@ -487,11 +501,10 @@ class BaseTransformer:
     def _post_transform(self, *args, **kw):
         pass
 
-
     # ==========================================================================
     # Methods That Are Implemented In Each ParameterTransformer and SiteTransformer (Don't Need To Be Implemented For Each Source)
     # ==========================================================================
-    
+
     def _get_record_klass(self):
         raise NotImplementedError
 
@@ -565,7 +578,7 @@ class ParameterTransformer(BaseTransformer):
 class WaterLevelTransformer(ParameterTransformer):
     def _get_record_klass(self) -> WaterLevelRecord | WaterLevelSummaryRecord:
         """
-        Returns the WaterLevelRecord class to use for the transformer for 
+        Returns the WaterLevelRecord class to use for the transformer for
         water level records if config.output_summary is False, otherwise
         returns the WaterLevelSummaryRecord class
 
@@ -594,7 +607,7 @@ class WaterLevelTransformer(ParameterTransformer):
 class AnalyteTransformer(ParameterTransformer):
     def _get_record_klass(self) -> AnalyteRecord | AnalyteSummaryRecord:
         """
-        Returns the AnalyteRecord class to use for the transformer for 
+        Returns the AnalyteRecord class to use for the transformer for
         water level records if config.output_summary is False, otherwise
         returns the AnalyteSummaryRecord class
 

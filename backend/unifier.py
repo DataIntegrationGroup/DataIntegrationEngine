@@ -75,7 +75,7 @@ def unify_waterlevels(config):
 
 def _perister_factory(config):
     """
-    Determines the type of persister to use based on the configuration. The 
+    Determines the type of persister to use based on the configuration. The
     persister types are:
 
     - CSVPersister
@@ -110,7 +110,7 @@ def _perister_factory(config):
 
 
 def _site_wrapper(site_source, parameter_source, persister, config):
-    
+
     try:
 
         if site_source.check():
