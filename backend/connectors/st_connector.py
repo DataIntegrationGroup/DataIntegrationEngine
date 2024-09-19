@@ -96,8 +96,11 @@ class STSiteSource(BaseSiteSource, STSource):
         fs = []
         if config:
             if config.has_bounds():
+
+                poly = config.bounding_wkt(as_wkt=False)
+                # if poly is a MULTIPOLYGON convert to POLYGON
                 fs.append(
-                    f"st_within(Location/location, geography'{config.bounding_wkt()}')"
+                    f"st_within(location, geography'{poly}')"
                 )
 
             fi = make_dt_filter(

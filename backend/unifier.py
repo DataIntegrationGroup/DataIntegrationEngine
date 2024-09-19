@@ -234,9 +234,9 @@ def analyte_unification_test():
 
 def waterlevel_unification_test():
     cfg = Config()
-    # cfg.county = "chaves"
+    cfg.county = "chaves"
     # cfg.county = "eddy"
-    cfg.bbox = "-104.5 32.5,-104 33"
+    # cfg.bbox = "-104.5 32.5,-104 33"
     # cfg.start_date = "2020-01-01"
     # cfg.end_date = "2020-5-01"
     cfg.output_summary = False
@@ -245,9 +245,9 @@ def waterlevel_unification_test():
     cfg.output_single_timeseries = True
 
     cfg.use_source_nwis = False
-    # cfg.use_source_nmbgmr = False
+    cfg.use_source_nmbgmr = False
     cfg.use_source_iscsevenrivers = False
-    cfg.use_source_pvacd = False
+    # cfg.use_source_pvacd = False
     cfg.use_source_oseroswell = False
     cfg.use_source_bernco = False
     # cfg.site_limit = 10
