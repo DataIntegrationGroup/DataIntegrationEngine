@@ -76,12 +76,13 @@ class NMBGMRSiteSource(BaseSiteSource):
             params["limit"] = config.site_limit
 
         if config.analyte:
-            params["has_analyte"] = get_analyte_search_param(
+            params["parameter"] = get_analyte_search_param(
                 config.analyte, NMBGMR_ANALYTE_MAPPING
             )
         else:
-            params["has_waterlevels"] = True
+            params["parameter"] = "Manual groundwater levels"
 
+        # tags="features" because the response object is a GeoJSON
         return self._execute_json_request(
             _make_url("locations"), params, tag="features", timeout=30
         )
@@ -100,7 +101,11 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
             },
             tag="",
         )
-        return records[analyte]
+        records_sorted_by_pointid = {}
+        for pointid in records.keys():
+            records_sorted_by_pointid[pointid] = records[pointid][analyte]
+
+        return records_sorted_by_pointid
 
     def _extract_parent_records(self, records, parent_record):
         return records.get(parent_record.id, [])
@@ -131,6 +136,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NMBGMRWaterLevelTransformer
 
     def _clean_records(self, records):
+        # remove records with no depth to water value
         return [r for r in records if r["DepthToWaterBGS"] is not None]
 
     def _extract_parameter_record(self, record, *args, **kw):

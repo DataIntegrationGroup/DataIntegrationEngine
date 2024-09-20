@@ -81,3 +81,18 @@ weave analytes TDS --county eddy
 ```bash
 weave analytes TDS --county eddy --no-bor
 ```
+
+Available analytes:
+- Arsenic
+- Bicarbonate
+- Calcium
+- Carbonate
+- Chloride
+- Magnesium
+- Nitrate
+- pH
+- Potassium
+- Sodium
+- Sulfate
+- TDS
+- Uranium
