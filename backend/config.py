@@ -295,7 +295,7 @@ class Config(object):
 
         return round(x1, 7), round(y1, 7), round(x2, 7), round(y2, 7)
 
-    def bounding_wkt(self):
+    def bounding_wkt(self, as_wkt=True):
         if self.wkt:
             return self.wkt
         elif self.bbox:
@@ -303,7 +303,7 @@ class Config(object):
             pts = f"{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}"
             return f"POLYGON(({pts}))"
         elif self.county:
-            return get_county_polygon(self.county)
+            return get_county_polygon(self.county, as_wkt=as_wkt)
 
     def has_bounds(self):
         return self.bbox or self.county or self.wkt
