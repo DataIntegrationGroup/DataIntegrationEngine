@@ -16,6 +16,7 @@
 from datetime import datetime
 
 import frost_sta_client as fsc
+from shapely import MultiPolygon, Polygon, unary_union
 
 from backend.source import (
     BaseSiteSource,
@@ -99,6 +100,8 @@ class STSiteSource(BaseSiteSource, STSource):
 
                 poly = config.bounding_wkt(as_wkt=False)
                 # if poly is a MULTIPOLYGON convert to POLYGON
+                if type(poly) == MultiPolygon:
+                    poly = unary_union(poly)
                 fs.append(f"st_within(location, geography'{poly}')")
 
             fi = make_dt_filter(
