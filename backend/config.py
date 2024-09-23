@@ -303,7 +303,14 @@ class Config(object):
             pts = f"{x1} {y1},{x1} {y2},{x2} {y2},{x2} {y1},{x1} {y1}"
             return f"POLYGON(({pts}))"
         elif self.county:
-            return get_county_polygon(self.county, as_wkt=as_wkt)
+            bounds = get_county_polygon(self.county, as_wkt=False)
+            if bounds.geom_type == "MultiPolygon":
+                bounds = bounds.geoms[0]
+
+            if as_wkt:
+                return bounds.wkt
+            else:
+                return bounds
 
     def has_bounds(self):
         return self.bbox or self.county or self.wkt
