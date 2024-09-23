@@ -101,9 +101,9 @@ class STSiteSource(BaseSiteSource, STSource):
 
                 poly = config.bounding_wkt(as_wkt=False)
                 # if poly is a MULTIPOLYGON convert to POLYGON
-                if type(poly) == MultiPolygon:
+                if poly.geom_type == "MultiPolygon":
                     if len(poly.geoms) == 1:
-                        poly = unary_union(poly)
+                        poly = poly.geoms[0]
                     else:
                         # HUC4 1508 has 2 polygons, one of them is outside of NM
                         state_boundary = get_state_polygon("NM")
@@ -111,6 +111,7 @@ class STSiteSource(BaseSiteSource, STSource):
                             if state_boundary.contains(geom):
                                 poly = geom
                                 break
+
                 fs.append(f"st_within(location, geography'{poly}')")
 
             fi = make_dt_filter(

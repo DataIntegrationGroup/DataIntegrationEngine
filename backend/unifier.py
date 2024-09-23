@@ -311,8 +311,8 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
-    # waterlevel_unification_test()
-    analyte_unification_test()
+    waterlevel_unification_test()
+    # analyte_unification_test()
     # print(health_check("nwis"))
     # generate_site_bounds()
 
