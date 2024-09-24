@@ -131,8 +131,9 @@ def _site_wrapper(site_source, parameter_source, persister, config):
             print(f"No sites found for {site_source}")
             return
 
-        for i, sites in enumerate(site_source.chunks(sites), 1):
-            if site_limit and i > site_limit:
+        sites_with_records_count = 0
+        for sites in site_source.chunks(sites):
+            if site_limit and sites_with_records_count == site_limit:
                 break
 
             if use_summarize:
@@ -141,7 +142,10 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                     persister.records.extend(summary_records)
             else:
                 results = parameter_source.read(sites, use_summarize)
-                if results is None:
+                # no records are returned if there is no site record for parameter
+                # or if the record isn't clean (doesn't have the correct fields)
+                # don't count these sites to apply to site_limit
+                if results is None or len(results) == 0:
                     continue
 
                 if config.output_single_timeseries:
@@ -156,6 +160,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         else:
                             persister.timeseries.append((site, records))
                         persister.sites.append(site)
+            sites_with_records_count += 1
 
     except BaseException:
         import traceback
