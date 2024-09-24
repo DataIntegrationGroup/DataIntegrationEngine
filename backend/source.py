@@ -653,13 +653,13 @@ class BaseParameterSource(BaseSource):
             for site in parent_record:
                 site_records = self._extract_parent_records(all_analyte_records, site)
                 if not site_records:
-                    self.warn(f"{site.name}: No parent records found")
+                    self.warn(f"{site.id}: No parent records found")
                     continue
 
                 # get cleaned records if _clean_records is defined by the source
                 cleaned = self._clean_records(site_records)
                 if not cleaned:
-                    self.warn(f"{site.name} No clean records found")
+                    self.warn(f"{site.id} No clean records found")
                     continue
 
                 items = self._extract_parameter_results(cleaned)
@@ -671,7 +671,7 @@ class BaseParameterSource(BaseSource):
 
                 if items is not None:
                     n = len(items)
-                    self.log(f"{site.name}: Retrieved {self.name}: {n}")
+                    self.log(f"{site.id}: Retrieved {self.name}: {n}")
 
                     # create the summaries if use_summarize is True, otherwise returned the cleaned and sorted records
                     if use_summarize:
