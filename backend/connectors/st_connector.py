@@ -101,9 +101,9 @@ class STSiteSource(BaseSiteSource, STSource):
 
                 poly = config.bounding_wkt(as_wkt=False)
                 # if poly is a MULTIPOLYGON convert to POLYGON
-                if poly.geom_type == "MultiPolygon":
+                if type(poly) == MultiPolygon:
                     if len(poly.geoms) == 1:
-                        poly = poly.geoms[0]
+                        poly = unary_union(poly)
                     else:
                         # HUC4 1508 has 2 polygons, one of them is outside of NM
                         state_boundary = get_state_polygon("NM")
