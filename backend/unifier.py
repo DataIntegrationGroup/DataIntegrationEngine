@@ -131,7 +131,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
             print(f"No sites found for {site_source}")
             return
 
-        for i, sites in enumerate(site_source.chunks(sites)):
+        for i, sites in enumerate(site_source.chunks(sites), 1):
             if site_limit and i > site_limit:
                 break
 
