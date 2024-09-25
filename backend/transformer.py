@@ -495,6 +495,11 @@ class BaseTransformer:
 
             site_record: dict
                 The site record associated with the parameter record
+
+        Returns
+        --------
+        dict
+            The record with the standard fields added and populated
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _transform"
