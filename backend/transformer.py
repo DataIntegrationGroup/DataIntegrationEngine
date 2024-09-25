@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import click
 import pprint
 from datetime import datetime
 
@@ -336,8 +337,9 @@ class BaseTransformer:
         # ensure that a site or summary record is contained within the boundaing polygon
         if 'longitude' in record and 'latitude' in record:
             if not self.contained(record["longitude"], record["latitude"]):
+                self.warn(f"Skipping site {record['id']}. It is not within the defined geographic bounds")
                 return
-
+        
         self._post_transform(record, *args, **kw)
 
         # standardize datetime
@@ -436,6 +438,39 @@ class BaseTransformer:
             return poly.contains(pt)
 
         return True
+    
+    def warn(self, msg):
+        """
+        Prints warning messages to the console in red
+
+        Parameters
+        ----------
+        msg : str
+            the message to print
+
+        Returns
+        -------
+        None
+        """
+        self.log(msg, fg="red")
+
+    def log(self, msg, fg="yellow"):
+        """
+        Prints the message to the console in yellow
+
+        Parameters
+        ----------
+        msg : str
+            the message to print
+
+        fg : str
+            the color of the message, defaults to yellow
+
+        Returns
+        -------
+        None
+        """
+        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
 
     # ==========================================================================
     # Methods That Need to be Implemented For Each SiteTransformer
