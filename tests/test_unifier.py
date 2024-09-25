@@ -461,6 +461,9 @@ def test_unify_analytes_amp_summary(tmp_path, analyte_summary_cfg):
 
 
 def test_unify_analytes_bor_summary(tmp_path, analyte_summary_cfg):
+    # BOR locations are found within Otero County
+    analyte_summary_cfg.county = "otero"
+    analyte_summary_cfg.bbox = None
     _test_analytes_summary(tmp_path, analyte_summary_cfg, "bor")
 
 
