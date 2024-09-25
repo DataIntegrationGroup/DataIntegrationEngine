@@ -478,7 +478,7 @@ class BaseSiteSource(BaseSource):
         else:
             self.warn("No site records returned")
 
-    def _transform_sites(self, records: list) -> list:
+    def _transform_sites(self, records: list) -> List[SiteRecord]:
         """
         Transforms site records into the standardized format.
 
@@ -489,8 +489,8 @@ class BaseSiteSource(BaseSource):
 
         Returns
         -------
-        list
-            a list of transformed site records
+        list[SiteRecord]
+            a list of transformed site records as SiteRecords
         """
         transformed_records = []
         for record in records:
