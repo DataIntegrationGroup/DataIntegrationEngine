@@ -109,12 +109,12 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     def _extract_parameter_units(self, records):
         return [r["units"] for r in records]
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         config = self.config
         analyte_id = self._get_analyte_id(config.analyte)
         if analyte_id:
             params = {
-                "monitoringPointId": parent_record.id,
+                "monitoringPointId": site_record.id,
                 "analyteId": analyte_id,
                 "start": 0,
                 "end": config.now_ms(days=1),
@@ -146,9 +146,9 @@ def get_datetime(record):
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         params = {
-            "id": parent_record.id,
+            "id": site_record.id,
             "start": 0,
             "end": self.config.now_ms(days=1),
         }

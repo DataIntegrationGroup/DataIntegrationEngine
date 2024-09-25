@@ -91,12 +91,12 @@ class NMBGMRSiteSource(BaseSiteSource):
 class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         analyte = get_analyte_search_param(self.config.analyte, NMBGMR_ANALYTE_MAPPING)
         records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
-                "pointid": ",".join(make_site_list(parent_record)),
+                "pointid": ",".join(make_site_list(site_record)),
                 "analyte": analyte,
             },
             tag="",
@@ -107,8 +107,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
         return records_sorted_by_pointid
 
-    def _extract_parent_records(self, records, parent_record):
-        return records.get(parent_record.id, [])
+    def _extract_site_records(self, records, site_record):
+        return records.get(site_record.id, [])
 
     def _extract_parameter_units(self, records):
         return [r["Units"] for r in records]
@@ -156,15 +156,15 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
     def _extract_parameter_results(self, records):
         return [r["DepthToWaterBGS"] for r in records]
 
-    def _extract_parent_records(self, records, parent_record):
-        return [ri for ri in records if ri["Well"]["PointID"] == parent_record.id]
+    def _extract_site_records(self, records, site_record):
+        return [ri for ri in records if ri["Well"]["PointID"] == site_record.id]
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         # if self.config.latest_water_level_only:
-        #     params = {"pointids": parent_record.id}
+        #     params = {"pointids": site_record.id}
         #     url = _make_url("waterlevels/latest")
         # else:
-        params = {"pointid": ",".join(make_site_list(parent_record))}
+        params = {"pointid": ",".join(make_site_list(site_record))}
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 

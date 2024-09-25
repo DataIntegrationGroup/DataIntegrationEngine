@@ -326,7 +326,7 @@ class BaseSource:
         Parameters
         ----------
         If parameter records:
-            parent_record : dict
+            site_record : dict
                 the site record for the location whose parameter records are to be retrieved
 
         If site records:
@@ -564,7 +564,7 @@ class BaseParameterSource(BaseSource):
         Returns a dictionary of parameter records where the keys are the site ids
         and the values are a list of the parameter records
 
-    _extract_parent_records
+    _extract_site_records
         Returns all records for a single site as a list of records
 
     _extract_most_recent
@@ -603,7 +603,7 @@ class BaseParameterSource(BaseSource):
     # ==========================================================================
 
     def read(
-        self, parent_record: BaseSiteSource, use_summarize: bool
+        self, site_record: SiteRecord, use_summarize: bool
     ) -> List[
         AnalyteRecord
         | AnalyteSummaryRecord
@@ -621,7 +621,7 @@ class BaseParameterSource(BaseSource):
 
         Parameters
         ----------
-        parent_record : BaseSiteSource
+        site_record : SiteRecord
             the site record(s) for the location whose parameter records are to be retrieved
 
         use_summarize : bool
@@ -632,28 +632,28 @@ class BaseParameterSource(BaseSource):
         list[AnalyteRecord | AnalyteSummaryRecord | WaterLevelRecord | WaterLevelSummaryRecord]
             a list of transformed parameter records
         """
-        if isinstance(parent_record, list):
+        if isinstance(site_record, list):
             self.log(
-                f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
+                f"Gathering {self.name} summary for multiple records. {len(site_record)}"
             )
         else:
             self.log(
-                f"{parent_record.id} ({parent_record.id}): Gathering {self.name} summary"
+                f"{site_record.id} ({site_record.id}): Gathering {self.name} summary"
             )
 
-        all_analyte_records = self.get_records(parent_record)
+        all_analyte_records = self.get_records(site_record)
         if all_analyte_records:
-            if not isinstance(parent_record, list):
-                parent_record = [parent_record]
+            if not isinstance(site_record, list):
+                site_record = [site_record]
 
             # return values
             ret = []
 
             # iterate over each site record and extract the parameter records for each site
-            for site in parent_record:
-                site_records = self._extract_parent_records(all_analyte_records, site)
+            for site in site_record:
+                site_records = self._extract_site_records(all_analyte_records, site)
                 if not site_records:
-                    self.warn(f"{site.id}: No parent records found")
+                    self.warn(f"{site.id}: No site records found")
                     continue
 
                 # get cleaned records if _clean_records is defined by the source
@@ -704,10 +704,10 @@ class BaseParameterSource(BaseSource):
 
             return ret
         else:
-            if isinstance(parent_record, list):
-                names = [str(r.id) for r in parent_record]
+            if isinstance(site_record, list):
+                names = [str(r.id) for r in site_record]
             else:
-                names = [str(parent_record.id)]
+                names = [str(site_record.id)]
 
             name = ",".join(names)
             self.warn(f"{name}: No records found")
@@ -759,7 +759,7 @@ class BaseParameterSource(BaseSource):
     # Methods That Need to be Implemented For Each Source
     # ==========================================================================
 
-    def _extract_parent_records(self, records: dict, parent_record: dict) -> list:
+    def _extract_site_records(self, records: dict, site_record: dict) -> list:
         """
         Returns all records for a single site as a list of records (which are dictionaries).
 
@@ -768,7 +768,7 @@ class BaseParameterSource(BaseSource):
         records : dict
             a dictionary of lists, where the keys are site ids and the values are parameter records
 
-        parent_record : dict
+        site_record : dict
             the site record for the location whose parameter records are to be retrieved
 
         Returns
@@ -776,11 +776,11 @@ class BaseParameterSource(BaseSource):
         list
             a list of records for the site
         """
-        if parent_record.chunk_size == 1:
+        if site_record.chunk_size == 1:
             return records
 
         raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parent_records"
+            f"{self.__class__.__name__} Must implement _extract_site_records"
         )
 
     def _clean_records(self, records: list) -> list:

@@ -101,11 +101,11 @@ class WQPAnalyteSource(BaseAnalyteSource):
         record[DT_MEASURED] = record["ActivityStartDate"]
         return record
 
-    def _extract_parent_records(self, records, parent_record):
+    def _extract_site_records(self, records, site_record):
         return [
             ri
             for ri in records
-            if ri["MonitoringLocationIdentifier"] == parent_record.id
+            if ri["MonitoringLocationIdentifier"] == site_record.id
         ]
 
     def _extract_parameter_results(self, records):
@@ -125,8 +125,8 @@ class WQPAnalyteSource(BaseAnalyteSource):
             "units": ri["ResultMeasure/MeasureUnitCode"],
         }
 
-    def get_records(self, parent_record):
-        sites = make_site_list(parent_record)
+    def get_records(self, site_record):
+        sites = make_site_list(site_record)
 
         params = {
             "siteid": sites,

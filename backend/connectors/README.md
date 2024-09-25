@@ -32,7 +32,7 @@ The following methods need to be defined for Faux. See `BaseSiteSource` for doc 
 The following methods need to be defined for Faux. See `BaseAnalyteSource` for doc strings for each of the methods:
 
 - `get_records`
-- `_extract_parent_records`
+- `_extract_site_records`
 - `_extract_parameter_units`
 - `_extract_most_recent`
 - `_extract_parameter_result`
@@ -47,7 +47,7 @@ The following method is optional:
 The following methods need to be defined for Faux. See `BaseWaterLevelSource` for doc strings for each of the methods:
 
 - `get_records`
-- `_extract_parent_records`
+- `_extract_site_records`
 - `_extract_parameter_units`
 - `_extract_most_recent`
 - `_extract_parameter_result`

@@ -58,15 +58,15 @@ class EBIDSiteTransformer(STSiteTransformer):
 # class ST2WaterLevelTransformer(WaterLevelTransformer):
 #     source_tag = "ST2"
 
-# def _transform_hook(self, record, config, parent_record, *args, **kw):
+# def _transform_hook(self, record, config, site_record, *args, **kw):
 #     rec = {
 #         "source": self.source_id,
-#         "id": parent_record.id,
-#         "location": parent_record.name,
-#         "latitude": parent_record.latitude,
-#         "longitude": parent_record.longitude,
-#         "surface_elevation_ft": parent_record.elevation,
-#         "well_depth_ft_below_ground_surface": parent_record.well_depth,
+#         "id": site_record.id,
+#         "location": site_record.name,
+#         "latitude": site_record.latitude,
+#         "longitude": site_record.longitude,
+#         "surface_elevation_ft": site_record.elevation,
+#         "well_depth_ft_below_ground_surface": site_record.well_depth,
 #     }
 #
 #     if config.output_summary_waterlevel_stats:

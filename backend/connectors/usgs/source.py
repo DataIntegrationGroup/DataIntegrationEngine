@@ -127,13 +127,13 @@ class NWISSiteSource(BaseSiteSource):
 class NWISWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NWISWaterLevelTransformer
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         params = {
             "format": "json",
             "siteType": "GW",
             "siteStatus": "all",
             "parameterCd": "72019",
-            "sites": ",".join(make_site_list(parent_record)),
+            "sites": ",".join(make_site_list(site_record)),
         }
 
         config = self.config
@@ -155,8 +155,8 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             self.log(f"Retrieved {len(records)} records")
             return records
 
-    def _extract_parent_records(self, records, parent_record):
-        return [ri for ri in records if ri["site_code"] == parent_record.id]
+    def _extract_site_records(self, records, site_record):
+        return [ri for ri in records if ri["site_code"] == site_record.id]
 
     def _clean_records(self, records):
         return [r for r in records if r["value"] is not None and r["value"].strip()]
