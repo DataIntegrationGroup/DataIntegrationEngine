@@ -135,14 +135,14 @@ DT_OPTIONS = [
 
 TIMESERIES_OPTIONS = [
     click.option(
-        "--separate_timeseries",
+        "--separate_timeseries_files",
         is_flag=True,
         default=False,
         show_default=True,
         help="Output separate timeseries files for every site",
     ),
     click.option(
-        "--single_timeseries",
+        "--single_timeseries_file",
         is_flag=True,
         default=False,
         show_default=True,
@@ -177,8 +177,8 @@ def wells(bbox, county):
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
-    separate_timeseries,
-    single_timeseries,
+    separate_timeseries_files,
+    single_timeseries_file,
     start_date,
     end_date,
     bbox,
@@ -195,13 +195,13 @@ def waterlevels(
     site_limit,
     dry,
 ):
-    if separate_timeseries or single_timeseries:
+    if separate_timeseries_files or single_timeseries_file:
         timeseries = True
     else:
         timeseries = False
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
-    config.output_single_timeseries = single_timeseries
+    config.output_single_timeseries = single_timeseries_file
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
@@ -233,8 +233,8 @@ def waterlevels(
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
-    separate_timeseries,
-    single_timeseries,
+    separate_timeseries_files,
+    single_timeseries_file,
     start_date,
     end_date,
     bbox,
@@ -251,7 +251,7 @@ def analytes(
     site_limit,
     dry,
 ):
-    if separate_timeseries or single_timeseries:
+    if separate_timeseries_files or single_timeseries_file:
         timeseries = True
     else:
         timeseries = False
@@ -260,7 +260,7 @@ def analytes(
     )
     config.analyte = analyte
 
-    config.output_single_timeseries = single_timeseries
+    config.output_single_timeseries = single_timeseries_file
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd

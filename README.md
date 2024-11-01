@@ -34,6 +34,14 @@ pip install nmuwd
 ```
 
 ## Usage
+
+### Timeseries & Summary
+The flag `--separate_timeseries_files` exports timeseries for every location in their own file in the directory output_series (e.g. AB-0002.csv, AB-0003.csv). Locations with only one observation are gathered and exported to the file `output.combined.csv.
+
+The flag `--single_timeseries_file` exports all timeseries for all locations in one file titled output.timeseries.csv. It also exports a file titled output.sites.csv that contains site information, such as latitude, longitude, and elevation.
+
+If neither of the above flags are specified, a summary table called output.csv is exported.
+
 ### Water Levels
 
 Get water levels for a county. Return a summary csv
