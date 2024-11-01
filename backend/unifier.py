@@ -112,13 +112,13 @@ def _perister_factory(config):
 def _site_wrapper(site_source, parameter_source, persister, config):
 
     try:
+        # TODO: fully develop checks/discoveries below
+        # if not site_source.check():
+        #     print(f"Skipping {site_source}. check failed")
 
-        if site_source.check():
-            print(f"Skipping {site_source}. check failed")
-
-        schemas = site_source.discover()
-        if not schemas:
-            print(f"No schemas found for {site_source}")
+        # schemas = site_source.discover()
+        # if not schemas:
+        #     print(f"No schemas found for {site_source}")
 
             # in the future make discover required
             # return
