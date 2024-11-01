@@ -133,6 +133,22 @@ DT_OPTIONS = [
     ),
 ]
 
+TIMESERIES_OPTIONS = [
+    click.option(
+        "--separate_timeseries",
+        is_flag=True,
+        default=False,
+        show_default=True,
+        help="Output separate timeseries files for every site",
+    ),
+    click.option(
+        "--single_timeseries",
+        is_flag=True,
+        default=False,
+        show_default=True,
+        help="Output single timeseries file, which includes all sites",
+    ),
+]
 
 def add_options(options):
     def _add_options(func):
@@ -155,19 +171,14 @@ def wells(bbox, county):
 
 
 @cli.command()
-@click.option(
-    "--timeseries",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Include timeseries data",
-)
+@add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
-    timeseries,
+    separate_timeseries,
+    single_timeseries,
     start_date,
     end_date,
     bbox,
@@ -184,8 +195,13 @@ def waterlevels(
     site_limit,
     dry,
 ):
+    if separate_timeseries or single_timeseries:
+        timeseries = True
+    else:
+        timeseries = False
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
+    config.output_single_timeseries = single_timeseries
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
@@ -210,20 +226,15 @@ def waterlevels(
 
 @cli.command()
 @click.argument("analyte", type=click.Choice(ANALYTE_CHOICES))
-@click.option(
-    "--timeseries",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Include timeseries data",
-)
+@add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
-    timeseries,
+    separate_timeseries,
+    single_timeseries,
     start_date,
     end_date,
     bbox,
@@ -240,11 +251,16 @@ def analytes(
     site_limit,
     dry,
 ):
+    if separate_timeseries or single_timeseries:
+        timeseries = True
+    else:
+        timeseries = False
     config = setup_config(
         f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
     )
     config.analyte = analyte
 
+    config.output_single_timeseries = single_timeseries
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
