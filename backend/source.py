@@ -665,11 +665,13 @@ class BaseParameterSource(BaseSource):
                 items = self._extract_parameter_results(cleaned)
                 units = self._extract_parameter_units(cleaned)
                 items = [
-                    convert_units(float(result), unit, self._get_output_units())
+                    convert_units(float(result), unit, self._get_output_units()) 
                     for result, unit in zip(items, units)
+                    if result is not None 
                 ]
 
-                if items is not None:
+                # if items is None or empty, no records were found or all results were None
+                if items is not None and len(items) > 0:
                     n = len(items)
                     self.log(f"{site.id}: Retrieved {self.name}: {n}")
 
