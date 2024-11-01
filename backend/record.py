@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.constants import DTW, PARAMETER, PARAMETER_VALUE, FEET
+from backend.constants import DTW, PARAMETER, PARAMETER_VALUE, PARAMETER_UNITS, FEET
 
 
 class BaseRecord:
@@ -82,8 +82,8 @@ class WaterLevelRecord(BaseRecord):
 
 class AnalyteRecord(BaseRecord):
     keys: tuple = (
-        # "source",
-        # "id",
+        "source",
+        "id",
         # "location",
         # "latitude",
         # "longitude",
@@ -91,6 +91,7 @@ class AnalyteRecord(BaseRecord):
         # "well_depth_ft_below_ground_surface",
         PARAMETER,
         PARAMETER_VALUE,
+        PARAMETER_UNITS,
         "date_measured",
         "time_measured",
     )
