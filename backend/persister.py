@@ -139,11 +139,12 @@ def write_memory(path, func, records):
 
 
 def dump_single_timeseries(writer, timeseries):
+    headers_have_not_been_written = True
     for i, (site, records) in enumerate(timeseries):
-
         for j, record in enumerate(records):
-            if i == 0:
+            if i == 0 and headers_have_not_been_written:
                 writer.writerow(record.keys)
+                headers_have_not_been_written = False
             writer.writerow(record.to_row())
 
 
