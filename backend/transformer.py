@@ -30,7 +30,7 @@ from backend.constants import (
     DT_MEASURED,
     PARAMETER_UNITS
 )
-from backend.geo_utils import datum_transform
+from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.record import (
     WaterLevelSummaryRecord,
     WaterLevelRecord,
@@ -375,6 +375,10 @@ class BaseTransformer:
             x = float(record.longitude)
             input_horizontal_datum = record.horizontal_datum
 
+            if input_horizontal_datum not in ALLOWED_DATUMS:
+                self.warn(f"Skipping site {record.id}. Datum {input_horizontal_datum} cannot be processed")
+                return None
+
             output_elevation_units = ""
             well_depth_units = ""
             output_horizontal_datum = "WGS84"
@@ -465,6 +469,7 @@ class BaseTransformer:
         None
         """
         self.log(msg, fg="red")
+        self.config.warnings.append(msg)
 
     def log(self, msg, fg="yellow"):
         """
@@ -483,6 +488,7 @@ class BaseTransformer:
         None
         """
         click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
+        self.config.logs.append(f"{self.__class__.__name__:25s} -- {msg}")
 
     # ==========================================================================
     # Methods That Need to be Implemented For Each SiteTransformer

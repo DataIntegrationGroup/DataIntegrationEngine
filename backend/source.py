@@ -208,7 +208,8 @@ class BaseSource:
         -------
         None
         """
-        self.log(msg, fg="red")
+        s = self.log(msg, fg="red")
+        self.config.warnings.append(s)
 
     def log(self, msg, fg="yellow"):
         """
@@ -226,7 +227,10 @@ class BaseSource:
         -------
         None
         """
-        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
+        s = f"{self.__class__.__name__:25s} -- {msg}"
+        click.secho(s, fg=fg)
+        self.config.logs.append(s)
+        return s
 
     def _execute_text_request(self, url: str, params=None, **kw) -> str:
         """
@@ -603,7 +607,7 @@ class BaseParameterSource(BaseSource):
     # ==========================================================================
 
     def read(
-        self, site_record: SiteRecord, use_summarize: bool
+        self, site_record: SiteRecord, use_summarize: bool, start_ind: int, end_ind: int
     ) -> List[
         AnalyteRecord
         | AnalyteSummaryRecord
@@ -634,7 +638,7 @@ class BaseParameterSource(BaseSource):
         """
         if isinstance(site_record, list):
             self.log(
-                f"Gathering {self.name} summary for multiple records. {len(site_record)}"
+                f"Gathering {self.name} summary for {len(site_record)} sites. {start_ind}-{end_ind}"
             )
         else:
             self.log(
@@ -661,19 +665,27 @@ class BaseParameterSource(BaseSource):
                 if not cleaned:
                     self.warn(f"{site.id} No clean records found")
                     continue
+                
+                # doesn't need to be returned, but can be used to debug/for development
+                skipped_items = []
 
-                items = self._extract_parameter_results(cleaned)
+                results = self._extract_parameter_results(cleaned)
                 units = self._extract_parameter_units(cleaned)
+
                 items = [
-                    convert_units(float(result), unit, self._get_output_units()) 
-                    for result, unit in zip(items, units)
-                    if result is not None 
+                    convert_units(float(result), unit, self._get_output_units()) if (type(result) in [int, float])
+                    else result if (not use_summarize)
+                    else skipped_items.append((result))
+                    for result, unit in zip(results, units)
                 ]
+
+                if len(skipped_items) > 0:
+                    self.warn(f"Skipped results because of formatting: {skipped_items}")
 
                 # if items is None or empty, no records were found or all results were None
                 if items is not None and len(items) > 0:
                     n = len(items)
-                    self.log(f"{site.id}: Retrieved {self.name}: {n}")
+                    # self.log(f"{site.id}: Retrieved {self.name}: {n}")
 
                     # create the summaries if use_summarize is True, otherwise returned the cleaned and sorted records
                     if use_summarize:

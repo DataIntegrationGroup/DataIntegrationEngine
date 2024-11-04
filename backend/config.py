@@ -135,6 +135,9 @@ class Config(object):
     use_csv: bool = True
     use_geojson: bool = False
 
+    logs: list = []
+    warnings: list = []
+
     def __init__(self, model=None, payload=None):
         self.bbox = {}
         if model:

@@ -128,20 +128,33 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
         sites = site_source.read()
         if not sites:
-            print(f"No sites found for {site_source}")
+            print(f"No sites found for {site_source.tag}")
+            config.logs.append(f"No sites found for {site_source.tag}")
+            config.warnings.append(f"No sites found for {site_source.tag}")
             return
 
         sites_with_records_count = 0
+        start_ind = 1
+        end_ind = 0
+        first_flag = True
         for sites in site_source.chunks(sites):
             if site_limit and sites_with_records_count == site_limit:
                 break
 
+            if type(sites) == list:
+                if first_flag:
+                    end_ind += len(sites)
+                    first_flag = False
+                else:
+                    start_ind = end_ind + 1
+                    end_ind += len(sites)
+
             if use_summarize:
-                summary_records = parameter_source.read(sites, use_summarize)
+                summary_records = parameter_source.read(sites, use_summarize, start_ind, end_ind)
                 if summary_records:
                     persister.records.extend(summary_records)
             else:
-                results = parameter_source.read(sites, use_summarize)
+                results = parameter_source.read(sites, use_summarize, start_ind, end_ind)
                 # no records are returned if there is no site record for parameter
                 # or if the record isn't clean (doesn't have the correct fields)
                 # don't count these sites to apply to site_limit
@@ -161,6 +174,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                             persister.timeseries.append((site, records))
                         persister.sites.append(site)
             sites_with_records_count += 1
+        
 
     except BaseException:
         import traceback
@@ -168,6 +182,12 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         exc = traceback.format_exc()
         print(exc)
         print(f"Failed to unify {site_source}")
+        
+        config.logs.append(exc)
+        config.logs.append(f"Failed to unify {site_source}")
+
+        config.warnings.append(exc)
+        config.warnings.append(f"Failed to unify {site_source}")
 
 
 def _unify_parameter(
@@ -186,6 +206,12 @@ def _unify_parameter(
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
+    
+
+    persister.logs.extend(config.logs)
+    persister.warnings.extend(config.warnings)
+    persister.dump_logs(f"{config.output_path}.logs.txt")
+    persister.dump_warnings(f"{config.output_path}.warnings.txt")
     persister.finalize(config.output_name)
 
 
