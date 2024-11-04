@@ -28,6 +28,7 @@ from backend.constants import (
     TONS_PER_ACRE_FOOT,
     MICROGRAMS_PER_LITER,
     DT_MEASURED,
+    PARAMETER_UNITS
 )
 from backend.geo_utils import datum_transform
 from backend.record import (
@@ -128,6 +129,7 @@ def convert_units(
     - ppm to mg/L
     - ton/ac-ft to mg/L
     - ug/L to mg/L
+    - mg/L CaCO3 to mg/L
 
     length:
     - ft to m
@@ -157,6 +159,10 @@ def convert_units(
     ugl = MICROGRAMS_PER_LITER.lower()
     ppm = PARTS_PER_MILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
+
+    # edge case for BOR for Bicarbonate
+    if input_units == "mg/l caco3":
+        input_units = mgl
 
     if input_units == output_units:
         return input_value
@@ -403,6 +409,12 @@ class BaseTransformer:
             record.update(well_depth=well_depth)
             record.update(well_depth_units=well_depth_unit)
 
+        # update the units to the output unit for analyte records
+        # this is done after converting the units to the output unit for the analyte records
+        elif isinstance(record, (AnalyteRecord)):
+            #print(self.config.analyte_output_units)
+            record.update(parameter_units=self.config.analyte_output_units)
+
         return record
 
     def contained(
@@ -578,10 +590,7 @@ class ParameterTransformer(BaseTransformer):
                 f"{self.__class__.__name__} source_tag is not set"
             )
 
-        rec = {
-            "source": self.source_tag,
-            "id": site_record.id,
-        }
+        rec = {}
 
         if self.config.output_summary:
             self._transform_most_recents(record)
@@ -603,6 +612,16 @@ class ParameterTransformer(BaseTransformer):
                 }
             )
         rec.update(record)
+
+        """
+        Some analyte records, like BOR, have a field called "id" that is the record's ID.
+        To allow for the record's "id" to be the site's "id", the record's "id" needs to be updated at the end.
+        """
+        source_id = {
+            "source": self.source_tag,
+            "id": site_record.id,
+        }
+        rec.update(source_id)
         return rec
 
     def _transform_most_recents(self, record):
