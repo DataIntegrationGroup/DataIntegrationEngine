@@ -108,6 +108,7 @@ class SummaryRecord(BaseRecord):
         "alternate_site_id",
         "latitude",
         "longitude",
+        "horizontal_datum",
         "elevation",
         "elevation_units",
         "well_depth",
