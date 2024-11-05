@@ -677,7 +677,9 @@ class BaseParameterSource(BaseSource):
 
                     for r, u in zip(results, units):
                         try:
-                            converted_result, warning_msg = convert_units(float(r), u, self._get_output_units())
+                            converted_result, warning_msg = convert_units(
+                                float(r), u, self._get_output_units()
+                            )
                             if warning_msg == "":
                                 kept_items.append(converted_result)
                             else:
@@ -690,7 +692,9 @@ class BaseParameterSource(BaseSource):
                             skipped_items.append((site.id, r, u))
 
                     if len(skipped_items) > 0:
-                        self.warn(f"Skipped results because of formatting: {skipped_items}")
+                        self.warn(
+                            f"Skipped results because of formatting: {skipped_items}"
+                        )
 
                     # if items is None or empty, no records were found or all results were None
                     if kept_items is not None and len(kept_items):
@@ -725,7 +729,8 @@ class BaseParameterSource(BaseSource):
                         for record in cleaned
                         if self.transformer.do_transform(
                             self._extract_parameter(record), site
-                        ) is not None
+                        )
+                        is not None
                     ]
                     if len(cleaned_sorted) == 0:
                         self.warn(f"{site.id}: No clean records found")

@@ -131,11 +131,8 @@ def _test_waterlevels_timeseries(
 
 
 def _test_waterelevels_timeseries_date_range(
-        tmp_path,
-        cfg,
-        source,
-        timeseries_flag=True,
-        combined_flag=False):
+    tmp_path, cfg, source, timeseries_flag=True, combined_flag=False
+):
     combined, timeseries = _test_waterlevels_timeseries(
         tmp_path,
         cfg,
@@ -363,7 +360,7 @@ def test_unify_waterlevels_nwis_timeseries(tmp_path, waterlevel_timeseries_cfg):
         tmp_path,
         waterlevel_timeseries_cfg,
         "nwis",
-        combined_flag=True,  
+        combined_flag=True,
         timeseries_flag=True,
     )
 
@@ -379,7 +376,7 @@ def test_unify_waterlevels_pvacd_timeseries(tmp_path, waterlevel_timeseries_cfg)
         tmp_path,
         waterlevel_timeseries_cfg,
         "pvacd",
-        combined_flag=False,    
+        combined_flag=False,
         timeseries_flag=True,
     )
 
@@ -411,9 +408,7 @@ def test_waterlevels_nwis_summary_date_range(tmp_path, waterlevel_summary_cfg):
 
 
 # Waterlevel timeseries date range ====================================================================================
-def test_waterlevels_nwis_timeseries_date_range(
-        tmp_path,
-        waterlevel_timeseries_cfg):
+def test_waterlevels_nwis_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
     # there are one or more locations within the bounding box and date range
     # that have only one record, so there is a combined file
     _test_waterelevels_timeseries_date_range(
@@ -421,33 +416,33 @@ def test_waterlevels_nwis_timeseries_date_range(
         waterlevel_timeseries_cfg,
         "nwis",
         timeseries_flag=True,
-        combined_flag=True
+        combined_flag=True,
     )
 
 
 def test_waterlevels_isc_seven_rivers_timeseries_date_range(
     tmp_path, waterlevel_timeseries_cfg
 ):
-    # all locations within the bounding box and date rangehave more than one 
+    # all locations within the bounding box and date rangehave more than one
     # record so there is no combined file
     _test_waterelevels_timeseries_date_range(
         tmp_path,
         waterlevel_timeseries_cfg,
         "iscsevenrivers",
         timeseries_flag=True,
-        combined_flag=False
+        combined_flag=False,
     )
 
 
 def test_waterlevels_pvacd_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
-    # all locations within the bounding box and date rangehave more than one 
+    # all locations within the bounding box and date rangehave more than one
     # record so there is no combined file
     _test_waterelevels_timeseries_date_range(
         tmp_path,
         waterlevel_timeseries_cfg,
         "pvacd",
         timeseries_flag=True,
-        combined_flag=False
+        combined_flag=False,
     )
 
 

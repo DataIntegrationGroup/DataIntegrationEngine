@@ -120,8 +120,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         # if not schemas:
         #     print(f"No schemas found for {site_source}")
 
-            # in the future make discover required
-            # return
+        # in the future make discover required
+        # return
 
         use_summarize = config.output_summary
         site_limit = config.site_limit
@@ -152,11 +152,15 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                     end_ind += len(sites)
 
             if use_summarize:
-                summary_records = parameter_source.read(sites, use_summarize, start_ind, end_ind)
+                summary_records = parameter_source.read(
+                    sites, use_summarize, start_ind, end_ind
+                )
                 if summary_records:
                     persister.records.extend(summary_records)
             else:
-                results = parameter_source.read(sites, use_summarize, start_ind, end_ind)
+                results = parameter_source.read(
+                    sites, use_summarize, start_ind, end_ind
+                )
                 # no records are returned if there is no site record for parameter
                 # or if the record isn't clean (doesn't have the correct fields)
                 # don't count these sites to apply to site_limit
@@ -176,7 +180,6 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                             persister.timeseries.append((site, records))
                         persister.sites.append(site)
             sites_with_records_count += 1
-        
 
     except BaseException:
         import traceback
@@ -184,7 +187,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         exc = traceback.format_exc()
         print(exc)
         print(f"Failed to unify {site_source}")
-        
+
         config.logs.append(exc)
         config.logs.append(f"Failed to unify {site_source}")
 
@@ -208,7 +211,6 @@ def _unify_parameter(
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
-    
 
     persister.logs.extend(config.logs)
     persister.warnings.extend(config.warnings)

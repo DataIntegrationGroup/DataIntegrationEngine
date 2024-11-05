@@ -57,6 +57,7 @@ def _make_url(endpoint):
         return f"http://localhost:8000/{endpoint}"
     return f"https://waterdata.nmt.edu/{endpoint}"
 
+
 class NMBGMRSiteSource(BaseSiteSource):
     transformer_klass = NMBGMRSiteTransformer
     chunk_size = 100
@@ -70,7 +71,7 @@ class NMBGMRSiteSource(BaseSiteSource):
 
     def get_records(self):
         config = self.config
-        #params = {"site_type": "Groundwater other than spring (well)"}
+        # params = {"site_type": "Groundwater other than spring (well)"}
         params = {}
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
@@ -90,11 +91,11 @@ class NMBGMRSiteSource(BaseSiteSource):
             _make_url("locations"), params, tag="features", timeout=30
         )
         return sites
-    
+
         # loop through the responses and add well information for each location
         # this may be slow because of the number of sites that need to be queried
-        # but it is necessary to get the well information. With further 
-        # development, this could be faster if one can batch the requests 
+        # but it is necessary to get the well information. With further
+        # development, this could be faster if one can batch the requests
         # to /wells
         # for site in sites:
         #     well_info = self._execute_json_request(
@@ -105,8 +106,6 @@ class NMBGMRSiteSource(BaseSiteSource):
         #     site["properties"]["formation"] = well_info["formation"]
         #     site["properties"]["well_depth"] = well_info["well_depth_ftbgs"]
         #     site["properties"]["well_depth_units"] = "ft"
-    
-
 
 
 class NMBGMRAnalyteSource(BaseAnalyteSource):

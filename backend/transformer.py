@@ -28,7 +28,7 @@ from backend.constants import (
     TONS_PER_ACRE_FOOT,
     MICROGRAMS_PER_LITER,
     DT_MEASURED,
-    PARAMETER_UNITS
+    PARAMETER_UNITS,
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.record import (
@@ -348,11 +348,13 @@ class BaseTransformer:
             return
 
         # ensure that a site or summary record is contained within the boundaing polygon
-        if 'longitude' in record and 'latitude' in record:
+        if "longitude" in record and "latitude" in record:
             if not self.contained(record["longitude"], record["latitude"]):
-                self.warn(f"Skipping site {record['id']}. It is not within the defined geographic bounds")
+                self.warn(
+                    f"Skipping site {record['id']}. It is not within the defined geographic bounds"
+                )
                 return
-        
+
         self._post_transform(record, *args, **kw)
 
         # standardize datetime
@@ -383,7 +385,9 @@ class BaseTransformer:
             input_horizontal_datum = record.horizontal_datum
 
             if input_horizontal_datum not in ALLOWED_DATUMS:
-                self.warn(f"Skipping site {record.id}. Datum {input_horizontal_datum} cannot be processed")
+                self.warn(
+                    f"Skipping site {record.id}. Datum {input_horizontal_datum} cannot be processed"
+                )
                 return None
 
             output_elevation_units = ""
@@ -428,7 +432,9 @@ class BaseTransformer:
             u = record.parameter_units
             warning_msg = ""
             try:
-                converted_result, warning_msg = convert_units(float(r), u, self.config.analyte_output_units)
+                converted_result, warning_msg = convert_units(
+                    float(r), u, self.config.analyte_output_units
+                )
                 if warning_msg != "":
                     msg = f"{warning_msg} for {record.id}"
                     self.warn(msg)
@@ -440,7 +446,7 @@ class BaseTransformer:
                 msg = f"Keeping {r} for {record.id} on {record.date_measured} for time series data"
                 self.warn(msg)
                 converted_result = r
-            
+
             if warning_msg == "":
                 record.update(parameter_value=converted_result)
                 record.update(parameter_units=self.config.analyte_output_units)
@@ -482,7 +488,7 @@ class BaseTransformer:
             return poly.contains(pt)
 
         return True
-    
+
     def warn(self, msg):
         """
         Prints warning messages to the console in red

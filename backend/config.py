@@ -323,14 +323,13 @@ class Config(object):
             if log_report:
                 self.logs.append(s)
 
-            
             for k in attrs:
                 v = getattr(self, k)
                 s = f"{k}: {v}"
                 click.secho(s, fg="yellow")
 
                 if log_report:
-                     self.logs.append(s)
+                    self.logs.append(s)
 
             s = ""
             click.secho(s, fg="yellow")
@@ -340,7 +339,7 @@ class Config(object):
 
         s = "---- Begin configuration -------------------------------------\n"
         click.secho(s, fg="yellow")
-        
+
         if log_report:
             self.logs.append(s)
 
