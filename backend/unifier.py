@@ -127,10 +127,13 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         site_limit = config.site_limit
 
         sites = site_source.read()
+        sites = [s for s in sites if s is not None]
+
         if not sites:
-            print(f"No sites found for {site_source.tag}")
-            config.logs.append(f"No sites found for {site_source.tag}")
-            config.warnings.append(f"No sites found for {site_source.tag}")
+            not_sites_msg = f"No sites found for {site_source.tag}"
+            print(not_sites_msg)
+            config.logs.append(not_sites_msg)
+            config.warnings.append(not_sites_msg)
             return
 
         sites_with_records_count = 0
