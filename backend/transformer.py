@@ -163,9 +163,10 @@ def convert_units(
     ppm = PARTS_PER_MILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
 
-    # edge case for BOR for Bicarbonate
-    if input_units == "mg/l caco3":
-        input_units = mgl
+    # edge cases for Bicarbonate
+    # BOR, WQP
+    if input_units in ["mg/l caco3", "mg/l caco3**"] and output_units == mgl:
+        conversion_factor = 1
 
     if input_units == output_units:
         conversion_factor = 1
