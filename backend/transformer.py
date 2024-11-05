@@ -609,6 +609,7 @@ class ParameterTransformer(BaseTransformer):
                     "alternate_site_id": site_record.alternate_site_id,
                     "latitude": site_record.latitude,
                     "longitude": site_record.longitude,
+                    "horizontal_datum": site_record.horizontal_datum,
                     "elevation": site_record.elevation,
                     "elevation_units": site_record.elevation_units,
                     "well_depth": site_record.well_depth,
