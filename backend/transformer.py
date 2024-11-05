@@ -422,9 +422,30 @@ class BaseTransformer:
 
         # update the units to the output unit for analyte records
         # this is done after converting the units to the output unit for the analyte records
+        # convert the parameter value to the output unit specified in the config
         elif isinstance(record, (AnalyteRecord)):
-            #print(self.config.analyte_output_units)
-            record.update(parameter_units=self.config.analyte_output_units)
+            r = record.parameter_value
+            u = record.parameter_units
+            warning_msg = ""
+            try:
+                converted_result, warning_msg = convert_units(float(r), u, self.config.analyte_output_units)
+                if warning_msg != "":
+                    msg = f"{warning_msg} for {record.id}"
+                    self.warn(msg)
+            except TypeError:
+                msg = f"Keeping {r} for {record.id} on {record.date_measured} for time series data"
+                self.warn(msg)
+                converted_result = r
+            except ValueError:
+                msg = f"Keeping {r} for {record.id} on {record.date_measured} for time series data"
+                self.warn(msg)
+                converted_result = r
+            
+            if warning_msg == "":
+                record.update(parameter_value=converted_result)
+                record.update(parameter_units=self.config.analyte_output_units)
+            else:
+                record = None
 
         return record
 

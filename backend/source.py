@@ -665,23 +665,21 @@ class BaseParameterSource(BaseSource):
                 if not cleaned:
                     self.warn(f"{site.id} No clean records found")
                     continue
-                
-                # doesn't need to be returned, but can be used to debug/for development
-                skipped_items = []
 
-                results = self._extract_parameter_results(cleaned)
-                units = self._extract_parameter_units(cleaned)
+                if use_summarize:
 
-                items = []
+                    # doesn't need to be returned, but can be used to debug/for development
+                    kept_items = []
+                    skipped_items = []
 
-                # skip non-numeric results for summarization as they can't be compared or summed
-                # pass and try/except blocks cannot be used in list comprehension, so it needs to be done in a for loop even though it's slightly slower
-                for r, u in zip(results, units):
-                    if use_summarize:
+                    results = self._extract_parameter_results(cleaned)
+                    units = self._extract_parameter_units(cleaned)
+
+                    for r, u in zip(results, units):
                         try:
                             converted_result, warning_msg = convert_units(float(r), u, self._get_output_units())
                             if warning_msg == "":
-                                items.append(converted_result)
+                                kept_items.append(converted_result)
                             else:
                                 msg = f"{warning_msg} for {site.id}"
                                 self.warn(msg)
@@ -690,38 +688,23 @@ class BaseParameterSource(BaseSource):
                             skipped_items.append((site.id, r, u))
                         except ValueError:
                             skipped_items.append((site.id, r, u))
-                    else:
-                        try:
-                            converted_result, warning_msg = convert_units(float(r), u, self._get_output_units())
-                            if warning_msg == "":
-                                items.append(converted_result)
-                            else:
-                                msg = f"{warning_msg} for {site.id}"
-                                self.warn(msg)
-                                skipped_items.append((site.id, r, u))
-                        except TypeError:
-                            items.append(r)
-                        except ValueError:
-                            items.append(r)
 
-                if len(skipped_items) > 0:
-                    self.warn(f"Skipped results because of formatting: {skipped_items}")
+                    if len(skipped_items) > 0:
+                        self.warn(f"Skipped results because of formatting: {skipped_items}")
 
-                # if items is None or empty, no records were found or all results were None
-                if items is not None and len(items) > 0:
-                    n = len(items)
-                    # self.log(f"{site.id}: Retrieved {self.name}: {n}")
+                    # if items is None or empty, no records were found or all results were None
+                    if kept_items is not None and len(kept_items):
+                        n = len(kept_items)
+                        # self.log(f"{site.id}: Retrieved {self.name}: {n}")
 
-                    # create the summaries if use_summarize is True, otherwise returned the cleaned and sorted records
-                    if use_summarize:
                         most_recent_result = self._extract_most_recent(cleaned)
                         if not most_recent_result:
                             continue
                         rec = {
                             "nrecords": n,
-                            "min": min(items),
-                            "max": max(items),
-                            "mean": sum(items) / n,
+                            "min": min(kept_items),
+                            "max": max(kept_items),
+                            "mean": sum(kept_items) / n,
                             "most_recent_datetime": most_recent_result["datetime"],
                             "most_recent_value": most_recent_result["value"],
                             "most_recent_units": most_recent_result["units"],
@@ -734,15 +717,21 @@ class BaseParameterSource(BaseSource):
                             continue
                         else:
                             ret.append(transformed_record)
-                    else:
-                        cleaned_sorted = [
-                            self.transformer.do_transform(
-                                self._extract_parameter(record), site
-                            )
-                            for record in cleaned
-                        ]
-                        cleaned_sorted = sorted(cleaned_sorted, key=self._sort_func)
-                        ret.append((site, cleaned_sorted))
+                else:
+                    cleaned_sorted = [
+                        self.transformer.do_transform(
+                            self._extract_parameter(record), site
+                        )
+                        for record in cleaned
+                        if self.transformer.do_transform(
+                            self._extract_parameter(record), site
+                        ) is not None
+                    ]
+                    if len(cleaned_sorted) == 0:
+                        self.warn(f"{site.id}: No clean records found")
+                        continue
+                    cleaned_sorted = sorted(cleaned_sorted, key=self._sort_func)
+                    ret.append((site, cleaned_sorted))
             return ret
         else:
             if isinstance(site_record, list):
