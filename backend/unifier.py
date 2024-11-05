@@ -127,7 +127,6 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         site_limit = config.site_limit
 
         sites = site_source.read()
-        sites = [s for s in sites if s is not None]
 
         if not sites:
             not_sites_msg = f"No sites found for {site_source.tag}"

@@ -682,10 +682,14 @@ class BaseParameterSource(BaseSource):
                             items.append(convert_units(float(r), u, self._get_output_units()))
                         except TypeError:
                             skipped_items.append((r, u))
+                        except ValueError:
+                            skipped_items.append((r, u))
                     else:
                         try:
                             items.append(convert_units(float(r), u, self._get_output_units()))
                         except TypeError:
+                            items.append(r)
+                        except ValueError:
                             items.append(r)
 
                 if len(skipped_items) > 0:
