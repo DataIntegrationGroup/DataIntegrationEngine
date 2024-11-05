@@ -672,12 +672,21 @@ class BaseParameterSource(BaseSource):
                 results = self._extract_parameter_results(cleaned)
                 units = self._extract_parameter_units(cleaned)
 
-                items = [
-                    convert_units(float(result), unit, self._get_output_units()) if (type(result) in [int, float])
-                    else result if (not use_summarize)
-                    else skipped_items.append((result))
-                    for result, unit in zip(results, units)
-                ]
+                items = []
+
+                # skip non-numeric results for summarization as they can't be compared or summed
+                # pass and try/except blocks cannot be used in list comprehension, so it needs to be done in a for loop even though it's slightly slower
+                for r, u in zip(results, units):
+                    if use_summarize:
+                        try:
+                            items.append(convert_units(float(r), u, self._get_output_units()))
+                        except TypeError:
+                            skipped_items.append((r, u))
+                    else:
+                        try:
+                            items.append(convert_units(float(r), u, self._get_output_units()))
+                        except TypeError:
+                            items.append(r)
 
                 if len(skipped_items) > 0:
                     self.warn(f"Skipped results because of formatting: {skipped_items}")
@@ -705,7 +714,10 @@ class BaseParameterSource(BaseSource):
                             rec,
                             site,
                         )
-                        ret.append(transformed_record)
+                        if transformed_record is None:
+                            continue
+                        else:
+                            ret.append(transformed_record)
                     else:
                         cleaned_sorted = [
                             self.transformer.do_transform(
@@ -715,7 +727,6 @@ class BaseParameterSource(BaseSource):
                         ]
                         cleaned_sorted = sorted(cleaned_sorted, key=self._sort_func)
                         ret.append((site, cleaned_sorted))
-
             return ret
         else:
             if isinstance(site_record, list):
