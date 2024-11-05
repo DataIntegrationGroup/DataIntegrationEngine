@@ -679,14 +679,22 @@ class BaseParameterSource(BaseSource):
                 for r, u in zip(results, units):
                     if use_summarize:
                         try:
-                            items.append(convert_units(float(r), u, self._get_output_units()))
+                            converted_result, warning_msg = convert_units(float(r), u, self._get_output_units())
+                            items.append(converted_result)
+                            if warning_msg != "":
+                                msg = f"{warning_msg} for {site.id}"
+                                self.warn(msg)
                         except TypeError:
                             skipped_items.append((r, u))
                         except ValueError:
                             skipped_items.append((r, u))
                     else:
                         try:
-                            items.append(convert_units(float(r), u, self._get_output_units()))
+                            converted_result, warning_msg = convert_units(float(r), u, self._get_output_units())
+                            items.append(converted_result)
+                            if warning_msg != "":
+                                msg = f"{warning_msg} for {site.id}"
+                                self.warn(msg)
                         except TypeError:
                             items.append(r)
                         except ValueError:

@@ -151,6 +151,9 @@ def convert_units(
     float
         The converted value
     """
+    warning = ""
+    conversion_factor = None
+
     input_value = float(input_value)
     input_units = input_units.lower()
     output_units = output_units.lower()
@@ -165,10 +168,10 @@ def convert_units(
         input_units = mgl
 
     if input_units == output_units:
-        return input_value
+        conversion_factor = 1
 
     if input_units == tpaf and output_units == mgl:
-        return input_value * 735.47
+        conversion_factor = 735.47
 
     if (
         input_units == mgl
@@ -176,10 +179,10 @@ def convert_units(
         or input_units == ppm
         and output_units == mgl
     ):
-        return input_value * 1.0
+        conversion_factor = 1.0
 
     if input_units == ugl and output_units == mgl:
-        return input_value * 0.001
+        conversion_factor = 0.001
 
     ft = FEET.lower()
     m = METERS.lower()
@@ -190,12 +193,15 @@ def convert_units(
         input_units = m
 
     if input_units == ft and output_units == m:
-        return input_value * 0.3048
+        conversion_factor = 0.3048
     if input_units == m and output_units == ft:
-        return input_value * 3.28084
+        conversion_factor = 3.28084
 
-    print(f"Failed to convert {input_value} {input_units} to {output_units}")
-    return input_value
+    if conversion_factor:
+        return input_value * conversion_factor, warning
+    else:
+        warning = f"Failed to convert {input_value} {input_units} to {output_units}"
+        return input_value, warning
 
 
 def standardize_datetime(dt):
