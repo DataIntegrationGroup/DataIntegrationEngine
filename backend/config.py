@@ -316,21 +316,33 @@ class Config(object):
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
 
-    def report(self):
+    def report(self, log_report: bool = False):
         def _report_attributes(title, attrs):
-            click.secho(
-                f"---- {title} --------------------------------------------------",
-                fg="yellow",
-            )
+            s = f"---- {title} --------------------------------------------------"
+            click.secho(s, fg="yellow")
+            if log_report:
+                self.logs.append(s)
+
+            
             for k in attrs:
                 v = getattr(self, k)
-                click.secho(f"{k}: {v}", fg="yellow")
+                s = f"{k}: {v}"
+                click.secho(s, fg="yellow")
+
+                if log_report:
+                     self.logs.append(s)
+
             click.secho("", fg="yellow")
 
-        click.secho(
-            "---- Begin configuration -------------------------------------\n",
-            fg="yellow",
-        )
+            if log_report:
+                self.logs.append(s)
+
+        s = "---- Begin configuration -------------------------------------\n"
+        click.secho(s, fg="yellow")
+        
+        if log_report:
+            self.logs.append(s)
+
         sources = [f"use_source_{s}" for s in SOURCE_KEYS]
         attrs = [
             "start_date",
@@ -359,9 +371,11 @@ class Config(object):
             ),
         )
 
-        click.secho(
-            "---- End configuration -------------------------------------", fg="yellow"
-        )
+        s = "---- End configuration -------------------------------------\n"
+        click.secho(s, fg="yellow")
+
+        if log_report:
+            self.logs.append(s)
 
     def validate(self):
         if not self._validate_bbox():

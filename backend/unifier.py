@@ -52,7 +52,7 @@ def unify_sites(config):
 
 def unify_analytes(config):
     print("Unifying analytes")
-    config.report()
+    config.report(log_report=True)
     config.validate()
 
     if not config.dry:
@@ -64,7 +64,7 @@ def unify_analytes(config):
 def unify_waterlevels(config):
     print("Unifying waterlevels")
 
-    config.report()
+    config.report(log_report=True)
     config.validate()
 
     if not config.dry:
