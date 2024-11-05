@@ -74,7 +74,7 @@ class WQPSiteSource(BaseSiteSource):
 
     def get_records(self):
         config = self.config
-        params = {"mimeType": "tsv", "siteType": "Well", "sampleMedia": "Water", "statecode": "US%3A35"}
+        params = {"mimeType": "tsv", "siteType": "Well", "sampleMedia": "Water", "statecode": "US:35"}
         if config.has_bounds():
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
 
