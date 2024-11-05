@@ -332,7 +332,8 @@ class Config(object):
                 if log_report:
                      self.logs.append(s)
 
-            click.secho("", fg="yellow")
+            s = ""
+            click.secho(s, fg="yellow")
 
             if log_report:
                 self.logs.append(s)
