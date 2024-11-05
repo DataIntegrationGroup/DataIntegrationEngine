@@ -680,21 +680,25 @@ class BaseParameterSource(BaseSource):
                     if use_summarize:
                         try:
                             converted_result, warning_msg = convert_units(float(r), u, self._get_output_units())
-                            items.append(converted_result)
-                            if warning_msg != "":
+                            if warning_msg == "":
+                                items.append(converted_result)
+                            else:
                                 msg = f"{warning_msg} for {site.id}"
                                 self.warn(msg)
+                                skipped_items.append((site.id, r, u))
                         except TypeError:
-                            skipped_items.append((r, u))
+                            skipped_items.append((site.id, r, u))
                         except ValueError:
-                            skipped_items.append((r, u))
+                            skipped_items.append((site.id, r, u))
                     else:
                         try:
                             converted_result, warning_msg = convert_units(float(r), u, self._get_output_units())
-                            items.append(converted_result)
-                            if warning_msg != "":
+                            if warning_msg == "":
+                                items.append(converted_result)
+                            else:
                                 msg = f"{warning_msg} for {site.id}"
                                 self.warn(msg)
+                                skipped_items.append((site.id, r, u))
                         except TypeError:
                             items.append(r)
                         except ValueError:
