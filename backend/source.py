@@ -657,7 +657,7 @@ class BaseParameterSource(BaseSource):
             for site in site_record:
                 site_records = self._extract_site_records(all_analyte_records, site)
                 if not site_records:
-                    self.warn(f"{site.id}: No site records found")
+                    self.warn(f"{site.id}: No records found")
                     continue
 
                 # get cleaned records if _clean_records is defined by the source
