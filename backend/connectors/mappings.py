@@ -32,23 +32,24 @@ from backend.constants import (
 )
 
 # DWB ===============================================================================
+# the mapping below is the corresponding "@iot.id" for the ObservedProperties
 DWB_ANALYTE_MAPPING: dict = {
     ARSENIC: 3,
-    BICARBONATE: None,
-    CALCIUM: None,
-    CARBONATE: None,
+    BICARBONATE: 22,    # BICARBONATE AS HCO3
+    CALCIUM: 11,
+    CARBONATE: None,      
     CHLORIDE: 15,
     FLUORIDE: 19,
-    MAGNESIUM: None,
+    MAGNESIUM: 23,
     NITRATE: 35,
-    POTASSIUM: None,
-    SILICA: None,
-    SODIUM: None,
+    POTASSIUM: 33,
+    SILICA: 37,
+    SODIUM: 38,
     SULFATE: 41,
     TDS: 90,
     # "Uranium-238": 386,
     URANIUM: 385,  # "Combined Uranium"
-    PH: None,
+    PH: 81,
 }
 # ISC Seven Rivers ===============================================================================
 """
@@ -176,8 +177,8 @@ WQP_ANALYTE_MAPPING: dict = {
 """
 Temp
 DO
-ALK HCO3
-ALK CO3
+ALK HCO3    <-- this is a measure of alkalinity, and not necessarily the same as Bicarbonate
+ALK CO3     <-- this is a measure of alkalinity, and not necessarily the same as Carbonate
 ALK OH
 ALK
 P ALK
@@ -229,9 +230,9 @@ Zn
 """
 BOR_ANALYTE_MAPPING: dict = {
     ARSENIC: "As",
-    BICARBONATE: "ALK HCO3",
+    BICARBONATE: None,
     CALCIUM: "Ca",
-    CARBONATE: "ALK CO3",
+    CARBONATE: None,
     CHLORIDE: "Cl",
     FLUORIDE: "F",
     MAGNESIUM: "Mg",
