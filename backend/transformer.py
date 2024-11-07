@@ -168,14 +168,22 @@ def convert_units(
 
     # edge cases for Bicarbonate
     # BOR, WQP
-    if input_units in ["mg/l caco3", "mg/l caco3**"] and output_units == mgl and analyte == "Bicarbonate":
+    if (
+        input_units in ["mg/l caco3", "mg/l caco3**"]
+        and output_units == mgl
+        and analyte == "Bicarbonate"
+    ):
         """
         mg/L as CaCO3 = mg/L * equivalent mass of CaCO3/equivalent mass substance
-        
+
         So, when the substance is CaCO3, the ratio is 1
         """
         conversion_factor = 1
-    elif input_units in ["mg/l caco3", "mg/l caco3**"] and output_units == mgl and analyte != "Bicarbonate":
+    elif (
+        input_units in ["mg/l caco3", "mg/l caco3**"]
+        and output_units == mgl
+        and analyte != "Bicarbonate"
+    ):
         # this will catch if the input units are mg/l caco3 and the analyte is not bicarbonate so that the developer can perform the appropriate calculations for the conversion factor
         conversion_factor = None
 
@@ -683,7 +691,10 @@ class ParameterTransformer(BaseTransformer):
         record["most_recent_time"] = tt
         p, u = self._get_parameter()
         record["most_recent_value"] = convert_units(
-            record["most_recent_value"], record["most_recent_units"], u, self.config.analyte
+            record["most_recent_value"],
+            record["most_recent_units"],
+            u,
+            self.config.analyte,
         )
         record["most_recent_units"] = u
 

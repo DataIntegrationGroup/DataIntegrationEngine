@@ -678,7 +678,10 @@ class BaseParameterSource(BaseSource):
                     for r, u in zip(results, units):
                         try:
                             converted_result, warning_msg = convert_units(
-                                float(r), u, self._get_output_units(), self.config.analyte
+                                float(r),
+                                u,
+                                self._get_output_units(),
+                                self.config.analyte,
                             )
                             if warning_msg == "":
                                 kept_items.append(converted_result)

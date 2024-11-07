@@ -35,9 +35,9 @@ from backend.constants import (
 # the mapping below is the corresponding "@iot.id" for the ObservedProperties
 DWB_ANALYTE_MAPPING: dict = {
     ARSENIC: 3,
-    BICARBONATE: 22,    # BICARBONATE AS HCO3
+    BICARBONATE: 22,  # BICARBONATE AS HCO3
     CALCIUM: 11,
-    CARBONATE: None,      
+    CARBONATE: None,
     CHLORIDE: 15,
     FLUORIDE: 19,
     MAGNESIUM: 23,
