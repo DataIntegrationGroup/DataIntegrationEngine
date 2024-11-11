@@ -49,7 +49,7 @@ from backend.source import (
 )
 
 
-def _make_url(endpoint): 
+def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
         return f"http://localhost:8000/latest/{endpoint}"
     return f"https://waterdata.nmt.edu/latest/{endpoint}"
@@ -73,7 +73,7 @@ class NMBGMRSiteSource(BaseSiteSource):
             params["wkt"] = config.bounding_wkt()
 
         if config.site_limit:
-            params["limit"] = config.site_limit 
+            params["limit"] = config.site_limit
 
         if config.analyte:
             params["parameter"] = get_analyte_search_param(

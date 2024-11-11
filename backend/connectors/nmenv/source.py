@@ -64,10 +64,14 @@ class DWBAnalyteSource(STAnalyteSource):
     url = URL
     transformer_klass = DWBAnalyteTransformer
 
-    def _parse_result(self, result, result_dt=None, result_id=None, result_location=None):
+    def _parse_result(
+        self, result, result_dt=None, result_id=None, result_location=None
+    ):
         if "< mrl" in result.lower():
             if self.config.output_summary:
-                self.warn(f"Non-detect found: {result} for {result_location} on {result_dt} (observation {result_id}). Setting to 0 for summary.")
+                self.warn(
+                    f"Non-detect found: {result} for {result_location} on {result_dt} (observation {result_id}). Setting to 0 for summary."
+                )
                 return 0.0
             else:
                 # return the results for timeseries, regardless of format (None/Null/non-detect)
@@ -108,7 +112,15 @@ class DWBAnalyteSource(STAnalyteSource):
 
     def _extract_parameter_results(self, records):
         # this is only used in summary output
-        return [self._parse_result(r["observation"].result, r["observation"].phenomenon_time, r["observation"].id, r["location"].id) for r in records]
+        return [
+            self._parse_result(
+                r["observation"].result,
+                r["observation"].phenomenon_time,
+                r["observation"].id,
+                r["location"].id,
+            )
+            for r in records
+        ]
 
     def _extract_parameter_units(self, records):
         # this is only used in summary output
@@ -121,7 +133,12 @@ class DWBAnalyteSource(STAnalyteSource):
         )
 
         return {
-            "value": self._parse_result(record["observation"].result, record["observation"].phenomenon_time, record["observation"].id, record["location"].id),
+            "value": self._parse_result(
+                record["observation"].result,
+                record["observation"].phenomenon_time,
+                record["observation"].id,
+                record["location"].id,
+            ),
             "datetime": record["observation"].phenomenon_time,
             "units": record["datastream"].unit_of_measurement.symbol,
         }
