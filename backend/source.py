@@ -642,7 +642,7 @@ class BaseParameterSource(BaseSource):
             )
         else:
             self.log(
-                f"{site_record.id} ({site_record.id}): Gathering {self.name} summary"
+                f"{site_record.id}: Gathering {self.name} summary"
             )
 
         all_analyte_records = self.get_records(site_record)
@@ -660,7 +660,7 @@ class BaseParameterSource(BaseSource):
                     self.warn(f"{site.id}: No records found")
                     continue
 
-                # get cleaned records if _clean_records is defined by the source
+                # get cleaned records if _clean_records is defined by the source. This usually removes Nones/Null
                 cleaned = self._clean_records(site_records)
                 if not cleaned:
                     self.warn(f"{site.id} No clean records found")
@@ -877,7 +877,7 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter_record(self, record: dict) -> dict:
         """
-        Returns a parameter record with standardized fields added.
+        Returns a parameter record with standardized fields added. This is only used for time series, not summary outputs
 
         For an analyte, the fields are
         - backend.constants.PARAMETER
@@ -905,7 +905,7 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter_results(self, records: list) -> list:
         """
-        Returns the parameter results as a list from the records, in the same order as the records themselves
+        Returns the parameter results as a list from the records, in the same order as the records themselves. This is only used for summary outputs, not time serie
 
         Parameters
         ----------
@@ -923,7 +923,7 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter(self, record: dict) -> dict:
         """
-        Extracts a parameter record from a list of records
+        Extracts a parameter record from a list of records. This is only used for time series, not summary outputs
 
         Parameters
         ----------
