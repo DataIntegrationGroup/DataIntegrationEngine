@@ -174,11 +174,9 @@ def convert_units(
         and analyte == "Bicarbonate"
     ):
         """
-        mg/L as CaCO3 = mg/L * equivalent mass of CaCO3/equivalent mass substance
-
-        So, when the substance is CaCO3, the ratio is 1
+        https://aqua-chem.com/water-chemistry-caco3-equivalents/
         """
-        conversion_factor = 1
+        conversion_factor = 1.22
     elif (
         input_units in ["mg/l caco3", "mg/l caco3**"]
         and output_units == mgl
