@@ -642,7 +642,7 @@ class BaseParameterSource(BaseSource):
             )
         else:
             self.log(
-                f"{site_record.id}: Gathering {self.name} summary"
+                f"{site_record.id}: Gathering {self.name} data"
             )
 
         all_analyte_records = self.get_records(site_record)
