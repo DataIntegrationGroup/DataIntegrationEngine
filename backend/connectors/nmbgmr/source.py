@@ -49,13 +49,10 @@ from backend.source import (
 )
 
 
-def _make_url(endpoint):
-    # if os.getenv("DEBUG") == "1":
-    #     return f"http://localhost:8000/latest/{endpoint}"
-    # return f"https://waterdata.nmt.edu/latest/{endpoint}"
+def _make_url(endpoint): 
     if os.getenv("DEBUG") == "1":
-        return f"http://localhost:8000/{endpoint}"
-    return f"https://waterdata.nmt.edu/{endpoint}"
+        return f"http://localhost:8000/latest/{endpoint}"
+    return f"https://waterdata.nmt.edu/latest/{endpoint}"
 
 
 class NMBGMRSiteSource(BaseSiteSource):
@@ -71,13 +68,12 @@ class NMBGMRSiteSource(BaseSiteSource):
 
     def get_records(self):
         config = self.config
-        # params = {"site_type": "Groundwater other than spring (well)"}
-        params = {}
+        params = {"site_type": "Groundwater other than spring (well)", "expand": False}
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
 
         if config.site_limit:
-            params["limit"] = config.site_limit
+            params["limit"] = config.site_limit 
 
         if config.analyte:
             params["parameter"] = get_analyte_search_param(
