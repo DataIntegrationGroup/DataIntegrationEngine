@@ -100,6 +100,7 @@ Available analytes:
 - Nitrate
 - pH
 - Potassium
+- Silica
 - Sodium
 - Sulfate
 - TDS
