@@ -24,6 +24,7 @@ FLUORIDE = "Fluoride"
 MAGNESIUM = "Magnesium"
 NITRATE = "Nitrate"
 POTASSIUM = "Potassium"
+SILICA = "Silica"
 SODIUM = "Sodium"
 SULFATE = "Sulfate"
 URANIUM = "Uranium"
@@ -60,6 +61,7 @@ ANALYTE_CHOICES = [
     MAGNESIUM,
     NITRATE,
     POTASSIUM,
+    SILICA,
     SODIUM,
     SULFATE,
     TDS,

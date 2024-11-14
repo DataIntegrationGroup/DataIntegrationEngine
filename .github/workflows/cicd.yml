@@ -5,7 +5,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [ "main", "feature/jir"]
+    branches: [ "main", "feature/jir", "dev/jab"]
   pull_request:
     branches: [ "main"]
 

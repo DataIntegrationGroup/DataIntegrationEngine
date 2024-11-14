@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+import click
 import pprint
 from datetime import datetime
 
@@ -27,8 +28,9 @@ from backend.constants import (
     TONS_PER_ACRE_FOOT,
     MICROGRAMS_PER_LITER,
     DT_MEASURED,
+    PARAMETER_UNITS,
 )
-from backend.geo_utils import datum_transform
+from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.record import (
     WaterLevelSummaryRecord,
     WaterLevelRecord,
@@ -117,7 +119,7 @@ def transform_length_units(
 
 
 def convert_units(
-    input_value: int | float | str, input_units: str, output_units: str
+    input_value: int | float | str, input_units: str, output_units: str, analyte: str
 ) -> float:
     """
     Converts the following units for any parameter value:
@@ -127,6 +129,7 @@ def convert_units(
     - ppm to mg/L
     - ton/ac-ft to mg/L
     - ug/L to mg/L
+    - mg/L CaCO3 to mg/L
 
     length:
     - ft to m
@@ -143,11 +146,17 @@ def convert_units(
     output_units: str
         The output unit of the value
 
+    analyte: str
+        The analyte to convert
+
     Returns
     --------
     float
         The converted value
     """
+    warning = ""
+    conversion_factor = None
+
     input_value = float(input_value)
     input_units = input_units.lower()
     output_units = output_units.lower()
@@ -157,11 +166,30 @@ def convert_units(
     ppm = PARTS_PER_MILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
 
+    # edge cases for Bicarbonate
+    # BOR, WQP
+    if (
+        input_units in ["mg/l caco3", "mg/l caco3**"]
+        and output_units == mgl
+        and analyte == "Bicarbonate"
+    ):
+        """
+        https://aqua-chem.com/water-chemistry-caco3-equivalents/
+        """
+        conversion_factor = 1.22
+    elif (
+        input_units in ["mg/l caco3", "mg/l caco3**"]
+        and output_units == mgl
+        and analyte != "Bicarbonate"
+    ):
+        # this will catch if the input units are mg/l caco3 and the analyte is not bicarbonate so that the developer can perform the appropriate calculations for the conversion factor
+        conversion_factor = None
+
     if input_units == output_units:
-        return input_value
+        conversion_factor = 1
 
     if input_units == tpaf and output_units == mgl:
-        return input_value * 735.47
+        conversion_factor = 735.47
 
     if (
         input_units == mgl
@@ -169,10 +197,10 @@ def convert_units(
         or input_units == ppm
         and output_units == mgl
     ):
-        return input_value * 1.0
+        conversion_factor = 1.0
 
     if input_units == ugl and output_units == mgl:
-        return input_value * 0.001
+        conversion_factor = 0.001
 
     ft = FEET.lower()
     m = METERS.lower()
@@ -183,12 +211,15 @@ def convert_units(
         input_units = m
 
     if input_units == ft and output_units == m:
-        return input_value * 0.3048
+        conversion_factor = 0.3048
     if input_units == m and output_units == ft:
-        return input_value * 3.28084
+        conversion_factor = 3.28084
 
-    print(f"Failed to convert {input_value} {input_units} to {output_units}")
-    return input_value
+    if conversion_factor:
+        return input_value * conversion_factor, warning
+    else:
+        warning = f"Failed to convert {input_value} {input_units} to {output_units} for {analyte}"
+        return input_value, warning
 
 
 def standardize_datetime(dt):
@@ -333,8 +364,12 @@ class BaseTransformer:
         if not record:
             return
 
-        if 'longitude' in record and 'latitude' in record:
+        # ensure that a site or summary record is contained within the boundaing polygon
+        if "longitude" in record and "latitude" in record:
             if not self.contained(record["longitude"], record["latitude"]):
+                self.warn(
+                    f"Skipping site {record['id']}. It is not within the defined geographic bounds"
+                )
                 return
 
         self._post_transform(record, *args, **kw)
@@ -365,6 +400,12 @@ class BaseTransformer:
             y = float(record.latitude)
             x = float(record.longitude)
             input_horizontal_datum = record.horizontal_datum
+
+            if input_horizontal_datum not in ALLOWED_DATUMS:
+                self.warn(
+                    f"Skipping site {record.id}. Datum {input_horizontal_datum} cannot be processed"
+                )
+                return None
 
             output_elevation_units = ""
             well_depth_units = ""
@@ -399,6 +440,35 @@ class BaseTransformer:
             )
             record.update(well_depth=well_depth)
             record.update(well_depth_units=well_depth_unit)
+
+        # update the units to the output unit for analyte records
+        # this is done after converting the units to the output unit for the analyte records
+        # convert the parameter value to the output unit specified in the config
+        elif isinstance(record, (AnalyteRecord)):
+            r = record.parameter_value
+            u = record.parameter_units
+            warning_msg = ""
+            try:
+                converted_result, warning_msg = convert_units(
+                    float(r), u, self.config.analyte_output_units, self.config.analyte
+                )
+                if warning_msg != "":
+                    msg = f"{warning_msg} for {record.id}"
+                    self.warn(msg)
+            except TypeError:
+                msg = f"Keeping {r} for {record.id} on {record.date_measured} for time series data"
+                self.warn(msg)
+                converted_result = r
+            except ValueError:
+                msg = f"Keeping {r} for {record.id} on {record.date_measured} for time series data"
+                self.warn(msg)
+                converted_result = r
+
+            if warning_msg == "":
+                record.update(parameter_value=converted_result)
+                record.update(parameter_units=self.config.analyte_output_units)
+            else:
+                record = None
 
         return record
 
@@ -435,6 +505,41 @@ class BaseTransformer:
             return poly.contains(pt)
 
         return True
+
+    def warn(self, msg):
+        """
+        Prints warning messages to the console in red
+
+        Parameters
+        ----------
+        msg : str
+            the message to print
+
+        Returns
+        -------
+        None
+        """
+        self.log(msg, fg="red")
+        self.config.warnings.append(msg)
+
+    def log(self, msg, fg="yellow"):
+        """
+        Prints the message to the console in yellow
+
+        Parameters
+        ----------
+        msg : str
+            the message to print
+
+        fg : str
+            the color of the message, defaults to yellow
+
+        Returns
+        -------
+        None
+        """
+        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
+        self.config.logs.append(f"{self.__class__.__name__:25s} -- {msg}")
 
     # ==========================================================================
     # Methods That Need to be Implemented For Each SiteTransformer
@@ -494,6 +599,11 @@ class BaseTransformer:
 
             site_record: dict
                 The site record associated with the parameter record
+
+        Returns
+        --------
+        dict
+            The record with the standard fields added and populated
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _transform"
@@ -537,10 +647,7 @@ class ParameterTransformer(BaseTransformer):
                 f"{self.__class__.__name__} source_tag is not set"
             )
 
-        rec = {
-            "source": self.source_tag,
-            "id": site_record.id,
-        }
+        rec = {}
 
         if self.config.output_summary:
             self._transform_most_recents(record)
@@ -553,6 +660,7 @@ class ParameterTransformer(BaseTransformer):
                     "alternate_site_id": site_record.alternate_site_id,
                     "latitude": site_record.latitude,
                     "longitude": site_record.longitude,
+                    "horizontal_datum": site_record.horizontal_datum,
                     "elevation": site_record.elevation,
                     "elevation_units": site_record.elevation_units,
                     "well_depth": site_record.well_depth,
@@ -562,6 +670,16 @@ class ParameterTransformer(BaseTransformer):
                 }
             )
         rec.update(record)
+
+        """
+        Some analyte records, like BOR, have a field called "id" that is the record's ID.
+        To allow for the record's "id" to be the site's "id", the record's "id" needs to be updated at the end.
+        """
+        source_id = {
+            "source": self.source_tag,
+            "id": site_record.id,
+        }
+        rec.update(source_id)
         return rec
 
     def _transform_most_recents(self, record):
@@ -571,7 +689,10 @@ class ParameterTransformer(BaseTransformer):
         record["most_recent_time"] = tt
         p, u = self._get_parameter()
         record["most_recent_value"] = convert_units(
-            record["most_recent_value"], record["most_recent_units"], u
+            record["most_recent_value"],
+            record["most_recent_units"],
+            u,
+            self.config.analyte,
         )
         record["most_recent_units"] = u
 

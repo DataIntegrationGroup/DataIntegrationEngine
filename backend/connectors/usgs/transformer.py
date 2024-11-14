@@ -52,18 +52,18 @@ class NWISSiteTransformer(SiteTransformer):
 class NWISWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "USGS-NWIS"
 
-    # def _transform_hook(self, record, config, parent_record):
+    # def _transform_hook(self, record, config, site_record):
     #     rec = {
     #         "source": "USGS-NWIS",
-    #         "id": parent_record.id,
-    #         "location": parent_record.name,
-    #         "usgs_site_id": parent_record.id,
-    #         "latitude": parent_record.latitude,
-    #         "longitude": parent_record.longitude,
-    #         "elevation": parent_record.elevation,
-    #         "elevation_units": parent_record.elevation_units,
-    #         "well_depth": parent_record.well_depth,
-    #         "well_depth_units": parent_record.well_depth_units,
+    #         "id": site_record.id,
+    #         "location": site_record.name,
+    #         "usgs_site_id": site_record.id,
+    #         "latitude": site_record.latitude,
+    #         "longitude": site_record.longitude,
+    #         "elevation": site_record.elevation,
+    #         "elevation_units": site_record.elevation_units,
+    #         "well_depth": site_record.well_depth,
+    #         "well_depth_units": site_record.well_depth_units,
     #         # "date": record["datetime"],
     #         # "value": record["lev_va"],
     #         # "units": "ft",

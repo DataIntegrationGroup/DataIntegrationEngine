@@ -74,7 +74,12 @@ class WQPSiteSource(BaseSiteSource):
 
     def get_records(self):
         config = self.config
-        params = {"mimeType": "tsv", "siteType": "Well"}
+        params = {
+            "mimeType": "tsv",
+            "siteType": "Well",
+            "sampleMedia": "Water",
+            "statecode": "US:35",
+        }
         if config.has_bounds():
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
 
@@ -101,11 +106,9 @@ class WQPAnalyteSource(BaseAnalyteSource):
         record[DT_MEASURED] = record["ActivityStartDate"]
         return record
 
-    def _extract_parent_records(self, records, parent_record):
+    def _extract_site_records(self, records, site_record):
         return [
-            ri
-            for ri in records
-            if ri["MonitoringLocationIdentifier"] == parent_record.id
+            ri for ri in records if ri["MonitoringLocationIdentifier"] == site_record.id
         ]
 
     def _extract_parameter_results(self, records):
@@ -125,8 +128,8 @@ class WQPAnalyteSource(BaseAnalyteSource):
             "units": ri["ResultMeasure/MeasureUnitCode"],
         }
 
-    def get_records(self, parent_record):
-        sites = make_site_list(parent_record)
+    def get_records(self, site_record):
+        sites = make_site_list(site_record)
 
         params = {
             "siteid": sites,

@@ -112,12 +112,12 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
 class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
     transformer_klass = OSERoswellWaterLevelTransformer
 
-    def get_records(self, parent_record):
-        return self._parse_response(parent_record, self.get_response())
+    def get_records(self, site_record):
+        return self._parse_response(site_record, self.get_response())
 
-    def _parse_response(self, parent_record, resp):
+    def _parse_response(self, site_record, resp):
         records = resp.json()["result"]["records"]
-        return [record for record in records if record["Site_ID"] == parent_record.id]
+        return [record for record in records if record["Site_ID"] == site_record.id]
 
     def _extract_parameter_results(self, records):
         return [float(r["DTWGS"]) for r in records]

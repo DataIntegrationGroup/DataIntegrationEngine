@@ -44,6 +44,8 @@ class BasePersister(Loggable):
         self.combined = []
         self.timeseries = []
         self.sites = []
+        self.logs = []
+        self.warnings = []
         # self.keys = record_klass.keys
 
     def load(self, records: list):
@@ -98,6 +100,24 @@ class BasePersister(Loggable):
         else:
             self.log("no sites to dump", fg="red")
 
+    def dump_logs(self, path: str):
+        if self.logs:
+            self.log(f"dumping logs to {os.path.abspath(path)}")
+            with open(path, "w") as f:
+                for l in self.logs:
+                    f.write(f"{l}\n")
+        else:
+            self.log("no logs to dump")
+
+    def dump_warnings(self, path: str):
+        if self.warnings:
+            self.log(f"dumping warnings to {os.path.abspath(path)}")
+            with open(path, "w") as f:
+                for w in self.warnings:
+                    f.write(f"{w}\n")
+        else:
+            self.log("no warnings to dump")
+
     def save(self, path: str):
         if self.records:
             path = self.add_extension(path)
@@ -139,11 +159,12 @@ def write_memory(path, func, records):
 
 
 def dump_single_timeseries(writer, timeseries):
+    headers_have_not_been_written = True
     for i, (site, records) in enumerate(timeseries):
-
         for j, record in enumerate(records):
-            if i == 0:
+            if i == 0 and headers_have_not_been_written:
                 writer.writerow(record.keys)
+                headers_have_not_been_written = False
             writer.writerow(record.to_row())
 
 

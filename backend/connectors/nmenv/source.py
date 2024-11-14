@@ -21,7 +21,7 @@ from backend.connectors.nmenv.transformer import (
 )
 from backend.connectors.st_connector import STSiteSource, STAnalyteSource
 from backend.constants import PARAMETER, PARAMETER_UNITS, DT_MEASURED, PARAMETER_VALUE
-from backend.source import get_analyte_search_param
+from backend.source import get_analyte_search_param, get_most_recent
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
@@ -64,8 +64,20 @@ class DWBAnalyteSource(STAnalyteSource):
     url = URL
     transformer_klass = DWBAnalyteTransformer
 
-    def _parse_result(self, result):
-        return float(result.split(" ")[0])
+    def _parse_result(
+        self, result, result_dt=None, result_id=None, result_location=None
+    ):
+        if "< mrl" in result.lower():
+            if self.config.output_summary:
+                self.warn(
+                    f"Non-detect found: {result} for {result_location} on {result_dt} (observation {result_id}). Setting to 0 for summary."
+                )
+                return 0.0
+            else:
+                # return the results for timeseries, regardless of format (None/Null/non-detect)
+                return result
+        else:
+            return float(result.split(" ")[0])
 
     def get_records(self, site, *args, **kw):
         service = self.get_service()
@@ -92,16 +104,44 @@ class DWBAnalyteSource(STAnalyteSource):
         return rs
 
     def _extract_parameter_record(self, record):
+        # this is only used for time series
         record[PARAMETER_VALUE] = self._parse_result(record["observation"].result)
         record[PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
         record[DT_MEASURED] = record["observation"].phenomenon_time
         return record
 
     def _extract_parameter_results(self, records):
-        return [self._parse_result(r["observation"].result) for r in records]
+        # this is only used in summary output
+        return [
+            self._parse_result(
+                r["observation"].result,
+                r["observation"].phenomenon_time,
+                r["observation"].id,
+                r["location"].id,
+            )
+            for r in records
+        ]
 
     def _extract_parameter_units(self, records):
+        # this is only used in summary output
         return [r["datastream"].unit_of_measurement.symbol for r in records]
+
+    def _extract_most_recent(self, records):
+        # this is only used in summary output
+        record = get_most_recent(
+            records, tag=lambda x: x["observation"].phenomenon_time
+        )
+
+        return {
+            "value": self._parse_result(
+                record["observation"].result,
+                record["observation"].phenomenon_time,
+                record["observation"].id,
+                record["location"].id,
+            ),
+            "datetime": record["observation"].phenomenon_time,
+            "units": record["datastream"].unit_of_measurement.symbol,
+        }
 
 
 # ============= EOF =============================================

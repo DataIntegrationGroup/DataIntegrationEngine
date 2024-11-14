@@ -120,6 +120,7 @@ def _test_waterlevels_timeseries(
     d = _setup_waterlevels(tmp_path, cfg, source)
     combined = d / "output.combined.csv"
     timeseries = d / "output_timeseries"
+    print(combined_flag)
 
     print("combined", combined.is_file(), combined_flag)
     assert combined.is_file() == combined_flag
@@ -129,13 +130,15 @@ def _test_waterlevels_timeseries(
     return combined, timeseries
 
 
-def _test_waterelevels_timeseries_date_range(tmp_path, cfg, source):
+def _test_waterelevels_timeseries_date_range(
+    tmp_path, cfg, source, timeseries_flag=True, combined_flag=False
+):
     combined, timeseries = _test_waterlevels_timeseries(
         tmp_path,
         cfg,
         source,
-        timeseries_flag=True,
-        combined_flag=False,
+        timeseries_flag=timeseries_flag,
+        combined_flag=combined_flag,
     )
 
     for p in timeseries.iterdir():
@@ -351,11 +354,13 @@ def test_unify_waterlevels_ose_roswell_summary(tmp_path, waterlevel_summary_cfg)
 
 # Waterlevel timeseries tests =========================================================================================
 def test_unify_waterlevels_nwis_timeseries(tmp_path, waterlevel_timeseries_cfg):
+    # there are one or more locations within the bounding box that have only
+    # one record, so there is a combined file
     _test_waterlevels_timeseries(
         tmp_path,
         waterlevel_timeseries_cfg,
         "nwis",
-        combined_flag=False,
+        combined_flag=True,
         timeseries_flag=True,
     )
 
@@ -365,6 +370,8 @@ def test_unify_waterlevels_amp_timeseries(tmp_path, waterlevel_timeseries_cfg):
 
 
 def test_unify_waterlevels_pvacd_timeseries(tmp_path, waterlevel_timeseries_cfg):
+    # all locations within the bounding box have more than one record
+    # so there is no combined file
     _test_waterlevels_timeseries(
         tmp_path,
         waterlevel_timeseries_cfg,
@@ -377,6 +384,8 @@ def test_unify_waterlevels_pvacd_timeseries(tmp_path, waterlevel_timeseries_cfg)
 def test_unify_waterlevels_isc_seven_rivers_timeseries(
     tmp_path, waterlevel_timeseries_cfg
 ):
+    # all locations within the bounding box have more than one record
+    # so there is no combined file
     _test_waterlevels_timeseries(
         tmp_path,
         waterlevel_timeseries_cfg,
@@ -400,22 +409,40 @@ def test_waterlevels_nwis_summary_date_range(tmp_path, waterlevel_summary_cfg):
 
 # Waterlevel timeseries date range ====================================================================================
 def test_waterlevels_nwis_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
+    # there are one or more locations within the bounding box and date range
+    # that have only one record, so there is a combined file
     _test_waterelevels_timeseries_date_range(
-        tmp_path, waterlevel_timeseries_cfg, "nwis"
+        tmp_path,
+        waterlevel_timeseries_cfg,
+        "nwis",
+        timeseries_flag=True,
+        combined_flag=True,
     )
 
 
 def test_waterlevels_isc_seven_rivers_timeseries_date_range(
     tmp_path, waterlevel_timeseries_cfg
 ):
+    # all locations within the bounding box and date rangehave more than one
+    # record so there is no combined file
     _test_waterelevels_timeseries_date_range(
-        tmp_path, waterlevel_timeseries_cfg, "iscsevenrivers"
+        tmp_path,
+        waterlevel_timeseries_cfg,
+        "iscsevenrivers",
+        timeseries_flag=True,
+        combined_flag=False,
     )
 
 
 def test_waterlevels_pvacd_timeseries_date_range(tmp_path, waterlevel_timeseries_cfg):
+    # all locations within the bounding box and date rangehave more than one
+    # record so there is no combined file
     _test_waterelevels_timeseries_date_range(
-        tmp_path, waterlevel_timeseries_cfg, "pvacd"
+        tmp_path,
+        waterlevel_timeseries_cfg,
+        "pvacd",
+        timeseries_flag=True,
+        combined_flag=False,
     )
 
 
@@ -429,6 +456,9 @@ def test_unify_analytes_amp_summary(tmp_path, analyte_summary_cfg):
 
 
 def test_unify_analytes_bor_summary(tmp_path, analyte_summary_cfg):
+    # BOR locations are found within Otero County
+    analyte_summary_cfg.county = "otero"
+    analyte_summary_cfg.bbox = None
     _test_analytes_summary(tmp_path, analyte_summary_cfg, "bor")
 
 

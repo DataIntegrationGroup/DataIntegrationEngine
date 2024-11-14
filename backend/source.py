@@ -208,7 +208,8 @@ class BaseSource:
         -------
         None
         """
-        self.log(msg, fg="red")
+        s = self.log(msg, fg="red")
+        self.config.warnings.append(s)
 
     def log(self, msg, fg="yellow"):
         """
@@ -226,7 +227,10 @@ class BaseSource:
         -------
         None
         """
-        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
+        s = f"{self.__class__.__name__:25s} -- {msg}"
+        click.secho(s, fg=fg)
+        self.config.logs.append(s)
+        return s
 
     def _execute_text_request(self, url: str, params=None, **kw) -> str:
         """
@@ -326,7 +330,7 @@ class BaseSource:
         Parameters
         ----------
         If parameter records:
-            parent_record : dict
+            site_record : dict
                 the site record for the location whose parameter records are to be retrieved
 
         If site records:
@@ -478,7 +482,7 @@ class BaseSiteSource(BaseSource):
         else:
             self.warn("No site records returned")
 
-    def _transform_sites(self, records: list) -> list:
+    def _transform_sites(self, records: list) -> List[SiteRecord]:
         """
         Transforms site records into the standardized format.
 
@@ -489,8 +493,8 @@ class BaseSiteSource(BaseSource):
 
         Returns
         -------
-        list
-            a list of transformed site records
+        list[SiteRecord]
+            a list of transformed site records as SiteRecords
         """
         transformed_records = []
         for record in records:
@@ -564,7 +568,7 @@ class BaseParameterSource(BaseSource):
         Returns a dictionary of parameter records where the keys are the site ids
         and the values are a list of the parameter records
 
-    _extract_parent_records
+    _extract_site_records
         Returns all records for a single site as a list of records
 
     _extract_most_recent
@@ -603,7 +607,7 @@ class BaseParameterSource(BaseSource):
     # ==========================================================================
 
     def read(
-        self, parent_record: BaseSiteSource, use_summarize: bool
+        self, site_record: SiteRecord, use_summarize: bool, start_ind: int, end_ind: int
     ) -> List[
         AnalyteRecord
         | AnalyteSummaryRecord
@@ -621,7 +625,7 @@ class BaseParameterSource(BaseSource):
 
         Parameters
         ----------
-        parent_record : BaseSiteSource
+        site_record : SiteRecord
             the site record(s) for the location whose parameter records are to be retrieved
 
         use_summarize : bool
@@ -632,57 +636,80 @@ class BaseParameterSource(BaseSource):
         list[AnalyteRecord | AnalyteSummaryRecord | WaterLevelRecord | WaterLevelSummaryRecord]
             a list of transformed parameter records
         """
-        if isinstance(parent_record, list):
+        if isinstance(site_record, list):
             self.log(
-                f"Gathering {self.name} summary for multiple records. {len(parent_record)}"
+                f"Gathering {self.name} summary for {len(site_record)} sites. {start_ind}-{end_ind}"
             )
         else:
-            self.log(
-                f"{parent_record.id} ({parent_record.id}): Gathering {self.name} summary"
-            )
+            self.log(f"{site_record.id}: Gathering {self.name} data")
 
-        all_analyte_records = self.get_records(parent_record)
+        all_analyte_records = self.get_records(site_record)
         if all_analyte_records:
-            if not isinstance(parent_record, list):
-                parent_record = [parent_record]
+            if not isinstance(site_record, list):
+                site_record = [site_record]
 
             # return values
             ret = []
 
             # iterate over each site record and extract the parameter records for each site
-            for site in parent_record:
-                site_records = self._extract_parent_records(all_analyte_records, site)
+            for site in site_record:
+                site_records = self._extract_site_records(all_analyte_records, site)
                 if not site_records:
-                    self.warn(f"{site.name}: No parent records found")
+                    self.warn(f"{site.id}: No records found")
                     continue
 
-                # get cleaned records if _clean_records is defined by the source
+                # get cleaned records if _clean_records is defined by the source. This usually removes Nones/Null
                 cleaned = self._clean_records(site_records)
                 if not cleaned:
-                    self.warn(f"{site.name} No clean records found")
+                    self.warn(f"{site.id} No clean records found")
                     continue
 
-                items = self._extract_parameter_results(cleaned)
-                units = self._extract_parameter_units(cleaned)
-                items = [
-                    convert_units(float(result), unit, self._get_output_units())
-                    for result, unit in zip(items, units)
-                ]
+                if use_summarize:
 
-                if items is not None:
-                    n = len(items)
-                    self.log(f"{site.name}: Retrieved {self.name}: {n}")
+                    # doesn't need to be returned, but can be used to debug/for development
+                    kept_items = []
+                    skipped_items = []
 
-                    # create the summaries if use_summarize is True, otherwise returned the cleaned and sorted records
-                    if use_summarize:
+                    results = self._extract_parameter_results(cleaned)
+                    units = self._extract_parameter_units(cleaned)
+
+                    for r, u in zip(results, units):
+                        try:
+                            converted_result, warning_msg = convert_units(
+                                float(r),
+                                u,
+                                self._get_output_units(),
+                                self.config.analyte,
+                            )
+                            if warning_msg == "":
+                                kept_items.append(converted_result)
+                            else:
+                                msg = f"{warning_msg} for {site.id}"
+                                self.warn(msg)
+                                skipped_items.append((site.id, r, u))
+                        except TypeError:
+                            skipped_items.append((site.id, r, u))
+                        except ValueError:
+                            skipped_items.append((site.id, r, u))
+
+                    if len(skipped_items) > 0:
+                        self.warn(
+                            f"Skipped results because of formatting: {skipped_items}"
+                        )
+
+                    # if items is None or empty, no records were found or all results were None
+                    if kept_items is not None and len(kept_items):
+                        n = len(kept_items)
+                        # self.log(f"{site.id}: Retrieved {self.name}: {n}")
+
                         most_recent_result = self._extract_most_recent(cleaned)
                         if not most_recent_result:
                             continue
                         rec = {
                             "nrecords": n,
-                            "min": min(items),
-                            "max": max(items),
-                            "mean": sum(items) / n,
+                            "min": min(kept_items),
+                            "max": max(kept_items),
+                            "mean": sum(kept_items) / n,
                             "most_recent_datetime": most_recent_result["datetime"],
                             "most_recent_value": most_recent_result["value"],
                             "most_recent_units": most_recent_result["units"],
@@ -691,23 +718,32 @@ class BaseParameterSource(BaseSource):
                             rec,
                             site,
                         )
-                        ret.append(transformed_record)
-                    else:
-                        cleaned_sorted = [
-                            self.transformer.do_transform(
-                                self._extract_parameter(record), site
-                            )
-                            for record in cleaned
-                        ]
-                        cleaned_sorted = sorted(cleaned_sorted, key=self._sort_func)
-                        ret.append((site, cleaned_sorted))
-
+                        if transformed_record is None:
+                            continue
+                        else:
+                            ret.append(transformed_record)
+                else:
+                    cleaned_sorted = [
+                        self.transformer.do_transform(
+                            self._extract_parameter(record), site
+                        )
+                        for record in cleaned
+                        if self.transformer.do_transform(
+                            self._extract_parameter(record), site
+                        )
+                        is not None
+                    ]
+                    if len(cleaned_sorted) == 0:
+                        self.warn(f"{site.id}: No clean records found")
+                        continue
+                    cleaned_sorted = sorted(cleaned_sorted, key=self._sort_func)
+                    ret.append((site, cleaned_sorted))
             return ret
         else:
-            if isinstance(parent_record, list):
-                names = [str(r.id) for r in parent_record]
+            if isinstance(site_record, list):
+                names = [str(r.id) for r in site_record]
             else:
-                names = [str(parent_record.id)]
+                names = [str(site_record.id)]
 
             name = ",".join(names)
             self.warn(f"{name}: No records found")
@@ -759,7 +795,7 @@ class BaseParameterSource(BaseSource):
     # Methods That Need to be Implemented For Each Source
     # ==========================================================================
 
-    def _extract_parent_records(self, records: dict, parent_record: dict) -> list:
+    def _extract_site_records(self, records: dict, site_record: dict) -> list:
         """
         Returns all records for a single site as a list of records (which are dictionaries).
 
@@ -768,7 +804,7 @@ class BaseParameterSource(BaseSource):
         records : dict
             a dictionary of lists, where the keys are site ids and the values are parameter records
 
-        parent_record : dict
+        site_record : dict
             the site record for the location whose parameter records are to be retrieved
 
         Returns
@@ -776,11 +812,11 @@ class BaseParameterSource(BaseSource):
         list
             a list of records for the site
         """
-        if parent_record.chunk_size == 1:
+        if site_record.chunk_size == 1:
             return records
 
         raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parent_records"
+            f"{self.__class__.__name__} Must implement _extract_site_records"
         )
 
     def _clean_records(self, records: list) -> list:
@@ -839,7 +875,7 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter_record(self, record: dict) -> dict:
         """
-        Returns a parameter record with standardized fields added.
+        Returns a parameter record with standardized fields added. This is only used for time series, not summary outputs
 
         For an analyte, the fields are
         - backend.constants.PARAMETER
@@ -867,7 +903,7 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter_results(self, records: list) -> list:
         """
-        Returns the parameter results as a list from the records, in the same order as the records themselves
+        Returns the parameter results as a list from the records, in the same order as the records themselves. This is only used for summary outputs, not time serie
 
         Parameters
         ----------
@@ -885,7 +921,7 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter(self, record: dict) -> dict:
         """
-        Extracts a parameter record from a list of records
+        Extracts a parameter record from a list of records. This is only used for time series, not summary outputs
 
         Parameters
         ----------
