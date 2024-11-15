@@ -46,6 +46,7 @@ from backend.source import (
     get_analyte_search_param,
 )
 
+
 def get_date_range(config):
     params = {}
 
@@ -61,6 +62,7 @@ def get_date_range(config):
 
 def get_datetime(record):
     return datetime.fromtimestamp(record["dateTime"] / 1000)
+
 
 def _make_url(endpoint):
     return f"https://nmisc-wf.gladata.com/api/{endpoint}"
@@ -123,7 +125,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_units(self, records):
         return [r["units"] for r in records]
-    
+
     def _extract_parameter_dates(self, records: list) -> list:
         return [get_datetime(r) for r in records]
 
@@ -173,7 +175,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return [
             r["depthToWaterFeet"] for r in records if not r["invalid"] and not r["dry"]
         ]
-    
+
     def _extract_parameter_dates(self, records: list) -> list:
         return [get_datetime(r) for r in records]
 

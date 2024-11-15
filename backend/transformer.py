@@ -119,7 +119,11 @@ def transform_length_units(
 
 
 def convert_units(
-    input_value: int | float | str, input_units: str, output_units: str, analyte: str, dt: str = None
+    input_value: int | float | str,
+    input_units: str,
+    output_units: str,
+    analyte: str,
+    dt: str = None,
 ) -> float:
     """
     Converts the following units for any parameter value:
@@ -464,7 +468,11 @@ class BaseTransformer:
             warning_msg = ""
             try:
                 converted_result, warning_msg = convert_units(
-                    float(r), u, self.config.analyte_output_units, self.config.analyte, dt
+                    float(r),
+                    u,
+                    self.config.analyte_output_units,
+                    self.config.analyte,
+                    dt,
                 )
                 if warning_msg != "":
                     msg = f"{warning_msg} for {record.id}"

@@ -119,7 +119,7 @@ class WQPAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_units(self, records):
         return [ri["ResultMeasure/MeasureUnitCode"] for ri in records]
-    
+
     def _extract_parameter_dates(self, records):
         return [ri["ActivityStartDate"] for ri in records]
 

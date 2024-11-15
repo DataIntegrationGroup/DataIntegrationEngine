@@ -163,7 +163,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_parameter_results(self, records):
         return [float(r["value"]) for r in records]
-    
+
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["datetime_measured"] for r in records]
 
