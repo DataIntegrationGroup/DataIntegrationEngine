@@ -125,6 +125,9 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
     def _extract_most_recent(self, records):
         record = get_most_recent(records, tag="Date")
         return {"value": record["DTWGS"], "datetime": record["Date"], "units": FEET}
+    
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["Date"] for r in records]
 
     def _extract_parameter_record(self, record):
         record[DTW] = float(record["DTWGS"])

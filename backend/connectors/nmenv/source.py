@@ -126,6 +126,9 @@ class DWBAnalyteSource(STAnalyteSource):
         # this is only used in summary output
         return [r["datastream"].unit_of_measurement.symbol for r in records]
 
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["observation"].phenomenon_time for r in records]
+
     def _extract_most_recent(self, records):
         # this is only used in summary output
         record = get_most_recent(

@@ -366,6 +366,7 @@ class Config(object):
                 "output_dir",
                 "output_name",
                 "output_summary",
+                "output_single_timeseries",
                 "output_horizontal_datum",
                 "output_elevation_units",
             ),

@@ -87,6 +87,9 @@ class ST2WaterLevelSource(STWaterLevelSource):
 
     def _extract_parameter_results(self, records):
         return [r["observation"].result for r in records]
+    
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["observation"].phenomenon_time for r in records]
 
     def _clean_records(self, records: list) -> list:
         rs = [r for r in records if r["observation"].result is not None]

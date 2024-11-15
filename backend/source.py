@@ -672,14 +672,16 @@ class BaseParameterSource(BaseSource):
 
                     results = self._extract_parameter_results(cleaned)
                     units = self._extract_parameter_units(cleaned)
+                    dates = self._extract_parameter_dates(cleaned)
 
-                    for r, u in zip(results, units):
+                    for r, u, d in zip(results, units, dates):
                         try:
                             converted_result, warning_msg = convert_units(
                                 float(r),
                                 u,
                                 self._get_output_units(),
                                 self.config.analyte,
+                                d
                             )
                             if warning_msg == "":
                                 kept_items.append(converted_result)
@@ -871,6 +873,24 @@ class BaseParameterSource(BaseSource):
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _extract_parameter_units"
+        )
+    
+    def _extract_parameter_dates(self, records: list) -> list:
+        """
+        Returns the dates of the parameter records as a list, in the same order as the records themselves
+
+        Parameters
+        ----------
+        records: list
+            a list of parameter records
+
+        Returns
+        -------
+        list
+            a list of dates for the parameter records in the same order as the records
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parameter_dates"
         )
 
     def _extract_parameter_record(self, record: dict) -> dict:

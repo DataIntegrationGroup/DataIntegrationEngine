@@ -119,7 +119,7 @@ def transform_length_units(
 
 
 def convert_units(
-    input_value: int | float | str, input_units: str, output_units: str, analyte: str
+    input_value: int | float | str, input_units: str, output_units: str, analyte: str, dt: str = None
 ) -> float:
     """
     Converts the following units for any parameter value:
@@ -149,6 +149,9 @@ def convert_units(
     analyte: str
         The analyte to convert
 
+    dt: str
+        The date of the record
+
     Returns
     --------
     float
@@ -166,23 +169,33 @@ def convert_units(
     ppm = PARTS_PER_MILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
 
-    # edge cases for Bicarbonate
+    """
+    # edge cases for Bicarbonate and Calcium
     # BOR, WQP
+
+    https://aqua-chem.com/water-chemistry-caco3-equivalents/
+    https://industrialh2osolutions.com/conversions-and-guides-water-chemistry-caco3-equivalents/
+    """
     if (
         input_units in ["mg/l caco3", "mg/l caco3**"]
         and output_units == mgl
         and analyte == "Bicarbonate"
     ):
-        """
-        https://aqua-chem.com/water-chemistry-caco3-equivalents/
-        """
+        # 1/0.82
         conversion_factor = 1.22
+    elif (
+        input_units in ["mg/l caco3", "mg/l caco3**"]
+        and output_units == mgl
+        and analyte == "Calcium"
+    ):
+        # 1/2.5
+        conversion_factor = 0.4
     elif (
         input_units in ["mg/l caco3", "mg/l caco3**"]
         and output_units == mgl
         and analyte != "Bicarbonate"
     ):
-        # this will catch if the input units are mg/l caco3 and the analyte is not bicarbonate so that the developer can perform the appropriate calculations for the conversion factor
+        # this will catch if the input units are mg/l caco3 and the analyte is not bicarbonate or calcium so that the developer can determine the appropriate conversion factor(s)
         conversion_factor = None
 
     if input_units == output_units:
@@ -218,7 +231,7 @@ def convert_units(
     if conversion_factor:
         return input_value * conversion_factor, warning
     else:
-        warning = f"Failed to convert {input_value} {input_units} to {output_units} for {analyte}"
+        warning = f"Failed to convert {input_value} {input_units} to {output_units} for {analyte} on {dt}"
         return input_value, warning
 
 
@@ -447,10 +460,11 @@ class BaseTransformer:
         elif isinstance(record, (AnalyteRecord)):
             r = record.parameter_value
             u = record.parameter_units
+            dt = record.date_measured
             warning_msg = ""
             try:
                 converted_result, warning_msg = convert_units(
-                    float(r), u, self.config.analyte_output_units, self.config.analyte
+                    float(r), u, self.config.analyte_output_units, self.config.analyte, dt
                 )
                 if warning_msg != "":
                     msg = f"{warning_msg} for {record.id}"

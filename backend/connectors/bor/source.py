@@ -77,6 +77,9 @@ class BORAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_units(self, records):
         return [ri["attributes"]["resultAttributes"]["units"] for ri in records]
+    
+    def _extract_parameter_dates(self, records):
+        return [parse_dt(ri["attributes"]["dateTime"]) for ri in records]
 
     def _extract_most_recent(self, rs):
 
