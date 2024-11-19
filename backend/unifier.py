@@ -16,6 +16,7 @@
 import shapely
 
 from backend.config import Config, get_source
+from backend.logging import setup_logging
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 from backend.source import BaseSiteSource
 
@@ -342,6 +343,7 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
+    setup_logging()
     waterlevel_unification_test()
     # analyte_unification_test()
     # print(health_check("nwis"))

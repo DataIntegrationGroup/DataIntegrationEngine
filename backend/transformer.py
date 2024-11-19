@@ -31,6 +31,7 @@ from backend.constants import (
     PARAMETER_UNITS,
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
+from backend.logging import Loggable
 from backend.record import (
     WaterLevelSummaryRecord,
     WaterLevelRecord,
@@ -283,7 +284,7 @@ def standardize_datetime(dt):
     return dt.strftime("%Y-%m-%d"), tt
 
 
-class BaseTransformer:
+class BaseTransformer(Loggable):
     """
     Base class for transforming records. Transformers are used in BaseSiteSource and BaseParameterSource to transform records
 
@@ -528,40 +529,40 @@ class BaseTransformer:
 
         return True
 
-    def warn(self, msg):
-        """
-        Prints warning messages to the console in red
+    # def warn(self, msg):
+    #     """
+    #     Prints warning messages to the console in red
+    #
+    #     Parameters
+    #     ----------
+    #     msg : str
+    #         the message to print
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     self.log(msg, fg="red")
+    #     self.config.warnings.append(msg)
 
-        Parameters
-        ----------
-        msg : str
-            the message to print
-
-        Returns
-        -------
-        None
-        """
-        self.log(msg, fg="red")
-        self.config.warnings.append(msg)
-
-    def log(self, msg, fg="yellow"):
-        """
-        Prints the message to the console in yellow
-
-        Parameters
-        ----------
-        msg : str
-            the message to print
-
-        fg : str
-            the color of the message, defaults to yellow
-
-        Returns
-        -------
-        None
-        """
-        click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
-        self.config.logs.append(f"{self.__class__.__name__:25s} -- {msg}")
+    # def log(self, msg, fg="yellow"):
+    #     """
+    #     Prints the message to the console in yellow
+    #
+    #     Parameters
+    #     ----------
+    #     msg : str
+    #         the message to print
+    #
+    #     fg : str
+    #         the color of the message, defaults to yellow
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
+    #     self.config.logs.append(f"{self.__class__.__name__:25s} -- {msg}")
 
     # ==========================================================================
     # Methods That Need to be Implemented For Each SiteTransformer
