@@ -33,6 +33,7 @@ from backend.constants import (
     PARAMETER_UNITS,
     PARAMETER_VALUE,
 )
+from backend.logging import Loggable
 from backend.persister import BasePersister, CSVPersister
 from backend.record import (
     AnalyteRecord,
@@ -124,7 +125,7 @@ def get_analyte_search_param(parameter: str, mapping: dict) -> str:
         )
 
 
-class BaseSource:
+class BaseSource(Loggable):
     """
     The BaseSource class is a base class for all sources, whether it be a site source or a parameter source.
 
@@ -174,6 +175,7 @@ class BaseSource:
     def __init__(self, config=None):
         self.transformer = self.transformer_klass()
         self.set_config(config)
+        super().__init__()
 
     @property
     def tag(self):
@@ -195,42 +197,42 @@ class BaseSource:
     # Methods Already Implemented
     # ==========================================================================
 
-    def warn(self, msg):
-        """
-        Prints warning messages to the console in red
+    # def warn(self, msg):
+    #     """
+    #     Prints warning messages to the console in red
+    #
+    #     Parameters
+    #     ----------
+    #     msg : str
+    #         the message to print
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     s = self.log(msg, fg="red")
+    #     self.config.warnings.append(s)
 
-        Parameters
-        ----------
-        msg : str
-            the message to print
-
-        Returns
-        -------
-        None
-        """
-        s = self.log(msg, fg="red")
-        self.config.warnings.append(s)
-
-    def log(self, msg, fg="yellow"):
-        """
-        Prints the message to the console in yellow
-
-        Parameters
-        ----------
-        msg : str
-            the message to print
-
-        fg : str
-            the color of the message, defaults to yellow
-
-        Returns
-        -------
-        None
-        """
-        s = f"{self.__class__.__name__:25s} -- {msg}"
-        click.secho(s, fg=fg)
-        self.config.logs.append(s)
-        return s
+    # def log(self, msg, fg="yellow"):
+    #     """
+    #     Prints the message to the console in yellow
+    #
+    #     Parameters
+    #     ----------
+    #     msg : str
+    #         the message to print
+    #
+    #     fg : str
+    #         the color of the message, defaults to yellow
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     s = f"{self.__class__.__name__:25s} -- {msg}"
+    #     click.secho(s, fg=fg)
+    #     self.config.logs.append(s)
+    #     return s
 
     def _execute_text_request(self, url: str, params=None, **kw) -> str:
         """

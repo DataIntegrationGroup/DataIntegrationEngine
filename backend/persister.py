@@ -22,6 +22,7 @@ import click
 import pandas as pd
 import geopandas as gpd
 
+from backend.logging import Loggable
 from backend.record import SiteRecord
 
 try:
@@ -30,9 +31,6 @@ except ImportError:
     print("google cloud storage not available")
 
 
-class Loggable:
-    def log(self, msg, fg="yellow"):
-        click.secho(f"{self.__class__.__name__:30s}{msg}", fg=fg)
 
 
 class BasePersister(Loggable):
@@ -46,6 +44,8 @@ class BasePersister(Loggable):
         self.sites = []
         self.logs = []
         self.warnings = []
+
+        super().__init__()
         # self.keys = record_klass.keys
 
     def load(self, records: list):
