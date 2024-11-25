@@ -1015,4 +1015,13 @@ class BaseWaterLevelSource(BaseParameterSource):
                 raise ValueError(f"Invalid record. Missing {k}")
 
 
+class BaseFileSource(BaseSource):
+    """
+    Base class for all file sources
+    """
+
+    name = "files"
+
+    
+
 # ============= EOF =============================================
