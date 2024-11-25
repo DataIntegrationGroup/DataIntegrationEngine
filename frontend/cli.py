@@ -22,8 +22,8 @@ from backend.constants import ANALYTE_CHOICES
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 from backend.logging import setup_logging
-setup_logging()
 
+setup_logging()
 
 
 @click.group()

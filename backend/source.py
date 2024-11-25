@@ -1022,6 +1022,5 @@ class BaseFileSource(BaseSource):
 
     name = "files"
 
-    
 
 # ============= EOF =============================================

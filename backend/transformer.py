@@ -260,7 +260,7 @@ def standardize_datetime(dt):
             "%Y/%m/%d %H:%M:%S",
             "%Y/%m/%d %H:%M",
             "%Y/%m/%d",
-            "%m/%d/%Y"
+            "%m/%d/%Y",
         ]:
             try:
                 dt = datetime.strptime(dt.split(".")[0], fmt)

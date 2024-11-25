@@ -31,8 +31,6 @@ except ImportError:
     print("google cloud storage not available")
 
 
-
-
 class BasePersister(Loggable):
     extension: str
     # output_id: str
