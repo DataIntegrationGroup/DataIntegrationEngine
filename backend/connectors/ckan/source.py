@@ -134,6 +134,9 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         record[DT_MEASURED] = record["Date"]
         record[DTW_UNITS] = FEET
         return record
+    
+    def _clean_records(self, records: list) -> list:
+        return [r for r in records if r["DTWGS"] is not None and r["Date"] is not None]
 
 
 # ============= EOF =============================================

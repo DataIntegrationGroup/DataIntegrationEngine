@@ -15,7 +15,7 @@
 # ===============================================================================
 import click
 import pprint
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 import shapely
 from shapely import Point
@@ -260,12 +260,20 @@ def standardize_datetime(dt):
             "%Y/%m/%d %H:%M:%S",
             "%Y/%m/%d %H:%M",
             "%Y/%m/%d",
+            "%m/%d/%Y"
         ]:
             try:
                 dt = datetime.strptime(dt.split(".")[0], fmt)
                 break
             except ValueError as e:
-                pass
+                try:
+                    # Ft Sumner (OSE Roswell) reports Excel date numbers
+                    num_days_to_add = int(dt)
+                    base_date = date(1900, 1, 1)
+                    dt = base_date + timedelta(days=num_days_to_add)
+                    break
+                except ValueError as e:
+                    pass
         else:
             raise ValueError(f"Failed to parse datetime {dt}")
 
