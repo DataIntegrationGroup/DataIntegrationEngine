@@ -16,7 +16,6 @@ This package provides a command line interface to New Mexico Water Data Initiaiv
  - [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
  - [ST2 (NMWDI)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/)
    - Pecos Valley Artesian Conservancy District
-   - Elephant Butte Irrigation District
    - Bernalillo County
    - New Mexico Environment Department Drinking Water Bureau
  - [NM Water Data CKAN catalog](https://catalog.newmexicowaterdata.org/)
