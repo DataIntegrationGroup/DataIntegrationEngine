@@ -425,6 +425,11 @@ class BaseTransformer(Loggable):
         if isinstance(record, (SiteRecord, SummaryRecord)):
             y = float(record.latitude)
             x = float(record.longitude)
+
+            if x == 0 or y == 0:
+                self.warn(f"Skipping site {record.id}. Latitude or Longitude is 0")
+                return None
+
             input_horizontal_datum = record.horizontal_datum
 
             if input_horizontal_datum not in ALLOWED_DATUMS:
