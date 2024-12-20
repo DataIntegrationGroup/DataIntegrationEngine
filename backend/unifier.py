@@ -41,7 +41,7 @@ def health_check(source: BaseSiteSource) -> bool:
 
 
 def unify_sites(config):
-    print("Unifying sites")
+    print("Unifying sites\n")
 
     # def func(config, persister):
     #     for source in config.site_sources():
@@ -52,8 +52,8 @@ def unify_sites(config):
 
 
 def unify_analytes(config):
-    print("Unifying analytes")
-    config.report(log_report=True)
+    print("Unifying analytes\n")
+    # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
 
     if not config.dry:
@@ -63,9 +63,9 @@ def unify_analytes(config):
 
 
 def unify_waterlevels(config):
-    print("Unifying waterlevels")
+    print("Unifying waterlevels\n")
 
-    config.report(log_report=True)
+    # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
 
     if not config.dry:
@@ -182,14 +182,9 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         import traceback
 
         exc = traceback.format_exc()
-        print(exc)
-        print(f"Failed to unify {site_source}")
+        config.warn(exc)
+        config.warn(f"Failed to unify {site_source}")
 
-        config.logs.append(exc)
-        config.logs.append(f"Failed to unify {site_source}")
-
-        config.warnings.append(exc)
-        config.warnings.append(f"Failed to unify {site_source}")
 
 
 def _unify_parameter(
@@ -209,10 +204,6 @@ def _unify_parameter(
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
 
-    persister.logs.extend(config.logs)
-    persister.warnings.extend(config.warnings)
-    persister.dump_logs(f"{config.output_path}.logs.txt")
-    persister.dump_warnings(f"{config.output_path}.warnings.txt")
     persister.finalize(config.output_name)
 
 
