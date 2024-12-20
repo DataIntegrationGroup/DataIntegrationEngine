@@ -186,7 +186,6 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         config.warn(f"Failed to unify {site_source}")
 
 
-
 def _unify_parameter(
     config,
     sources,

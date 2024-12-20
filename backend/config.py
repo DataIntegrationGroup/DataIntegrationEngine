@@ -330,7 +330,6 @@ class Config(Loggable):
             s = ""
             self.log(s)
 
-
         s = "---- Begin configuration -------------------------------------\n"
         self.log(s)
 
