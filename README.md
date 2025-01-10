@@ -35,7 +35,7 @@ Data comes from the following sources. We are continuously adding new sources as
 
 
 ### Source Inclusion & Exclusion
-The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are included in the output unless sources are specifically excluded. The following flags are available to exclude a specific data source:
+The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are included in the output unless specifically excluded. The following flags are available to exclude a specific data source:
 
 - `--no-amp` to exclude New Mexico Bureau of Geology and Mineral Resources Aquifer Mapping Program (AMP) data
 - `--no-bor` to exclude Bureaof of Reclamation data
