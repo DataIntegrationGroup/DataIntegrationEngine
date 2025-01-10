@@ -126,11 +126,17 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         record = get_most_recent(records, tag="Date")
         return {"value": record["DTWGS"], "datetime": record["Date"], "units": FEET}
 
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["Date"] for r in records]
+
     def _extract_parameter_record(self, record):
         record[DTW] = float(record["DTWGS"])
         record[DT_MEASURED] = record["Date"]
         record[DTW_UNITS] = FEET
         return record
+
+    def _clean_records(self, records: list) -> list:
+        return [r for r in records if r["DTWGS"] is not None and r["Date"] is not None]
 
 
 # ============= EOF =============================================

@@ -18,19 +18,15 @@ import io
 import os
 import shutil
 
-import click
 import pandas as pd
 import geopandas as gpd
 
 from backend.logging import Loggable
-from backend.record import SiteRecord
 
 try:
     from google.cloud import storage
 except ImportError:
     print("google cloud storage not available")
-
-
 
 
 class BasePersister(Loggable):
@@ -42,8 +38,6 @@ class BasePersister(Loggable):
         self.combined = []
         self.timeseries = []
         self.sites = []
-        self.logs = []
-        self.warnings = []
 
         super().__init__()
         # self.keys = record_klass.keys
@@ -99,24 +93,6 @@ class BasePersister(Loggable):
             self._write(path, self.sites)
         else:
             self.log("no sites to dump", fg="red")
-
-    def dump_logs(self, path: str):
-        if self.logs:
-            self.log(f"dumping logs to {os.path.abspath(path)}")
-            with open(path, "w") as f:
-                for l in self.logs:
-                    f.write(f"{l}\n")
-        else:
-            self.log("no logs to dump")
-
-    def dump_warnings(self, path: str):
-        if self.warnings:
-            self.log(f"dumping warnings to {os.path.abspath(path)}")
-            with open(path, "w") as f:
-                for w in self.warnings:
-                    f.write(f"{w}\n")
-        else:
-            self.log("no warnings to dump")
 
     def save(self, path: str):
         if self.records:

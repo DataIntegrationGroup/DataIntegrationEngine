@@ -47,6 +47,23 @@ from backend.source import (
 )
 
 
+def get_date_range(config):
+    params = {}
+
+    def to_milliseconds(dt):
+        return int(dt.timestamp() * 1000)
+
+    if config.start_date:
+        params["start"] = to_milliseconds(config.start_dt)
+    if config.end_date:
+        params["end"] = to_milliseconds(config.end_dt)
+    return params
+
+
+def get_datetime(record):
+    return datetime.fromtimestamp(record["dateTime"] / 1000)
+
+
 def _make_url(endpoint):
     return f"https://nmisc-wf.gladata.com/api/{endpoint}"
 
@@ -109,6 +126,9 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     def _extract_parameter_units(self, records):
         return [r["units"] for r in records]
 
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [get_datetime(r) for r in records]
+
     def get_records(self, site_record):
         config = self.config
         analyte_id = self._get_analyte_id(config.analyte)
@@ -124,23 +144,6 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             return self._execute_json_request(
                 _make_url("getReadings.ashx"), params=params
             )
-
-
-def get_date_range(config):
-    params = {}
-
-    def to_milliseconds(dt):
-        return int(dt.timestamp() * 1000)
-
-    if config.start_date:
-        params["start"] = to_milliseconds(config.start_dt)
-    if config.end_date:
-        params["end"] = to_milliseconds(config.end_dt)
-    return params
-
-
-def get_datetime(record):
-    return datetime.fromtimestamp(record["dateTime"] / 1000)
 
 
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
@@ -172,6 +175,9 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return [
             r["depthToWaterFeet"] for r in records if not r["invalid"] and not r["dry"]
         ]
+
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [get_datetime(r) for r in records]
 
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "dateTime")

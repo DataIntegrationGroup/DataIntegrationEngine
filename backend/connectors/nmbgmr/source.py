@@ -140,6 +140,9 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     def _extract_parameter_results(self, records):
         return [r["SampleValue"] for r in records]
 
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["info"]["CollectionDate"] for r in records]
+
     def _extract_parameter_record(self, record):
         record[PARAMETER] = self.config.analyte
         record[PARAMETER_VALUE] = record["SampleValue"]
@@ -168,6 +171,9 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
             "datetime": (record["DateMeasured"], record["TimeMeasured"]),
             "units": FEET,
         }
+
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [(r["DateMeasured"], r["TimeMeasured"]) for r in records]
 
     def _extract_parameter_results(self, records):
         return [r["DepthToWaterBGS"] for r in records]

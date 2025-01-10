@@ -18,8 +18,9 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-import click
 import shapely.wkt
+
+from backend.logging import Loggable
 
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
@@ -91,7 +92,7 @@ def get_source(source):
     return None
 
 
-class Config(object):
+class Config(Loggable):
     site_limit: int = 0
     dry: bool = False
 
@@ -135,10 +136,10 @@ class Config(object):
     use_csv: bool = True
     use_geojson: bool = False
 
-    logs: list = []
-    warnings: list = []
-
     def __init__(self, model=None, payload=None):
+        # need to initialize logger
+        super().__init__()
+
         self.bbox = {}
         if model:
             if model.wkt:
@@ -316,32 +317,21 @@ class Config(object):
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
 
-    def report(self, log_report: bool = False):
+    def report(self):
         def _report_attributes(title, attrs):
             s = f"---- {title} --------------------------------------------------"
-            click.secho(s, fg="yellow")
-            if log_report:
-                self.logs.append(s)
+            self.log(s)
 
             for k in attrs:
                 v = getattr(self, k)
                 s = f"{k}: {v}"
-                click.secho(s, fg="yellow")
-
-                if log_report:
-                    self.logs.append(s)
+                self.log(s)
 
             s = ""
-            click.secho(s, fg="yellow")
-
-            if log_report:
-                self.logs.append(s)
+            self.log(s)
 
         s = "---- Begin configuration -------------------------------------\n"
-        click.secho(s, fg="yellow")
-
-        if log_report:
-            self.logs.append(s)
+        self.log(s)
 
         sources = [f"use_source_{s}" for s in SOURCE_KEYS]
         attrs = [
@@ -366,32 +356,30 @@ class Config(object):
                 "output_dir",
                 "output_name",
                 "output_summary",
+                "output_single_timeseries",
                 "output_horizontal_datum",
                 "output_elevation_units",
             ),
         )
 
         s = "---- End configuration -------------------------------------\n"
-        click.secho(s, fg="yellow")
-
-        if log_report:
-            self.logs.append(s)
+        self.log(s)
 
     def validate(self):
         if not self._validate_bbox():
-            click.secho("Invalid bounding box", fg="red")
+            self.warn("Invalid bounding box")
             sys.exit(2)
 
         if not self._validate_county():
-            click.secho("Invalid county", fg="red")
+            self.warn("Invalid county")
             sys.exit(2)
 
         if not self._validate_date(self.start_date):
-            click.secho(f"Invalid start date {self.start_date}", fg="red")
+            self.warn(f"Invalid start date {self.start_date}")
             sys.exit(2)
 
         if not self._validate_date(self.end_date):
-            click.secho("Invalid end date", fg="red")
+            self.warn(f"Invalid end date {self.end_date}")
             sys.exit(2)
 
     def _extract_date(self, d):

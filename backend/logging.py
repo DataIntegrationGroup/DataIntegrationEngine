@@ -25,17 +25,16 @@ class Loggable:
 
     def log(self, msg, level=None, fg="yellow"):
         if level is None:
-            level=logging.INFO
+            level = logging.INFO
 
         click.secho(f"{self.__class__.__name__:30s}{msg}", fg=fg)
         self.logger.log(level, msg)
 
-    def warn(self, msg, fg='red'):
+    def warn(self, msg, fg="red"):
         self.log(msg, fg=fg, level=logging.WARNING)
 
     def debug(self, msg):
-        self.log(msg, level=logging.DEBUG, fg='blue')
-
+        self.log(msg, level=logging.DEBUG, fg="blue")
 
 
 def setup_logging(level=None, log_format=None, path=None):
@@ -63,4 +62,6 @@ def setup_logging(level=None, log_format=None, path=None):
         hi.setLevel(level)
         hi.setFormatter(fmt)
         root.addHandler(hi)
+
+
 # ============= EOF =============================================

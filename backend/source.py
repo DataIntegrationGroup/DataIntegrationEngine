@@ -674,14 +674,16 @@ class BaseParameterSource(BaseSource):
 
                     results = self._extract_parameter_results(cleaned)
                     units = self._extract_parameter_units(cleaned)
+                    dates = self._extract_parameter_dates(cleaned)
 
-                    for r, u in zip(results, units):
+                    for r, u, d in zip(results, units, dates):
                         try:
                             converted_result, warning_msg = convert_units(
                                 float(r),
                                 u,
                                 self._get_output_units(),
                                 self.config.analyte,
+                                d,
                             )
                             if warning_msg == "":
                                 kept_items.append(converted_result)
@@ -875,6 +877,24 @@ class BaseParameterSource(BaseSource):
             f"{self.__class__.__name__} Must implement _extract_parameter_units"
         )
 
+    def _extract_parameter_dates(self, records: list) -> list:
+        """
+        Returns the dates of the parameter records as a list, in the same order as the records themselves
+
+        Parameters
+        ----------
+        records: list
+            a list of parameter records
+
+        Returns
+        -------
+        list
+            a list of dates for the parameter records in the same order as the records
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_parameter_dates"
+        )
+
     def _extract_parameter_record(self, record: dict) -> dict:
         """
         Returns a parameter record with standardized fields added. This is only used for time series, not summary outputs
@@ -993,6 +1013,14 @@ class BaseWaterLevelSource(BaseParameterSource):
         for k in (DTW, DTW_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
+
+
+class BaseFileSource(BaseSource):
+    """
+    Base class for all file sources
+    """
+
+    name = "files"
 
 
 # ============= EOF =============================================
