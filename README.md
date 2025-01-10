@@ -106,12 +106,18 @@ The follow data sources are available for analytes, though not every source has 
 ## Usage
 The data is saved to the current working directory. A log of the inputs and processes, called `die.log`, is also saved to the current working directory. If a subsquent process is run and the log from the previous process has not been moved or stored elsewhere, the log for the subsequent process will be appended to the existing log.
 
-### Timeseries & Summary
+### Timeseries Data
 The flag `--separated_timeseries` exports timeseries for every location in their own file in the directory output_series (e.g. `AB-0002.csv`, `AB-0003.csv`). Locations with only one observation are gathered and exported to the file `output.combined.csv`.
 
 The flag `--unified_timeseries` exports all timeseries for all locations in one file titled `output.timeseries.csv`. It also exports a file titled `output.sites.csv` that contains site information, such as latitude, longitude, and elevation.
 
+#### Table Headers: Unified
+
+### Summary Data
+
 If neither of the above flags are specified, a summary table called `output.csv` is exported. The summary table consists of location information as well as summary statistics for the parameter of interest for every location that has observations.
+
+#### Table Headers
 
 ### Geographic Filters
 
