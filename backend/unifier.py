@@ -16,6 +16,7 @@
 import shapely
 
 from backend.config import Config, get_source
+from backend.logging import setup_logging
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 from backend.source import BaseSiteSource
 
@@ -40,7 +41,7 @@ def health_check(source: BaseSiteSource) -> bool:
 
 
 def unify_sites(config):
-    print("Unifying sites")
+    print("Unifying sites\n")
 
     # def func(config, persister):
     #     for source in config.site_sources():
@@ -51,8 +52,8 @@ def unify_sites(config):
 
 
 def unify_analytes(config):
-    print("Unifying analytes")
-    config.report()
+    print("Unifying analytes\n")
+    # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
 
     if not config.dry:
@@ -62,9 +63,9 @@ def unify_analytes(config):
 
 
 def unify_waterlevels(config):
-    print("Unifying waterlevels")
+    print("Unifying waterlevels\n")
 
-    config.report()
+    # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
 
     if not config.dry:
@@ -112,36 +113,55 @@ def _perister_factory(config):
 def _site_wrapper(site_source, parameter_source, persister, config):
 
     try:
+        # TODO: fully develop checks/discoveries below
+        # if not site_source.check():
+        #     print(f"Skipping {site_source}. check failed")
 
-        if site_source.check():
-            print(f"Skipping {site_source}. check failed")
+        # schemas = site_source.discover()
+        # if not schemas:
+        #     print(f"No schemas found for {site_source}")
 
-        schemas = site_source.discover()
-        if not schemas:
-            print(f"No schemas found for {site_source}")
-
-            # in the future make discover required
-            # return
+        # in the future make discover required
+        # return
 
         use_summarize = config.output_summary
         site_limit = config.site_limit
 
         sites = site_source.read()
+
         if not sites:
-            print(f"No sites found for {site_source}")
             return
 
-        for i, sites in enumerate(site_source.chunks(sites)):
-            if site_limit and i > site_limit:
+        sites_with_records_count = 0
+        start_ind = 1
+        end_ind = 0
+        first_flag = True
+        for sites in site_source.chunks(sites):
+            if site_limit and sites_with_records_count == site_limit:
                 break
 
+            if type(sites) == list:
+                if first_flag:
+                    end_ind += len(sites)
+                    first_flag = False
+                else:
+                    start_ind = end_ind + 1
+                    end_ind += len(sites)
+
             if use_summarize:
-                summary_records = parameter_source.read(sites, use_summarize)
+                summary_records = parameter_source.read(
+                    sites, use_summarize, start_ind, end_ind
+                )
                 if summary_records:
                     persister.records.extend(summary_records)
             else:
-                results = parameter_source.read(sites, use_summarize)
-                if results is None:
+                results = parameter_source.read(
+                    sites, use_summarize, start_ind, end_ind
+                )
+                # no records are returned if there is no site record for parameter
+                # or if the record isn't clean (doesn't have the correct fields)
+                # don't count these sites to apply to site_limit
+                if results is None or len(results) == 0:
                     continue
 
                 if config.output_single_timeseries:
@@ -156,13 +176,14 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         else:
                             persister.timeseries.append((site, records))
                         persister.sites.append(site)
+            sites_with_records_count += 1
 
     except BaseException:
         import traceback
 
         exc = traceback.format_exc()
-        print(exc)
-        print(f"Failed to unify {site_source}")
+        config.warn(exc)
+        config.warn(f"Failed to unify {site_source}")
 
 
 def _unify_parameter(
@@ -181,6 +202,7 @@ def _unify_parameter(
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
+
     persister.finalize(config.output_name)
 
 
@@ -311,8 +333,9 @@ if __name__ == "__main__":
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
-    # waterlevel_unification_test()
-    analyte_unification_test()
+    setup_logging()
+    waterlevel_unification_test()
+    # analyte_unification_test()
     # print(health_check("nwis"))
     # generate_site_bounds()
 

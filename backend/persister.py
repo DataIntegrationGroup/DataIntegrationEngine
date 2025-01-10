@@ -18,21 +18,15 @@ import io
 import os
 import shutil
 
-import click
 import pandas as pd
 import geopandas as gpd
 
-from backend.record import SiteRecord
+from backend.logging import Loggable
 
 try:
     from google.cloud import storage
 except ImportError:
     print("google cloud storage not available")
-
-
-class Loggable:
-    def log(self, msg, fg="yellow"):
-        click.secho(f"{self.__class__.__name__:30s}{msg}", fg=fg)
 
 
 class BasePersister(Loggable):
@@ -44,6 +38,8 @@ class BasePersister(Loggable):
         self.combined = []
         self.timeseries = []
         self.sites = []
+
+        super().__init__()
         # self.keys = record_klass.keys
 
     def load(self, records: list):
@@ -139,11 +135,12 @@ def write_memory(path, func, records):
 
 
 def dump_single_timeseries(writer, timeseries):
+    headers_have_not_been_written = True
     for i, (site, records) in enumerate(timeseries):
-
         for j, record in enumerate(records):
-            if i == 0:
+            if i == 0 and headers_have_not_been_written:
                 writer.writerow(record.keys)
+                headers_have_not_been_written = False
             writer.writerow(record.to_row())
 
 

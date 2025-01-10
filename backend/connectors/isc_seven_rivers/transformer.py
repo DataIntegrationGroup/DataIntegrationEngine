@@ -53,14 +53,14 @@ class ISCSevenRiversAnalyteTransformer(AnalyteTransformer):
 class ISCSevenRiversWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ISCSevenRivers"
 
-    # def _transform_hook(self, record, config, parent_record):
+    # def _transform_hook(self, record, config, site_record):
     #     rec = {
     #         "source": "ISCSevenRivers",
-    #         "id": parent_record.id,
-    #         "location": parent_record.name,
-    #         "latitude": parent_record.latitude,
-    #         "longitude": parent_record.longitude,
-    #         "elevation": parent_record.elevation,
+    #         "id": site_record.id,
+    #         "location": site_record.name,
+    #         "latitude": site_record.latitude,
+    #         "longitude": site_record.longitude,
+    #         "elevation": site_record.elevation,
     #         "elevation_units": "ft",
     #     }
     #     if config.output_summary_waterlevel_stats:

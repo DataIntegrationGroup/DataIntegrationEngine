@@ -8,6 +8,8 @@ The following are necessary for adding a source:
 - the `use_source_<source>` flag needs to be added to the `analyte_sources` method in the `Config` class in **/backend/config.py** if analytes are available for that source
 - the `use_source_<source>` flag needs to be added to the `water_level_sources` method in the `Config` class in **/backend/config.py** if water levels are available for that source
 
+**IMPORTANT: add tests for the source**
+
 For the sake of discription, the example source is called Faux.
 
 # /backend/connectors/faux
@@ -30,7 +32,7 @@ The following methods need to be defined for Faux. See `BaseSiteSource` for doc 
 The following methods need to be defined for Faux. See `BaseAnalyteSource` for doc strings for each of the methods:
 
 - `get_records`
-- `_extract_parent_records`
+- `_extract_site_records`
 - `_extract_parameter_units`
 - `_extract_most_recent`
 - `_extract_parameter_result`
@@ -45,7 +47,7 @@ The following method is optional:
 The following methods need to be defined for Faux. See `BaseWaterLevelSource` for doc strings for each of the methods:
 
 - `get_records`
-- `_extract_parent_records`
+- `_extract_site_records`
 - `_extract_parameter_units`
 - `_extract_most_recent`
 - `_extract_parameter_result`

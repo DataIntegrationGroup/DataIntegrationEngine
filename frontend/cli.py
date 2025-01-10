@@ -21,6 +21,10 @@ from backend.config import Config
 from backend.constants import ANALYTE_CHOICES
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
+from backend.logging import setup_logging
+
+setup_logging()
+
 
 @click.group()
 def cli():
@@ -133,6 +137,23 @@ DT_OPTIONS = [
     ),
 ]
 
+TIMESERIES_OPTIONS = [
+    click.option(
+        "--separated_timeseries",
+        is_flag=True,
+        default=False,
+        show_default=True,
+        help="Output separate timeseries files for every site",
+    ),
+    click.option(
+        "--unified_timeseries",
+        is_flag=True,
+        default=False,
+        show_default=True,
+        help="Output single timeseries file, which includes all sites",
+    ),
+]
+
 
 def add_options(options):
     def _add_options(func):
@@ -155,19 +176,14 @@ def wells(bbox, county):
 
 
 @cli.command()
-@click.option(
-    "--timeseries",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Include timeseries data",
-)
+@add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
-    timeseries,
+    separated_timeseries,
+    unified_timeseries,
     start_date,
     end_date,
     bbox,
@@ -184,8 +200,13 @@ def waterlevels(
     site_limit,
     dry,
 ):
+    if separated_timeseries or unified_timeseries:
+        timeseries = True
+    else:
+        timeseries = False
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
+    config.output_single_timeseries = unified_timeseries
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
@@ -210,20 +231,15 @@ def waterlevels(
 
 @cli.command()
 @click.argument("analyte", type=click.Choice(ANALYTE_CHOICES))
-@click.option(
-    "--timeseries",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Include timeseries data",
-)
+@add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
-    timeseries,
+    separated_timeseries,
+    unified_timeseries,
     start_date,
     end_date,
     bbox,
@@ -240,11 +256,16 @@ def analytes(
     site_limit,
     dry,
 ):
+    if separated_timeseries or unified_timeseries:
+        timeseries = True
+    else:
+        timeseries = False
     config = setup_config(
         f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
     )
     config.analyte = analyte
 
+    config.output_single_timeseries = unified_timeseries
     config.use_source_nmbgmr = no_amp
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd

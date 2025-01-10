@@ -51,8 +51,8 @@ from backend.source import (
 
 def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
-        return f"http://localhost:8000/{endpoint}"
-    return f"https://waterdata.nmt.edu/{endpoint}"
+        return f"http://localhost:8000/latest/{endpoint}"
+    return f"https://waterdata.nmt.edu/latest/{endpoint}"
 
 
 class NMBGMRSiteSource(BaseSiteSource):
@@ -68,7 +68,7 @@ class NMBGMRSiteSource(BaseSiteSource):
 
     def get_records(self):
         config = self.config
-        params = {}
+        params = {"site_type": "Groundwater other than spring (well)", "expand": False}
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
 
@@ -83,20 +83,36 @@ class NMBGMRSiteSource(BaseSiteSource):
             params["parameter"] = "Manual groundwater levels"
 
         # tags="features" because the response object is a GeoJSON
-        return self._execute_json_request(
+        sites = self._execute_json_request(
             _make_url("locations"), params, tag="features", timeout=30
         )
+        return sites
+
+        # loop through the responses and add well information for each location
+        # this may be slow because of the number of sites that need to be queried
+        # but it is necessary to get the well information. With further
+        # development, this could be faster if one can batch the requests
+        # to /wells
+        # for site in sites:
+        #     well_info = self._execute_json_request(
+        #         _make_url("/wells"),
+        #         params={"pointid": site["properties"]["point_id"]},
+        #         tag="",
+        #     )
+        #     site["properties"]["formation"] = well_info["formation"]
+        #     site["properties"]["well_depth"] = well_info["well_depth_ftbgs"]
+        #     site["properties"]["well_depth_units"] = "ft"
 
 
 class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         analyte = get_analyte_search_param(self.config.analyte, NMBGMR_ANALYTE_MAPPING)
         records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
-                "pointid": ",".join(make_site_list(parent_record)),
+                "pointid": ",".join(make_site_list(site_record)),
                 "analyte": analyte,
             },
             tag="",
@@ -107,8 +123,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
         return records_sorted_by_pointid
 
-    def _extract_parent_records(self, records, parent_record):
-        return records.get(parent_record.id, [])
+    def _extract_site_records(self, records, site_record):
+        return records.get(site_record.id, [])
 
     def _extract_parameter_units(self, records):
         return [r["Units"] for r in records]
@@ -123,6 +139,9 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_results(self, records):
         return [r["SampleValue"] for r in records]
+
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["info"]["CollectionDate"] for r in records]
 
     def _extract_parameter_record(self, record):
         record[PARAMETER] = self.config.analyte
@@ -153,18 +172,21 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
             "units": FEET,
         }
 
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [(r["DateMeasured"], r["TimeMeasured"]) for r in records]
+
     def _extract_parameter_results(self, records):
         return [r["DepthToWaterBGS"] for r in records]
 
-    def _extract_parent_records(self, records, parent_record):
-        return [ri for ri in records if ri["Well"]["PointID"] == parent_record.id]
+    def _extract_site_records(self, records, site_record):
+        return [ri for ri in records if ri["Well"]["PointID"] == site_record.id]
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         # if self.config.latest_water_level_only:
-        #     params = {"pointids": parent_record.id}
+        #     params = {"pointids": site_record.id}
         #     url = _make_url("waterlevels/latest")
         # else:
-        params = {"pointid": ",".join(make_site_list(parent_record))}
+        params = {"pointid": ",".join(make_site_list(site_record))}
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 

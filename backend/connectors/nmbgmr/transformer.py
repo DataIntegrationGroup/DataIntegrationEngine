@@ -51,19 +51,19 @@ class NMBGMRAnalyteTransformer(AnalyteTransformer):
 
 class NMBGMRWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "NMBGMR"
-    # def _transform_hook(self, record, config, parent_record):
+    # def _transform_hook(self, record, config, site_record):
     #     rec = {
     #         "source": "NMBGMR",
-    #         "id": parent_record.id,
-    #         "location": parent_record.name,
-    #         "usgs_site_id": parent_record.usgs_site_id,
-    #         "alternate_site_id": parent_record.alternate_site_id,
-    #         "latitude": parent_record.latitude,
-    #         "longitude": parent_record.longitude,
-    #         "well_depth": parent_record.well_depth,
-    #         "well_depth_units": parent_record.well_depth_units,
-    #         "elevation": parent_record.elevation,
-    #         "elevation_units": parent_record.elevation_units,
+    #         "id": site_record.id,
+    #         "location": site_record.name,
+    #         "usgs_site_id": site_record.usgs_site_id,
+    #         "alternate_site_id": site_record.alternate_site_id,
+    #         "latitude": site_record.latitude,
+    #         "longitude": site_record.longitude,
+    #         "well_depth": site_record.well_depth,
+    #         "well_depth_units": site_record.well_depth_units,
+    #         "elevation": site_record.elevation,
+    #         "elevation_units": site_record.elevation_units,
     #     }
     #
     #     if config.output_summary_waterlevel_stats:

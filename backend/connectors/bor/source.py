@@ -78,6 +78,9 @@ class BORAnalyteSource(BaseAnalyteSource):
     def _extract_parameter_units(self, records):
         return [ri["attributes"]["resultAttributes"]["units"] for ri in records]
 
+    def _extract_parameter_dates(self, records):
+        return [parse_dt(ri["attributes"]["dateTime"]) for ri in records]
+
     def _extract_most_recent(self, rs):
 
         record = get_most_recent(rs, "attributes.dateTime")
@@ -87,9 +90,9 @@ class BORAnalyteSource(BaseAnalyteSource):
             "units": record["attributes"]["resultAttributes"]["units"],
         }
 
-    def _extract_parent_records(self, records, parent_record):
+    def _extract_site_records(self, records, site_record):
         return [
-            ri for ri in records if ri["attributes"]["locationId"] == parent_record.id
+            ri for ri in records if ri["attributes"]["locationId"] == site_record.id
         ]
 
     def _reorder_catalog_items(self, items):
@@ -98,12 +101,10 @@ class BORAnalyteSource(BaseAnalyteSource):
             items = items[self._catalog_item_idx :] + items[: self._catalog_item_idx]
         return items
 
-    def get_records(self, parent_record):
+    def get_records(self, site_record):
         code = get_analyte_search_param(self.config.analyte, BOR_ANALYTE_MAPPING)
 
-        for i, item in enumerate(
-            self._reorder_catalog_items(parent_record.catalogItems)
-        ):
+        for i, item in enumerate(self._reorder_catalog_items(site_record.catalogItems)):
 
             data = self._execute_json_request(f'https://data.usbr.gov{item["id"]}')
             if not data:

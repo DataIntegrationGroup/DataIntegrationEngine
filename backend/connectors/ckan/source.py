@@ -112,12 +112,12 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
 class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
     transformer_klass = OSERoswellWaterLevelTransformer
 
-    def get_records(self, parent_record):
-        return self._parse_response(parent_record, self.get_response())
+    def get_records(self, site_record):
+        return self._parse_response(site_record, self.get_response())
 
-    def _parse_response(self, parent_record, resp):
+    def _parse_response(self, site_record, resp):
         records = resp.json()["result"]["records"]
-        return [record for record in records if record["Site_ID"] == parent_record.id]
+        return [record for record in records if record["Site_ID"] == site_record.id]
 
     def _extract_parameter_results(self, records):
         return [float(r["DTWGS"]) for r in records]
@@ -126,11 +126,17 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         record = get_most_recent(records, tag="Date")
         return {"value": record["DTWGS"], "datetime": record["Date"], "units": FEET}
 
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["Date"] for r in records]
+
     def _extract_parameter_record(self, record):
         record[DTW] = float(record["DTWGS"])
         record[DT_MEASURED] = record["Date"]
         record[DTW_UNITS] = FEET
         return record
+
+    def _clean_records(self, records: list) -> list:
+        return [r for r in records if r["DTWGS"] is not None and r["Date"] is not None]
 
 
 # ============= EOF =============================================

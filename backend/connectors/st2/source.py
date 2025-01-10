@@ -88,12 +88,19 @@ class ST2WaterLevelSource(STWaterLevelSource):
     def _extract_parameter_results(self, records):
         return [r["observation"].result for r in records]
 
-    def get_records(self, parent_record, *args, **kw):
+    def _extract_parameter_dates(self, records: list) -> list:
+        return [r["observation"].phenomenon_time for r in records]
+
+    def _clean_records(self, records: list) -> list:
+        rs = [r for r in records if r["observation"].result is not None]
+        return rs
+
+    def get_records(self, site_record, *args, **kw):
         service = self.get_service()
         config = self.config
 
         records = []
-        for t in self._get_things(service, parent_record):
+        for t in self._get_things(service, site_record):
             if t.name == "Water Well":
                 for di in t.datastreams:
 
@@ -112,7 +119,7 @@ class ST2WaterLevelSource(STWaterLevelSource):
                         records.append(
                             {
                                 "thing": t,
-                                "location": parent_record,
+                                "location": site_record,
                                 "datastream": di,
                                 "observation": obs,
                             }
