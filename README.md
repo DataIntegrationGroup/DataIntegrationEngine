@@ -5,7 +5,7 @@
 
 
 ![NMWDI](https://newmexicowaterdata.org/wp-content/uploads/2023/11/newmexicowaterdatalogoNov2023.png)
-![NMBGMR](https://waterdata.nmt.edu/latest/static/nmbgmr_logo_resized.png)
+![NMBGMR](https://waterdata.nmt.edu/static/nmbgmr_logo_resized.png)
 
 
 This package provides a command line interface to New Mexico Water Data Initiaive's Data Integration Engine. This tool is used to integrate the water data from multiple sources.
