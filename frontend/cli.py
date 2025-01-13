@@ -30,73 +30,6 @@ setup_logging()
 def cli():
     pass
 
-
-ALL_SOURCE_OPTIONS = [
-    click.option(
-        "--no-amp",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Include/Exclude AMP data. Default is to include",
-    ),
-    click.option(
-        "--no-nwis",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude NWIS data. Default is to include",
-    ),
-    click.option(
-        "--no-pvacd",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude PVACD data. Default is to include",
-    ),
-    click.option(
-        "--no-isc-seven-rivers",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude ISC Seven Rivers data. Default is to include",
-    ),
-    click.option(
-        "--no-bor",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude BOR data. Default is to include",
-    ),
-    click.option(
-        "--no-wqp",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude WQP data. Default is to include",
-    ),
-    click.option(
-        "--no-ckan",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude CKAN data. Default is to include",
-    ),
-    click.option(
-        "--no-dwb",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude DWB data. Default is to include",
-    ),
-    click.option(
-        "--no-bernco",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude Bernalillo County Water Authority data. Default is to include",
-    ),
-]
-
 ANALYTE_SOURCE_OPTIONS = [
     click.option(
         "--no-amp",
@@ -165,11 +98,11 @@ WATERLEVEL_SOURCE_OPTIONS = [
         help="Exclude ISC Seven Rivers data. Default is to include",
     ),
     click.option(
-        "--no-ckan",
+        "--no-nm-ose-roswell",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Exclude CKAN data. Default is to include",
+        help="Exclude NM OSE Roswell data. Default is to include",
     ),
     click.option(
         "--no-bernco",
@@ -275,7 +208,7 @@ def waterlevels(
     no_nwis,
     no_pvacd,
     no_isc_seven_rivers,
-    no_ckan,
+    no_nm_ose_roswell,
     no_bernco,
     site_limit,
     dry,
@@ -291,7 +224,7 @@ def waterlevels(
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
     config.use_source_iscsevenrivers = no_isc_seven_rivers
-    config.use_source_oseroswell = no_ckan
+    config.use_source_nmoseroswell = no_nm_ose_roswell
     config.use_source_bernco = no_bernco
 
     config.start_date = start_date

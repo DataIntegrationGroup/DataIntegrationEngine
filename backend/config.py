@@ -61,7 +61,7 @@ SOURCE_KEYS = (
     "wqp",
     "iscsevenrivers",
     "nwis",
-    "oseroswell",
+    "nmoseroswell",
     "pvacd",
     "bor",
     "dwb",
@@ -110,7 +110,7 @@ class Config(Loggable):
     use_source_wqp: bool = False
     use_source_iscsevenrivers: bool = False
     use_source_nwis: bool = False
-    use_source_oseroswell: bool = False
+    use_source_nmoseroswell: bool = False
     use_source_pvacd: bool = False
     use_source_bor: bool = False
     use_source_dwb: bool = False
@@ -204,7 +204,7 @@ class Config(Loggable):
         if self.use_source_nwis:
             sources.append((NWISSiteSource(), NWISWaterLevelSource()))
 
-        if self.use_source_oseroswell:
+        if self.use_source_nmoseroswell:
             sources.append(
                 (
                     OSERoswellSiteSource(HONDO_RESOURCE_ID),
@@ -234,36 +234,6 @@ class Config(Loggable):
             ss.set_config(self)
 
         return sources
-
-    # def site_sources(self):
-    #     sources = [
-    #         NMBGMRSiteSource(),
-    #         WQPSiteSource(),
-    #         ISCSevenRiversSiteSource(),
-    #         NWISSiteSource(),
-    #         DWBSiteSource(),
-    #         BORSiteSource(),
-    #         PVACDSiteSource(),
-    #         EBIDSiteSource(),
-    #         OSERoswellSiteSource(HONDO_RESOURCE_ID),
-    #         OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
-    #         OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
-    #     ]
-    #
-    #     # if self.use_source_nmbgmr:
-    #     #     sources.append(NMBGMRSiteSource)
-    #     # if self.use_source_isc_seven_rivers:
-    #     #     sources.append(ISCSevenRiversSiteSource)
-    #     # if self.use_source_ose_roswell:
-    #     #     sources.append(OSERoswellSiteSource)
-    #     # if self.use_source_nwis:
-    #     #     sources.append(USGSSiteSource)
-    #     # if self.use_source_st2:
-    #     #     sources.append(PVACDSiteSource)
-    #     #     sources.append(EBIDSiteSource)
-    #     # if self.use_source_bor:
-    #     #     sources.append(BORSiteSource)
-    #     return sources
 
     def bbox_bounding_points(self, bbox=None):
         if bbox is None:
