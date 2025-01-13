@@ -31,7 +31,7 @@ def cli():
     pass
 
 
-SOURCE_OPTIONS = [
+ALL_SOURCE_OPTIONS = [
     click.option(
         "--no-amp",
         is_flag=True,
@@ -87,6 +87,89 @@ SOURCE_OPTIONS = [
         default=True,
         show_default=True,
         help="Exclude DWB data. Default is to include",
+    ),
+    click.option(
+        "--no-bernco",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude Bernalillo County Water Authority data. Default is to include",
+    ),
+]
+
+ANALYTE_SOURCE_OPTIONS = [
+    click.option(
+        "--no-amp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Include/Exclude AMP data. Default is to include",
+    ),
+    click.option(
+        "--no-isc-seven-rivers",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude ISC Seven Rivers data. Default is to include",
+    ),
+    click.option(
+        "--no-bor",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude BOR data. Default is to include",
+    ),
+    click.option(
+        "--no-wqp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude WQP data. Default is to include",
+    ),
+    click.option(
+        "--no-dwb",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude DWB data. Default is to include",
+    ),
+]
+
+WATERLEVEL_SOURCE_OPTIONS = [
+    click.option(
+        "--no-amp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Include/Exclude AMP data. Default is to include",
+    ),
+    click.option(
+        "--no-nwis",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude NWIS data. Default is to include",
+    ),
+    click.option(
+        "--no-pvacd",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude PVACD data. Default is to include",
+    ),
+    click.option(
+        "--no-isc-seven-rivers",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude ISC Seven Rivers data. Default is to include",
+    ),
+    click.option(
+        "--no-ckan",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude CKAN data. Default is to include",
     ),
     click.option(
         "--no-bernco",
@@ -179,7 +262,7 @@ def wells(bbox, county):
 @add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
-@add_options(SOURCE_OPTIONS)
+@add_options(WATERLEVEL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
     separated_timeseries,
@@ -192,10 +275,7 @@ def waterlevels(
     no_nwis,
     no_pvacd,
     no_isc_seven_rivers,
-    no_bor,
-    no_wqp,
     no_ckan,
-    no_dwb,
     no_bernco,
     site_limit,
     dry,
@@ -211,10 +291,7 @@ def waterlevels(
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
     config.use_source_iscsevenrivers = no_isc_seven_rivers
-    config.use_source_bor = no_bor
-    config.use_source_wqp = no_wqp
     config.use_source_oseroswell = no_ckan
-    config.use_source_dwb = no_dwb
     config.use_source_bernco = no_bernco
 
     config.start_date = start_date
@@ -234,7 +311,7 @@ def waterlevels(
 @add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
-@add_options(SOURCE_OPTIONS)
+@add_options(ANALYTE_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
@@ -245,14 +322,10 @@ def analytes(
     bbox,
     county,
     no_amp,
-    no_nwis,
-    no_pvacd,
     no_isc_seven_rivers,
     no_bor,
     no_wqp,
-    no_ckan,
     no_dwb,
-    no_bernco,
     site_limit,
     dry,
 ):
@@ -267,14 +340,10 @@ def analytes(
 
     config.output_single_timeseries = unified_timeseries
     config.use_source_nmbgmr = no_amp
-    config.use_source_nwis = no_nwis
-    config.use_source_pvacd = no_pvacd
     config.use_source_iscsevenrivers = no_isc_seven_rivers
     config.use_source_bor = no_bor
     config.use_source_wqp = no_wqp
-    config.use_source_oseroswell = no_ckan
     config.use_source_dwb = no_dwb
-    config.use_source_bernco = no_bernco
 
     config.start_date = start_date
     config.end_date = end_date

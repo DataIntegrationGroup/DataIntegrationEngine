@@ -106,15 +106,15 @@ class Config(Loggable):
     wkt: str = ""
 
     # sources
-    use_source_nmbgmr: bool = True
-    use_source_wqp: bool = True
-    use_source_iscsevenrivers: bool = True
-    use_source_nwis: bool = True
-    use_source_oseroswell: bool = True
-    use_source_pvacd: bool = True
-    use_source_bor: bool = True
-    use_source_dwb: bool = True
-    use_source_bernco: bool = True
+    use_source_nmbgmr: bool = False
+    use_source_wqp: bool = False
+    use_source_iscsevenrivers: bool = False
+    use_source_nwis: bool = False
+    use_source_oseroswell: bool = False
+    use_source_pvacd: bool = False
+    use_source_bor: bool = False
+    use_source_dwb: bool = False
+    use_source_bernco: bool = False
 
     analyte: str = ""
 
@@ -171,8 +171,6 @@ class Config(Loggable):
     def analyte_sources(self):
         sources = []
 
-        # if self.use_source_wqp:
-        # sources.append((WQPSiteSource, WQPAnalyteSource))
         if self.use_source_bor:
             sources.append((BORSiteSource(), BORAnalyteSource()))
         if self.use_source_wqp:
@@ -227,11 +225,9 @@ class Config(Loggable):
             )
         if self.use_source_pvacd:
             sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
-            # sources.append((EBIDSiteSource, EBIDWaterLevelSource))
         if self.use_source_bernco:
             sources.append((BernCoSiteSource(), BernCoWaterLevelSource()))
-        # if self.use_source_bor:
-        #     sources.append((BORSiteSource(), BORWaterLevelSource()))
+
 
         for s, ss in sources:
             s.set_config(self)
