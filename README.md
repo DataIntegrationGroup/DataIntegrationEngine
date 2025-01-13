@@ -18,20 +18,18 @@ pip install nmuwd
 ## Sources
 Data comes from the following sources. We are continuously adding new sources as we learn of them and they become available. If you have data that you would like to be part of the Data Integration Engine please get in touch at newmexicowaterdata@nmt.edu.
 
- - [Bureau of Reclamation](https://data.usbr.gov/) 
- - [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
- - [ST2 (NMWDI)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/)
-   - Pecos Valley Artesian Conservancy District
-   - Bernalillo County
-   - New Mexico Environment Department Drinking Water Bureau
- - [NM Water Data CKAN catalog](https://catalog.newmexicowaterdata.org/)
-   - OSE Roswell District Office
- - ISC Seven Rivers
- - [New Mexico Bureau of Geology and Mineral Resources (AMP)](https://waterdata.nmt.edu/)
- - [Water Quality Portal](https://www.waterqualitydata.us/)
-   - USGS
-   - EPA
-   - and over 400 state, federal, tribal, and local agencies
+- [Bernalillo County (BernCo)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27BernCo%27)
+- [Bureau of Reclamation (BoR)](https://data.usbr.gov/) 
+- [New Mexico Bureau of Geology and Mineral Resources (AMP)](https://waterdata.nmt.edu/)
+- [New Mexico Environment Department Drinking Water Bureau (DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
+- [New Mexico Office of the State Engineer ISC Seven Rivers (ISC Seven Rivers)](https://nmisc-wf.gladata.com/api/getMonitoringPoints.ashx)
+- [New Mexico Office of the State Engineer Roswell District Office (OSE Roswell)](https://catalog.newmexicowaterdata.org/dataset/pecos_region_manual_groundwater_levels)
+- [Pecos Valley Artesian Conservancy District (PVACD)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27PVACD%27)
+- [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
+- [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
+  - USGS
+  - EPA
+  - and over 400 state, federal, tribal, and local agencies
 
 
 ### Source Inclusion & Exclusion
