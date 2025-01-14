@@ -229,7 +229,6 @@ class Config(Loggable):
         if self.use_source_bernco:
             sources.append((BernCoSiteSource(), BernCoWaterLevelSource()))
 
-
         for s, ss in sources:
             s.set_config(self)
             ss.set_config(self)
