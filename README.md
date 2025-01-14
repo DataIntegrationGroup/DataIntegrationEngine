@@ -41,7 +41,7 @@ Data comes from the following sources. We are continuously adding new sources as
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
 
 - `--no-bernco` to exclude Bernalillo County (BernCo) data
-- `--no-bor` to exclude Bureaof of Reclamation data
+- `--no-bor` to exclude Bureaof of Reclamation (Bor) data
 - `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
 - `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
 - `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
