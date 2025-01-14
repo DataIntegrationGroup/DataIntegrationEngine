@@ -114,13 +114,15 @@ The following flags can be used to filter by dates:
 The data is saved to the current working directory. A log of the inputs and processes, called `die.log`, is also saved to the current working directory. If a subsquent process is run and the log from the previous process has not been moved or stored elsewhere, the log for the subsequent process will be appended to the existing log.
 
 ### Timeseries Data
-The flag `--separated_timeseries` exports timeseries for every location in their own file in the directory output_series (e.g. `AB-0002.csv`, `AB-0003.csv`). Locations with only one observation are gathered and exported to the file `output.combined.csv`.
+The flag `--separated_timeseries` exports timeseries for every location in their own file in the directory output_series (e.g. `AB-0002.csv`, `AB-0003.csv`).
 
-The flag `--unified_timeseries` exports all timeseries for all locations in one file titled `output.timeseries.csv`. It also exports a file titled `output.sites.csv` that contains site information, such as latitude, longitude, and elevation.
+The flag `--unified_timeseries` exports all timeseries for all locations in one file titled `output.timeseries.csv`. 
 
-#### Table Headers: Unified
+Both time series export a file titled `output.sites.csv` that contains site information, such as latitude, longitude, and elevation.
 
-The table headers for unified timeseries data are as follows:
+#### Table Headers
+
+The table headers for timeseries data are as follows:
 
 **output.sites.csv**
 - `source`: the organization/source for the site
@@ -148,50 +150,6 @@ The table headers for unified timeseries data are as follows:
 **output.timeseries.csv - analytes**
 - `source`: the organization/sources for the site
 - `id`: the id of the site. The id is used as the key to join the output.sites.csv table
-- `parameter`: the name of the analyte whose measurements are reported in the table. This corresponds the requested analyte
-- `parameter_value`: value of the measurement
-- `parameter_units`: units of the measurement
-- `date_measured`: date of measurement in YYYY-MM-DD format
-- `time_measured`: time of measurement if it exists
-
-#### Table Headers: Separated
-
-The files for the individual sites contain the same headers as **output.timeseries.csv** from the unified time series tables.
-
-**output.combined.csv - waterlevels**
-- `source`: the organization/source for the site
-- `id`: the id of the site. The id is used as the key to join the output.timeseries.csv table
-- `name`: the colloquial name for the site if it exists
-- `latitude`: latitude in decimal degrees
-- `longitude`: the longitude in decimal degrees
-- `elevation` ground surface elevation of the site in feet
-- `elevation_units`: the units of the ground surface elevation. Defaults to ft
-- `horizontal_datum`: horizontal datum of the latitude and longitude. Defaults to WGS84
-- `vertical_datum`: the vertical datum of the elevation
-- `usgs_site_id`: USGS site id if it exists
-- `alternate_site_id`: alternate site id if it exists
-- `formation`: geologic formation in which the well terminates if it exists
-- `aquifer`: aquifer from which the well draws water if it exists
-- `well_depth`: depth of well if it exists
-- `depth_to_water_ft_below_ground_surface`: depth to water below ground surface in ft
-- `date_measured`: date of measurement in YYYY-MM-DD format
-- `time_measured`: time of measurement if it exists
-
-**output.combined.csv - analytes**
-- `source`: the organization/source for the site
-- `id`: the id of the site. The id is used as the key to join the output.timeseries.csv table
-- `name`: the colloquial name for the site if it exists
-- `latitude`: latitude in decimal degrees
-- `longitude`: the longitude in decimal degrees
-- `elevation` ground surface elevation of the site in feet
-- `elevation_units`: the units of the ground surface elevation. Defaults to ft
-- `horizontal_datum`: horizontal datum of the latitude and longitude. Defaults to WGS84
-- `vertical_datum`: the vertical datum of the elevation
-- `usgs_site_id`: USGS site id if it exists
-- `alternate_site_id`: alternate site id if it exists
-- `formation`: geologic formation in which the well terminates if it exists
-- `aquifer`: aquifer from which the well draws water if it exists
-- `well_depth`: depth of well if it exists
 - `parameter`: the name of the analyte whose measurements are reported in the table. This corresponds the requested analyte
 - `parameter_value`: value of the measurement
 - `parameter_units`: units of the measurement

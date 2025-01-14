@@ -164,18 +164,10 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                 if results is None or len(results) == 0:
                     continue
 
-                if config.output_single_timeseries:
-                    for site, records in results:
-                        persister.timeseries.append((site, records))
-                        persister.sites.append(site)
-                else:
-                    # combine sites that only have one record
-                    for site, records in results:
-                        if len(records) == 1:
-                            persister.combined.append((site, records[0]))
-                        else:
-                            persister.timeseries.append((site, records))
-                        persister.sites.append(site)
+                for site, records in results:
+                    persister.timeseries.append((site, records))
+                    persister.sites.append(site)
+
             sites_with_records_count += 1
 
     except BaseException:
@@ -200,7 +192,7 @@ def _unify_parameter(
         persister.dump_sites(f"{config.output_path}.sites")
         persister.dump_single_timeseries(f"{config.output_path}.timeseries")
     else:
-        persister.dump_combined(f"{config.output_path}.combined")
+        # persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
         persister.dump_sites(f"{config.output_path}.sites")
 

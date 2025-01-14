@@ -35,7 +35,6 @@ class BasePersister(Loggable):
 
     def __init__(self):
         self.records = []
-        self.combined = []
         self.timeseries = []
         self.sites = []
 
@@ -62,10 +61,10 @@ class BasePersister(Loggable):
                 self.log(f"dumping {site.id} to {os.path.abspath(path)}")
                 self._write(path, records)
 
-            self._write(
-                os.path.join(root, self.add_extension("sites")),
-                [s[0] for s in self.timeseries],
-            )
+            # self._write(
+            #     os.path.join(root, self.add_extension("sites")),
+            #     [s[0] for s in self.timeseries],
+            # )
         else:
             self.log("no timeseries records to dump", fg="red")
 
