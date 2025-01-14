@@ -190,7 +190,7 @@ def _unify_parameter(
     elif config.output_unified_timeseries:
         persister.dump_sites(f"{config.output_path}.sites")
         persister.dump_single_timeseries(f"{config.output_path}.timeseries")
-    else:   # config.output_separated_timeseries
+    else:  # config.output_separated_timeseries
         # persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
         persister.dump_sites(f"{config.output_path}.sites")

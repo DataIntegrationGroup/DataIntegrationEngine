@@ -158,8 +158,12 @@ class Config(Loggable):
             self.wkt = payload.get("wkt", "")
             self.county = payload.get("county", "")
             self.output_summary = payload.get("output_summary", False)
-            self.output_timeseries_unified = payload.get("output_timeseries_unified", False)
-            self.output_timeseries_separated = payload.get("output_timeseries_separated", False)
+            self.output_timeseries_unified = payload.get(
+                "output_timeseries_unified", False
+            )
+            self.output_timeseries_separated = payload.get(
+                "output_timeseries_separated", False
+            )
             self.output_name = payload.get("output_name", "output")
             self.start_date = payload.get("start_date", "")
             self.end_date = payload.get("end_date", "")

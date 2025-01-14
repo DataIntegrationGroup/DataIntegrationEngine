@@ -157,11 +157,12 @@ TIMESERIES_OPTIONS = [
 OUTPUT_OPTIONS = [
     click.option(
         "--output",
-        type = click.Choice(["summary", "timeseries_unified", "timeseries_separated"]),
+        type=click.Choice(["summary", "timeseries_unified", "timeseries_separated"]),
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
     )
 ]
+
 
 def add_options(options):
     def _add_options(func):
@@ -223,7 +224,7 @@ def waterlevels(
         summary = False
         timeseries_unified = False
         timeseries_separated = True
-    
+
     config.output_summary = summary
     config.output_timeseries_unified = timeseries_unified
     config.output_timeseries_separated = timeseries_separated
@@ -280,9 +281,7 @@ def analytes(
     dry,
 ):
     # instantiate config
-    config = setup_config(
-        f"analytes ({analyte})", bbox, county, site_limit, dry
-    )
+    config = setup_config(f"analytes ({analyte})", bbox, county, site_limit, dry)
 
     # output type
     if output == "summary":
@@ -297,7 +296,7 @@ def analytes(
         summary = False
         timeseries_unified = False
         timeseries_separated = True
-    
+
     config.output_summary = summary
     config.output_timeseries_unified = timeseries_unified
     config.output_timeseries_separated = timeseries_separated
