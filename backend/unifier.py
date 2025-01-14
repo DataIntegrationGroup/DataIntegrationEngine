@@ -202,6 +202,7 @@ def _unify_parameter(
     else:
         persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
+        persister.dump_sites(f"{config.output_path}.sites")
 
     persister.finalize(config.output_name)
 
