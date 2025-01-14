@@ -126,7 +126,8 @@ class Config(Loggable):
     output_elevation_units: str = FEET
     output_well_depth_units: str = FEET
     output_summary: bool = False
-    output_single_timeseries: bool = False
+    output_timeseries_unified: bool = False
+    output_timeseries_separated: bool = False
 
     latest_water_level_only: bool = False
 
@@ -157,13 +158,12 @@ class Config(Loggable):
             self.wkt = payload.get("wkt", "")
             self.county = payload.get("county", "")
             self.output_summary = payload.get("output_summary", False)
+            self.output_timeseries_unified = payload.get("output_timeseries_unified", False)
+            self.output_timeseries_separated = payload.get("output_timeseries_separated", False)
             self.output_name = payload.get("output_name", "output")
             self.start_date = payload.get("start_date", "")
             self.end_date = payload.get("end_date", "")
             self.analyte = payload.get("analyte", "")
-            self.output_single_timeseries = payload.get(
-                "output_single_timeseries", False
-            )
 
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
@@ -321,7 +321,8 @@ class Config(Loggable):
                 "output_dir",
                 "output_name",
                 "output_summary",
-                "output_single_timeseries",
+                "output_timeseries_unified",
+                "output_timeseries_separated",
                 "output_horizontal_datum",
                 "output_elevation_units",
             ),

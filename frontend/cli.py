@@ -154,6 +154,14 @@ TIMESERIES_OPTIONS = [
     ),
 ]
 
+OUTPUT_OPTIONS = [
+    click.option(
+        "--output",
+        type = click.Choice(["summary", "timeseries_unified", "timeseries_separated"]),
+        required=True,
+        help="Output summary file, single unified timeseries file, or separated timeseries files",
+    )
+]
 
 def add_options(options):
     def _add_options(func):
@@ -176,14 +184,13 @@ def wells(bbox, county):
 
 
 @cli.command()
-@add_options(TIMESERIES_OPTIONS)
+@add_options(OUTPUT_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
-    separated_timeseries,
-    unified_timeseries,
+    output,
     start_date,
     end_date,
     bbox,
@@ -200,16 +207,26 @@ def waterlevels(
     site_limit,
     dry,
 ):
-    # output type
-    if separated_timeseries or unified_timeseries:
-        timeseries = True
-    else:
-        timeseries = False
-
     # instantiate config
-    config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
+    config = setup_config("waterlevels", bbox, county, site_limit, dry)
 
-    config.output_single_timeseries = unified_timeseries
+    # output type
+    if output == "summary":
+        summary = True
+        timeseries_unified = False
+        timeseries_separated = False
+    elif output == "timeseries_unified":
+        summary = False
+        timeseries_unified = True
+        timeseries_separated = False
+    elif output == "timeseries_separated":
+        summary = False
+        timeseries_unified = False
+        timeseries_separated = True
+    
+    config.output_summary = summary
+    config.output_timeseries_unified = timeseries_unified
+    config.output_timeseries_separated = timeseries_separated
 
     # sources
     config.use_source_bernco = no_bernco
@@ -238,15 +255,14 @@ def waterlevels(
 
 @cli.command()
 @click.argument("analyte", type=click.Choice(ANALYTE_CHOICES))
-@add_options(TIMESERIES_OPTIONS)
+@add_options(OUTPUT_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
-    separated_timeseries,
-    unified_timeseries,
+    output,
     start_date,
     end_date,
     bbox,
@@ -263,17 +279,28 @@ def analytes(
     site_limit,
     dry,
 ):
-    # output type
-    if separated_timeseries or unified_timeseries:
-        timeseries = True
-    else:
-        timeseries = False
-
     # instantiate config
     config = setup_config(
-        f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
+        f"analytes ({analyte})", bbox, county, site_limit, dry
     )
-    config.output_single_timeseries = unified_timeseries
+
+    # output type
+    if output == "summary":
+        summary = True
+        timeseries_unified = False
+        timeseries_separated = False
+    elif output == "timeseries_unified":
+        summary = False
+        timeseries_unified = True
+        timeseries_separated = False
+    elif output == "timeseries_separated":
+        summary = False
+        timeseries_unified = False
+        timeseries_separated = True
+    
+    config.output_summary = summary
+    config.output_timeseries_unified = timeseries_unified
+    config.output_timeseries_separated = timeseries_separated
 
     # sources
     config.use_source_bor = no_bor
@@ -322,7 +349,7 @@ def sources(bbox, county):
         click.echo(s)
 
 
-def setup_config(tag, timeseries, bbox, county, site_limit, dry):
+def setup_config(tag, bbox, county, site_limit, dry):
     config = Config()
     if county:
         click.echo(f"Getting {tag} for county {county}")
@@ -332,7 +359,6 @@ def setup_config(tag, timeseries, bbox, county, site_limit, dry):
         # bbox = -105.396826 36.219290, -106.024162 35.384307
         config.bbox = bbox
 
-    config.output_summary = not timeseries
     config.site_limit = site_limit
     config.dry = dry
 

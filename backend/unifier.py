@@ -182,16 +182,15 @@ def _unify_parameter(
     config,
     sources,
 ):
-    use_summarize = config.output_summary
     persister = _perister_factory(config)
     for site_source, parameter_source in sources:
         _site_wrapper(site_source, parameter_source, persister, config)
-    if use_summarize:
+    if config.output_summary:
         persister.save(config.output_path)
-    elif config.output_single_timeseries:
+    elif config.output_unified_timeseries:
         persister.dump_sites(f"{config.output_path}.sites")
         persister.dump_single_timeseries(f"{config.output_path}.timeseries")
-    else:
+    else:   # config.output_separated_timeseries
         # persister.dump_combined(f"{config.output_path}.combined")
         persister.dump_timeseries(f"{config.output_path}_timeseries")
         persister.dump_sites(f"{config.output_path}.sites")
