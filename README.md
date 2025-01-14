@@ -19,26 +19,26 @@ pip install nmuwd
 Data comes from the following sources. We are continuously adding new sources as we learn of them and they become available. If you have data that you would like to be part of the Data Integration Engine please get in touch at newmexicowaterdata@nmt.edu.
 
 - [Bernalillo County (BernCo)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27BernCo%27)
-  - Available data: water levels
+  - Available data: `water levels`
 - [Bureau of Reclamation (BoR)](https://data.usbr.gov/) 
-  - Available data: water quality
+  - Available data: `water quality`
 - [New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP)](https://waterdata.nmt.edu/)
-  - Available data: water levels, water quality
+  - Available data: `water levels`, `water quality`
 - [New Mexico Environment Department Drinking Water Bureau (NMED DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
-  - Available data: water quality
+  - Available data: `water quality`
 - [New Mexico Office of the State Engineer ISC Seven Rivers (NMOSE ISC Seven Rivers)](https://nmisc-wf.gladata.com/api/getMonitoringPoints.ashx)
-  - Available data: water levels, water quality
+  - Available data: `water levels`, `water quality`
 - [New Mexico Office of the State Engineer Roswell District Office (NMOSE Roswell)](https://catalog.newmexicowaterdata.org/dataset/pecos_region_manual_groundwater_levels)
-  - Available data: water levels
+  - Available data: `water levels`
 - [Pecos Valley Artesian Conservancy District (PVACD)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27PVACD%27)
-  - Available data: water levels
+  - Available data: `water levels`
 - [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
-  - Available data: water levels
+  - Available data: `water levels`
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
-  - Available data: water quality
+  - Available data: `water quality`
 
 ### Source Inclusion & Exclusion
-The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output unless specifically excluded. The following flags are available to exclude a specific data source:
+The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
 
 - `--no-bernco` to exclude Bernalillo County (BernCo) data
 - `--no-bor` to exclude Bureaof of Reclamation data
