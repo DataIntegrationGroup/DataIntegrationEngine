@@ -57,37 +57,37 @@ from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 SOURCE_KEYS = (
-    "nmbgmr",
-    "wqp",
-    "iscsevenrivers",
-    "nwis",
-    "nmoseroswell",
-    "pvacd",
-    "bor",
-    "dwb",
     "bernco",
+    "bor",
+    "nmbgmr_amp",
+    "nmed_dwb",
+    "nmose_isc_seven_rivers",
+    "nmose_roswell",
+    "nwis",
+    "pvacd",
+    "wqp",    
 )
 
 
 def get_source(source):
-    if source == "nmbgmr":
-        return NMBGMRSiteSource()
-    elif source == "wqp":
-        return WQPSiteSource()
-    elif source == "iscsevenrivers":
-        return ISCSevenRiversSiteSource()
-    elif source == "nwis":
-        return NWISSiteSource()
-    elif source == "oseroswell":
-        return OSERoswellSiteSource(HONDO_RESOURCE_ID)
-    elif source == "pvacd":
-        return PVACDSiteSource()
+    if source == "bernco":
+        return BernCoSiteSource()
     elif source == "bor":
         return BORSiteSource()
-    elif source == "dwb":
+    elif source == "nmbgmr_amp":
+        return NMBGMRSiteSource()
+    elif source == "nmed_dwb":
         return DWBSiteSource()
-    elif source == "bernco":
-        return BernCoSiteSource()
+    elif source == "nmose_isc_seven_rivers":
+        return ISCSevenRiversSiteSource()
+    elif source == "nmose_roswell":
+        return OSERoswellSiteSource(HONDO_RESOURCE_ID)
+    elif source == "nwis":
+        return NWISSiteSource()
+    elif source == "pvacd":
+        return PVACDSiteSource()
+    elif source == "wqp":
+        return WQPSiteSource()
 
     return None
 
@@ -106,15 +106,16 @@ class Config(Loggable):
     wkt: str = ""
 
     # sources
-    use_source_nmbgmr: bool = False
-    use_source_wqp: bool = False
-    use_source_iscsevenrivers: bool = False
-    use_source_nwis: bool = False
-    use_source_nmoseroswell: bool = False
-    use_source_pvacd: bool = False
-    use_source_bor: bool = False
-    use_source_dwb: bool = False
     use_source_bernco: bool = False
+    use_source_bor: bool = False
+    use_source_nmbgmr_amp: bool = False
+    use_source_nmed_dwb: bool = False
+    use_source_nmose_isc_seven_rivers: bool = False
+    use_source_nmose_roswell: bool = False
+    use_source_nwis: bool = False
+    use_source_pvacd: bool = False
+    use_source_wqp: bool = False
+    
 
     analyte: str = ""
 
@@ -175,11 +176,11 @@ class Config(Loggable):
             sources.append((BORSiteSource(), BORAnalyteSource()))
         if self.use_source_wqp:
             sources.append((WQPSiteSource(), WQPAnalyteSource()))
-        if self.use_source_iscsevenrivers:
+        if self.use_source_nmose_isc_seven_rivers:
             sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource()))
-        if self.use_source_nmbgmr:
+        if self.use_source_nmbgmr_amp:
             sources.append((NMBGMRSiteSource(), NMBGMRAnalyteSource()))
-        if self.use_source_dwb:
+        if self.use_source_nmed_dwb:
             sources.append((DWBSiteSource(), DWBAnalyteSource()))
 
         for s, ss in sources:
@@ -193,10 +194,10 @@ class Config(Loggable):
 
     def water_level_sources(self):
         sources = []
-        if self.use_source_nmbgmr:
+        if self.use_source_nmbgmr_amp:
             sources.append((NMBGMRSiteSource(), NMBGMRWaterLevelSource()))
 
-        if self.use_source_iscsevenrivers:
+        if self.use_source_nmose_isc_seven_rivers:
             sources.append(
                 (ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource())
             )
@@ -204,7 +205,7 @@ class Config(Loggable):
         if self.use_source_nwis:
             sources.append((NWISSiteSource(), NWISWaterLevelSource()))
 
-        if self.use_source_nmoseroswell:
+        if self.use_source_nmose_roswell:
             sources.append(
                 (
                     OSERoswellSiteSource(HONDO_RESOURCE_ID),

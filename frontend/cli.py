@@ -30,51 +30,48 @@ setup_logging()
 def cli():
     pass
 
-ANALYTE_SOURCE_OPTIONS = [
+ALL_SOURCE_OPTIONS = [
     click.option(
-        "--no-amp",
+        "--no-bernco",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Include/Exclude AMP data. Default is to include",
-    ),
-    click.option(
-        "--no-isc-seven-rivers",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude ISC Seven Rivers data. Default is to include",
+        help="Exclude Bernalillo County Water Authority data. Default is to include",
     ),
     click.option(
         "--no-bor",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Exclude BOR data. Default is to include",
+        help="Exclude BoR data. Default is to include",
     ),
     click.option(
-        "--no-wqp",
+        "--no-nmed-dwb",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Exclude WQP data. Default is to include",
+        help="Exclude NMED DWB data. Default is to include",
     ),
     click.option(
-        "--no-dwb",
+        "--no-nmose-isc-seven-rivers",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Exclude DWB data. Default is to include",
+        help="Exclude NMOSE ISC Seven Rivers data. Default is to include",
     ),
-]
-
-WATERLEVEL_SOURCE_OPTIONS = [
     click.option(
-        "--no-amp",
+        "--no-nmose-roswell",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Include/Exclude AMP data. Default is to include",
+        help="Exclude NMOSE Roswell data. Default is to include",
+    ),
+    click.option(
+        "--no-nmbgmr-amp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude NMBGMR AMP data. Default is to include",
     ),
     click.option(
         "--no-nwis",
@@ -91,26 +88,12 @@ WATERLEVEL_SOURCE_OPTIONS = [
         help="Exclude PVACD data. Default is to include",
     ),
     click.option(
-        "--no-isc-seven-rivers",
+        "--no-wqp",
         is_flag=True,
         default=True,
         show_default=True,
-        help="Exclude ISC Seven Rivers data. Default is to include",
-    ),
-    click.option(
-        "--no-nm-ose-roswell",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude NM OSE Roswell data. Default is to include",
-    ),
-    click.option(
-        "--no-bernco",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude Bernalillo County Water Authority data. Default is to include",
-    ),
+        help="Exclude WQP data. Default is to include",
+    )
 ]
 
 SPATIAL_OPTIONS = [
@@ -195,7 +178,7 @@ def wells(bbox, county):
 @add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
-@add_options(WATERLEVEL_SOURCE_OPTIONS)
+@add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def waterlevels(
     separated_timeseries,
@@ -204,29 +187,42 @@ def waterlevels(
     end_date,
     bbox,
     county,
-    no_amp,
+    no_bernco,
+    no_bor, # has no water levels
+    no_nmbgmr_amp,
+    no_nmed_dwb, # has no water levels
+    no_nmose_isc_seven_rivers,
+    no_nmose_roswell,
     no_nwis,
     no_pvacd,
-    no_isc_seven_rivers,
-    no_nm_ose_roswell,
-    no_bernco,
+    no_wqp, # has no water levels
     site_limit,
     dry,
 ):
+    # output type
     if separated_timeseries or unified_timeseries:
         timeseries = True
     else:
         timeseries = False
+
+    # instantiate config
     config = setup_config("waterlevels", timeseries, bbox, county, site_limit, dry)
 
     config.output_single_timeseries = unified_timeseries
-    config.use_source_nmbgmr = no_amp
+
+    # sources
+    config.use_source_bernco = no_bernco
+    config.use_source_nmbgmr_amp = no_nmbgmr_amp
+    config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
+    config.use_source_nmose_roswell = no_nmose_roswell
     config.use_source_nwis = no_nwis
     config.use_source_pvacd = no_pvacd
-    config.use_source_iscsevenrivers = no_isc_seven_rivers
-    config.use_source_nmoseroswell = no_nm_ose_roswell
-    config.use_source_bernco = no_bernco
 
+    config.use_source_bor = False
+    config.use_source_nmed_dwb = False
+    config.use_source_wqp = False
+    
+    # dates
     config.start_date = start_date
     config.end_date = end_date
 
@@ -244,7 +240,7 @@ def waterlevels(
 @add_options(TIMESERIES_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
-@add_options(ANALYTE_SOURCE_OPTIONS)
+@add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def analytes(
     analyte,
@@ -254,32 +250,51 @@ def analytes(
     end_date,
     bbox,
     county,
-    no_amp,
-    no_isc_seven_rivers,
+    no_bernco,  # has no analyte measurements
     no_bor,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_roswell,   # has no analyte measurements
+    no_nwis,            # has no analyte measurements
+    no_pvacd,           # has no analyte measurements
     no_wqp,
-    no_dwb,
     site_limit,
     dry,
 ):
+    # output type
     if separated_timeseries or unified_timeseries:
         timeseries = True
     else:
         timeseries = False
+
+    # instantiate config
     config = setup_config(
         f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
     )
+    config.output_single_timeseries = unified_timeseries
+    
+    # sources
+    config.use_source_bor = no_bor
+    config.use_source_nmbgmr_amp = no_nmbgmr_amp
+    config.use_source_nmed_dwb = no_nmed_dwb
+    config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
+    config.use_source_wqp = no_wqp
+
+    config.use_source_bernco = False
+    config.use_source_nmose_roswell = False
+    config.use_source_nwis = False
+    config.use_source_pvacd = False
+    
+
+    # analyte
     config.analyte = analyte
 
-    config.output_single_timeseries = unified_timeseries
-    config.use_source_nmbgmr = no_amp
-    config.use_source_iscsevenrivers = no_isc_seven_rivers
-    config.use_source_bor = no_bor
-    config.use_source_wqp = no_wqp
-    config.use_source_dwb = no_dwb
-
+    # dates
     config.start_date = start_date
     config.end_date = end_date
+
+    
 
     if not dry:
         config.report()

@@ -19,31 +19,36 @@ pip install nmuwd
 Data comes from the following sources. We are continuously adding new sources as we learn of them and they become available. If you have data that you would like to be part of the Data Integration Engine please get in touch at newmexicowaterdata@nmt.edu.
 
 - [Bernalillo County (BernCo)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27BernCo%27)
+  - Available data: water levels
 - [Bureau of Reclamation (BoR)](https://data.usbr.gov/) 
-- [New Mexico Bureau of Geology and Mineral Resources (AMP)](https://waterdata.nmt.edu/)
-- [New Mexico Environment Department Drinking Water Bureau (DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
-- [New Mexico Office of the State Engineer ISC Seven Rivers (ISC Seven Rivers)](https://nmisc-wf.gladata.com/api/getMonitoringPoints.ashx)
-- [New Mexico Office of the State Engineer Roswell District Office (OSE Roswell)](https://catalog.newmexicowaterdata.org/dataset/pecos_region_manual_groundwater_levels)
+  - Available data: water quality
+- [New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP)](https://waterdata.nmt.edu/)
+  - Available data: water levels, water quality
+- [New Mexico Environment Department Drinking Water Bureau (NMED DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
+  - Available data: water quality
+- [New Mexico Office of the State Engineer ISC Seven Rivers (NMOSE ISC Seven Rivers)](https://nmisc-wf.gladata.com/api/getMonitoringPoints.ashx)
+  - Available data: water levels, water quality
+- [New Mexico Office of the State Engineer Roswell District Office (NMOSE Roswell)](https://catalog.newmexicowaterdata.org/dataset/pecos_region_manual_groundwater_levels)
+  - Available data: water levels
 - [Pecos Valley Artesian Conservancy District (PVACD)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27PVACD%27)
+  - Available data: water levels
 - [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
+  - Available data: water levels
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
-  - USGS
-  - EPA
-  - and over 400 state, federal, tribal, and local agencies
-
+  - Available data: water quality
 
 ### Source Inclusion & Exclusion
-The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are included in the output unless specifically excluded. The following flags are available to exclude a specific data source:
+The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output unless specifically excluded. The following flags are available to exclude a specific data source:
 
-- `--no-amp` to exclude New Mexico Bureau of Geology and Mineral Resources Aquifer Mapping Program (AMP) data
+- `--no-bernco` to exclude Bernalillo County (BernCo) data
 - `--no-bor` to exclude Bureaof of Reclamation data
+- `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
+- `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
+- `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
+- `--no-nmose-roswell` to exclude New Mexico Office of State Engineer (NMOSE) Roswell data
 - `--no-nwis` to exclude USGS NWIS data
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
-- `--no-isc-seven-rivers` to exclude Interstate Stream Commission (ISC) Seven Rivers data
 - `--no-wqp` to exclude Water Quality Portal (WQP) data
-- `--no-ckan` to exclude NM OSE Roswell data that is hosted on CKAN
-- `--no-dwb` to exclude New Mexico Environment Department Drinking Water Bureau (DWB) data
-- `--no-bernco` to exclude Bernalillo County (BernCo) data
 
 ### Water Levels
 
@@ -54,18 +59,6 @@ weave waterlevels
 ```
 
 followed by the desired output type, source filters, date filters, geographic filters, and excluded data sources.
-
-#### Available Data Sources
-The following data sources are available for groundwater levels:
-
-- amp
-- bor
-- ckan
-- dwb
-- isc-seven-rivers
-- nwis
-- pvacd
-- bernco
 
 ### Water Quality
 To obtain groundwater quality, use
@@ -92,14 +85,6 @@ The following analytes are currently available for retrieval:
 - Sulfate
 - TDS
 - Uranium
-
-#### Available Data Sources
-The follow data sources are available for analytes, though not every source has measurements for every analyte:
-- bor
-- wqp
-- isc-seven-rivers
-- amp
-- dwb
 
 ### Geographic Filters
 
