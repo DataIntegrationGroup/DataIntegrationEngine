@@ -30,6 +30,7 @@ setup_logging()
 def cli():
     pass
 
+
 ALL_SOURCE_OPTIONS = [
     click.option(
         "--no-bernco",
@@ -93,7 +94,7 @@ ALL_SOURCE_OPTIONS = [
         default=True,
         show_default=True,
         help="Exclude WQP data. Default is to include",
-    )
+    ),
 ]
 
 SPATIAL_OPTIONS = [
@@ -188,14 +189,14 @@ def waterlevels(
     bbox,
     county,
     no_bernco,
-    no_bor, # has no water levels
+    no_bor,  # has no water levels
     no_nmbgmr_amp,
-    no_nmed_dwb, # has no water levels
+    no_nmed_dwb,  # has no water levels
     no_nmose_isc_seven_rivers,
     no_nmose_roswell,
     no_nwis,
     no_pvacd,
-    no_wqp, # has no water levels
+    no_wqp,  # has no water levels
     site_limit,
     dry,
 ):
@@ -221,7 +222,7 @@ def waterlevels(
     config.use_source_bor = False
     config.use_source_nmed_dwb = False
     config.use_source_wqp = False
-    
+
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -255,9 +256,9 @@ def analytes(
     no_nmbgmr_amp,
     no_nmed_dwb,
     no_nmose_isc_seven_rivers,
-    no_nmose_roswell,   # has no analyte measurements
-    no_nwis,            # has no analyte measurements
-    no_pvacd,           # has no analyte measurements
+    no_nmose_roswell,  # has no analyte measurements
+    no_nwis,  # has no analyte measurements
+    no_pvacd,  # has no analyte measurements
     no_wqp,
     site_limit,
     dry,
@@ -273,7 +274,7 @@ def analytes(
         f"analytes ({analyte})", timeseries, bbox, county, site_limit, dry
     )
     config.output_single_timeseries = unified_timeseries
-    
+
     # sources
     config.use_source_bor = no_bor
     config.use_source_nmbgmr_amp = no_nmbgmr_amp
@@ -285,7 +286,6 @@ def analytes(
     config.use_source_nmose_roswell = False
     config.use_source_nwis = False
     config.use_source_pvacd = False
-    
 
     # analyte
     config.analyte = analyte
@@ -293,8 +293,6 @@ def analytes(
     # dates
     config.start_date = start_date
     config.end_date = end_date
-
-    
 
     if not dry:
         config.report()

@@ -65,7 +65,7 @@ SOURCE_KEYS = (
     "nmose_roswell",
     "nwis",
     "pvacd",
-    "wqp",    
+    "wqp",
 )
 
 
@@ -115,7 +115,6 @@ class Config(Loggable):
     use_source_nwis: bool = False
     use_source_pvacd: bool = False
     use_source_wqp: bool = False
-    
 
     analyte: str = ""
 
