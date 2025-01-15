@@ -187,12 +187,11 @@ def _unify_parameter(
         _site_wrapper(site_source, parameter_source, persister, config)
     if config.output_summary:
         persister.save(config.output_path)
-    elif config.output_unified_timeseries:
+    elif config.output_timeseries_unified:
         persister.dump_sites(f"{config.output_path}.sites")
-        persister.dump_single_timeseries(f"{config.output_path}.timeseries")
-    else:  # config.output_separated_timeseries
-        # persister.dump_combined(f"{config.output_path}.combined")
-        persister.dump_timeseries(f"{config.output_path}_timeseries")
+        persister.dump_timeseries_unified(f"{config.output_path}.timeseries")
+    else:  # config.output_timeseries_separated
+        persister.dump_timeseries_separated(f"{config.output_path}_timeseries")
         persister.dump_sites(f"{config.output_path}.sites")
 
     persister.finalize(config.output_name)

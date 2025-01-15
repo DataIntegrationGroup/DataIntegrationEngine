@@ -48,7 +48,7 @@ class BasePersister(Loggable):
     def finalize(self, output_name: str):
         pass
 
-    def dump_timeseries(self, root: str):
+    def dump_timeseries_separated(self, root: str):
         if self.timeseries:
             if os.path.isdir(root):
                 self.log(f"root {root} already exists", fg="red")
@@ -78,11 +78,11 @@ class BasePersister(Loggable):
     #     else:
     #         self.log("no combined records to dump", fg="red")
 
-    def dump_single_timeseries(self, path: str):
+    def dump_timeseries_unified(self, path: str):
         if self.timeseries:
             path = self.add_extension(path)
-            self.log(f"dumping single timeseries to {os.path.abspath(path)}")
-            self._dump_single_timeseries(path, self.timeseries)
+            self.log(f"dumping unified timeseries to {os.path.abspath(path)}")
+            self._dump_timeseries_unified(path, self.timeseries)
         else:
             self.log("no timeseries records to dump", fg="red")
 
@@ -116,7 +116,7 @@ class BasePersister(Loggable):
     # def _dump_combined(self, path: str, combined: list):
     #     raise NotImplementedError
 
-    def _dump_single_timeseries(self, path: str, timeseries: list):
+    def _dump_timeseries_unified(self, path: str, timeseries: list):
         raise NotImplementedError
 
     def _make_root_directory(self, root: str):
@@ -134,7 +134,7 @@ def write_memory(path, func, records):
     return f.getvalue()
 
 
-def dump_single_timeseries(writer, timeseries):
+def dump_timeseries_unified(writer, timeseries):
     headers_have_not_been_written = True
     for i, (site, records) in enumerate(timeseries):
         for j, record in enumerate(records):
@@ -202,8 +202,8 @@ class CloudStoragePersister(BasePersister):
     def _add_content(self, path: str, content: str):
         self._content.append((path, content))
 
-    def _dump_single_timeseries(self, path: str, timeseries: list):
-        content = write_memory(path, dump_single_timeseries, timeseries)
+    def _dump_timeseries_unified(self, path: str, timeseries: list):
+        content = write_memory(path, dump_timeseries_unified, timeseries)
         self._add_content(path, content)
 
     # def _dump_combined(self, path: str, combined: list):
@@ -217,8 +217,8 @@ class CSVPersister(BasePersister):
     def _write(self, path: str, records: list):
         write_file(path, dump_sites, records)
 
-    def _dump_single_timeseries(self, path: str, timeseries: list):
-        write_file(path, dump_single_timeseries, timeseries)
+    def _dump_timeseries_unified(self, path: str, timeseries: list):
+        write_file(path, dump_timeseries_unified, timeseries)
 
     # def _dump_combined(self, path: str, combined: list):
     #     write_file(path, dump_combined, combined)
