@@ -104,7 +104,12 @@ class BORAnalyteSource(BaseAnalyteSource):
     def get_records(self, site_record):
         code = get_analyte_search_param(self.config.analyte, BOR_ANALYTE_MAPPING)
 
-        for i, item in enumerate(self._reorder_catalog_items(site_record.catalogItems)):
+        catalog_record_data = self._execute_json_request(
+            f"https://data.usbr.gov{site_record.catalogRecords[0]['id']}"
+        )
+        catalog_items = catalog_record_data["relationships"]["catalogItems"]["data"]
+
+        for i, item in enumerate(self._reorder_catalog_items(catalog_items)):
 
             data = self._execute_json_request(f'https://data.usbr.gov{item["id"]}')
             if not data:
