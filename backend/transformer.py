@@ -485,7 +485,7 @@ class BaseTransformer(Loggable):
                     float(r),
                     u,
                     self.config.analyte_output_units,
-                    self.config.analyte,
+                    self.config.parameter,
                     dt,
                 )
                 if warning_msg != "":
@@ -728,7 +728,7 @@ class ParameterTransformer(BaseTransformer):
             record["most_recent_value"],
             record["most_recent_units"],
             u,
-            self.config.analyte,
+            self.config.parameter,
         )
         record["most_recent_units"] = u
 
@@ -788,7 +788,7 @@ class AnalyteTransformer(ParameterTransformer):
         tuple
             The parameter and units for the analyte records
         """
-        return self.config.analyte, self.config.analyte_output_units
+        return self.config.parameter, self.config.analyte_output_units
 
 
 # ============= EOF =============================================

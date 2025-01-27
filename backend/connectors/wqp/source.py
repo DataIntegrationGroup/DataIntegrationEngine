@@ -83,9 +83,9 @@ class WQPSiteSource(BaseSiteSource):
         if config.has_bounds():
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
 
-        if config.analyte:
+        if config.parameter != "Waterlevels":
             params["characteristicName"] = get_analyte_search_param(
-                config.analyte, WQP_ANALYTE_MAPPING
+                config.parameter, WQP_ANALYTE_MAPPING
             )
 
         params.update(get_date_range(config))
@@ -138,7 +138,7 @@ class WQPAnalyteSource(BaseAnalyteSource):
             "siteid": sites,
             "mimeType": "tsv",
             "characteristicName": get_analyte_search_param(
-                self.config.analyte, WQP_ANALYTE_MAPPING
+                self.config.parameter, WQP_ANALYTE_MAPPING
             ),
         }
         params.update(get_date_range(self.config))

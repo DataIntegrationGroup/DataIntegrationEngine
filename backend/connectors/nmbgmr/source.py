@@ -75,9 +75,9 @@ class NMBGMRSiteSource(BaseSiteSource):
         if config.site_limit:
             params["limit"] = config.site_limit
 
-        if config.analyte:
+        if config.parameter != "Waterlevels":
             params["parameter"] = get_analyte_search_param(
-                config.analyte, NMBGMR_ANALYTE_MAPPING
+                config.parameter, NMBGMR_ANALYTE_MAPPING
             )
         else:
             params["parameter"] = "Manual groundwater levels"
@@ -108,7 +108,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
 
     def get_records(self, site_record):
-        analyte = get_analyte_search_param(self.config.analyte, NMBGMR_ANALYTE_MAPPING)
+        analyte = get_analyte_search_param(self.config.parameter, NMBGMR_ANALYTE_MAPPING)
         records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
@@ -144,7 +144,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         return [r["info"]["CollectionDate"] for r in records]
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER] = self.config.analyte
+        record[PARAMETER] = self.config.parameter
         record[PARAMETER_VALUE] = record["SampleValue"]
         record[PARAMETER_UNITS] = record["Units"]
         record[DT_MEASURED] = record["info"]["CollectionDate"]

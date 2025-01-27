@@ -62,8 +62,7 @@ def sources_handler():
     if polygon:
         config.wkt = polygon
 
-    if parameter:
-        config.analyte = parameter
+    config.parameter = parameter
 
     sources = get_sources(config)
     return make_cors_response({"sources": [s.tag for s in sources]})

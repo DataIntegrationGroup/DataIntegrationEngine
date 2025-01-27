@@ -131,7 +131,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
     def get_records(self, site_record):
         config = self.config
-        analyte_id = self._get_analyte_id(config.analyte)
+        analyte_id = self._get_analyte_id(config.parameter)
         if analyte_id:
             params = {
                 "monitoringPointId": site_record.id,

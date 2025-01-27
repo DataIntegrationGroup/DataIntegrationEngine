@@ -39,7 +39,7 @@ class DWBSiteSource(STSiteSource):
         if "analyte" in kw:
             analyte = kw["analyte"]
         elif self.config:
-            analyte = self.config.analyte
+            analyte = self.config.parameter
 
         analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
         if analyte is None:
@@ -82,7 +82,7 @@ class DWBAnalyteSource(STAnalyteSource):
     def get_records(self, site, *args, **kw):
         service = self.get_service()
 
-        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAPPING)
+        analyte = get_analyte_search_param(self.config.parameter, DWB_ANALYTE_MAPPING)
         ds = service.datastreams()
         q = ds.query()
         q = q.expand("Thing/Locations, ObservedProperty, Observations")

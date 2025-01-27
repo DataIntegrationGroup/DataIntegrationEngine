@@ -116,7 +116,8 @@ class Config(Loggable):
     use_source_pvacd: bool = False
     use_source_wqp: bool = False
 
-    analyte: str = ""
+    # parameter 
+    parameter: str = ""
 
     # output
     use_cloud_storage: bool = False
@@ -167,7 +168,7 @@ class Config(Loggable):
             self.output_name = payload.get("output_name", "output")
             self.start_date = payload.get("start_date", "")
             self.end_date = payload.get("end_date", "")
-            self.analyte = payload.get("analyte", "")
+            self.parameter = payload.get("parameter", "")
 
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
@@ -189,9 +190,6 @@ class Config(Loggable):
         for s, ss in sources:
             s.set_config(self)
             ss.set_config(self)
-
-            # s.config = self
-            # ss.config = self
 
         return sources
 
@@ -309,7 +307,7 @@ class Config(Loggable):
             "county",
             "bbox",
             "wkt",
-            "analyte",
+            "parameter",
             "site_limit",
         ] + sources
         # inputs

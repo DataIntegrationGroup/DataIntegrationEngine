@@ -243,10 +243,10 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.analyte:
-        allsources = config.analyte_sources()
-    else:
+    if config.parameter == "Waterlevels":
         allsources = config.water_level_sources()
+    else:
+        allsources = config.analyte_sources()
 
     for source, _ in allsources:
         if source.intersects(config.bounding_wkt()):

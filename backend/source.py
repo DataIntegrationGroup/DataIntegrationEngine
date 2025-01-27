@@ -682,7 +682,7 @@ class BaseParameterSource(BaseSource):
                                 float(r),
                                 u,
                                 self._get_output_units(),
-                                self.config.analyte,
+                                self.config.parameter,
                                 d,
                             )
                             if warning_msg == "":
@@ -988,7 +988,7 @@ class BaseAnalyteSource(BaseParameterSource):
         return self.config.analyte_output_units
 
     def _validate_record(self, record):
-        record[PARAMETER] = self.config.analyte
+        record[PARAMETER] = self.config.parameter
         for k in (PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")

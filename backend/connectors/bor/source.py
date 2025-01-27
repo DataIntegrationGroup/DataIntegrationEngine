@@ -102,7 +102,7 @@ class BORAnalyteSource(BaseAnalyteSource):
         return items
 
     def get_records(self, site_record):
-        code = get_analyte_search_param(self.config.analyte, BOR_ANALYTE_MAPPING)
+        code = get_analyte_search_param(self.config.parameter, BOR_ANALYTE_MAPPING)
 
         catalog_record_data = self._execute_json_request(
             f"https://data.usbr.gov{site_record.catalogRecords[0]['id']}"
