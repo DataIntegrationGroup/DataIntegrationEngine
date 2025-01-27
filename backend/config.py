@@ -116,7 +116,7 @@ class Config(Loggable):
     use_source_pvacd: bool = False
     use_source_wqp: bool = False
 
-    # parameter 
+    # parameter
     parameter: str = ""
 
     # output

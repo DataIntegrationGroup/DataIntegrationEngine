@@ -186,8 +186,6 @@ def wells(bbox, county):
     unify_sites(config)
 
 
-
-
 @cli.command()
 @click.argument(
     "parameter",
@@ -277,12 +275,11 @@ def parameter(
         if not click.confirm("Do you want to continue?", default=True):
             return
 
-
     if parameter == "Waterlevels":
         unify_waterlevels(config)
     else:
         unify_analytes(config)
-        
+
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)

@@ -108,7 +108,9 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
 
     def get_records(self, site_record):
-        analyte = get_analyte_search_param(self.config.parameter, NMBGMR_ANALYTE_MAPPING)
+        analyte = get_analyte_search_param(
+            self.config.parameter, NMBGMR_ANALYTE_MAPPING
+        )
         records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
