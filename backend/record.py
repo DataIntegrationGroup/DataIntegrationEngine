@@ -47,7 +47,7 @@ class BaseRecord:
             # both analyte and water level tables have the same fields, but the
             # rounding should only occur for water level tables
             if isinstance(self, WaterLevelRecord):
-                field_sigfigs.append((PARAMETER, 2))
+                field_sigfigs.append((PARAMETER_VALUE, 2))
 
             for field, sigfigs in field_sigfigs:
                 if v is not None and field == attr:
