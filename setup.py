@@ -26,7 +26,7 @@ setup(
     description="New Mexico Water Data Integration Engine",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/DataIntegrationGroup/PyWeaver",
+    url="https://github.com/DataIntegrationGroup/DataIntegrationEngine",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

@@ -199,9 +199,9 @@ def create_command(parameter):
         site_limit,
         dry,
     ):
-        '''
-        Get {parameter} summary or timeseries data
-        '''
+        """
+        Get timeseries or summary data
+        """
         # instantiate config and set up parameter
         config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
         config.parameter = parameter
@@ -262,7 +262,6 @@ def create_command(parameter):
             unify_waterlevels(config)
         else:
             unify_analytes(config)
-    
 
 for parameter in PARAMETER_OPTIONS:
     create_command(parameter)
