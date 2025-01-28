@@ -174,6 +174,7 @@ def add_options(options):
 
     return _add_options
 
+
 def create_command(parameter):
     @cli.command(name=parameter)
     @add_options(OUTPUT_OPTIONS)
@@ -263,8 +264,10 @@ def create_command(parameter):
         else:
             unify_analytes(config)
 
+
 for parameter in PARAMETER_OPTIONS:
     create_command(parameter)
+
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
@@ -275,6 +278,7 @@ def wells(bbox, county):
 
     config = setup_config("sites", bbox, county)
     unify_sites(config)
+
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
