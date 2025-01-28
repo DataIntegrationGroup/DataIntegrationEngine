@@ -106,15 +106,15 @@ class Config(Loggable):
     wkt: str = ""
 
     # sources
-    use_source_bernco: bool = False
-    use_source_bor: bool = False
-    use_source_nmbgmr_amp: bool = False
-    use_source_nmed_dwb: bool = False
-    use_source_nmose_isc_seven_rivers: bool = False
-    use_source_nmose_roswell: bool = False
-    use_source_nwis: bool = False
-    use_source_pvacd: bool = False
-    use_source_wqp: bool = False
+    use_source_bernco: bool = True
+    use_source_bor: bool = True
+    use_source_nmbgmr_amp: bool = True
+    use_source_nmed_dwb: bool = True
+    use_source_nmose_isc_seven_rivers: bool = True
+    use_source_nmose_roswell: bool = True
+    use_source_nwis: bool = True
+    use_source_pvacd: bool = True
+    use_source_wqp: bool = True
 
     # parameter
     parameter: str = ""

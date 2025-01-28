@@ -249,7 +249,10 @@ def get_sources(config=None):
         allsources = config.analyte_sources()
 
     for source, _ in allsources:
-        if source.intersects(config.bounding_wkt()):
+        if config.wkt or config.bbox or config.county:
+            if source.intersects(config.bounding_wkt()):
+                sources.append(source)
+        else:
             sources.append(source)
     return sources
 
