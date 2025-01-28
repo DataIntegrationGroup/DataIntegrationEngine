@@ -55,7 +55,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 To obtain groundwater levels, use 
 
 ```
-weave parameter Waterlevels
+weave Waterlevels
 ```
 
 followed by the desired output type, source filters, date filters, geographic filters, and excluded data sources.
@@ -64,7 +64,7 @@ followed by the desired output type, source filters, date filters, geographic fi
 To obtain groundwater quality, use
 
 ```
-weave paramater {analyte}
+weave {analyte}
 ```
 
 where `{analyte}` is the name of the analyte whose data is to be retrieved.

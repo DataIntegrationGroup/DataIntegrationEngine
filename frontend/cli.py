@@ -174,6 +174,98 @@ def add_options(options):
 
     return _add_options
 
+def create_command(parameter):
+    @cli.command(name=parameter)
+    @add_options(OUTPUT_OPTIONS)
+    @add_options(DT_OPTIONS)
+    @add_options(SPATIAL_OPTIONS)
+    @add_options(ALL_SOURCE_OPTIONS)
+    @add_options(DEBUG_OPTIONS)
+    def command(
+        output,
+        start_date,
+        end_date,
+        bbox,
+        county,
+        no_bernco,
+        no_bor,  # has no water levels
+        no_nmbgmr_amp,
+        no_nmed_dwb,  # has no water levels
+        no_nmose_isc_seven_rivers,
+        no_nmose_roswell,
+        no_nwis,
+        no_pvacd,
+        no_wqp,  # has no water levels
+        site_limit,
+        dry,
+    ):
+        '''
+        Get {parameter} summary or timeseries data
+        '''
+        # instantiate config and set up parameter
+        config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
+        config.parameter = parameter
+
+        # output type
+        if output == "summary":
+            summary = True
+            timeseries_unified = False
+            timeseries_separated = False
+        elif output == "timeseries_unified":
+            summary = False
+            timeseries_unified = True
+            timeseries_separated = False
+        elif output == "timeseries_separated":
+            summary = False
+            timeseries_unified = False
+            timeseries_separated = True
+
+        config.output_summary = summary
+        config.output_timeseries_unified = timeseries_unified
+        config.output_timeseries_separated = timeseries_separated
+
+        # sources
+        if parameter == "Waterlevels":
+            config.use_source_bernco = no_bernco
+            config.use_source_nmbgmr_amp = no_nmbgmr_amp
+            config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
+            config.use_source_nmose_roswell = no_nmose_roswell
+            config.use_source_nwis = no_nwis
+            config.use_source_pvacd = no_pvacd
+
+            config.use_source_bor = False
+            config.use_source_nmed_dwb = False
+            config.use_source_wqp = False
+        else:
+            config.use_source_bor = no_bor
+            config.use_source_nmbgmr_amp = no_nmbgmr_amp
+            config.use_source_nmed_dwb = no_nmed_dwb
+            config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
+            config.use_source_wqp = no_wqp
+
+            config.use_source_bernco = False
+            config.use_source_nmose_roswell = False
+            config.use_source_nwis = False
+            config.use_source_pvacd = False
+
+        # dates
+        config.start_date = start_date
+        config.end_date = end_date
+
+        if not dry:
+            config.report()
+            # prompt user to continue
+            if not click.confirm("Do you want to continue?", default=True):
+                return
+
+        if parameter == "Waterlevels":
+            unify_waterlevels(config)
+        else:
+            unify_analytes(config)
+    
+
+for parameter in PARAMETER_OPTIONS:
+    create_command(parameter)
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
@@ -184,102 +276,6 @@ def wells(bbox, county):
 
     config = setup_config("sites", bbox, county)
     unify_sites(config)
-
-
-@cli.command()
-@click.argument(
-    "parameter",
-    type=click.Choice(PARAMETER_OPTIONS),
-    required=True,
-)
-@add_options(OUTPUT_OPTIONS)
-@add_options(DT_OPTIONS)
-@add_options(SPATIAL_OPTIONS)
-@add_options(ALL_SOURCE_OPTIONS)
-@add_options(DEBUG_OPTIONS)
-def parameter(
-    parameter,
-    output,
-    start_date,
-    end_date,
-    bbox,
-    county,
-    no_bernco,
-    no_bor,  # has no water levels
-    no_nmbgmr_amp,
-    no_nmed_dwb,  # has no water levels
-    no_nmose_isc_seven_rivers,
-    no_nmose_roswell,
-    no_nwis,
-    no_pvacd,
-    no_wqp,  # has no water levels
-    site_limit,
-    dry,
-):
-    """
-    Get parameter summary or timeseries data
-    """
-    # instantiate config and set up parameter
-    config = setup_config(f"parameter {parameter}", bbox, county, site_limit, dry)
-    config.parameter = parameter
-
-    # output type
-    if output == "summary":
-        summary = True
-        timeseries_unified = False
-        timeseries_separated = False
-    elif output == "timeseries_unified":
-        summary = False
-        timeseries_unified = True
-        timeseries_separated = False
-    elif output == "timeseries_separated":
-        summary = False
-        timeseries_unified = False
-        timeseries_separated = True
-
-    config.output_summary = summary
-    config.output_timeseries_unified = timeseries_unified
-    config.output_timeseries_separated = timeseries_separated
-
-    # sources
-    if parameter == "Waterlevels":
-        config.use_source_bernco = no_bernco
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-        config.use_source_nmose_roswell = no_nmose_roswell
-        config.use_source_nwis = no_nwis
-        config.use_source_pvacd = no_pvacd
-
-        config.use_source_bor = False
-        config.use_source_nmed_dwb = False
-        config.use_source_wqp = False
-    else:
-        config.use_source_bor = no_bor
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmed_dwb = no_nmed_dwb
-        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-        config.use_source_wqp = no_wqp
-
-        config.use_source_bernco = False
-        config.use_source_nmose_roswell = False
-        config.use_source_nwis = False
-        config.use_source_pvacd = False
-
-    # dates
-    config.start_date = start_date
-    config.end_date = end_date
-
-    if not dry:
-        config.report()
-        # prompt user to continue
-        if not click.confirm("Do you want to continue?", default=True):
-            return
-
-    if parameter == "Waterlevels":
-        unify_waterlevels(config)
-    else:
-        unify_analytes(config)
-
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
