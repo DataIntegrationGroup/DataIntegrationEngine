@@ -34,7 +34,7 @@ setup(
     install_requires=["click", "httpx", "geopandas", "frost_sta_client"],
     entry_points={
         "console_scripts": [
-            "weave = frontend.cli:cli",
+            "die = frontend.cli:cli",
         ],
     },
     packages=["frontend", "backend"]
