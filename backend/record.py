@@ -72,7 +72,9 @@ class WaterLevelRecord(BaseRecord):
         # "longitude",
         # "surface_elevation_ft",
         # "well_depth_ft_below_ground_surface",
-        DTW,
+        PARAMETER,
+        PARAMETER_VALUE,
+        PARAMETER_UNITS,
         "date_measured",
         "time_measured",
     )

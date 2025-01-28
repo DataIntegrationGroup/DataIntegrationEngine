@@ -161,9 +161,10 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         return [r for r in records if r["DepthToWaterBGS"] is not None]
 
     def _extract_parameter_record(self, record, *args, **kw):
-        record[DTW] = record["DepthToWaterBGS"]
+        record[PARAMETER] = DTW
+        record[PARAMETER_VALUE] = record["DepthToWaterBGS"]
+        record[PARAMETER_UNITS] = FEET
         record[DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
-        record[DTW_UNITS] = FEET
         return record
 
     def _extract_most_recent(self, records):

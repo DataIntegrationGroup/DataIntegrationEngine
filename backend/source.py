@@ -1010,7 +1010,7 @@ class BaseWaterLevelSource(BaseParameterSource):
         return [FEET for _ in records]
 
     def _validate_record(self, record):
-        for k in (DTW, DTW_UNITS, DT_MEASURED):
+        for k in (PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
 

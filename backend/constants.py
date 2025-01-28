@@ -43,7 +43,7 @@ WGS84 = "WGS84"
 
 DT_MEASURED = "datetime_measured"
 
-DTW = "depth_to_water_ft_below_ground_surface"
+DTW = "depth_to_water_below_ground_surface"
 DTW_UNITS = FEET
 
 PARAMETER = "parameter"

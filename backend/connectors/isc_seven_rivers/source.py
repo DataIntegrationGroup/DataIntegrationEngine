@@ -29,6 +29,7 @@ from backend.constants import (
     DT_MEASURED,
     DTW_UNITS,
     DTW,
+    PARAMETER,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
 )
@@ -103,6 +104,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             return self._analyte_ids.get(analyte)
 
     def _extract_parameter_record(self, record):
+        record[PARAMETER] = self.config.parameter
         record[PARAMETER_VALUE] = record["result"]
         record[PARAMETER_UNITS] = record["units"]
         record[DT_MEASURED] = get_datetime(record)
@@ -166,8 +168,9 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return [r for r in records if r["depthToWaterFeet"] is not None]
 
     def _extract_parameter_record(self, record):
-        record[DTW] = record["depthToWaterFeet"]
-        record[DTW_UNITS] = FEET
+        record[PARAMETER] = DTW
+        record[PARAMETER_VALUE] = record["depthToWaterFeet"]
+        record[PARAMETER_UNITS] = FEET
         record[DT_MEASURED] = get_datetime(record)
         return record
 
