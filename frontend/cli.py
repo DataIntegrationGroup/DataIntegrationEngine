@@ -47,6 +47,13 @@ ALL_SOURCE_OPTIONS = [
         help="Exclude BoR data. Default is to include",
     ),
     click.option(
+        "--no-nmbgmr-amp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude NMBGMR AMP data. Default is to include",
+    ),
+    click.option(
         "--no-nmed-dwb",
         is_flag=True,
         default=True,
@@ -66,13 +73,6 @@ ALL_SOURCE_OPTIONS = [
         default=True,
         show_default=True,
         help="Exclude NMOSE Roswell data. Default is to include",
-    ),
-    click.option(
-        "--no-nmbgmr-amp",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude NMBGMR AMP data. Default is to include",
     ),
     click.option(
         "--no-nwis",
