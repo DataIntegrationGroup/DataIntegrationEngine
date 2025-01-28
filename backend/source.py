@@ -586,17 +586,9 @@ class BaseParameterSource(BaseSource):
     _extract_parameter_record
         Returns a parameter record with standardized fields added.
 
-        For an analyte, the fields are
-
         - backend.constants.PARAMETER
         - backend.constants.PARAMETER_VALUE
         - backend.constants.PARAMETER_UNITS
-
-        For a water level, the fields are
-
-        - backend.constants.DTW
-        - backend.constants.DTW_UNITS
-        - backend.constants.DT_MEASURED
 
     _extract_parameter_results
         Returns the parameter results as a list from the records, in the same order as the records themselves
