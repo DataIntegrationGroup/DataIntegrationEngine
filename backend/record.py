@@ -33,9 +33,6 @@ class BaseRecord:
 
             field_sigfigs = [
                 ("elevation", 2),
-                ("depth_to_water_ft_below_ground_surface", 2),
-                ("surface_elevation_ft", 2),
-                ("well_depth_ft_below_ground_surface", 2),
                 ("well_depth", 2),
                 ("latitude", 6),
                 ("longitude", 6),
