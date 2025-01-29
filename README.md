@@ -87,7 +87,7 @@ The `--output` option is required and used to set the output type:
 - Separate time series tables for all locations for the parameter of interest.
 - A single table of site data that contains information such as latitude, longitude, and elevation
 
-The data is saved to a directory titled `output` in the current working directory. If the directory `output` already exists, then the output directory will be called `output_1`. If enumerated output directories already exist, then the output directory will be called `output_{n}` where `n` is equal to the greatest integer suffix +1.
+The data is saved to a directory titled `output` in the current working directory. If the directory `output` already exists, then the output directory will be called `output_1`. If enumerated output directories already exist, then the output directory will be called `output_{n}` where `n` is equal to the greatest existing integer suffix +1.
 
 A log of the inputs and processes, called `die.log`, is also saved to the output directory.
 
