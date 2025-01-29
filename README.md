@@ -68,7 +68,7 @@ The following parameters are currently available for retrieval:
 - uranium
 
 ### Output
-The following flags are used to set the output type:
+The `--output` option is required and used to set the output type:
 
 ```
 --output summary
