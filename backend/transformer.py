@@ -29,6 +29,7 @@ from backend.constants import (
     MICROGRAMS_PER_LITER,
     DT_MEASURED,
     PARAMETER_UNITS,
+    DTW
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.logging import Loggable
@@ -759,7 +760,7 @@ class WaterLevelTransformer(ParameterTransformer):
         tuple
             The parameter and units for the water level records
         """
-        return "DTW BGS", self.config.waterlevel_output_units
+        return DTW, self.config.waterlevel_output_units
 
 
 class AnalyteTransformer(ParameterTransformer):
