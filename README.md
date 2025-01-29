@@ -67,44 +67,7 @@ The following parameters are currently available for retrieval:
 - tds
 - uranium
 
-#### Source Inclusion & Exclusion
-The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
-
-- `--no-bernco` to exclude Bernalillo County (BernCo) data
-- `--no-bor` to exclude Bureaof of Reclamation (Bor) data
-- `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
-- `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
-- `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
-- `--no-nmose-roswell` to exclude New Mexico Office of State Engineer (NMOSE) Roswell data
-- `--no-nwis` to exclude USGS NWIS data
-- `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
-- `--no-wqp` to exclude Water Quality Portal (WQP) data
-
-#### Geographic Filters
-
-The following flags can be used to geographically filter data:
-
-```
--- county {county name}
-```
-
-```
--- bbox 'x1 y1, x2 y2'
-```
-
-#### Date Filters
-
-The following flags can be used to filter by dates:
-
-```
---start-date YYYY-MM-DD 
-```
-
-```
---end-date YYYY-MM-DD
-```
-
-#### Output
+### Output
 The following flags are used to set the output type:
 
 ```
@@ -128,67 +91,111 @@ The data is saved to a directory titled `output` in the current working director
 
 A log of the inputs and processes, called `die.log`, is also saved to the output directory.
 
-##### Timeseries Data
+#### Tables
 
-**sites**
+**summary table**
 
-|            | source | id    | name | latitude | longitude | elevation | elevation_units | horizontal_datum | vertical_datum | usgs_site_id | alternate_site_id | formation | aquifer | well_depth |
-| :---------- | :----- | :---- | :--- | :------- | :-------- | :-------- | :-------------- | :--------------- | :------------- | :----------- | :---------------- | :-------- | :------ | :--------- |
-| **description** | the organization/source for the site | the id of the site. The id is used as the key to join the site and timeseries tables | the colloquial name for the site if it exists | latitude in decimal degrees | longitude in decimal degrees | ground surface elevation of the site in feet | the units of the ground surface elevation. Defaults to ft | horizontal datum of the latitude and longitude. Defaults to WGS84 | vertical datum of the elevation | USGS site id if it exists | alternate side id if it exists | geologic formation in which the well terminals if it exists | aquifer from which the well draws water if it exists | depth of well if it exists |
-| **data type**   | string | string | string | float | float | float | string | string | string | string | string | string | string | string |
+| field/header | description | data type | always present |
+| :----------- | :---------- | :-------- | :------------- |
+| source | the organization/source for the site | string | Y |
+| id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
+| location | the colloquial name for the site | string | Y |
+| usgs_site_id | USGS site id | string | N |
+| alternate_site_id | alternate site id | string | N | 
+| latitude | latitude in decimal degrees | float | Y |
+| longitude | longitude in decimal degrees | float | Y |
+| horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
+| elevation | ground surface elevation of the site | float | Y |
+| elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
+| well_depth | depth of well | float | N |
+| well_depth_units | units of well depth. Defaults to ft | float | N |
+| parameter | the name of the parameter whose measurements are reported in the table | string | Y |
+| pramater_units | units of the observation | float | Y |
+| nrecords | number of records at the site for the parameter | integer | Y |
+| min | the minimum observation | float | Y |
+| max | the maximum observation | float | Y |
+| mean | the mean value of the observations | float | Y |
+| most_recent_date| date of most recent record in YYYY-MM-DD | string | Y |
+| most_recent_time | time of most recent record in HH:MM:SS or HH:MM:SS.mmm | string | N |
+| most_recent_value | value of the most recent record  | float | Y |
+| most_recent_units | units of the most recent record | string | Y |
 
-- `source`: the organization/source for the site
-- `id`: the id of the site. The id is used as the key to join the output.timeseries.csv table
-- `name`: the colloquial name for the site if it exists
-- `latitude`: latitude in decimal degrees
-- `longitude`: the longitude in decimal degrees
-- `elevation` ground surface elevation of the site in feet
-- `elevation_units`: the units of the ground surface elevation. Defaults to ft
-- `horizontal_datum`: horizontal datum of the latitude and longitude. Defaults to WGS84
-- `vertical_datum`: the vertical datum of the elevation
-- `usgs_site_id`: USGS site id if it exists
-- `alternate_site_id`: alternate site id if it exists
-- `formation`: geologic formation in which the well terminates if it exists
-- `aquifer`: aquifer from which the well draws water if it exists
-- `well_depth`: depth of well if it exists
+
+**sites table**
+
+| field/header | description | data type | always present |
+| :----------- | :---------- | :-------- | :------------- |
+| source | the organization/source for the site | string | Y |
+| id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
+| name | the colloquial name for the site | string | Y |
+| latitude | latitude in decimal degrees | float | Y |
+| longitude | longitude in decimal degrees | float | Y |
+| elevation | ground surface elevation of the site | float | Y |
+| elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
+| horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
+| vertical_datum | vertical datum of the elevation | string | N |
+| usgs_site_id | USGS site id | string | N |
+| alternate_site_id | alternate site id | string | N | 
+| formation | geologic formation in which the well terminates | string | N |
+| aquifer | aquifer from which the well draws water | string | N |
+| well_depth | depth of well | float | N |
 
 
-**time series**
-- `source`: the organization/sources for the site
-- `id`: the id of the site. The id is used as the key to join the output.sites.csv table
-- `parameter`: the name of the analyte whose measurements are reported in the table. This corresponds the requested analyte
-- `parameter_value`: value of the measurement
-- `parameter_units`: units of the measurement
-- `date_measured`: date of measurement in YYYY-MM-DD format
-- `time_measured`: time of measurement if it exists
+**time series table(s)**
 
-### Summary Data
+| field/header | description | data type | always present |
+| :----------- | :---------- | :-------- | :------------- |
+| source | the organization/source for the site | string | Y |
+| id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
+| parameter | the name of the parameter whose measurements are reported in the table | string | Y |
+| parameter_value | value of the observation | float | Y |
+| pramater_units | units of the observation | float | Y |
+| date_measured | date of measurement in YYYY-MM-DD | string | Y |
+| time_measured | time of measurement in HH:MM:SS or HH:MM:SS.mmm | string | N |
 
-If neither of the above flags are specified, a summary table called `output.csv` is exported. 
+### Source Inclusion & Exclusion
+The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
 
-#### Table Headers: Summary
+- `--no-bernco` to exclude Bernalillo County (BernCo) data
+- `--no-bor` to exclude Bureaof of Reclamation (Bor) data
+- `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
+- `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
+- `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
+- `--no-nmose-roswell` to exclude New Mexico Office of State Engineer (NMOSE) Roswell data
+- `--no-nwis` to exclude USGS NWIS data
+- `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
+- `--no-wqp` to exclude Water Quality Portal (WQP) data
 
-**output.csv - waterlevels and analytes**
-- `source`: the organization/source for the site
-- `id`: the id of the site. The id is used as the key to join the output.timeseries.csv table
-- `location`: the colloquial name for the site if it exists
-- `usgs_site_id`: USGS site id if it exists
-- `alternate_site_id`: alternate site id if it exists
-- `latitude`: latitude in decimal degrees
-- `longitude`: the longitude in decimal degrees
-- `horizontal_datum`: horizontal datum of the latitude and longitude. Defaults to WGS84
-- `elevation` ground surface elevation of the site in feet
-- `elevation_units`: the units of the ground surface elevation. Defaults to ft
-- `well_depth`: depth of well if it exists
-- `well_depth_units`: units of well depth. Defaults to ft
-- `parameter`: the name of the analyte whose measurements are reported in the table. This corresponds the requested analyte
-- `parameter_value`: value of the measurement
-- `parameter_units`: units of the measurement
-- `nrecords`: the number of records for the site
-- `min`: the minimum record for the site
-- `max`: the maximum record for the site
-- `mean`: the mean value for the records at the site
-- `most_recent_date`: date of most recent record
-- `most_recent_time`: time of most recent record if it exists
-- `most_recent_value` the value of the most recent record
-- `most_recent_units`: the units of the most recent record
+### Geographic Filters
+
+The following flags can be used to geographically filter data:
+
+```
+-- county {county name}
+```
+
+```
+-- bbox 'x1 y1, x2 y2'
+```
+
+### Date Filters
+
+The following flags can be used to filter by dates:
+
+```
+--start-date YYYY-MM-DD 
+```
+
+```
+--end-date YYYY-MM-DD
+```
+
+### Source Enumeration
+
+Use
+
+```
+die sources {parameter}
+```
+
+to print the sources that report that parameter to the terminal.
