@@ -190,7 +190,7 @@ The following flags can be used to filter by dates:
 --end-date YYYY-MM-DD
 ```
 
-### Source Enumeration
+### Source Enumeration [In Development]
 
 Use
 
@@ -199,3 +199,13 @@ die sources {parameter}
 ```
 
 to print the sources that report that parameter to the terminal.
+
+### Wells [In Development]
+
+Use
+
+```
+die wells
+```
+
+to print wells to the terminal.
