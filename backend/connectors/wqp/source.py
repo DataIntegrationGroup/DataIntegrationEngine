@@ -86,7 +86,7 @@ class WQPSiteSource(BaseSiteSource):
         if config.has_bounds():
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
 
-        if config.parameter != "Waterlevels":
+        if config.parameter.lower() != "waterlevels":
             params["characteristicName"] = get_analyte_search_param(
                 config.parameter, WQP_ANALYTE_MAPPING
             )

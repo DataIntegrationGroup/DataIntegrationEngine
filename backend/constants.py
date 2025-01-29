@@ -14,23 +14,24 @@
 # limitations under the License.
 # ===============================================================================
 
-TDS = "TDS"
-ARSENIC = "Arsenic"
-BICARBONATE = "Bicarbonate"
-CALCIUM = "Calcium"
-CARBONATE = "Carbonate"
-CHLORIDE = "Chloride"
-FLUORIDE = "Fluoride"
-MAGNESIUM = "Magnesium"
-NITRATE = "Nitrate"
-POTASSIUM = "Potassium"
-SILICA = "Silica"
-SODIUM = "Sodium"
-SULFATE = "Sulfate"
-URANIUM = "Uranium"
+TDS = "tds"
+ARSENIC = "arsenic"
+BICARBONATE = "bicarbonate"
+CALCIUM = "calcium"
+CARBONATE = "carbonate"
+CHLORIDE = "chloride"
+FLUORIDE = "fluoride"
+MAGNESIUM = "magnesium"
+NITRATE = "nitrate"
+POTASSIUM = "potassium"
+SILICA = "silica"
+SODIUM = "sodium"
+SULFATE = "sulfate"
+URANIUM = "uranium"
+WATERLEVELS = "waterlevels"
 
 
-PH = "pH"
+PH = "ph"
 
 
 MILLIGRAMS_PER_LITER = "mg/L"
@@ -50,8 +51,7 @@ PARAMETER = "parameter"
 PARAMETER_UNITS = "parameter_units"
 PARAMETER_VALUE = "parameter_value"
 
-
-ANALYTE_CHOICES = [
+ANALYTE_OPTIONS = sorted([
     ARSENIC,
     BICARBONATE,
     CALCIUM,
@@ -67,5 +67,7 @@ ANALYTE_CHOICES = [
     TDS,
     URANIUM,
     PH,
-]
+])
+
+PARAMETER_OPTIONS = [WATERLEVELS] + ANALYTE_OPTIONS
 # ============= EOF =============================================

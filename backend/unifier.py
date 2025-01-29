@@ -244,7 +244,7 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.parameter == "Waterlevels":
+    if config.parameter.lower() == "waterlevels":
         allsources = config.water_level_sources()
     else:
         allsources = config.analyte_sources()

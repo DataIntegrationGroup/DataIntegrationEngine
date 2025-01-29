@@ -18,7 +18,7 @@ import sys
 import click
 
 from backend.config import Config
-from backend.constants import ANALYTE_CHOICES
+from backend.constants import PARAMETER_OPTIONS
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 from backend.logging import setup_logging
@@ -163,9 +163,6 @@ OUTPUT_OPTIONS = [
     )
 ]
 
-PARAMETER_OPTIONS = ["Waterlevels"] + ANALYTE_CHOICES
-
-
 def add_options(options):
     def _add_options(func):
         for option in reversed(options):
@@ -241,7 +238,7 @@ def weave(
     config.output_timeseries_separated = timeseries_separated
 
     # sources
-    if parameter == "Waterlevels":
+    if parameter.lower() == "waterlevels":
         config.use_source_bernco = no_bernco
         config.use_source_nmbgmr_amp = no_nmbgmr_amp
         config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
@@ -274,7 +271,7 @@ def weave(
         if not click.confirm("Do you want to continue?", default=True):
             return
 
-    if parameter == "Waterlevels":
+    if parameter.lower() == "waterlevels":
         unify_waterlevels(config)
     else:
         unify_analytes(config)

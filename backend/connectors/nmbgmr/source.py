@@ -78,7 +78,7 @@ class NMBGMRSiteSource(BaseSiteSource):
         if config.site_limit:
             params["limit"] = config.site_limit
 
-        if config.parameter != "Waterlevels":
+        if config.parameter.lower() != "waterlevels":
             params["parameter"] = get_analyte_search_param(
                 config.parameter, NMBGMR_ANALYTE_MAPPING
             )
