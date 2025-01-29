@@ -34,6 +34,7 @@ class BasePersister(Loggable):
     Class to persist the data to a file or cloud storage.
     If persisting to a file, the output directory is created by config._make_output_path()
     """
+
     extension: str
     # output_id: str
 
@@ -90,7 +91,7 @@ class BasePersister(Loggable):
                 self.log(f"dumping {site.id} to {os.path.abspath(path)}")
                 self._write(path, records)
         else:
-            self.log("no timeseries records to dump", fg="red")    
+            self.log("no timeseries records to dump", fg="red")
 
     def save(self, path: str):
         if self.records:
