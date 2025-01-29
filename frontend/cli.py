@@ -178,10 +178,7 @@ def add_options(options):
 @cli.command()
 @click.argument(
     "weave",
-    type=click.Choice(
-        PARAMETER_OPTIONS,
-        case_sensitive=False
-        ),
+    type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
     required=True,
 )
 @add_options(OUTPUT_OPTIONS)
@@ -288,10 +285,7 @@ def wells(bbox, county):
 @cli.command()
 @click.argument(
     "sources",
-    type=click.Choice(
-        PARAMETER_OPTIONS,
-        case_sensitive=False
-        ),
+    type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
     required=True,
 )
 @add_options(SPATIAL_OPTIONS)
