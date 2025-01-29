@@ -37,7 +37,37 @@ Data comes from the following sources. We are continuously adding new sources as
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
   - Available data: `water quality`
 
-### Source Inclusion & Exclusion
+## Usage
+
+### Parameter Data
+
+To obtain parameter summary or time series data, use
+```
+die weave {parameter}
+```
+
+where `{parameter}` is the name of the parameter whose data is to be retrieved, followed by the desired output type, excluded data sources, date filters, and geographic filters. `{parameter}` is case-insensitive.
+
+
+#### Available Parameters
+The following parameters are currently available for retrieval:
+- waterlevels
+- arsenic
+- bicarbonate
+- calcium
+- carbonate
+- chloride
+- magnesium
+- nitrate
+- ph
+- potassium
+- silica
+- sodium
+- sulfate
+- tds
+- uranium
+
+#### Source Inclusion & Exclusion
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
 
 - `--no-bernco` to exclude Bernalillo County (BernCo) data
@@ -50,43 +80,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
 - `--no-wqp` to exclude Water Quality Portal (WQP) data
 
-### Water Levels
-
-To obtain groundwater levels, use 
-
-```
-weave Waterlevels
-```
-
-followed by the desired output type, source filters, date filters, geographic filters, and excluded data sources.
-
-### Water Quality
-To obtain groundwater quality, use
-
-```
-weave {analyte}
-```
-
-where `{analyte}` is the name of the analyte whose data is to be retrieved.
-
-#### Available Analytes
-The following analytes are currently available for retrieval:
-- Arsenic
-- Bicarbonate
-- Calcium
-- Carbonate
-- Chloride
-- Magnesium
-- Nitrate
-- pH
-- Potassium
-- Silica
-- Sodium
-- Sulfate
-- TDS
-- Uranium
-
-### Geographic Filters
+#### Geographic Filters
 
 The following flags can be used to geographically filter data:
 
@@ -98,7 +92,7 @@ The following flags can be used to geographically filter data:
 -- bbox 'x1 y1, x2 y2'
 ```
 
-### Date Filters
+#### Date Filters
 
 The following flags can be used to filter by dates:
 
@@ -110,21 +104,39 @@ The following flags can be used to filter by dates:
 --end-date YYYY-MM-DD
 ```
 
-## Output
-The data is saved to the current working directory. A log of the inputs and processes, called `die.log`, is also saved to the current working directory. If a subsquent process is run and the log from the previous process has not been moved or stored elsewhere, the log for the subsequent process will be appended to the existing log.
+#### Output
+The following flags are used to set the output type:
 
-### Timeseries Data
-The flag `--separated_timeseries` exports timeseries for every location in their own file in the directory output_series (e.g. `AB-0002.csv`, `AB-0003.csv`).
+```
+--output summary
+```
+- A summary table consisting of location information as well as summary statistics for the parameter of interest for every location that has observations.
 
-The flag `--unified_timeseries` exports all timeseries for all locations in one file titled `output.timeseries.csv`. 
+```
+--output timeseries_unified
+```
+- A single table consisting of time series data for all locations for the parameter of interest.
+- A single table of site data that contains information such as latitude, longitude, and elevation
 
-Both time series export a file titled `output.sites.csv` that contains site information, such as latitude, longitude, and elevation.
+```
+--output timeseries_separated
+```
+- Separate time series tables for all locations for the parameter of interest.
+- A single table of site data that contains information such as latitude, longitude, and elevation
 
-#### Table Headers
+The data is saved to a directory titled `output` in the current working directory. If the directory `output` already exists, then the output directory will be called `output_1`. If enumerated output directories already exist, then the output directory will be called `output_{n}` where `n` is equal to the greatest integer suffix +1.
 
-The table headers for timeseries data are as follows:
+A log of the inputs and processes, called `die.log`, is also saved to the output directory.
 
-**output.sites.csv**
+##### Timeseries Data
+
+**sites**
+
+|     a       | source | id   | name | latitude | longitude | elevation | elevation_units | horizontal_datum | vertical_datum | usgs_site_id | alternate_site_id | formation | aquifer | well_depth |
+| :---------- | :----- | :--- | :--- | :------- | :-------- | :-------- | :-------------- | :--------------- | :------------- | :----------- | :---------------- | : ------- | :------ | :--------- |
+| description | the organization/source for the site | the id of the site. The id is used as the key to join the site and timeseries tables | the colloquial name for the site if it exists | latitude in decimal degrees | longitude in decimal degrees | ground surface elevation of the site in feet | the units of the ground surface elevation. Defaults to ft | horizontal datum of the latitude and longitude. Defaults to WGS84 | vertical datum of the elevation | USGS site id if it exists | alternate side id if it exists | geologic formation in whch the well terminals if it exists | aquifer from which the well draws water if it exists | depth of well if it exists |
+| data type   | string | string | string | float | float | float | string | string | string | string | string | string | string | string | 
+
 - `source`: the organization/source for the site
 - `id`: the id of the site. The id is used as the key to join the output.timeseries.csv table
 - `name`: the colloquial name for the site if it exists
@@ -140,14 +152,8 @@ The table headers for timeseries data are as follows:
 - `aquifer`: aquifer from which the well draws water if it exists
 - `well_depth`: depth of well if it exists
 
-**output.timeseries.csv - waterlevels**
-- `source`: the organization/sources for the site
-- `id`: the id of the site. The id is used as the key to join the output.sites.csv table
-- `depth_to_water_ft_below_ground_surface`: depth to water below ground surface in ft
-- `date_measured`: date of measurement in YYYY-MM-DD format
-- `time_measured`: time of measurement if it exists
 
-**output.timeseries.csv - analytes**
+**time series**
 - `source`: the organization/sources for the site
 - `id`: the id of the site. The id is used as the key to join the output.sites.csv table
 - `parameter`: the name of the analyte whose measurements are reported in the table. This corresponds the requested analyte
@@ -158,7 +164,7 @@ The table headers for timeseries data are as follows:
 
 ### Summary Data
 
-If neither of the above flags are specified, a summary table called `output.csv` is exported. The summary table consists of location information as well as summary statistics for the parameter of interest for every location that has observations.
+If neither of the above flags are specified, a summary table called `output.csv` is exported. 
 
 #### Table Headers: Summary
 
