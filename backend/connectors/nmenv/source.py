@@ -25,6 +25,7 @@ from backend.source import get_analyte_search_param, get_most_recent
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
+import sys
 
 class DWBSiteSource(STSiteSource):
     url = URL
@@ -67,7 +68,7 @@ class DWBAnalyteSource(STAnalyteSource):
     def _parse_result(
         self, result, result_dt=None, result_id=None, result_location=None
     ):
-        if "< mrl" in result.lower():
+        if "< mrl" in result.lower() or "< mdl" in result.lower():
             if self.config.output_summary:
                 self.warn(
                     f"Non-detect found: {result} for {result_location} on {result_dt} (observation {result_id}). Setting to 0 for summary."
@@ -78,6 +79,7 @@ class DWBAnalyteSource(STAnalyteSource):
                 return result
         else:
             return float(result.split(" ")[0])
+
 
     def get_records(self, site, *args, **kw):
         service = self.get_service()
