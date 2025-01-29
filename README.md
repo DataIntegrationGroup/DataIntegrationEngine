@@ -132,10 +132,10 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 
 **sites**
 
-|     a       | source | id   | name | latitude | longitude | elevation | elevation_units | horizontal_datum | vertical_datum | usgs_site_id | alternate_site_id | formation | aquifer | well_depth |
-| :---------- | :----- | :--- | :--- | :------- | :-------- | :-------- | :-------------- | :--------------- | :------------- | :----------- | :---------------- | : ------- | :------ | :--------- |
-| description | the organization/source for the site | the id of the site. The id is used as the key to join the site and timeseries tables | the colloquial name for the site if it exists | latitude in decimal degrees | longitude in decimal degrees | ground surface elevation of the site in feet | the units of the ground surface elevation. Defaults to ft | horizontal datum of the latitude and longitude. Defaults to WGS84 | vertical datum of the elevation | USGS site id if it exists | alternate side id if it exists | geologic formation in whch the well terminals if it exists | aquifer from which the well draws water if it exists | depth of well if it exists |
-| data type   | string | string | string | float | float | float | string | string | string | string | string | string | string | string | 
+|            | source | id    | name | latitude | longitude | elevation | elevation_units | horizontal_datum | vertical_datum | usgs_site_id | alternate_site_id | formation | aquifer | well_depth |
+| :---------- | :----- | :---- | :--- | :------- | :-------- | :-------- | :-------------- | :--------------- | :------------- | :----------- | :---------------- | :-------- | :------ | :--------- |
+| **description** | the organization/source for the site | the id of the site. The id is used as the key to join the site and timeseries tables | the colloquial name for the site if it exists | latitude in decimal degrees | longitude in decimal degrees | ground surface elevation of the site in feet | the units of the ground surface elevation. Defaults to ft | horizontal datum of the latitude and longitude. Defaults to WGS84 | vertical datum of the elevation | USGS site id if it exists | alternate side id if it exists | geologic formation in which the well terminals if it exists | aquifer from which the well draws water if it exists | depth of well if it exists |
+| **data type**   | string | string | string | float | float | float | string | string | string | string | string | string | string | string |
 
 - `source`: the organization/source for the site
 - `id`: the id of the site. The id is used as the key to join the output.timeseries.csv table
