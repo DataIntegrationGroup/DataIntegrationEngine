@@ -32,6 +32,9 @@ class DWBSiteSource(STSiteSource):
     transformer_klass = DWBSiteTransformer
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "DWBSiteSource"
+
     def health(self):
         return self.get_records(top=10, analyte="TDS")
 
@@ -64,6 +67,9 @@ class DWBSiteSource(STSiteSource):
 class DWBAnalyteSource(STAnalyteSource):
     url = URL
     transformer_klass = DWBAnalyteTransformer
+
+    def __repr__(self):
+        return "DWBAnalyteSource"
 
     def _parse_result(
         self, result, result_dt=None, result_id=None, result_location=None

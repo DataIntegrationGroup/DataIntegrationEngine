@@ -89,6 +89,9 @@ class NWISSiteSource(BaseSiteSource):
     chunk_size = 500
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "NWISSiteSource"
+
     @property
     def tag(self):
         return "nwis"
@@ -134,6 +137,9 @@ class NWISSiteSource(BaseSiteSource):
 
 class NWISWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NWISWaterLevelTransformer
+
+    def __repr__(self):
+        return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
         params = {

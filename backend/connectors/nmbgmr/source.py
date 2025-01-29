@@ -60,6 +60,9 @@ class NMBGMRSiteSource(BaseSiteSource):
     chunk_size = 100
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "NMBGMRSiteSource"
+
     def health(self):
         resp = self._execute_json_request(
             _make_url("locations"), tag="features", params={"limit": 1}
@@ -106,6 +109,9 @@ class NMBGMRSiteSource(BaseSiteSource):
 
 class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
+
+    def __repr__(self):
+        return "NMBGMRAnalyteSource"
 
     def get_records(self, site_record):
         analyte = get_analyte_search_param(
@@ -155,6 +161,9 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
 class NMBGMRWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NMBGMRWaterLevelTransformer
+
+    def __repr__(self):
+        return "NMBGMRWaterLevelSource"
 
     def _clean_records(self, records):
         # remove records with no depth to water value

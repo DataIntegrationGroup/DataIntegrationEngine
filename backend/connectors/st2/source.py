@@ -60,16 +60,25 @@ class PVACDSiteSource(ST2SiteSource):
     agency = "PVACD"
     bounding_polygon = PVACD_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "PVACDSiteSource"
+
 
 class EBIDSiteSource(ST2SiteSource):
     transformer_klass = EBIDSiteTransformer
     agency = "EBID"
+
+    def __repr__(self):
+        return "EBIDSiteSource"
 
 
 class BernCoSiteSource(ST2SiteSource):
     agency = "BernCo"
     transformer_klass = BernCoSiteTransformer
     bounding_polygon = BERNCO_BOUNDING_POLYGON
+
+    def __repr__(self):
+        return "BernCoSiteSource"
 
 
 class ST2WaterLevelSource(STWaterLevelSource):
@@ -142,15 +151,24 @@ class PVACDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = PVACDWaterLevelTransformer
     agency = "PVACD"
 
+    def __repr__(self):
+        return "PVACDWaterLevelSource"
+
 
 class EBIDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = EBIDWaterLevelTransformer
     agency = "EBID"
 
+    def __repr__(self):
+        return "EBIDWaterLevelSource"
+
 
 class BernCoWaterLevelSource(ST2WaterLevelSource):
     agency = "BernCo"
     transformer_klass = BernCoWaterLevelTransformer
+
+    def __repr__(self):
+        return "BernCoWaterLevelSource"
 
 
 # ============= EOF =============================================

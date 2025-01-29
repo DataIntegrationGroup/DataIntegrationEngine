@@ -62,6 +62,9 @@ class WQPSiteSource(BaseSiteSource):
 
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "WQPSiteSource"
+
     def health(self):
         try:
             r = httpx.get(
@@ -99,6 +102,9 @@ class WQPSiteSource(BaseSiteSource):
 
 class WQPAnalyteSource(BaseAnalyteSource):
     transformer_klass = WQPAnalyteTransformer
+
+    def __repr__(self):
+        return "WQPAnalyteSource"
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_VALUE] = record["ResultMeasureValue"]

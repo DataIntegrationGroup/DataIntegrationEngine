@@ -73,6 +73,9 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
     transformer_klass = ISCSevenRiversSiteTransformer
     bounding_polygon = ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "ISCSevenRiversSiteSource"
+
     def health(self):
         try:
             self.get_records()
@@ -90,6 +93,9 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
 class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     transformer_klass = ISCSevenRiversAnalyteTransformer
     _analyte_ids = None
+
+    def __repr__(self):
+        return "ISCSevenRiversAnalyteSource"
 
     def _get_analyte_id(self, analyte):
         """ """
