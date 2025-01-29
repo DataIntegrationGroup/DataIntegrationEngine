@@ -171,10 +171,4 @@ cython_debug/
 #.idea/
 
 # outputs
-output_timeseries
-output.combined.csv
-output.csv
-output.sites.csv
-output.timeseries.csv
-output.logs.txt
-output.warnings.txt
+output*
