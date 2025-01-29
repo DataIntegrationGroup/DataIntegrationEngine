@@ -194,7 +194,7 @@ def _unify_parameter(
     else:  # config.output_timeseries_separated
         persister.dump_timeseries_separated(config.output_path)
         persister.dump_sites(config.output_path)
-        
+
     persister.finalize(config.output_name)
 
 

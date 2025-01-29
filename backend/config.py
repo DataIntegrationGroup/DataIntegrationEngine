@@ -396,12 +396,20 @@ class Config(Loggable):
         output_name = self.output_name
 
         # find if there are already directories with the string "output" their names
-        output_names = [name for name in os.listdir(self.output_dir) if os.path.isdir(name) and output_name in name]
-        
+        output_names = [
+            name
+            for name in os.listdir(self.output_dir)
+            if os.path.isdir(name) and output_name in name
+        ]
+
         if len(output_names) > 0:
             max_count = 0
             # find the highest number appended to directories with "output" in their name
-            counts = [name.split("_")[-1] for name in output_names if name.split("_")[-1].isdigit()]
+            counts = [
+                name.split("_")[-1]
+                for name in output_names
+                if name.split("_")[-1].isdigit()
+            ]
             counts = [int(count) for count in counts]
             if len(counts) > 0:
                 max_count = max(counts)
