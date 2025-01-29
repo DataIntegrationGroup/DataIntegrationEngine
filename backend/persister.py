@@ -37,7 +37,6 @@ class BasePersister(Loggable):
         self.records = []
         self.timeseries = []
         self.sites = []
-        # self.combined = []
 
         super().__init__()
         # self.keys = record_klass.keys
@@ -68,15 +67,6 @@ class BasePersister(Loggable):
             # )
         else:
             self.log("no timeseries records to dump", fg="red")
-
-    # def dump_combined(self, path: str):
-    #     if self.combined:
-    #         path = self.add_extension(path)
-
-    #         self.log(f"dumping combined to {os.path.abspath(path)}")
-    #         self._dump_combined(path, self.combined)
-    #     else:
-    #         self.log("no combined records to dump", fg="red")
 
     def dump_timeseries_unified(self, path: str):
         if self.timeseries:
@@ -113,9 +103,6 @@ class BasePersister(Loggable):
     def _write(self, path: str, records):
         raise NotImplementedError
 
-    # def _dump_combined(self, path: str, combined: list):
-    #     raise NotImplementedError
-
     def _dump_timeseries_unified(self, path: str, timeseries: list):
         raise NotImplementedError
 
@@ -149,13 +136,6 @@ def dump_sites(writer, records):
         if i == 0:
             writer.writerow(site.keys)
         writer.writerow(site.to_row())
-
-
-# def dump_combined(writer, combined):
-#     for i, (site, record) in enumerate(combined):
-#         if i == 0:
-#             writer.writerow(site.keys + record.keys)
-#         writer.writerow(site.to_row() + record.to_row())
 
 
 class CloudStoragePersister(BasePersister):
@@ -206,10 +186,6 @@ class CloudStoragePersister(BasePersister):
         content = write_memory(path, dump_timeseries_unified, timeseries)
         self._add_content(path, content)
 
-    # def _dump_combined(self, path: str, combined: list):
-    #     content = write_memory(path, dump_combined, combined)
-    #     self._add_content(path, content)
-
 
 class CSVPersister(BasePersister):
     extension = "csv"
@@ -219,9 +195,6 @@ class CSVPersister(BasePersister):
 
     def _dump_timeseries_unified(self, path: str, timeseries: list):
         write_file(path, dump_timeseries_unified, timeseries)
-
-    # def _dump_combined(self, path: str, combined: list):
-    #     write_file(path, dump_combined, combined)
 
 
 class GeoJSONPersister(BasePersister):
