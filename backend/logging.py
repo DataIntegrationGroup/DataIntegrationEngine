@@ -15,6 +15,7 @@
 # ===============================================================================
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 
 import click
 
@@ -51,6 +52,8 @@ def setup_logging(level=None, log_format=None, path=None):
 
     if path is None:
         path = "die.log"
+    else:
+        path = os.path.join(path, "die.log")
 
     # shandler = logging.StreamHandler()
     rhandler = RotatingFileHandler(path, maxBytes=1e8, backupCount=50)

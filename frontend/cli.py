@@ -23,7 +23,7 @@ from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 from backend.logging import setup_logging
 
-setup_logging()
+# setup_logging()
 
 
 @click.group()
@@ -213,6 +213,15 @@ def weave(
     config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
     config.parameter = parameter
 
+    # make sure config.output_name is properly set
+    config._update_output_name()
+
+    # make output_path
+    config._make_output_path()
+
+    # setup logging here so that the path can be set to config.output_path
+    setup_logging(path=config.output_path)
+
     # output type
     if output == "summary":
         summary = True
@@ -277,7 +286,6 @@ def wells(bbox, county):
     """
     Get locations
     """
-
     config = setup_config("sites", bbox, county)
     unify_sites(config)
 
