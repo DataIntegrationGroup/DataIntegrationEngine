@@ -126,7 +126,7 @@ def convert_units(
     output_units: str,
     analyte: str,
     dt: str = None,
-) -> float:
+) -> tuple[float, str]:
     """
     Converts the following units for any parameter value:
 
@@ -160,8 +160,8 @@ def convert_units(
 
     Returns
     --------
-    float
-        The converted value
+    tuple[float, str]
+        The converted value and warning message is conversion failed
     """
     warning = ""
     conversion_factor = None
@@ -725,12 +725,16 @@ class ParameterTransformer(BaseTransformer):
         record["most_recent_date"] = dt
         record["most_recent_time"] = tt
         p, u = self._get_parameter()
-        record["most_recent_value"] = convert_units(
+
+        most_recent_value, warning_msg = convert_units(
             record["most_recent_value"],
             record["most_recent_units"],
             u,
             self.config.parameter,
         )
+
+        # all failed conversions are skipped and handled in source.read(), so no need to duplicate here
+        record["most_recent_value"] = most_recent_value
         record["most_recent_units"] = u
 
 
