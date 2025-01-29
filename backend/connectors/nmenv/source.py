@@ -27,6 +27,7 @@ URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
 import sys
 
+
 class DWBSiteSource(STSiteSource):
     url = URL
     transformer_klass = DWBSiteTransformer
@@ -85,7 +86,6 @@ class DWBAnalyteSource(STAnalyteSource):
                 return result
         else:
             return float(result.split(" ")[0])
-
 
     def get_records(self, site, *args, **kw):
         service = self.get_service()

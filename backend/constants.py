@@ -51,23 +51,25 @@ PARAMETER = "parameter"
 PARAMETER_UNITS = "parameter_units"
 PARAMETER_VALUE = "parameter_value"
 
-ANALYTE_OPTIONS = sorted([
-    ARSENIC,
-    BICARBONATE,
-    CALCIUM,
-    CARBONATE,
-    CHLORIDE,
-    # FLUORIDE,
-    MAGNESIUM,
-    NITRATE,
-    POTASSIUM,
-    SILICA,
-    SODIUM,
-    SULFATE,
-    TDS,
-    URANIUM,
-    PH,
-])
+ANALYTE_OPTIONS = sorted(
+    [
+        ARSENIC,
+        BICARBONATE,
+        CALCIUM,
+        CARBONATE,
+        CHLORIDE,
+        # FLUORIDE,
+        MAGNESIUM,
+        NITRATE,
+        POTASSIUM,
+        SILICA,
+        SODIUM,
+        SULFATE,
+        TDS,
+        URANIUM,
+        PH,
+    ]
+)
 
 PARAMETER_OPTIONS = [WATERLEVELS] + ANALYTE_OPTIONS
 # ============= EOF =============================================
