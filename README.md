@@ -91,9 +91,7 @@ The data is saved to a directory titled `output` in the current working director
 
 A log of the inputs and processes, called `die.log`, is also saved to the output directory.
 
-#### Tables
-
-**summary table**
+#### Summary Table
 
 | field/header | description | data type | always present |
 | :----------- | :---------- | :-------- | :------------- |
@@ -121,7 +119,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | most_recent_units | units of the most recent record | string | Y |
 
 
-**sites table**
+#### Sites Table
 
 | field/header | description | data type | always present |
 | :----------- | :---------- | :-------- | :------------- |
@@ -141,7 +139,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | well_depth | depth of well | float | N |
 
 
-**time series table(s)**
+#### Time Series Table(s)
 
 | field/header | description | data type | always present |
 | :----------- | :---------- | :-------- | :------------- |
