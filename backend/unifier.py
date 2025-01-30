@@ -185,14 +185,15 @@ def _unify_parameter(
     persister = _perister_factory(config)
     for site_source, parameter_source in sources:
         _site_wrapper(site_source, parameter_source, persister, config)
+
     if config.output_summary:
-        persister.save(config.output_path)
+        persister.dump_summary(config.output_path)
     elif config.output_timeseries_unified:
-        persister.dump_sites(f"{config.output_path}.sites")
-        persister.dump_timeseries_unified(f"{config.output_path}.timeseries")
+        persister.dump_timeseries_unified(config.output_path)
+        persister.dump_sites(config.output_path)
     else:  # config.output_timeseries_separated
-        persister.dump_timeseries_separated(f"{config.output_path}_timeseries")
-        persister.dump_sites(f"{config.output_path}.sites")
+        persister.dump_timeseries_separated(config.output_path)
+        persister.dump_sites(config.output_path)
 
     persister.finalize(config.output_name)
 
@@ -243,13 +244,16 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.analyte:
-        allsources = config.analyte_sources()
-    else:
+    if config.parameter.lower() == "waterlevels":
         allsources = config.water_level_sources()
+    else:
+        allsources = config.analyte_sources()
 
     for source, _ in allsources:
-        if source.intersects(config.bounding_wkt()):
+        if config.wkt or config.bbox or config.county:
+            if source.intersects(config.bounding_wkt()):
+                sources.append(source)
+        else:
             sources.append(source)
     return sources
 

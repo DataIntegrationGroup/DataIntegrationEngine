@@ -18,12 +18,12 @@ import sys
 import click
 
 from backend.config import Config
-from backend.constants import ANALYTE_CHOICES
+from backend.constants import PARAMETER_OPTIONS
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 from backend.logging import setup_logging
 
-setup_logging()
+# setup_logging()
 
 
 @click.group()
@@ -47,6 +47,13 @@ ALL_SOURCE_OPTIONS = [
         help="Exclude BoR data. Default is to include",
     ),
     click.option(
+        "--no-nmbgmr-amp",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude NMBGMR AMP data. Default is to include",
+    ),
+    click.option(
         "--no-nmed-dwb",
         is_flag=True,
         default=True,
@@ -66,13 +73,6 @@ ALL_SOURCE_OPTIONS = [
         default=True,
         show_default=True,
         help="Exclude NMOSE Roswell data. Default is to include",
-    ),
-    click.option(
-        "--no-nmbgmr-amp",
-        is_flag=True,
-        default=True,
-        show_default=True,
-        help="Exclude NMBGMR AMP data. Default is to include",
     ),
     click.option(
         "--no-nwis",
@@ -174,23 +174,18 @@ def add_options(options):
 
 
 @cli.command()
-@add_options(SPATIAL_OPTIONS)
-def wells(bbox, county):
-    """
-    Get locations
-    """
-
-    config = setup_config("sites", bbox, county)
-    unify_sites(config)
-
-
-@cli.command()
+@click.argument(
+    "weave",
+    type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
+    required=True,
+)
 @add_options(OUTPUT_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-def waterlevels(
+def weave(
+    weave,
     output,
     start_date,
     end_date,
@@ -208,8 +203,22 @@ def waterlevels(
     site_limit,
     dry,
 ):
-    # instantiate config
-    config = setup_config("waterlevels", bbox, county, site_limit, dry)
+    """
+    Get parameter timeseries or summary data
+    """
+    parameter = weave
+    # instantiate config and set up parameter
+    config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
+    config.parameter = parameter
+
+    # make sure config.output_name is properly set
+    config._update_output_name()
+
+    # make output_path
+    config._make_output_path()
+
+    # setup logging here so that the path can be set to config.output_path
+    setup_logging(path=config.output_path)
 
     # output type
     if output == "summary":
@@ -230,91 +239,28 @@ def waterlevels(
     config.output_timeseries_separated = timeseries_separated
 
     # sources
-    config.use_source_bernco = no_bernco
-    config.use_source_nmbgmr_amp = no_nmbgmr_amp
-    config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-    config.use_source_nmose_roswell = no_nmose_roswell
-    config.use_source_nwis = no_nwis
-    config.use_source_pvacd = no_pvacd
+    if parameter.lower() == "waterlevels":
+        config.use_source_bernco = no_bernco
+        config.use_source_nmbgmr_amp = no_nmbgmr_amp
+        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
+        config.use_source_nmose_roswell = no_nmose_roswell
+        config.use_source_nwis = no_nwis
+        config.use_source_pvacd = no_pvacd
 
-    config.use_source_bor = False
-    config.use_source_nmed_dwb = False
-    config.use_source_wqp = False
+        config.use_source_bor = False
+        config.use_source_nmed_dwb = False
+        config.use_source_wqp = False
+    else:
+        config.use_source_bor = no_bor
+        config.use_source_nmbgmr_amp = no_nmbgmr_amp
+        config.use_source_nmed_dwb = no_nmed_dwb
+        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
+        config.use_source_wqp = no_wqp
 
-    # dates
-    config.start_date = start_date
-    config.end_date = end_date
-
-    if not dry:
-        config.report()
-        # prompt user to continue
-        if not click.confirm("Do you want to continue?", default=True):
-            return
-
-    unify_waterlevels(config)
-
-
-@cli.command()
-@click.argument("analyte", type=click.Choice(ANALYTE_CHOICES))
-@add_options(OUTPUT_OPTIONS)
-@add_options(DT_OPTIONS)
-@add_options(SPATIAL_OPTIONS)
-@add_options(ALL_SOURCE_OPTIONS)
-@add_options(DEBUG_OPTIONS)
-def analytes(
-    analyte,
-    output,
-    start_date,
-    end_date,
-    bbox,
-    county,
-    no_bernco,  # has no analyte measurements
-    no_bor,
-    no_nmbgmr_amp,
-    no_nmed_dwb,
-    no_nmose_isc_seven_rivers,
-    no_nmose_roswell,  # has no analyte measurements
-    no_nwis,  # has no analyte measurements
-    no_pvacd,  # has no analyte measurements
-    no_wqp,
-    site_limit,
-    dry,
-):
-    # instantiate config
-    config = setup_config(f"analytes ({analyte})", bbox, county, site_limit, dry)
-
-    # output type
-    if output == "summary":
-        summary = True
-        timeseries_unified = False
-        timeseries_separated = False
-    elif output == "timeseries_unified":
-        summary = False
-        timeseries_unified = True
-        timeseries_separated = False
-    elif output == "timeseries_separated":
-        summary = False
-        timeseries_unified = False
-        timeseries_separated = True
-
-    config.output_summary = summary
-    config.output_timeseries_unified = timeseries_unified
-    config.output_timeseries_separated = timeseries_separated
-
-    # sources
-    config.use_source_bor = no_bor
-    config.use_source_nmbgmr_amp = no_nmbgmr_amp
-    config.use_source_nmed_dwb = no_nmed_dwb
-    config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-    config.use_source_wqp = no_wqp
-
-    config.use_source_bernco = False
-    config.use_source_nmose_roswell = False
-    config.use_source_nwis = False
-    config.use_source_pvacd = False
-
-    # analyte
-    config.analyte = analyte
+        config.use_source_bernco = False
+        config.use_source_nmose_roswell = False
+        config.use_source_nwis = False
+        config.use_source_pvacd = False
 
     # dates
     config.start_date = start_date
@@ -326,12 +272,30 @@ def analytes(
         if not click.confirm("Do you want to continue?", default=True):
             return
 
-    unify_analytes(config)
+    if parameter.lower() == "waterlevels":
+        unify_waterlevels(config)
+    else:
+        unify_analytes(config)
 
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
-def sources(bbox, county):
+def wells(bbox, county):
+    """
+    Get locations
+    """
+    config = setup_config("sites", bbox, county)
+    unify_sites(config)
+
+
+@cli.command()
+@click.argument(
+    "sources",
+    type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
+    required=True,
+)
+@add_options(SPATIAL_OPTIONS)
+def sources(sources, bbox, county):
     """
     List available sources
     """
@@ -343,6 +307,8 @@ def sources(bbox, county):
     elif bbox:
         config.bbox = bbox
 
+    parameter = sources
+    config.parameter = parameter
     sources = get_sources(config)
     for s in sources:
         click.echo(s)

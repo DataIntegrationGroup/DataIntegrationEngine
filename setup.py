@@ -21,12 +21,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="nmuwd",
-    version="0.2.0",
+    version="0.3.1",
     author="Jake Ross",
     description="New Mexico Water Data Integration Engine",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/DataIntegrationGroup/PyWeaver",
+    url="https://github.com/DataIntegrationGroup/DataIntegrationEngine",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
@@ -34,7 +34,7 @@ setup(
     install_requires=["click", "httpx", "geopandas", "frost_sta_client"],
     entry_points={
         "console_scripts": [
-            "weave = frontend.cli:cli",
+            "die = frontend.cli:cli",
         ],
     },
     packages=["frontend", "backend"]

@@ -30,6 +30,11 @@ except ImportError:
 
 
 class BasePersister(Loggable):
+    """
+    Class to persist the data to a file or cloud storage.
+    If persisting to a file, the output directory is created by config._make_output_path()
+    """
+
     extension: str
     # output_id: str
 
@@ -37,7 +42,6 @@ class BasePersister(Loggable):
         self.records = []
         self.timeseries = []
         self.sites = []
-        # self.combined = []
 
         super().__init__()
         # self.keys = record_klass.keys
@@ -48,51 +52,46 @@ class BasePersister(Loggable):
     def finalize(self, output_name: str):
         pass
 
-    def dump_timeseries_separated(self, root: str):
-        if self.timeseries:
-            if os.path.isdir(root):
-                self.log(f"root {root} already exists", fg="red")
-                shutil.rmtree(root)
-
-            self._make_root_directory(root)
-
-            for site, records in self.timeseries:
-                path = os.path.join(root, str(site.id).replace(" ", "_"))
-                path = self.add_extension(path)
-                self.log(f"dumping {site.id} to {os.path.abspath(path)}")
-                self._write(path, records)
-
-            # self._write(
-            #     os.path.join(root, self.add_extension("sites")),
-            #     [s[0] for s in self.timeseries],
-            # )
+    def dump_sites(self, path: str):
+        if self.sites:
+            path = os.path.join(path, "sites")
+            path = self.add_extension(path)
+            self.log(f"dumping sites to {os.path.abspath(path)}")
+            self._write(path, self.sites)
         else:
-            self.log("no timeseries records to dump", fg="red")
+            self.log("no sites to dump", fg="red")
 
-    # def dump_combined(self, path: str):
-    #     if self.combined:
-    #         path = self.add_extension(path)
-
-    #         self.log(f"dumping combined to {os.path.abspath(path)}")
-    #         self._dump_combined(path, self.combined)
-    #     else:
-    #         self.log("no combined records to dump", fg="red")
+    def dump_summary(self, path: str):
+        if self.records:
+            path = os.path.join(path, "summary")
+            path = self.add_extension(path)
+            self.log(f"dumping summary to {os.path.abspath(path)}")
+            self._write(path, self.records)
+        else:
+            self.log("no records to dump", fg="red")
 
     def dump_timeseries_unified(self, path: str):
         if self.timeseries:
+            path = os.path.join(path, "timeseries_unified")
             path = self.add_extension(path)
             self.log(f"dumping unified timeseries to {os.path.abspath(path)}")
             self._dump_timeseries_unified(path, self.timeseries)
         else:
             self.log("no timeseries records to dump", fg="red")
 
-    def dump_sites(self, path: str):
-        if self.sites:
-            path = self.add_extension(path)
-            self.log(f"dumping sites to {os.path.abspath(path)}")
-            self._write(path, self.sites)
+    def dump_timeseries_separated(self, path: str):
+        if self.timeseries:
+            # make timeseries path inside of config.output_path to which
+            # the individual site timeseries will be dumped
+            timeseries_path = os.path.join(path, "timeseries")
+            self._make_output_directory(timeseries_path)
+            for site, records in self.timeseries:
+                path = os.path.join(timeseries_path, str(site.id).replace(" ", "_"))
+                path = self.add_extension(path)
+                self.log(f"dumping {site.id} to {os.path.abspath(path)}")
+                self._write(path, records)
         else:
-            self.log("no sites to dump", fg="red")
+            self.log("no timeseries records to dump", fg="red")
 
     def save(self, path: str):
         if self.records:
@@ -113,14 +112,11 @@ class BasePersister(Loggable):
     def _write(self, path: str, records):
         raise NotImplementedError
 
-    # def _dump_combined(self, path: str, combined: list):
-    #     raise NotImplementedError
-
     def _dump_timeseries_unified(self, path: str, timeseries: list):
         raise NotImplementedError
 
-    def _make_root_directory(self, root: str):
-        os.mkdir(root)
+    def _make_output_directory(self, output_directory: str):
+        os.mkdir(output_directory)
 
 
 def write_file(path, func, records):
@@ -149,13 +145,6 @@ def dump_sites(writer, records):
         if i == 0:
             writer.writerow(site.keys)
         writer.writerow(site.to_row())
-
-
-# def dump_combined(writer, combined):
-#     for i, (site, record) in enumerate(combined):
-#         if i == 0:
-#             writer.writerow(site.keys + record.keys)
-#         writer.writerow(site.to_row() + record.to_row())
 
 
 class CloudStoragePersister(BasePersister):
@@ -191,7 +180,7 @@ class CloudStoragePersister(BasePersister):
             blob = bucket.blob(path)
             blob.upload_from_string(cnt)
 
-    def _make_root_directory(self, root: str):
+    def _make_output_directory(self, output_directory: str):
         # prevent making root directory, because we are not saving to disk
         pass
 
@@ -206,10 +195,6 @@ class CloudStoragePersister(BasePersister):
         content = write_memory(path, dump_timeseries_unified, timeseries)
         self._add_content(path, content)
 
-    # def _dump_combined(self, path: str, combined: list):
-    #     content = write_memory(path, dump_combined, combined)
-    #     self._add_content(path, content)
-
 
 class CSVPersister(BasePersister):
     extension = "csv"
@@ -219,9 +204,6 @@ class CSVPersister(BasePersister):
 
     def _dump_timeseries_unified(self, path: str, timeseries: list):
         write_file(path, dump_timeseries_unified, timeseries)
-
-    # def _dump_combined(self, path: str, combined: list):
-    #     write_file(path, dump_combined, combined)
 
 
 class GeoJSONPersister(BasePersister):

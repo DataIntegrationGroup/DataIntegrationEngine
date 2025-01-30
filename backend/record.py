@@ -30,23 +30,28 @@ class BaseRecord:
             # if v is None and self.defaults:
             #     v = self.defaults.get(attr)
             v = self.__getattr__(attr)
-            for key, sigfigs in (
+
+            field_sigfigs = [
                 ("elevation", 2),
-                ("depth_to_water_ft_below_ground_surface", 2),
-                ("surface_elevation_ft", 2),
-                ("well_depth_ft_below_ground_surface", 2),
                 ("well_depth", 2),
                 ("latitude", 6),
                 ("longitude", 6),
                 ("min", 2),
                 ("max", 2),
                 ("mean", 2),
-            ):
-                if v is not None and key == attr:
+            ]
+
+            # both analyte and water level tables have the same fields, but the
+            # rounding should only occur for water level tables
+            if isinstance(self, WaterLevelRecord):
+                field_sigfigs.append((PARAMETER_VALUE, 2))
+
+            for field, sigfigs in field_sigfigs:
+                if v is not None and field == attr:
                     try:
                         v = round(v, sigfigs)
                     except TypeError as e:
-                        print(key, attr)
+                        print(field, attr)
                         raise e
                     break
             return v
@@ -72,7 +77,9 @@ class WaterLevelRecord(BaseRecord):
         # "longitude",
         # "surface_elevation_ft",
         # "well_depth_ft_below_ground_surface",
-        DTW,
+        PARAMETER,
+        PARAMETER_VALUE,
+        PARAMETER_UNITS,
         "date_measured",
         "time_measured",
     )

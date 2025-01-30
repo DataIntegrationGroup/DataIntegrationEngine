@@ -14,23 +14,24 @@
 # limitations under the License.
 # ===============================================================================
 
-TDS = "TDS"
-ARSENIC = "Arsenic"
-BICARBONATE = "Bicarbonate"
-CALCIUM = "Calcium"
-CARBONATE = "Carbonate"
-CHLORIDE = "Chloride"
-FLUORIDE = "Fluoride"
-MAGNESIUM = "Magnesium"
-NITRATE = "Nitrate"
-POTASSIUM = "Potassium"
-SILICA = "Silica"
-SODIUM = "Sodium"
-SULFATE = "Sulfate"
-URANIUM = "Uranium"
+TDS = "tds"
+ARSENIC = "arsenic"
+BICARBONATE = "bicarbonate"
+CALCIUM = "calcium"
+CARBONATE = "carbonate"
+CHLORIDE = "chloride"
+FLUORIDE = "fluoride"
+MAGNESIUM = "magnesium"
+NITRATE = "nitrate"
+POTASSIUM = "potassium"
+SILICA = "silica"
+SODIUM = "sodium"
+SULFATE = "sulfate"
+URANIUM = "uranium"
+WATERLEVELS = "waterlevels"
 
 
-PH = "pH"
+PH = "ph"
 
 
 MILLIGRAMS_PER_LITER = "mg/L"
@@ -43,29 +44,32 @@ WGS84 = "WGS84"
 
 DT_MEASURED = "datetime_measured"
 
-DTW = "depth_to_water_ft_below_ground_surface"
+DTW = "depth_to_water_below_ground_surface"
 DTW_UNITS = FEET
 
 PARAMETER = "parameter"
 PARAMETER_UNITS = "parameter_units"
 PARAMETER_VALUE = "parameter_value"
 
+ANALYTE_OPTIONS = sorted(
+    [
+        ARSENIC,
+        BICARBONATE,
+        CALCIUM,
+        CARBONATE,
+        CHLORIDE,
+        # FLUORIDE,
+        MAGNESIUM,
+        NITRATE,
+        POTASSIUM,
+        SILICA,
+        SODIUM,
+        SULFATE,
+        TDS,
+        URANIUM,
+        PH,
+    ]
+)
 
-ANALYTE_CHOICES = [
-    ARSENIC,
-    BICARBONATE,
-    CALCIUM,
-    CARBONATE,
-    CHLORIDE,
-    # FLUORIDE,
-    MAGNESIUM,
-    NITRATE,
-    POTASSIUM,
-    SILICA,
-    SODIUM,
-    SULFATE,
-    TDS,
-    URANIUM,
-    PH,
-]
+PARAMETER_OPTIONS = [WATERLEVELS] + ANALYTE_OPTIONS
 # ============= EOF =============================================

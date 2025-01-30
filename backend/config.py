@@ -106,21 +106,22 @@ class Config(Loggable):
     wkt: str = ""
 
     # sources
-    use_source_bernco: bool = False
-    use_source_bor: bool = False
-    use_source_nmbgmr_amp: bool = False
-    use_source_nmed_dwb: bool = False
-    use_source_nmose_isc_seven_rivers: bool = False
-    use_source_nmose_roswell: bool = False
-    use_source_nwis: bool = False
-    use_source_pvacd: bool = False
-    use_source_wqp: bool = False
+    use_source_bernco: bool = True
+    use_source_bor: bool = True
+    use_source_nmbgmr_amp: bool = True
+    use_source_nmed_dwb: bool = True
+    use_source_nmose_isc_seven_rivers: bool = True
+    use_source_nmose_roswell: bool = True
+    use_source_nwis: bool = True
+    use_source_pvacd: bool = True
+    use_source_wqp: bool = True
 
-    analyte: str = ""
+    # parameter
+    parameter: str = ""
 
     # output
     use_cloud_storage: bool = False
-    output_dir: str = ""
+    output_dir: str = "."
     output_name: str = "output"
     output_horizontal_datum: str = WGS84
     output_elevation_units: str = FEET
@@ -167,7 +168,7 @@ class Config(Loggable):
             self.output_name = payload.get("output_name", "output")
             self.start_date = payload.get("start_date", "")
             self.end_date = payload.get("end_date", "")
-            self.analyte = payload.get("analyte", "")
+            self.parameter = payload.get("parameter", "")
 
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
@@ -189,9 +190,6 @@ class Config(Loggable):
         for s, ss in sources:
             s.set_config(self)
             ss.set_config(self)
-
-            # s.config = self
-            # ss.config = self
 
         return sources
 
@@ -309,7 +307,7 @@ class Config(Loggable):
             "county",
             "bbox",
             "wkt",
-            "analyte",
+            "parameter",
             "site_limit",
         ] + sources
         # inputs
@@ -322,8 +320,7 @@ class Config(Loggable):
         _report_attributes(
             "Outputs",
             (
-                "output_dir",
-                "output_name",
+                "output_path",
                 "output_summary",
                 "output_timeseries_unified",
                 "output_timeseries_separated",
@@ -384,6 +381,45 @@ class Config(Loggable):
             return bool(get_county_polygon(self.county))
 
         return True
+
+    def _update_output_name(self):
+        """
+        Generate a unique output name based on existing directories in the output directory.
+
+        If there are no directories with the string "output" in their name, the output name will be "output".
+
+        If there is a directory called "output", then output_name will be "output_1".
+
+        If there are directories called "output_{n}" where n is an integer, then output_name will be "output_{m+1}"
+        where m is the highest integer in the existing directories.
+        """
+        output_name = self.output_name
+
+        # find if there are already directories with the string "output" their names
+        output_names = [
+            name
+            for name in os.listdir(self.output_dir)
+            if os.path.isdir(name) and output_name in name
+        ]
+
+        if len(output_names) > 0:
+            max_count = 0
+            # find the highest number appended to directories with "output" in their name
+            counts = [
+                name.split("_")[-1]
+                for name in output_names
+                if name.split("_")[-1].isdigit()
+            ]
+            counts = [int(count) for count in counts]
+            if len(counts) > 0:
+                max_count = max(counts)
+            output_name = f"{output_name}_{max_count + 1}"
+
+        self.output_name = output_name
+
+    def _make_output_path(self):
+        if not os.path.exists(self.output_path):
+            os.mkdir(self.output_path)
 
     @property
     def start_dt(self):

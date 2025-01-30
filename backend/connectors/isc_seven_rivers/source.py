@@ -29,6 +29,7 @@ from backend.constants import (
     DT_MEASURED,
     DTW_UNITS,
     DTW,
+    PARAMETER,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
 )
@@ -72,6 +73,9 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
     transformer_klass = ISCSevenRiversSiteTransformer
     bounding_polygon = ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "ISCSevenRiversSiteSource"
+
     def health(self):
         try:
             self.get_records()
@@ -90,6 +94,9 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     transformer_klass = ISCSevenRiversAnalyteTransformer
     _analyte_ids = None
 
+    def __repr__(self):
+        return "ISCSevenRiversAnalyteSource"
+
     def _get_analyte_id(self, analyte):
         """ """
         if self._analyte_ids is None:
@@ -103,6 +110,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             return self._analyte_ids.get(analyte)
 
     def _extract_parameter_record(self, record):
+        record[PARAMETER] = self.config.parameter
         record[PARAMETER_VALUE] = record["result"]
         record[PARAMETER_UNITS] = record["units"]
         record[DT_MEASURED] = get_datetime(record)
@@ -131,7 +139,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
     def get_records(self, site_record):
         config = self.config
-        analyte_id = self._get_analyte_id(config.analyte)
+        analyte_id = self._get_analyte_id(config.parameter)
         if analyte_id:
             params = {
                 "monitoringPointId": site_record.id,
@@ -166,8 +174,9 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return [r for r in records if r["depthToWaterFeet"] is not None]
 
     def _extract_parameter_record(self, record):
-        record[DTW] = record["depthToWaterFeet"]
-        record[DTW_UNITS] = FEET
+        record[PARAMETER] = DTW
+        record[PARAMETER_VALUE] = record["depthToWaterFeet"]
+        record[PARAMETER_UNITS] = FEET
         record[DT_MEASURED] = get_datetime(record)
         return record
 

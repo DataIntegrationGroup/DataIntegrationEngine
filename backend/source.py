@@ -586,17 +586,9 @@ class BaseParameterSource(BaseSource):
     _extract_parameter_record
         Returns a parameter record with standardized fields added.
 
-        For an analyte, the fields are
-
         - backend.constants.PARAMETER
         - backend.constants.PARAMETER_VALUE
         - backend.constants.PARAMETER_UNITS
-
-        For a water level, the fields are
-
-        - backend.constants.DTW
-        - backend.constants.DTW_UNITS
-        - backend.constants.DT_MEASURED
 
     _extract_parameter_results
         Returns the parameter results as a list from the records, in the same order as the records themselves
@@ -682,7 +674,7 @@ class BaseParameterSource(BaseSource):
                                 float(r),
                                 u,
                                 self._get_output_units(),
-                                self.config.analyte,
+                                self.config.parameter,
                                 d,
                             )
                             if warning_msg == "":
@@ -988,7 +980,7 @@ class BaseAnalyteSource(BaseParameterSource):
         return self.config.analyte_output_units
 
     def _validate_record(self, record):
-        record[PARAMETER] = self.config.analyte
+        record[PARAMETER] = self.config.parameter
         for k in (PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
@@ -1010,7 +1002,7 @@ class BaseWaterLevelSource(BaseParameterSource):
         return [FEET for _ in records]
 
     def _validate_record(self, record):
-        for k in (DTW, DTW_UNITS, DT_MEASURED):
+        for k in (PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
 

@@ -31,7 +31,14 @@ from backend.connectors.st_connector import (
     STWaterLevelSource,
     make_dt_filter,
 )
-from backend.constants import DTW, DTW_UNITS, DT_MEASURED
+from backend.constants import (
+    DTW,
+    DTW_UNITS,
+    DT_MEASURED,
+    PARAMETER,
+    PARAMETER_VALUE,
+    PARAMETER_UNITS,
+)
 from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.1"
@@ -53,16 +60,25 @@ class PVACDSiteSource(ST2SiteSource):
     agency = "PVACD"
     bounding_polygon = PVACD_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "PVACDSiteSource"
+
 
 class EBIDSiteSource(ST2SiteSource):
     transformer_klass = EBIDSiteTransformer
     agency = "EBID"
+
+    def __repr__(self):
+        return "EBIDSiteSource"
 
 
 class BernCoSiteSource(ST2SiteSource):
     agency = "BernCo"
     transformer_klass = BernCoSiteTransformer
     bounding_polygon = BERNCO_BOUNDING_POLYGON
+
+    def __repr__(self):
+        return "BernCoSiteSource"
 
 
 class ST2WaterLevelSource(STWaterLevelSource):
@@ -80,8 +96,9 @@ class ST2WaterLevelSource(STWaterLevelSource):
         }
 
     def _extract_parameter_record(self, record):
-        record[DTW] = record["observation"].result
-        record[DTW_UNITS] = record["datastream"].unit_of_measurement.symbol
+        record[PARAMETER] = DTW
+        record[PARAMETER_VALUE] = record["observation"].result
+        record[PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
         record[DT_MEASURED] = record["observation"].phenomenon_time
         return record
 
@@ -134,15 +151,24 @@ class PVACDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = PVACDWaterLevelTransformer
     agency = "PVACD"
 
+    def __repr__(self):
+        return "PVACDWaterLevelSource"
+
 
 class EBIDWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = EBIDWaterLevelTransformer
     agency = "EBID"
 
+    def __repr__(self):
+        return "EBIDWaterLevelSource"
+
 
 class BernCoWaterLevelSource(ST2WaterLevelSource):
     agency = "BernCo"
     transformer_klass = BernCoWaterLevelTransformer
+
+    def __repr__(self):
+        return "BernCoWaterLevelSource"
 
 
 # ============= EOF =============================================
