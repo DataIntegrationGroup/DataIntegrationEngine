@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-publish-if-merged:
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'Merge pull request') && github.event.before == 'refs/heads/pre-production'
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'Merge pull request') && contains(github.head_ref, 'pre-production')
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
     permissions:
