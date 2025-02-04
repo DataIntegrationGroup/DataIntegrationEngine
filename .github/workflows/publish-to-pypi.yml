@@ -1,15 +1,13 @@
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - closed
 
 jobs:
   build-and-publish-if-merged:
-    if: github.event.pull_request.merged == true
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'Merge pull request') && github.event.before == 'refs/heads/pre-production'
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
     permissions:
