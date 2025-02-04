@@ -28,7 +28,7 @@ class Loggable:
         if level is None:
             level = logging.INFO
 
-        click.secho(f"{self.__class__.__name__:30s}{msg}", fg=fg)
+        click.secho(f"{self.__class__.__name__:40s}{msg}", fg=fg)
         self.logger.log(level, msg)
 
     def warn(self, msg, fg="red"):
