@@ -57,37 +57,37 @@ from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 
 SOURCE_KEYS = (
-    "nmbgmr",
-    "wqp",
-    "iscsevenrivers",
-    "nwis",
-    "oseroswell",
-    "pvacd",
-    "bor",
-    "dwb",
     "bernco",
+    "bor",
+    "nmbgmr_amp",
+    "nmed_dwb",
+    "nmose_isc_seven_rivers",
+    "nmose_roswell",
+    "nwis",
+    "pvacd",
+    "wqp",
 )
 
 
 def get_source(source):
-    if source == "nmbgmr":
-        return NMBGMRSiteSource()
-    elif source == "wqp":
-        return WQPSiteSource()
-    elif source == "iscsevenrivers":
-        return ISCSevenRiversSiteSource()
-    elif source == "nwis":
-        return NWISSiteSource()
-    elif source == "oseroswell":
-        return OSERoswellSiteSource(HONDO_RESOURCE_ID)
-    elif source == "pvacd":
-        return PVACDSiteSource()
+    if source == "bernco":
+        return BernCoSiteSource()
     elif source == "bor":
         return BORSiteSource()
-    elif source == "dwb":
+    elif source == "nmbgmr_amp":
+        return NMBGMRSiteSource()
+    elif source == "nmed_dwb":
         return DWBSiteSource()
-    elif source == "bernco":
-        return BernCoSiteSource()
+    elif source == "nmose_isc_seven_rivers":
+        return ISCSevenRiversSiteSource()
+    elif source == "nmose_roswell":
+        return OSERoswellSiteSource(HONDO_RESOURCE_ID)
+    elif source == "nwis":
+        return NWISSiteSource()
+    elif source == "pvacd":
+        return PVACDSiteSource()
+    elif source == "wqp":
+        return WQPSiteSource()
 
     return None
 
@@ -106,27 +106,29 @@ class Config(Loggable):
     wkt: str = ""
 
     # sources
-    use_source_nmbgmr: bool = True
-    use_source_wqp: bool = True
-    use_source_iscsevenrivers: bool = True
-    use_source_nwis: bool = True
-    use_source_oseroswell: bool = True
-    use_source_pvacd: bool = True
-    use_source_bor: bool = True
-    use_source_dwb: bool = True
     use_source_bernco: bool = True
+    use_source_bor: bool = True
+    use_source_nmbgmr_amp: bool = True
+    use_source_nmed_dwb: bool = True
+    use_source_nmose_isc_seven_rivers: bool = True
+    use_source_nmose_roswell: bool = True
+    use_source_nwis: bool = True
+    use_source_pvacd: bool = True
+    use_source_wqp: bool = True
 
-    analyte: str = ""
+    # parameter
+    parameter: str = ""
 
     # output
     use_cloud_storage: bool = False
-    output_dir: str = ""
+    output_dir: str = "."
     output_name: str = "output"
     output_horizontal_datum: str = WGS84
     output_elevation_units: str = FEET
     output_well_depth_units: str = FEET
     output_summary: bool = False
-    output_single_timeseries: bool = False
+    output_timeseries_unified: bool = False
+    output_timeseries_separated: bool = False
 
     latest_water_level_only: bool = False
 
@@ -157,13 +159,16 @@ class Config(Loggable):
             self.wkt = payload.get("wkt", "")
             self.county = payload.get("county", "")
             self.output_summary = payload.get("output_summary", False)
+            self.output_timeseries_unified = payload.get(
+                "output_timeseries_unified", False
+            )
+            self.output_timeseries_separated = payload.get(
+                "output_timeseries_separated", False
+            )
             self.output_name = payload.get("output_name", "output")
             self.start_date = payload.get("start_date", "")
             self.end_date = payload.get("end_date", "")
-            self.analyte = payload.get("analyte", "")
-            self.output_single_timeseries = payload.get(
-                "output_single_timeseries", False
-            )
+            self.parameter = payload.get("parameter", "")
 
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
@@ -171,34 +176,29 @@ class Config(Loggable):
     def analyte_sources(self):
         sources = []
 
-        # if self.use_source_wqp:
-        # sources.append((WQPSiteSource, WQPAnalyteSource))
         if self.use_source_bor:
             sources.append((BORSiteSource(), BORAnalyteSource()))
         if self.use_source_wqp:
             sources.append((WQPSiteSource(), WQPAnalyteSource()))
-        if self.use_source_iscsevenrivers:
+        if self.use_source_nmose_isc_seven_rivers:
             sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource()))
-        if self.use_source_nmbgmr:
+        if self.use_source_nmbgmr_amp:
             sources.append((NMBGMRSiteSource(), NMBGMRAnalyteSource()))
-        if self.use_source_dwb:
+        if self.use_source_nmed_dwb:
             sources.append((DWBSiteSource(), DWBAnalyteSource()))
 
         for s, ss in sources:
             s.set_config(self)
             ss.set_config(self)
 
-            # s.config = self
-            # ss.config = self
-
         return sources
 
     def water_level_sources(self):
         sources = []
-        if self.use_source_nmbgmr:
+        if self.use_source_nmbgmr_amp:
             sources.append((NMBGMRSiteSource(), NMBGMRWaterLevelSource()))
 
-        if self.use_source_iscsevenrivers:
+        if self.use_source_nmose_isc_seven_rivers:
             sources.append(
                 (ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource())
             )
@@ -206,7 +206,7 @@ class Config(Loggable):
         if self.use_source_nwis:
             sources.append((NWISSiteSource(), NWISWaterLevelSource()))
 
-        if self.use_source_oseroswell:
+        if self.use_source_nmose_roswell:
             sources.append(
                 (
                     OSERoswellSiteSource(HONDO_RESOURCE_ID),
@@ -227,47 +227,14 @@ class Config(Loggable):
             )
         if self.use_source_pvacd:
             sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
-            # sources.append((EBIDSiteSource, EBIDWaterLevelSource))
         if self.use_source_bernco:
             sources.append((BernCoSiteSource(), BernCoWaterLevelSource()))
-        # if self.use_source_bor:
-        #     sources.append((BORSiteSource(), BORWaterLevelSource()))
 
         for s, ss in sources:
             s.set_config(self)
             ss.set_config(self)
 
         return sources
-
-    # def site_sources(self):
-    #     sources = [
-    #         NMBGMRSiteSource(),
-    #         WQPSiteSource(),
-    #         ISCSevenRiversSiteSource(),
-    #         NWISSiteSource(),
-    #         DWBSiteSource(),
-    #         BORSiteSource(),
-    #         PVACDSiteSource(),
-    #         EBIDSiteSource(),
-    #         OSERoswellSiteSource(HONDO_RESOURCE_ID),
-    #         OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
-    #         OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
-    #     ]
-    #
-    #     # if self.use_source_nmbgmr:
-    #     #     sources.append(NMBGMRSiteSource)
-    #     # if self.use_source_isc_seven_rivers:
-    #     #     sources.append(ISCSevenRiversSiteSource)
-    #     # if self.use_source_ose_roswell:
-    #     #     sources.append(OSERoswellSiteSource)
-    #     # if self.use_source_nwis:
-    #     #     sources.append(USGSSiteSource)
-    #     # if self.use_source_st2:
-    #     #     sources.append(PVACDSiteSource)
-    #     #     sources.append(EBIDSiteSource)
-    #     # if self.use_source_bor:
-    #     #     sources.append(BORSiteSource)
-    #     return sources
 
     def bbox_bounding_points(self, bbox=None):
         if bbox is None:
@@ -340,7 +307,7 @@ class Config(Loggable):
             "county",
             "bbox",
             "wkt",
-            "analyte",
+            "parameter",
             "site_limit",
         ] + sources
         # inputs
@@ -353,10 +320,10 @@ class Config(Loggable):
         _report_attributes(
             "Outputs",
             (
-                "output_dir",
-                "output_name",
+                "output_path",
                 "output_summary",
-                "output_single_timeseries",
+                "output_timeseries_unified",
+                "output_timeseries_separated",
                 "output_horizontal_datum",
                 "output_elevation_units",
             ),
@@ -414,6 +381,45 @@ class Config(Loggable):
             return bool(get_county_polygon(self.county))
 
         return True
+
+    def _update_output_name(self):
+        """
+        Generate a unique output name based on existing directories in the output directory.
+
+        If there are no directories with the string "output" in their name, the output name will be "output".
+
+        If there is a directory called "output", then output_name will be "output_1".
+
+        If there are directories called "output_{n}" where n is an integer, then output_name will be "output_{m+1}"
+        where m is the highest integer in the existing directories.
+        """
+        output_name = self.output_name
+
+        # find if there are already directories with the string "output" their names
+        output_names = [
+            name
+            for name in os.listdir(self.output_dir)
+            if os.path.isdir(name) and output_name in name
+        ]
+
+        if len(output_names) > 0:
+            max_count = 0
+            # find the highest number appended to directories with "output" in their name
+            counts = [
+                name.split("_")[-1]
+                for name in output_names
+                if name.split("_")[-1].isdigit()
+            ]
+            counts = [int(count) for count in counts]
+            if len(counts) > 0:
+                max_count = max(counts)
+            output_name = f"{output_name}_{max_count + 1}"
+
+        self.output_name = output_name
+
+    def _make_output_path(self):
+        if not os.path.exists(self.output_path):
+            os.mkdir(self.output_path)
 
     @property
     def start_dt(self):

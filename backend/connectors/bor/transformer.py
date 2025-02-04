@@ -14,6 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 import pprint
+import json
 
 from backend.record import SiteRecord, WaterLevelRecord, AnalyteSummaryRecord
 from backend.transformer import (
@@ -57,7 +58,6 @@ class BORSiteTransformer(SiteTransformer):
             "well_depth": WELL_DEPTHS.get(props["_id"]),
             "well_depth_units": "ft",
             "catalogRecords": record["relationships"]["catalogRecords"]["data"],
-            "catalogItems": record["relationships"]["catalogItems"]["data"],
         }
         return rec
 

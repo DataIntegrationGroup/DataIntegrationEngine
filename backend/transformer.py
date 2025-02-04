@@ -29,6 +29,7 @@ from backend.constants import (
     MICROGRAMS_PER_LITER,
     DT_MEASURED,
     PARAMETER_UNITS,
+    DTW,
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.logging import Loggable
@@ -125,7 +126,7 @@ def convert_units(
     output_units: str,
     analyte: str,
     dt: str = None,
-) -> float:
+) -> tuple[float, str]:
     """
     Converts the following units for any parameter value:
 
@@ -159,8 +160,8 @@ def convert_units(
 
     Returns
     --------
-    float
-        The converted value
+    tuple[float, str]
+        The converted value and warning message is conversion failed
     """
     warning = ""
     conversion_factor = None
@@ -485,7 +486,7 @@ class BaseTransformer(Loggable):
                     float(r),
                     u,
                     self.config.analyte_output_units,
-                    self.config.analyte,
+                    self.config.parameter,
                     dt,
                 )
                 if warning_msg != "":
@@ -724,12 +725,16 @@ class ParameterTransformer(BaseTransformer):
         record["most_recent_date"] = dt
         record["most_recent_time"] = tt
         p, u = self._get_parameter()
-        record["most_recent_value"] = convert_units(
+
+        most_recent_value, warning_msg = convert_units(
             record["most_recent_value"],
             record["most_recent_units"],
             u,
-            self.config.analyte,
+            self.config.parameter,
         )
+
+        # all failed conversions are skipped and handled in source.read(), so no need to duplicate here
+        record["most_recent_value"] = most_recent_value
         record["most_recent_units"] = u
 
 
@@ -759,7 +764,7 @@ class WaterLevelTransformer(ParameterTransformer):
         tuple
             The parameter and units for the water level records
         """
-        return "DTW BGS", self.config.waterlevel_output_units
+        return DTW, self.config.waterlevel_output_units
 
 
 class AnalyteTransformer(ParameterTransformer):
@@ -788,7 +793,7 @@ class AnalyteTransformer(ParameterTransformer):
         tuple
             The parameter and units for the analyte records
         """
-        return self.config.analyte, self.config.analyte_output_units
+        return self.config.parameter, self.config.analyte_output_units
 
 
 # ============= EOF =============================================

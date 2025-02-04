@@ -25,11 +25,16 @@ from backend.source import get_analyte_search_param, get_most_recent
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
+import sys
+
 
 class DWBSiteSource(STSiteSource):
     url = URL
     transformer_klass = DWBSiteTransformer
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+
+    def __repr__(self):
+        return "DWBSiteSource"
 
     def health(self):
         return self.get_records(top=10, analyte="TDS")
@@ -39,7 +44,7 @@ class DWBSiteSource(STSiteSource):
         if "analyte" in kw:
             analyte = kw["analyte"]
         elif self.config:
-            analyte = self.config.analyte
+            analyte = self.config.parameter
 
         analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
         if analyte is None:
@@ -64,10 +69,13 @@ class DWBAnalyteSource(STAnalyteSource):
     url = URL
     transformer_klass = DWBAnalyteTransformer
 
+    def __repr__(self):
+        return "DWBAnalyteSource"
+
     def _parse_result(
         self, result, result_dt=None, result_id=None, result_location=None
     ):
-        if "< mrl" in result.lower():
+        if "< mrl" in result.lower() or "< mdl" in result.lower():
             if self.config.output_summary:
                 self.warn(
                     f"Non-detect found: {result} for {result_location} on {result_dt} (observation {result_id}). Setting to 0 for summary."
@@ -82,7 +90,7 @@ class DWBAnalyteSource(STAnalyteSource):
     def get_records(self, site, *args, **kw):
         service = self.get_service()
 
-        analyte = get_analyte_search_param(self.config.analyte, DWB_ANALYTE_MAPPING)
+        analyte = get_analyte_search_param(self.config.parameter, DWB_ANALYTE_MAPPING)
         ds = service.datastreams()
         q = ds.query()
         q = q.expand("Thing/Locations, ObservedProperty, Observations")

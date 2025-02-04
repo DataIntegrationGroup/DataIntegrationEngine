@@ -17,7 +17,15 @@ from datetime import datetime
 import httpx
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
-from backend.constants import FEET, DTW, DTW_UNITS, DT_MEASURED
+from backend.constants import (
+    FEET,
+    DTW,
+    DTW_UNITS,
+    DT_MEASURED,
+    PARAMETER,
+    PARAMETER_VALUE,
+    PARAMETER_UNITS,
+)
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
     NWISWaterLevelTransformer,
@@ -81,6 +89,9 @@ class NWISSiteSource(BaseSiteSource):
     chunk_size = 500
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "NWISSiteSource"
+
     @property
     def tag(self):
         return "nwis"
@@ -126,6 +137,9 @@ class NWISSiteSource(BaseSiteSource):
 
 class NWISWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NWISWaterLevelTransformer
+
+    def __repr__(self):
+        return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
         params = {
@@ -177,8 +191,9 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         }
 
     def _extract_parameter_record(self, record):
-        record[DTW] = float(record["value"])
-        record[DTW_UNITS] = FEET
+        record[PARAMETER] = DTW
+        record[PARAMETER_VALUE] = float(record["value"])
+        record[PARAMETER_UNITS] = FEET
         # record[DT_MEASURED] = (record["date_measured"], record["time_measured"])
         record[DT_MEASURED] = record["datetime_measured"]
         return record

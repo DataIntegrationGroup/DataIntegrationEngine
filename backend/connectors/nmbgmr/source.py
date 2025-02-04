@@ -60,6 +60,9 @@ class NMBGMRSiteSource(BaseSiteSource):
     chunk_size = 100
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
+    def __repr__(self):
+        return "NMBGMRSiteSource"
+
     def health(self):
         resp = self._execute_json_request(
             _make_url("locations"), tag="features", params={"limit": 1}
@@ -75,9 +78,9 @@ class NMBGMRSiteSource(BaseSiteSource):
         if config.site_limit:
             params["limit"] = config.site_limit
 
-        if config.analyte:
+        if config.parameter.lower() != "waterlevels":
             params["parameter"] = get_analyte_search_param(
-                config.analyte, NMBGMR_ANALYTE_MAPPING
+                config.parameter, NMBGMR_ANALYTE_MAPPING
             )
         else:
             params["parameter"] = "Manual groundwater levels"
@@ -107,8 +110,13 @@ class NMBGMRSiteSource(BaseSiteSource):
 class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
 
+    def __repr__(self):
+        return "NMBGMRAnalyteSource"
+
     def get_records(self, site_record):
-        analyte = get_analyte_search_param(self.config.analyte, NMBGMR_ANALYTE_MAPPING)
+        analyte = get_analyte_search_param(
+            self.config.parameter, NMBGMR_ANALYTE_MAPPING
+        )
         records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
@@ -144,7 +152,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         return [r["info"]["CollectionDate"] for r in records]
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER] = self.config.analyte
+        record[PARAMETER] = self.config.parameter
         record[PARAMETER_VALUE] = record["SampleValue"]
         record[PARAMETER_UNITS] = record["Units"]
         record[DT_MEASURED] = record["info"]["CollectionDate"]
@@ -154,14 +162,18 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 class NMBGMRWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NMBGMRWaterLevelTransformer
 
+    def __repr__(self):
+        return "NMBGMRWaterLevelSource"
+
     def _clean_records(self, records):
         # remove records with no depth to water value
         return [r for r in records if r["DepthToWaterBGS"] is not None]
 
     def _extract_parameter_record(self, record, *args, **kw):
-        record[DTW] = record["DepthToWaterBGS"]
+        record[PARAMETER] = DTW
+        record[PARAMETER_VALUE] = record["DepthToWaterBGS"]
+        record[PARAMETER_UNITS] = FEET
         record[DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
-        record[DTW_UNITS] = FEET
         return record
 
     def _extract_most_recent(self, records):

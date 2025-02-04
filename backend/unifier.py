@@ -164,18 +164,10 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                 if results is None or len(results) == 0:
                     continue
 
-                if config.output_single_timeseries:
-                    for site, records in results:
-                        persister.timeseries.append((site, records))
-                        persister.sites.append(site)
-                else:
-                    # combine sites that only have one record
-                    for site, records in results:
-                        if len(records) == 1:
-                            persister.combined.append((site, records[0]))
-                        else:
-                            persister.timeseries.append((site, records))
-                        persister.sites.append(site)
+                for site, records in results:
+                    persister.timeseries.append((site, records))
+                    persister.sites.append(site)
+
             sites_with_records_count += 1
 
     except BaseException:
@@ -190,18 +182,18 @@ def _unify_parameter(
     config,
     sources,
 ):
-    use_summarize = config.output_summary
     persister = _perister_factory(config)
     for site_source, parameter_source in sources:
         _site_wrapper(site_source, parameter_source, persister, config)
-    if use_summarize:
-        persister.save(config.output_path)
-    elif config.output_single_timeseries:
-        persister.dump_sites(f"{config.output_path}.sites")
-        persister.dump_single_timeseries(f"{config.output_path}.timeseries")
-    else:
-        persister.dump_combined(f"{config.output_path}.combined")
-        persister.dump_timeseries(f"{config.output_path}_timeseries")
+
+    if config.output_summary:
+        persister.dump_summary(config.output_path)
+    elif config.output_timeseries_unified:
+        persister.dump_timeseries_unified(config.output_path)
+        persister.dump_sites(config.output_path)
+    else:  # config.output_timeseries_separated
+        persister.dump_timeseries_separated(config.output_path)
+        persister.dump_sites(config.output_path)
 
     persister.finalize(config.output_name)
 
@@ -252,13 +244,16 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.analyte:
-        allsources = config.analyte_sources()
-    else:
+    if config.parameter.lower() == "waterlevels":
         allsources = config.water_level_sources()
+    else:
+        allsources = config.analyte_sources()
 
     for source, _ in allsources:
-        if source.intersects(config.bounding_wkt()):
+        if config.wkt or config.bbox or config.county:
+            if source.intersects(config.bounding_wkt()):
+                sources.append(source)
+        else:
             sources.append(source)
     return sources
 

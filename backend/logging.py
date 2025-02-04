@@ -15,6 +15,7 @@
 # ===============================================================================
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 
 import click
 
@@ -27,7 +28,7 @@ class Loggable:
         if level is None:
             level = logging.INFO
 
-        click.secho(f"{self.__class__.__name__:30s}{msg}", fg=fg)
+        click.secho(f"{self.__class__.__name__:40s}{msg}", fg=fg)
         self.logger.log(level, msg)
 
     def warn(self, msg, fg="red"):
@@ -51,6 +52,8 @@ def setup_logging(level=None, log_format=None, path=None):
 
     if path is None:
         path = "die.log"
+    else:
+        path = os.path.join(path, "die.log")
 
     # shandler = logging.StreamHandler()
     rhandler = RotatingFileHandler(path, maxBytes=1e8, backupCount=50)
