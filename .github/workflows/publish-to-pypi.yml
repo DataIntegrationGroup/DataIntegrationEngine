@@ -1,13 +1,13 @@
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
+# pushes only occur on successful pull request merges
+# this makes it so that the main branch gets published to PyPi, not the
+# target branch from the pull request (pre-production)
 on:
   push:
     branches:
       - main
 
-# pushes only occur on successful pull request merges
-# this makes it so that the main branch gets published to PiPy, not the
-# target branch from the pull request (pre-production)
 jobs:
   build-and-publish-if-merged:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
