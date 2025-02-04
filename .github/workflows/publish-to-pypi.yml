@@ -5,9 +5,11 @@ on:
     branches:
       - main
 
+# pushes only occur on successful pull request merges
+# this makes it so that the main branch gets published to PiPy, not the
+# target branch from the pull request (pre-production)
 jobs:
   build-and-publish-if-merged:
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'Merge pull request') && contains(github.head_ref, 'pre-production')
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
     permissions:
@@ -35,7 +37,6 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
       - name: Publish distribution 📦 to PyPI
-        if: startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           attestations: false
