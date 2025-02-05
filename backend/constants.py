@@ -58,7 +58,7 @@ ANALYTE_OPTIONS = sorted(
         CALCIUM,
         CARBONATE,
         CHLORIDE,
-        # FLUORIDE,
+        FLUORIDE,
         MAGNESIUM,
         NITRATE,
         POTASSIUM,
