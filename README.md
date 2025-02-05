@@ -57,6 +57,7 @@ The following parameters are currently available for retrieval:
 - calcium
 - carbonate
 - chloride
+- fluoride
 - magnesium
 - nitrate
 - ph
