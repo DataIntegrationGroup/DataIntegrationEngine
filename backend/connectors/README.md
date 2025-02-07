@@ -33,7 +33,7 @@ The following methods need to be defined for Faux. See `BaseAnalyteSource` for d
 
 - `get_records`
 - `_extract_site_records`
-- `_extract_parameter_units`
+- `_extract_source_parameter_units`
 - `_extract_most_recent`
 - `_extract_parameter_result`
 - `_extract_parameter_record`
@@ -48,7 +48,7 @@ The following methods need to be defined for Faux. See `BaseWaterLevelSource` fo
 
 - `get_records`
 - `_extract_site_records`
-- `_extract_parameter_units`
+- `_extract_source_parameter_units`
 - `_extract_most_recent`
 - `_extract_parameter_result`
 - `_extract_parameter_record`

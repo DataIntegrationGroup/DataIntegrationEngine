@@ -22,9 +22,11 @@ from backend.constants import (
     DTW,
     DTW_UNITS,
     DT_MEASURED,
-    PARAMETER,
+    PARAMETER_NAME,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
+    SOURCE_PARAMETER_NAME,
+    SOURCE_PARAMETER_UNITS
 )
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
@@ -72,13 +74,17 @@ def parse_json(data):
 
     for location in data["timeSeries"]:
         site_code = location["sourceInfo"]["siteCode"][0]["value"]
+        source_parameter_name = location["variable"]["variableName"]
+        source_parameter_units = location["variable"]["unit"]["unitCode"]
         for value in location["values"][0]["value"]:
             record = {
                 "site_code": site_code,
+                "source_parameter_name": source_parameter_name,
                 "value": value["value"],
                 "datetime_measured": value["dateTime"],
                 # "date_measured": value["dateTime"].split("T")[0],
                 # "time_measured": value["dateTime"].split("T")[1],
+                "source_parameter_units": source_parameter_units,
             }
             records.append(record)
     return records
@@ -175,11 +181,14 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
     def _clean_records(self, records):
         return [r for r in records if r["value"] is not None and r["value"].strip()]
 
-    def _extract_parameter_results(self, records):
+    def _extract_source_parameter_results(self, records):
         return [float(r["value"]) for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["datetime_measured"] for r in records]
+    
+    def _extract_source_parameter_names(self, records: list) -> list:
+        return [r["parameter_name_source"] for r in records]
 
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "datetime_measured")
@@ -187,15 +196,19 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             "value": float(record["value"]),
             # "datetime": (record["date_measured"], record["time_measured"]),
             "datetime": record["datetime_measured"],
-            "units": FEET,
+            "source_parameter_units": record["source_parameter_units"],
+            "source_parameter_name": record["source_parameter_name"],
+        
         }
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER] = DTW
+        record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = float(record["value"])
-        record[PARAMETER_UNITS] = FEET
-        # record[DT_MEASURED] = (record["date_measured"], record["time_measured"])
+        record[PARAMETER_UNITS] = self.config.waterlevel_output_units
         record[DT_MEASURED] = record["datetime_measured"]
+        record[SOURCE_PARAMETER_NAME] = record["source_parameter_name"]
+        record[SOURCE_PARAMETER_UNITS] = record["source_parameter_units"]
+
         return record
 
 
