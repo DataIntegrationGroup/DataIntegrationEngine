@@ -138,7 +138,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
             "source_parameter_units": record["Units"],
-            "source_parameter_name": record["Analyte"],
+            "source_parameter_name": record["AnalyteMeaning"],
         }
 
     def _extract_source_parameter_results(self, records):
@@ -148,14 +148,14 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         return [r["info"]["CollectionDate"] for r in records]
 
     def _extract_source_parameter_names(self, records: list) -> list:
-        return [r["Analyte"] for r in records]
+        return [r["AnalyteMeaning"] for r in records]
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = record["SampleValue"]
         record[PARAMETER_UNITS] = self.config.analyte_output_units
         record[DT_MEASURED] = record["info"]["CollectionDate"]
-        record[SOURCE_PARAMETER_NAME] = record["Analyte"]
+        record[SOURCE_PARAMETER_NAME] = record["AnalyteMeaning"]
         record[SOURCE_PARAMETER_UNITS] = record["Units"]
 
         return record
