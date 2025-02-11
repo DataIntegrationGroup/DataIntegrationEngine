@@ -55,7 +55,3 @@ Records with the following source parameter names, source units, die parameter n
 | :-------------------- | :----------- | :---- |
 | -                     | tons/day     | This is not a unit of concentration |
 | -                     | mg/kg        | This is not a unit of aqueous concentration |
-
-
-
-mg/L of analyte = mg/L of analyte * (meq/L of analyte * equivalent mass of CaCO3) = mg/L as CaCO3 of analyte
