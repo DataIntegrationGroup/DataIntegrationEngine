@@ -40,7 +40,7 @@ from backend.constants import (
     PARAMETER_UNITS,
     PARAMETER_VALUE,
     SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS
+    SOURCE_PARAMETER_UNITS,
 )
 from backend.source import (
     BaseSource,
@@ -144,11 +144,12 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
             "value": record["DTWGS"],
             "datetime": record["Date"],
             "source_parameter_units": FEET,
-            "source_parameter_name": "DTWGS",}
+            "source_parameter_name": "DTWGS",
+        }
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["Date"] for r in records]
-    
+
     def _extract_source_parameter_names(self, records):
         return ["" for r in records]
 

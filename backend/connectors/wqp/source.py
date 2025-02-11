@@ -134,7 +134,7 @@ class WQPAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_dates(self, records):
         return [ri["ActivityStartDate"] for ri in records]
-    
+
     def _extract_source_parameter_names(self, records):
         return [ri["CharacteristicName"] for ri in records]
 

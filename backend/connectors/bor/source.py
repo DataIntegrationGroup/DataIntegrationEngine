@@ -76,7 +76,9 @@ class BORAnalyteSource(BaseAnalyteSource):
         record[PARAMETER_UNITS] = self.config.analyte_output_units
         record[DT_MEASURED] = parse_dt(record["attributes"]["dateTime"])
         record[SOURCE_PARAMETER_NAME] = self._source_parameter_name
-        record[SOURCE_PARAMETER_UNITS] = record["attributes"]["resultAttributes"]["units"]
+        record[SOURCE_PARAMETER_UNITS] = record["attributes"]["resultAttributes"][
+            "units"
+        ]
         return record
 
     def _extract_source_parameter_results(self, rs):
@@ -87,7 +89,7 @@ class BORAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_dates(self, records):
         return [parse_dt(ri["attributes"]["dateTime"]) for ri in records]
-    
+
     def _extract_source_parameter_names(self, records):
         return [self._source_parameter_name for ri in records]
 
@@ -98,7 +100,7 @@ class BORAnalyteSource(BaseAnalyteSource):
             "value": record["attributes"]["result"],
             "datetime": parse_dt(record["attributes"]["dateTime"]),
             "source_parameter_units": record["attributes"]["resultAttributes"]["units"],
-            "source_parameter_name": self._source_parameter_name
+            "source_parameter_name": self._source_parameter_name,
         }
 
     def _extract_site_records(self, records, site_record):
@@ -132,7 +134,9 @@ class BORAnalyteSource(BaseAnalyteSource):
                     self._catalog_item_idx = i
 
                 if self._source_parameter_name is None:
-                    self._source_parameter_name = data["attributes"]["parameterSourceCode"]
+                    self._source_parameter_name = data["attributes"][
+                        "parameterSourceCode"
+                    ]
 
                 return self._execute_json_request(
                     "https://data.usbr.gov/rise/api/result",

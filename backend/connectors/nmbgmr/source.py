@@ -32,7 +32,7 @@ from backend.constants import (
     PARAMETER_UNITS,
     PARAMETER_VALUE,
     SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS
+    SOURCE_PARAMETER_UNITS,
 )
 from backend.source import (
     BaseWaterLevelSource,
@@ -146,7 +146,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["info"]["CollectionDate"] for r in records]
-    
+
     def _extract_source_parameter_names(self, records: list) -> list:
         return [r["Analyte"] for r in records]
 
@@ -197,7 +197,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_site_records(self, records, site_record):
         return [ri for ri in records if ri["Well"]["PointID"] == site_record.id]
-    
+
     def _extract_source_parameter_names(self, records):
         return ["DepthToWaterBGS" for r in records]
 

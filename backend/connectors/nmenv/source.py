@@ -20,7 +20,14 @@ from backend.connectors.nmenv.transformer import (
     DWBAnalyteTransformer,
 )
 from backend.connectors.st_connector import STSiteSource, STAnalyteSource
-from backend.constants import PARAMETER_NAME, PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED, SOURCE_PARAMETER_NAME, SOURCE_PARAMETER_UNITS
+from backend.constants import (
+    PARAMETER_NAME,
+    PARAMETER_VALUE,
+    PARAMETER_UNITS,
+    DT_MEASURED,
+    SOURCE_PARAMETER_NAME,
+    SOURCE_PARAMETER_UNITS,
+)
 from backend.source import get_analyte_search_param, get_most_recent
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
@@ -139,7 +146,7 @@ class DWBAnalyteSource(STAnalyteSource):
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["observation"].phenomenon_time for r in records]
-    
+
     def _extract_source_parameter_names(self, records: list) -> list:
         return [r["datastream"].observed_property.name for r in records]
 
@@ -158,7 +165,7 @@ class DWBAnalyteSource(STAnalyteSource):
             ),
             "datetime": record["observation"].phenomenon_time,
             "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].observed_property.name
+            "source_parameter_name": record["datastream"].observed_property.name,
         }
 
 

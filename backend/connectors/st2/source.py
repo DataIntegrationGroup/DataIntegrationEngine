@@ -39,7 +39,7 @@ from backend.constants import (
     PARAMETER_VALUE,
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS
+    SOURCE_PARAMETER_UNITS,
 )
 from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
@@ -112,7 +112,7 @@ class ST2WaterLevelSource(STWaterLevelSource):
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["observation"].phenomenon_time for r in records]
-    
+
     def _extract_source_parameter_names(self, records: list) -> list:
         return [r["datastream"].name for r in records]
 

@@ -27,7 +27,7 @@ from backend.constants import (
     PARAMETER_VALUE,
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS
+    SOURCE_PARAMETER_UNITS,
 )
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
@@ -141,7 +141,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [get_datetime(r) for r in records]
-    
+
     def _extract_source_parameter_names(self, records: list) -> list:
         return [self._source_parameter_name for r in records]
 
@@ -206,7 +206,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_source_parameter_names(self, records):
         return [self._source_parameter_name for r in records]
-    
+
     def _extract_source_parameter_units(self, records):
         return [self._source_parameter_units for r in records]
 
@@ -217,7 +217,8 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
             "value": record["depthToWaterFeet"],
             "datetime": t,
             "source_parameter_units": self._source_parameter_units,
-            "source_parameter_name": DTW,}
+            "source_parameter_name": DTW,
+        }
 
 
 # ============= EOF =============================================

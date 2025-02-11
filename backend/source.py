@@ -669,22 +669,28 @@ class BaseParameterSource(BaseSource):
                     dates = self._extract_parameter_dates(cleaned)
                     source_names = self._extract_source_parameter_names(cleaned)
 
-                    for source_result, source_unit, date, source_name in zip(source_results, source_units, dates, source_names):
+                    for source_result, source_unit, date, source_name in zip(
+                        source_results, source_units, dates, source_names
+                    ):
                         try:
-                            converted_result, conversion_factor, warning_msg = convert_units(
-                                float(source_result),
-                                source_unit,
-                                self._get_output_units(),
-                                source_name,
-                                self.config.parameter,
-                                date,
+                            converted_result, conversion_factor, warning_msg = (
+                                convert_units(
+                                    float(source_result),
+                                    source_unit,
+                                    self._get_output_units(),
+                                    source_name,
+                                    self.config.parameter,
+                                    date,
+                                )
                             )
                             if warning_msg == "":
                                 kept_items.append(converted_result)
                             else:
                                 msg = f"{warning_msg} for {site.id}"
                                 self.warn(msg)
-                                skipped_items.append((site.id, source_result, source_unit))
+                                skipped_items.append(
+                                    (site.id, source_result, source_unit)
+                                )
                         except TypeError:
                             skipped_items.append((site.id, source_result, source_unit))
                         except ValueError:
@@ -709,8 +715,12 @@ class BaseParameterSource(BaseSource):
                             "mean": sum(kept_items) / n,
                             "most_recent_datetime": most_recent_result["datetime"],
                             "most_recent_value": most_recent_result["value"],
-                            "most_recent_source_units": most_recent_result["source_parameter_units"],
-                            "most_recent_source_name": most_recent_result["source_parameter_name"],
+                            "most_recent_source_units": most_recent_result[
+                                "source_parameter_units"
+                            ],
+                            "most_recent_source_name": most_recent_result[
+                                "source_parameter_name"
+                            ],
                         }
                         transformed_record = self.transformer.do_transform(
                             rec,
@@ -888,7 +898,7 @@ class BaseParameterSource(BaseSource):
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _extract_parameter_dates"
         )
-    
+
     def _extract_source_parameter_names(self, records: list) -> list:
         """
         Returns the source names of the parameter records as a list, in the same order as the records themselves

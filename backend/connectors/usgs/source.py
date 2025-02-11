@@ -26,7 +26,7 @@ from backend.constants import (
     PARAMETER_VALUE,
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS
+    SOURCE_PARAMETER_UNITS,
 )
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
@@ -186,10 +186,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["datetime_measured"] for r in records]
-    
+
     def _extract_source_parameter_names(self, records: list) -> list:
         return [r["source_parameter_name"] for r in records]
-    
+
     def _extract_source_parameter_units(self, records):
         return [r["source_parameter_units"] for r in records]
 
@@ -201,7 +201,6 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             "datetime": record["datetime_measured"],
             "source_parameter_units": record["source_parameter_units"],
             "source_parameter_name": record["source_parameter_name"],
-        
         }
 
     def _extract_parameter_record(self, record):

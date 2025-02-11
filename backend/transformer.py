@@ -191,7 +191,7 @@ def convert_units(
     ):
         # 1/0.82
         conversion_factor = 1.22
-    
+
     if (
         input_units in ["mg/l caco3", "mg/l caco3**"]
         and output_units == mgl
@@ -511,7 +511,7 @@ class BaseTransformer(Loggable):
             source_unit = record.source_parameter_units
             dt = record.date_measured
             source_name = record.source_parameter_name
-            conversion_factor = None # conversion factor will remain None if record is kept for time series and cannot be converted, such as non-detects
+            conversion_factor = None  # conversion factor will remain None if record is kept for time series and cannot be converted, such as non-detects
             warning_msg = ""
             try:
                 converted_result, conversion_factor, warning_msg = convert_units(
@@ -765,7 +765,7 @@ class ParameterTransformer(BaseTransformer):
             unit,
             record["most_recent_source_name"],
             parameter_name,
-            dt
+            dt,
         )
 
         # all failed conversions are skipped and handled in source.read(), so no need to duplicate here

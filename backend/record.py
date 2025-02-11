@@ -20,7 +20,8 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     CONVERSION_FACTOR,
-    FEET)
+    FEET,
+)
 
 
 class BaseRecord:
@@ -96,8 +97,10 @@ class ParameterRecord(BaseRecord):
 
     defaults: dict = {}
 
+
 class WaterLevelRecord(ParameterRecord):
     pass
+
 
 class AnalyteRecord(ParameterRecord):
     pass
