@@ -501,7 +501,12 @@ class BaseTransformer(Loggable):
         # update the units to the output unit for analyte records
         # this is done after converting the units to the output unit for the analyte records
         # convert the parameter value to the output unit specified in the config
-        elif isinstance(record, (AnalyteRecord)):
+        elif isinstance(record, (AnalyteRecord, WaterLevelRecord)):
+            if isinstance(record, AnalyteRecord):
+                output_units = self.config.analyte_output_units
+            else:
+                output_units = self.config.waterlevel_output_units
+
             source_result = record.parameter_value
             source_unit = record.source_parameter_units
             dt = record.date_measured
@@ -512,7 +517,7 @@ class BaseTransformer(Loggable):
                 converted_result, conversion_factor, warning_msg = convert_units(
                     float(source_result),
                     source_unit,
-                    self.config.analyte_output_units,
+                    output_units,
                     source_name,
                     self.config.parameter,
                     dt,

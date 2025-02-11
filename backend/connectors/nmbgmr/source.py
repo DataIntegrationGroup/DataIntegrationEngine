@@ -138,7 +138,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
             "source_parameter_units": record["Units"],
-            "source_parameter_name": record["info"]["AnalyteName"],
+            "source_parameter_name": record["Analyte"],
         }
 
     def _extract_source_parameter_results(self, records):
@@ -148,14 +148,14 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         return [r["info"]["CollectionDate"] for r in records]
     
     def _extract_source_parameter_names(self, records: list) -> list:
-        return [r["info"]["AnalyteName"] for r in records]
+        return [r["Analyte"] for r in records]
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = record["SampleValue"]
-        record[PARAMETER_UNITS] = self.config.parameter_units
+        record[PARAMETER_UNITS] = self.config.analyte_output_units
         record[DT_MEASURED] = record["info"]["CollectionDate"]
-        record[SOURCE_PARAMETER_NAME] = record["info"]["AnalyteName"]
+        record[SOURCE_PARAMETER_NAME] = record["Analyte"]
         record[SOURCE_PARAMETER_UNITS] = record["Units"]
 
         return record
@@ -177,7 +177,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         record[PARAMETER_UNITS] = self.config.waterlevel_output_units
         record[DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
         record[SOURCE_PARAMETER_NAME] = "DepthToWaterBGS"
-        record[SOURCE_PARAMETER_UNITS] = record["Units"]
+        record[SOURCE_PARAMETER_UNITS] = record["DepthToWaterBGSUnits"]
         return record
 
     def _extract_most_recent(self, records):
@@ -200,6 +200,9 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
     
     def _extract_source_parameter_names(self, records):
         return ["DepthToWaterBGS" for r in records]
+
+    def _extract_source_parameter_units(self, records):
+        return [r["DepthToWaterBGSUnits"] for r in records]
 
     def get_records(self, site_record):
         # if self.config.latest_water_level_only:

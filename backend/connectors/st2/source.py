@@ -94,8 +94,8 @@ class ST2WaterLevelSource(STWaterLevelSource):
         return {
             "value": record["observation"].result,
             "datetime": record["observation"].phenomenon_time,
-            "souce_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].observed_property.name,
+            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_name": record["datastream"].name,
         }
 
     def _extract_parameter_record(self, record):
@@ -103,7 +103,7 @@ class ST2WaterLevelSource(STWaterLevelSource):
         record[PARAMETER_VALUE] = record["observation"].result
         record[PARAMETER_UNITS] = self.config.waterlevel_output_units
         record[DT_MEASURED] = record["observation"].phenomenon_time
-        record[SOURCE_PARAMETER_NAME] = record["datastream"].observed_property.name
+        record[SOURCE_PARAMETER_NAME] = record["datastream"].name
         record[SOURCE_PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
         return record
 
@@ -114,7 +114,7 @@ class ST2WaterLevelSource(STWaterLevelSource):
         return [r["observation"].phenomenon_time for r in records]
     
     def _extract_source_parameter_names(self, records: list) -> list:
-        return [r["datastream"].observed_property.name for r in records]
+        return [r["datastream"].name for r in records]
 
     def _clean_records(self, records: list) -> list:
         rs = [r for r in records if r["observation"].result is not None]

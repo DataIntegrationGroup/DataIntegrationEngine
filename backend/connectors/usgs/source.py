@@ -188,7 +188,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return [r["datetime_measured"] for r in records]
     
     def _extract_source_parameter_names(self, records: list) -> list:
-        return [r["parameter_name_source"] for r in records]
+        return [r["source_parameter_name"] for r in records]
+    
+    def _extract_source_parameter_units(self, records):
+        return [r["source_parameter_units"] for r in records]
 
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "datetime_measured")
