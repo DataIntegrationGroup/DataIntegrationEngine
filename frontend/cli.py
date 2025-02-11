@@ -272,6 +272,8 @@ def weave(
         if not click.confirm("Do you want to continue?", default=True):
             return
 
+    config._update_output_units()
+
     if parameter.lower() == "waterlevels":
         unify_waterlevels(config)
     else:

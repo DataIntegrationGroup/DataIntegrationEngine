@@ -421,6 +421,14 @@ class Config(Loggable):
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 
+    def _update_output_units(self):
+        if self.parameter.lower() == "ph":
+            self.analyte_output_units = ""
+        elif self.parameter.lower() == "waterlevels":
+            self.waterlevel_output_units = FEET
+        else:
+            self.analyte_output_units = MILLIGRAMS_PER_LITER
+
     @property
     def start_dt(self):
         return self._extract_date(self.start_date)
