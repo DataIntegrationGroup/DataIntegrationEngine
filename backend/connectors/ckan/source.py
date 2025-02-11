@@ -36,9 +36,11 @@ from backend.constants import (
     DTW,
     DTW_UNITS,
     DT_MEASURED,
-    PARAMETER,
+    PARAMETER_NAME,
     PARAMETER_UNITS,
     PARAMETER_VALUE,
+    SOURCE_PARAMETER_NAME,
+    SOURCE_PARAMETER_UNITS
 )
 from backend.source import (
     BaseSource,
@@ -133,21 +135,30 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         records = resp.json()["result"]["records"]
         return [record for record in records if record["Site_ID"] == site_record.id]
 
-    def _extract_parameter_results(self, records):
+    def _extract_source_parameter_results(self, records):
         return [float(r["DTWGS"]) for r in records]
 
     def _extract_most_recent(self, records):
         record = get_most_recent(records, tag="Date")
-        return {"value": record["DTWGS"], "datetime": record["Date"], "units": FEET}
+        return {
+            "value": record["DTWGS"],
+            "datetime": record["Date"],
+            "source_parameter_units": FEET,
+            "source_parameter_name": "DTWGS",}
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["Date"] for r in records]
+    
+    def _extract_source_parameter_names(self, records):
+        return ["" for r in records]
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER] = DTW
+        record[PARAMETER_NAME] = DTW
         record[PARAMETER_VALUE] = float(record["DTWGS"])
-        record[PARAMETER_UNITS] = FEET
+        record[PARAMETER_UNITS] = self.config.waterlevel_output_units
         record[DT_MEASURED] = record["Date"]
+        record[SOURCE_PARAMETER_NAME] = "DTWGS"
+        record[SOURCE_PARAMETER_UNITS] = FEET
         return record
 
     def _clean_records(self, records: list) -> list:

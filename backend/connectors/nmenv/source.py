@@ -20,7 +20,7 @@ from backend.connectors.nmenv.transformer import (
     DWBAnalyteTransformer,
 )
 from backend.connectors.st_connector import STSiteSource, STAnalyteSource
-from backend.constants import PARAMETER, PARAMETER_UNITS, DT_MEASURED, PARAMETER_VALUE
+from backend.constants import PARAMETER_NAME, PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED, SOURCE_PARAMETER_NAME, SOURCE_PARAMETER_UNITS
 from backend.source import get_analyte_search_param, get_most_recent
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
@@ -113,12 +113,15 @@ class DWBAnalyteSource(STAnalyteSource):
 
     def _extract_parameter_record(self, record):
         # this is only used for time series
+        record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = self._parse_result(record["observation"].result)
-        record[PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
+        record[PARAMETER_UNITS] = self.config.analyte_output_units
         record[DT_MEASURED] = record["observation"].phenomenon_time
+        record[SOURCE_PARAMETER_NAME] = record["datastream"].observed_property.name
+        record[SOURCE_PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
         return record
 
-    def _extract_parameter_results(self, records):
+    def _extract_source_parameter_results(self, records):
         # this is only used in summary output
         return [
             self._parse_result(
@@ -130,12 +133,15 @@ class DWBAnalyteSource(STAnalyteSource):
             for r in records
         ]
 
-    def _extract_parameter_units(self, records):
+    def _extract_source_parameter_units(self, records):
         # this is only used in summary output
         return [r["datastream"].unit_of_measurement.symbol for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["observation"].phenomenon_time for r in records]
+    
+    def _extract_source_parameter_names(self, records: list) -> list:
+        return [r["datastream"].observed_property.name for r in records]
 
     def _extract_most_recent(self, records):
         # this is only used in summary output
@@ -151,7 +157,8 @@ class DWBAnalyteSource(STAnalyteSource):
                 record["location"].id,
             ),
             "datetime": record["observation"].phenomenon_time,
-            "units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_name": record["datastream"].observed_property.name
         }
 
 

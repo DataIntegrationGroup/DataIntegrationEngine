@@ -35,9 +35,11 @@ from backend.constants import (
     DTW,
     DTW_UNITS,
     DT_MEASURED,
-    PARAMETER,
+    PARAMETER_NAME,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
+    SOURCE_PARAMETER_NAME,
+    SOURCE_PARAMETER_UNITS
 )
 from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
 
@@ -92,21 +94,27 @@ class ST2WaterLevelSource(STWaterLevelSource):
         return {
             "value": record["observation"].result,
             "datetime": record["observation"].phenomenon_time,
-            "units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_name": record["datastream"].name,
         }
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER] = DTW
+        record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = record["observation"].result
-        record[PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
+        record[PARAMETER_UNITS] = self.config.waterlevel_output_units
         record[DT_MEASURED] = record["observation"].phenomenon_time
+        record[SOURCE_PARAMETER_NAME] = record["datastream"].name
+        record[SOURCE_PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
         return record
 
-    def _extract_parameter_results(self, records):
+    def _extract_source_parameter_results(self, records):
         return [r["observation"].result for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["observation"].phenomenon_time for r in records]
+    
+    def _extract_source_parameter_names(self, records: list) -> list:
+        return [r["datastream"].name for r in records]
 
     def _clean_records(self, records: list) -> list:
         rs = [r for r in records if r["observation"].result is not None]

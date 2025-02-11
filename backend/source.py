@@ -29,7 +29,7 @@ from backend.constants import (
     DTW,
     DTW_UNITS,
     DT_MEASURED,
-    PARAMETER,
+    PARAMETER_NAME,
     PARAMETER_UNITS,
     PARAMETER_VALUE,
 )
@@ -580,7 +580,7 @@ class BaseParameterSource(BaseSource):
         Returns cleaned records if this function is defined for each source.
         Otherwise returns the records as-is
 
-    _extract_parameter_units
+    _extract_source_parameter_units
         Returns the units of the parameter records as a list, in the same order as the records themselves
 
     _extract_parameter_record
@@ -590,7 +590,7 @@ class BaseParameterSource(BaseSource):
         - backend.constants.PARAMETER_VALUE
         - backend.constants.PARAMETER_UNITS
 
-    _extract_parameter_results
+    _extract_source_parameter_results
         Returns the parameter results as a list from the records, in the same order as the records themselves
     """
 
@@ -664,29 +664,31 @@ class BaseParameterSource(BaseSource):
                     kept_items = []
                     skipped_items = []
 
-                    results = self._extract_parameter_results(cleaned)
-                    units = self._extract_parameter_units(cleaned)
+                    source_results = self._extract_source_parameter_results(cleaned)
+                    source_units = self._extract_source_parameter_units(cleaned)
                     dates = self._extract_parameter_dates(cleaned)
+                    source_names = self._extract_source_parameter_names(cleaned)
 
-                    for r, u, d in zip(results, units, dates):
+                    for source_result, source_unit, date, source_name in zip(source_results, source_units, dates, source_names):
                         try:
-                            converted_result, warning_msg = convert_units(
-                                float(r),
-                                u,
+                            converted_result, conversion_factor, warning_msg = convert_units(
+                                float(source_result),
+                                source_unit,
                                 self._get_output_units(),
+                                source_name,
                                 self.config.parameter,
-                                d,
+                                date,
                             )
                             if warning_msg == "":
                                 kept_items.append(converted_result)
                             else:
                                 msg = f"{warning_msg} for {site.id}"
                                 self.warn(msg)
-                                skipped_items.append((site.id, r, u))
+                                skipped_items.append((site.id, source_result, source_unit))
                         except TypeError:
-                            skipped_items.append((site.id, r, u))
+                            skipped_items.append((site.id, source_result, source_unit))
                         except ValueError:
-                            skipped_items.append((site.id, r, u))
+                            skipped_items.append((site.id, source_result, source_unit))
 
                     if len(skipped_items) > 0:
                         self.warn(
@@ -696,7 +698,6 @@ class BaseParameterSource(BaseSource):
                     # if items is None or empty, no records were found or all results were None
                     if kept_items is not None and len(kept_items):
                         n = len(kept_items)
-                        # self.log(f"{site.id}: Retrieved {self.name}: {n}")
 
                         most_recent_result = self._extract_most_recent(cleaned)
                         if not most_recent_result:
@@ -708,7 +709,8 @@ class BaseParameterSource(BaseSource):
                             "mean": sum(kept_items) / n,
                             "most_recent_datetime": most_recent_result["datetime"],
                             "most_recent_value": most_recent_result["value"],
-                            "most_recent_units": most_recent_result["units"],
+                            "most_recent_source_units": most_recent_result["source_parameter_units"],
+                            "most_recent_source_name": most_recent_result["source_parameter_name"],
                         }
                         transformed_record = self.transformer.do_transform(
                             rec,
@@ -851,7 +853,7 @@ class BaseParameterSource(BaseSource):
             f"{self.__class__.__name__} Must implement _extract_most_recent"
         )
 
-    def _extract_parameter_units(self, records: list) -> list:
+    def _extract_source_parameter_units(self, records: list) -> list:
         """
         Returns the units of the parameter records as a list, in the same order as the records themselves
 
@@ -866,7 +868,7 @@ class BaseParameterSource(BaseSource):
             a list of units for the parameter records in the same order as the records
         """
         raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parameter_units"
+            f"{self.__class__.__name__} Must implement _extract_source_parameter_units"
         )
 
     def _extract_parameter_dates(self, records: list) -> list:
@@ -886,20 +888,34 @@ class BaseParameterSource(BaseSource):
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _extract_parameter_dates"
         )
+    
+    def _extract_source_parameter_names(self, records: list) -> list:
+        """
+        Returns the source names of the parameter records as a list, in the same order as the records themselves
+
+        Parameters
+        ----------
+        records: list
+            a list of parameter records
+
+        Returns
+        -------
+        list
+            a list of source names for the parameter records in the same order as the records
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} Must implement _extract_source_parameter_names"
+        )
 
     def _extract_parameter_record(self, record: dict) -> dict:
         """
         Returns a parameter record with standardized fields added. This is only used for time series, not summary outputs
 
         For an analyte, the fields are
-        - backend.constants.PARAMETER
+        - backend.constants.PARAMETER_NAME_SOURCE
+        - backend.constants.PARAMETER_NAME_DIE
         - backend.constants.PARAMETER_VALUE
         - backend.constants.PARAMETER_UNITS
-
-        For a water level, the fields are
-        - backend.constants.DTW
-        - backend.constants.DTW_UNITS
-        - backend.constants.DT_MEASURED
 
         Parameters
         ----------
@@ -915,7 +931,7 @@ class BaseParameterSource(BaseSource):
             f"{self.__class__.__name__} Must implement _extract_parameter_record"
         )
 
-    def _extract_parameter_results(self, records: list) -> list:
+    def _extract_source_parameter_results(self, records: list) -> list:
         """
         Returns the parameter results as a list from the records, in the same order as the records themselves. This is only used for summary outputs, not time serie
 
@@ -930,7 +946,7 @@ class BaseParameterSource(BaseSource):
             a list of parameter results from the records, in the same order as the records
         """
         raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_parameter_results"
+            f"{self.__class__.__name__} Must implement _extract_source_parameter_results"
         )
 
     def _extract_parameter(self, record: dict) -> dict:
@@ -980,7 +996,7 @@ class BaseAnalyteSource(BaseParameterSource):
         return self.config.analyte_output_units
 
     def _validate_record(self, record):
-        record[PARAMETER] = self.config.parameter
+        record[PARAMETER_NAME] = self.config.parameter
         for k in (PARAMETER_VALUE, PARAMETER_UNITS, DT_MEASURED):
             if k not in record:
                 raise ValueError(f"Invalid record. Missing {k}")
@@ -998,7 +1014,7 @@ class BaseWaterLevelSource(BaseParameterSource):
     def _get_output_units(self):
         return self.config.waterlevel_output_units
 
-    def _extract_parameter_units(self, records):
+    def _extract_source_parameter_units(self, records):
         return [FEET for _ in records]
 
     def _validate_record(self, record):
