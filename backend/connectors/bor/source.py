@@ -21,14 +21,11 @@ import httpx
 from backend.connectors.bor.transformer import BORSiteTransformer, BORAnalyteTransformer
 from backend.connectors.mappings import BOR_ANALYTE_MAPPING
 from backend.constants import (
-    TDS,
-    URANIUM,
-    ARSENIC,
-    SULFATE,
-    FLUORIDE,
-    CHLORIDE,
+    PARAMETER_NAME,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
+    SOURCE_PARAMETER_NAME,
+    SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
 )
 
@@ -68,24 +65,31 @@ def parse_dt(dt):
 class BORAnalyteSource(BaseAnalyteSource):
     transformer_klass = BORAnalyteTransformer
     _catalog_item_idx = None
+    _source_parameter_name = None
 
     def __repr__(self):
         return "BORAnalyteSource"
 
     def _extract_parameter_record(self, record):
+        record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = record["attributes"]["result"]
-        record[PARAMETER_UNITS] = record["attributes"]["resultAttributes"]["units"]
+        record[PARAMETER_UNITS] = self.config.analyte_output_units
         record[DT_MEASURED] = parse_dt(record["attributes"]["dateTime"])
+        record[SOURCE_PARAMETER_NAME] = self._source_parameter_name
+        record[SOURCE_PARAMETER_UNITS] = record["attributes"]["resultAttributes"]["units"]
         return record
 
-    def _extract_parameter_results(self, rs):
+    def _extract_source_parameter_results(self, rs):
         return [ri["attributes"]["result"] for ri in rs]
 
-    def _extract_parameter_units(self, records):
+    def _extract_source_parameter_units(self, records):
         return [ri["attributes"]["resultAttributes"]["units"] for ri in records]
 
     def _extract_parameter_dates(self, records):
         return [parse_dt(ri["attributes"]["dateTime"]) for ri in records]
+    
+    def _extract_source_parameter_names(self, records):
+        return [self._source_parameter_name for ri in records]
 
     def _extract_most_recent(self, rs):
 
@@ -93,7 +97,8 @@ class BORAnalyteSource(BaseAnalyteSource):
         return {
             "value": record["attributes"]["result"],
             "datetime": parse_dt(record["attributes"]["dateTime"]),
-            "units": record["attributes"]["resultAttributes"]["units"],
+            "source_parameter_units": record["attributes"]["resultAttributes"]["units"],
+            "source_parameter_name": self._source_parameter_name
         }
 
     def _extract_site_records(self, records, site_record):
@@ -125,6 +130,9 @@ class BORAnalyteSource(BaseAnalyteSource):
             if pcode == code:
                 if not self._catalog_item_idx:
                     self._catalog_item_idx = i
+
+                if self._source_parameter_name is None:
+                    self._source_parameter_name = data["attributes"]["parameterSourceCode"]
 
                 return self._execute_json_request(
                     "https://data.usbr.gov/rise/api/result",
