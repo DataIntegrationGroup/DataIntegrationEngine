@@ -20,14 +20,18 @@ import httpx
 from backend.connectors import ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 from backend.connectors.mappings import ISC_SEVEN_RIVERS_ANALYTE_MAPPING
 from backend.constants import (
+    TDS,
     FEET,
+    URANIUM,
+    SULFATE,
+    FLUORIDE,
+    CHLORIDE,
     DT_MEASURED,
+    DTW_UNITS,
     DTW,
-    PARAMETER_NAME,
+    PARAMETER,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
-    SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS
 )
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
@@ -89,12 +93,11 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
 class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
     transformer_klass = ISCSevenRiversAnalyteTransformer
     _analyte_ids = None
-    _source_parameter_name = None
 
     def __repr__(self):
         return "ISCSevenRiversAnalyteSource"
 
-    def _get_analyte_id_and_name(self, analyte):
+    def _get_analyte_id(self, analyte):
         """ """
         if self._analyte_ids is None:
 
@@ -104,20 +107,13 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
         analyte = get_analyte_search_param(analyte, ISC_SEVEN_RIVERS_ANALYTE_MAPPING)
         if analyte:
-            id_and_name = {
-                "id": self._analyte_ids.get(analyte),
-                "name": analyte,
-            }
-            return id_and_name
+            return self._analyte_ids.get(analyte)
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER_NAME] = self.config.parameter
+        record[PARAMETER] = self.config.parameter
         record[PARAMETER_VALUE] = record["result"]
-        record[PARAMETER_UNITS] = self.config.analyte_output_units
+        record[PARAMETER_UNITS] = record["units"]
         record[DT_MEASURED] = get_datetime(record)
-        record[SOURCE_PARAMETER_NAME] = self._source_parameter_name
-        record[SOURCE_PARAMETER_UNITS] = record["units"]
-
         return record
 
     def _extract_most_recent(self, records):
@@ -126,30 +122,25 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         return {
             "value": record["result"],
             "datetime": get_datetime(record),
-            "source_parameter_units": record["units"],
-            "source_parameter_name": self._source_parameter_name,
+            "units": record["units"],
         }
 
     def _clean_records(self, records):
         return [r for r in records if r["result"] is not None]
 
-    def _extract_source_parameter_results(self, records):
+    def _extract_parameter_results(self, records):
         return [r["result"] for r in records]
 
-    def _extract_source_parameter_units(self, records):
+    def _extract_parameter_units(self, records):
         return [r["units"] for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [get_datetime(r) for r in records]
-    
-    def _extract_source_parameter_names(self, records: list) -> list:
-        return [self._source_parameter_name for r in records]
 
     def get_records(self, site_record):
         config = self.config
-        analyte_id_and_name = self._get_analyte_id_and_name(config.parameter)
-        if analyte_id_and_name:
-            analyte_id = analyte_id_and_name["id"]
+        analyte_id = self._get_analyte_id(config.parameter)
+        if analyte_id:
             params = {
                 "monitoringPointId": site_record.id,
                 "analyteId": analyte_id,
@@ -158,9 +149,6 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
             }
             params.update(get_date_range(config))
 
-            if self._source_parameter_name is None:
-                self._source_parameter_name = analyte_id_and_name["name"]
-
             return self._execute_json_request(
                 _make_url("getReadings.ashx"), params=params
             )
@@ -168,8 +156,6 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = ISCSevenRiversWaterLevelTransformer
-    _source_parameter_name = "depthToWaterFeet"
-    _source_parameter_units = FEET
 
     def get_records(self, site_record):
         params = {
@@ -188,15 +174,13 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return [r for r in records if r["depthToWaterFeet"] is not None]
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER_NAME] = DTW
+        record[PARAMETER] = DTW
         record[PARAMETER_VALUE] = record["depthToWaterFeet"]
-        record[PARAMETER_UNITS] = self.config.waterlevel_output_units
+        record[PARAMETER_UNITS] = FEET
         record[DT_MEASURED] = get_datetime(record)
-        record[SOURCE_PARAMETER_NAME] = self._source_parameter_name
-        record[SOURCE_PARAMETER_UNITS] = self._source_parameter_units
         return record
 
-    def _extract_source_parameter_results(self, records):
+    def _extract_parameter_results(self, records):
         return [
             r["depthToWaterFeet"] for r in records if not r["invalid"] and not r["dry"]
         ]
@@ -204,20 +188,10 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     def _extract_parameter_dates(self, records: list) -> list:
         return [get_datetime(r) for r in records]
 
-    def _extract_source_parameter_names(self, records):
-        return [self._source_parameter_name for r in records]
-    
-    def _extract_source_parameter_units(self, records):
-        return [self._source_parameter_units for r in records]
-
     def _extract_most_recent(self, records):
         record = get_most_recent(records, "dateTime")
         t = get_datetime(record)
-        return {
-            "value": record["depthToWaterFeet"],
-            "datetime": t,
-            "source_parameter_units": self._source_parameter_units,
-            "source_parameter_name": DTW,}
+        return {"value": record["depthToWaterFeet"], "datetime": t, "units": FEET}
 
 
 # ============= EOF =============================================

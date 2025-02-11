@@ -26,11 +26,8 @@ from backend.constants import (
     SULFATE,
     ARSENIC,
     CHLORIDE,
-    PARAMETER_NAME,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
-    SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
 )
 from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer
@@ -110,12 +107,9 @@ class WQPAnalyteSource(BaseAnalyteSource):
         return "WQPAnalyteSource"
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = record["ResultMeasureValue"]
-        record[PARAMETER_UNITS] = self.config.analyte_output_units
+        record[PARAMETER_UNITS] = record["ResultMeasure/MeasureUnitCode"]
         record[DT_MEASURED] = record["ActivityStartDate"]
-        record[SOURCE_PARAMETER_NAME] = record["CharacteristicName"]
-        record[SOURCE_PARAMETER_UNITS] = record["ResultMeasure/MeasureUnitCode"]
         return record
 
     def _extract_site_records(self, records, site_record):
@@ -123,28 +117,24 @@ class WQPAnalyteSource(BaseAnalyteSource):
             ri for ri in records if ri["MonitoringLocationIdentifier"] == site_record.id
         ]
 
-    def _extract_source_parameter_results(self, records):
+    def _extract_parameter_results(self, records):
         return [ri["ResultMeasureValue"] for ri in records]
 
     def _clean_records(self, records):
         return [ri for ri in records if ri["ResultMeasureValue"]]
 
-    def _extract_source_parameter_units(self, records):
+    def _extract_parameter_units(self, records):
         return [ri["ResultMeasure/MeasureUnitCode"] for ri in records]
 
     def _extract_parameter_dates(self, records):
         return [ri["ActivityStartDate"] for ri in records]
-    
-    def _extract_source_parameter_names(self, records):
-        return [ri["CharacteristicName"] for ri in records]
 
     def _extract_most_recent(self, records):
         ri = get_most_recent(records, "ActivityStartDate")
         return {
             "value": ri["ResultMeasureValue"],
             "datetime": ri["ActivityStartDate"],
-            "source_parameter_units": ri["ResultMeasure/MeasureUnitCode"],
-            "source_parameter_name": ri["CharacteristicName"],
+            "units": ri["ResultMeasure/MeasureUnitCode"],
         }
 
     def get_records(self, site_record):

@@ -25,14 +25,19 @@ from backend.connectors.nmbgmr.transformer import (
 )
 from backend.connectors.mappings import NMBGMR_ANALYTE_MAPPING
 from backend.constants import (
+    TDS,
     FEET,
+    URANIUM,
+    SULFATE,
+    ARSENIC,
+    CHLORIDE,
+    FLUORIDE,
     DTW,
+    DTW_UNITS,
     DT_MEASURED,
-    PARAMETER_NAME,
+    PARAMETER,
     PARAMETER_UNITS,
     PARAMETER_VALUE,
-    SOURCE_PARAMETER_NAME,
-    SOURCE_PARAMETER_UNITS
 )
 from backend.source import (
     BaseWaterLevelSource,
@@ -129,7 +134,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     def _extract_site_records(self, records, site_record):
         return records.get(site_record.id, [])
 
-    def _extract_source_parameter_units(self, records):
+    def _extract_parameter_units(self, records):
         return [r["Units"] for r in records]
 
     def _extract_most_recent(self, records):
@@ -137,27 +142,20 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         return {
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
-            "source_parameter_units": record["Units"],
-            "source_parameter_name": record["Analyte"],
+            "units": record["Units"],
         }
 
-    def _extract_source_parameter_results(self, records):
+    def _extract_parameter_results(self, records):
         return [r["SampleValue"] for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [r["info"]["CollectionDate"] for r in records]
-    
-    def _extract_source_parameter_names(self, records: list) -> list:
-        return [r["Analyte"] for r in records]
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER_NAME] = self.config.parameter
+        record[PARAMETER] = self.config.parameter
         record[PARAMETER_VALUE] = record["SampleValue"]
-        record[PARAMETER_UNITS] = self.config.analyte_output_units
+        record[PARAMETER_UNITS] = record["Units"]
         record[DT_MEASURED] = record["info"]["CollectionDate"]
-        record[SOURCE_PARAMETER_NAME] = record["Analyte"]
-        record[SOURCE_PARAMETER_UNITS] = record["Units"]
-
         return record
 
 
@@ -172,12 +170,10 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         return [r for r in records if r["DepthToWaterBGS"] is not None]
 
     def _extract_parameter_record(self, record, *args, **kw):
-        record[PARAMETER_NAME] = DTW
+        record[PARAMETER] = DTW
         record[PARAMETER_VALUE] = record["DepthToWaterBGS"]
-        record[PARAMETER_UNITS] = self.config.waterlevel_output_units
+        record[PARAMETER_UNITS] = FEET
         record[DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
-        record[SOURCE_PARAMETER_NAME] = "DepthToWaterBGS"
-        record[SOURCE_PARAMETER_UNITS] = record["DepthToWaterBGSUnits"]
         return record
 
     def _extract_most_recent(self, records):
@@ -185,24 +181,17 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         return {
             "value": record["DepthToWaterBGS"],
             "datetime": (record["DateMeasured"], record["TimeMeasured"]),
-            "source_parameter_units": record["DepthToWaterBGSUnits"],
-            "source_parameter_name": "DepthToWaterBGS",
+            "units": FEET,
         }
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [(r["DateMeasured"], r["TimeMeasured"]) for r in records]
 
-    def _extract_source_parameter_results(self, records):
+    def _extract_parameter_results(self, records):
         return [r["DepthToWaterBGS"] for r in records]
 
     def _extract_site_records(self, records, site_record):
         return [ri for ri in records if ri["Well"]["PointID"] == site_record.id]
-    
-    def _extract_source_parameter_names(self, records):
-        return ["DepthToWaterBGS" for r in records]
-
-    def _extract_source_parameter_units(self, records):
-        return [r["DepthToWaterBGSUnits"] for r in records]
 
     def get_records(self, site_record):
         # if self.config.latest_water_level_only:

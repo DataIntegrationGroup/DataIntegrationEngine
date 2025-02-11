@@ -28,6 +28,7 @@ from backend.constants import (
     TONS_PER_ACRE_FOOT,
     MICROGRAMS_PER_LITER,
     DT_MEASURED,
+    PARAMETER_UNITS,
     DTW,
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
@@ -40,8 +41,6 @@ from backend.record import (
     SummaryRecord,
     AnalyteRecord,
 )
-
-logger = Loggable()
 
 
 def transform_horizontal_datum(
@@ -125,10 +124,9 @@ def convert_units(
     input_value: int | float | str,
     input_units: str,
     output_units: str,
-    source_parameter_name: str,
-    die_parameter_name: str,
+    analyte: str,
     dt: str = None,
-) -> tuple[float, float, str]:
+) -> tuple[float, str]:
     """
     Converts the following units for any parameter value:
 
@@ -138,7 +136,6 @@ def convert_units(
     - ton/ac-ft to mg/L
     - ug/L to mg/L
     - mg/L CaCO3 to mg/L
-    - mg/L N to mg/L (for NO3)
 
     length:
     - ft to m
@@ -155,19 +152,16 @@ def convert_units(
     output_units: str
         The output unit of the value
 
-    source_parameter_name: str
-        The name of the parameter from the source
-
-    die_parameter_name: str
-        The name of the parameter as it is called in the DIE
+    analyte: str
+        The analyte to convert
 
     dt: str
         The date of the record
 
     Returns
     --------
-    tuple[float, float, str]
-        converted value, conversion factor, warning message
+    tuple[float, str]
+        The converted value and warning message is conversion failed
     """
     warning = ""
     conversion_factor = None
@@ -181,49 +175,36 @@ def convert_units(
     ppm = PARTS_PER_MILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
 
-    source_parameter_name = source_parameter_name.strip()
-    die_parameter_name = die_parameter_name.strip()
+    """
+    # edge cases for Bicarbonate and Calcium
+    # BOR, WQP
 
-    if (
-        input_units.lower() in ["mg/l caco3", "mg/l caco3**"]
-        and output_units == mgl
-        and die_parameter_name == "bicarbonate"
-    ):
-        # 1/0.82
-        conversion_factor = 1.22
-    
+    https://aqua-chem.com/water-chemistry-caco3-equivalents/
+    https://industrialh2osolutions.com/conversions-and-guides-water-chemistry-caco3-equivalents/
+    """
     if (
         input_units in ["mg/l caco3", "mg/l caco3**"]
         and output_units == mgl
-        and die_parameter_name == "calcium"
+        and analyte == "Bicarbonate"
+    ):
+        # 1/0.82
+        conversion_factor = 1.22
+    elif (
+        input_units in ["mg/l caco3", "mg/l caco3**"]
+        and output_units == mgl
+        and analyte == "Calcium"
     ):
         # 1/2.5
         conversion_factor = 0.4
-
-    if (
-        input_units.lower() == "mg/l"
+    elif (
+        input_units in ["mg/l caco3", "mg/l caco3**"]
         and output_units == mgl
-        and die_parameter_name == "nitrate"
-        and source_parameter_name.lower() == "nitrate as n"
+        and analyte != "Bicarbonate"
     ):
-        # 1/0.226
-        conversion_factor = 4.42478
+        # this will catch if the input units are mg/l caco3 and the analyte is not bicarbonate or calcium so that the developer can determine the appropriate conversion factor(s)
+        conversion_factor = None
 
-    if (
-        input_units.lower() == "mg/l as n"
-        and output_units == mgl
-        and die_parameter_name == "nitrate"
-        and source_parameter_name.lower() in ["nitrate as n", "nitrate"]
-    ):
-        # 1/0.226
-        conversion_factor = 4.42478
-
-    if (
-        input_units.lower() in ["mg/l asno3", "mg/l as no3", "mg/l"]
-        and output_units == mgl
-        and die_parameter_name == "nitrate"
-        and source_parameter_name.lower() == "nitrate"
-    ):
+    if input_units == output_units:
         conversion_factor = 1
 
     if input_units == tpaf and output_units == mgl:
@@ -253,14 +234,11 @@ def convert_units(
     if input_units == m and output_units == ft:
         conversion_factor = 3.28084
 
-    if input_units == output_units:
-        conversion_factor = 1
-
     if conversion_factor:
-        return input_value * conversion_factor, conversion_factor, warning
+        return input_value * conversion_factor, warning
     else:
-        warning = f"Failed to convert {input_value} {input_units} {source_parameter_name} (source) to {output_units} {die_parameter_name} (die) on {dt}"
-        return input_value, conversion_factor, warning
+        warning = f"Failed to convert {input_value} {input_units} to {output_units} for {analyte} on {dt}"
+        return input_value, warning
 
 
 def standardize_datetime(dt):
@@ -391,14 +369,11 @@ class BaseTransformer(Loggable):
         - well_depth_units (optional)
 
         The fields for a parameter record are:
-        - parameter_name
+        - parameter
         - parameter_value
         - parameter_units
         - date_measured
         - time_measured
-        - source_parameter_name
-        - source_parameter_units
-        - conversion_factor
 
         Parameters
         --------
@@ -501,24 +476,16 @@ class BaseTransformer(Loggable):
         # update the units to the output unit for analyte records
         # this is done after converting the units to the output unit for the analyte records
         # convert the parameter value to the output unit specified in the config
-        elif isinstance(record, (AnalyteRecord, WaterLevelRecord)):
-            if isinstance(record, AnalyteRecord):
-                output_units = self.config.analyte_output_units
-            else:
-                output_units = self.config.waterlevel_output_units
-
-            source_result = record.parameter_value
-            source_unit = record.source_parameter_units
+        elif isinstance(record, (AnalyteRecord)):
+            r = record.parameter_value
+            u = record.parameter_units
             dt = record.date_measured
-            source_name = record.source_parameter_name
-            conversion_factor = None # conversion factor will remain None if record is kept for time series and cannot be converted, such as non-detects
             warning_msg = ""
             try:
-                converted_result, conversion_factor, warning_msg = convert_units(
-                    float(source_result),
-                    source_unit,
-                    output_units,
-                    source_name,
+                converted_result, warning_msg = convert_units(
+                    float(r),
+                    u,
+                    self.config.analyte_output_units,
                     self.config.parameter,
                     dt,
                 )
@@ -526,17 +493,17 @@ class BaseTransformer(Loggable):
                     msg = f"{warning_msg} for {record.id}"
                     self.warn(msg)
             except TypeError:
-                msg = f"Keeping {source_result} for {record.id} on {record.date_measured} for time series data"
+                msg = f"Keeping {r} for {record.id} on {record.date_measured} for time series data"
                 self.warn(msg)
-                converted_result = source_result
+                converted_result = r
             except ValueError:
-                msg = f"Keeping {source_result} for {record.id} on {record.date_measured} for time series data"
+                msg = f"Keeping {r} for {record.id} on {record.date_measured} for time series data"
                 self.warn(msg)
-                converted_result = source_result
+                converted_result = r
 
             if warning_msg == "":
-                record.update(conversion_factor=conversion_factor)
                 record.update(parameter_value=converted_result)
+                record.update(parameter_units=self.config.analyte_output_units)
             else:
                 record = None
 
@@ -706,9 +673,9 @@ class SiteTransformer(BaseTransformer):
 class ParameterTransformer(BaseTransformer):
     source_tag: str
 
-    def _get_parameter_name_and_units(self):
+    def _get_parameter(self):
         raise NotImplementedError(
-            f"{self.__class__.__name__} must implement _get_parameter_name_and_units"
+            f"{self.__class__.__name__} must implement _get_parameter"
         )
 
     def _transform(self, record, site_record):
@@ -722,7 +689,7 @@ class ParameterTransformer(BaseTransformer):
         if self.config.output_summary:
             self._transform_most_recents(record)
 
-            parameter, units = self._get_parameter_name_and_units()
+            parameter, units = self._get_parameter()
             rec.update(
                 {
                     "location": site_record.name,
@@ -735,7 +702,7 @@ class ParameterTransformer(BaseTransformer):
                     "elevation_units": site_record.elevation_units,
                     "well_depth": site_record.well_depth,
                     "well_depth_units": site_record.well_depth_units,
-                    "parameter_name": parameter,
+                    "parameter": parameter,
                     "parameter_units": units,
                 }
             )
@@ -757,20 +724,18 @@ class ParameterTransformer(BaseTransformer):
         dt, tt = standardize_datetime(record["most_recent_datetime"])
         record["most_recent_date"] = dt
         record["most_recent_time"] = tt
-        parameter_name, unit = self._get_parameter_name_and_units()
+        p, u = self._get_parameter()
 
-        converted_most_recent_value, conversion_factor, warning_msg = convert_units(
+        most_recent_value, warning_msg = convert_units(
             record["most_recent_value"],
-            record["most_recent_source_units"],
-            unit,
-            record["most_recent_source_name"],
-            parameter_name,
-            dt
+            record["most_recent_units"],
+            u,
+            self.config.parameter,
         )
 
         # all failed conversions are skipped and handled in source.read(), so no need to duplicate here
-        record["most_recent_value"] = converted_most_recent_value
-        record["most_recent_units"] = unit
+        record["most_recent_value"] = most_recent_value
+        record["most_recent_units"] = u
 
 
 class WaterLevelTransformer(ParameterTransformer):
@@ -790,7 +755,7 @@ class WaterLevelTransformer(ParameterTransformer):
         else:
             return WaterLevelRecord
 
-    def _get_parameter_name_and_units(self) -> tuple:
+    def _get_parameter(self) -> tuple:
         """
         Returns the parameter and units for the water level records
 
@@ -799,7 +764,7 @@ class WaterLevelTransformer(ParameterTransformer):
         tuple
             The parameter and units for the water level records
         """
-        return self.config.parameter, self.config.waterlevel_output_units
+        return DTW, self.config.waterlevel_output_units
 
 
 class AnalyteTransformer(ParameterTransformer):
@@ -819,7 +784,7 @@ class AnalyteTransformer(ParameterTransformer):
         else:
             return AnalyteRecord
 
-    def _get_parameter_name_and_units(self) -> tuple:
+    def _get_parameter(self) -> tuple:
         """
         Returns the parameter and units for the analyte records
 
