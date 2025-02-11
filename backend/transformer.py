@@ -799,7 +799,7 @@ class WaterLevelTransformer(ParameterTransformer):
         tuple
             The parameter and units for the water level records
         """
-        return self.config.parameter, self.config.waterlevel_output_units
+        return DTW, self.config.waterlevel_output_units
 
 
 class AnalyteTransformer(ParameterTransformer):

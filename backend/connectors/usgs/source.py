@@ -205,7 +205,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         }
 
     def _extract_parameter_record(self, record):
-        record[PARAMETER_NAME] = self.config.parameter
+        record[PARAMETER_NAME] = DTW
         record[PARAMETER_VALUE] = float(record["value"])
         record[PARAMETER_UNITS] = self.config.waterlevel_output_units
         record[DT_MEASURED] = record["datetime_measured"]
