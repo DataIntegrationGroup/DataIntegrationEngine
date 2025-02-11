@@ -189,7 +189,6 @@ def convert_units(
         and output_units == mgl
         and die_parameter_name == "bicarbonate"
     ):
-        # 1/0.82
         conversion_factor = 1.22
 
     if (
@@ -197,8 +196,15 @@ def convert_units(
         and output_units == mgl
         and die_parameter_name == "calcium"
     ):
-        # 1/2.5
         conversion_factor = 0.4
+
+    if (
+        input_units.lower() in ["mg/l caco3"]
+        and output_units == mgl
+        and die_parameter_name == "carbonate"
+        and source_parameter_name.lower() == "carbonate"
+    ):
+        conversion_factor = 0.6
 
     if (
         input_units.lower() == "mg/l"
@@ -206,8 +212,7 @@ def convert_units(
         and die_parameter_name == "nitrate"
         and source_parameter_name.lower() == "nitrate as n"
     ):
-        # 1/0.226
-        conversion_factor = 4.42478
+        conversion_factor = 4.4268
 
     if (
         input_units.lower() == "mg/l as n"
@@ -215,8 +220,15 @@ def convert_units(
         and die_parameter_name == "nitrate"
         and source_parameter_name.lower() in ["nitrate as n", "nitrate"]
     ):
-        # 1/0.226
-        conversion_factor = 4.42478
+        conversion_factor = 4.4268
+
+    if (
+        input_units.lower() == "ug/l as n"
+        and output_units == mgl
+        and die_parameter_name == "nitrate"
+        and source_parameter_name.lower() in ["nitrate as n", "nitrate"]
+    ):
+        conversion_factor = 0.0044268
 
     if (
         input_units.lower() in ["mg/l asno3", "mg/l as no3", "mg/l"]
@@ -224,6 +236,12 @@ def convert_units(
         and die_parameter_name == "nitrate"
         and source_parameter_name.lower() == "nitrate"
     ):
+        conversion_factor = 1
+
+    if input_units.lower() == "pci/l" and output_units == mgl:
+        conversion_factor = 0.00149
+
+    if die_parameter_name == "ph":
         conversion_factor = 1
 
     if input_units == tpaf and output_units == mgl:
@@ -575,41 +593,6 @@ class BaseTransformer(Loggable):
             return poly.contains(pt)
 
         return True
-
-    # def warn(self, msg):
-    #     """
-    #     Prints warning messages to the console in red
-    #
-    #     Parameters
-    #     ----------
-    #     msg : str
-    #         the message to print
-    #
-    #     Returns
-    #     -------
-    #     None
-    #     """
-    #     self.log(msg, fg="red")
-    #     self.config.warnings.append(msg)
-
-    # def log(self, msg, fg="yellow"):
-    #     """
-    #     Prints the message to the console in yellow
-    #
-    #     Parameters
-    #     ----------
-    #     msg : str
-    #         the message to print
-    #
-    #     fg : str
-    #         the color of the message, defaults to yellow
-    #
-    #     Returns
-    #     -------
-    #     None
-    #     """
-    #     click.secho(f"{self.__class__.__name__:25s} -- {msg}", fg=fg)
-    #     self.config.logs.append(f"{self.__class__.__name__:25s} -- {msg}")
 
     # ==========================================================================
     # Methods That Need to be Implemented For Each SiteTransformer
