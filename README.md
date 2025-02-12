@@ -109,7 +109,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | latitude | latitude in decimal degrees | float | Y |
 | longitude | longitude in decimal degrees | float | Y |
 | horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
-| elevation | ground surface elevation of the site | float | Y |
+| elevation<sup>*</sup> | ground surface elevation of the site | float | Y |
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | well_depth | depth of well | float | N |
 | well_depth_units | units of well depth. Defaults to ft | float | N |
@@ -124,6 +124,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | most_recent_value | value of the most recent record  | float | Y |
 | most_recent_units | units of the most recent record | string | Y |
 
+<sup>* elevation at top of casing for EBID</sup>
 
 #### Sites Table
 
@@ -134,7 +135,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | name | the colloquial name for the site | string | Y |
 | latitude | latitude in decimal degrees | float | Y |
 | longitude | longitude in decimal degrees | float | Y |
-| elevation^1^ | ground surface elevation of the site | float | Y |
+| elevation<sup>**</sup> | ground surface elevation of the site | float | Y |
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
 | vertical_datum | vertical datum of the elevation | string | N |
@@ -144,18 +145,21 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
 
-^1^ elevation at top of casing for EBID
+<sup>** elevation at top of casing for EBID</sup>
 #### Time Series Table(s)
 
 | field/header | description | data type | always present |
 | :----------- | :---------- | :-------- | :------------- |
 | source | the organization/source for the site | string | Y |
 | id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
-| parameter | the name of the parameter whose measurements are reported in the table | string | Y |
+| parameter_name | the name of the parameter whose measurements are reported in the table | string | Y |
 | parameter_value | value of the observation | float | Y |
 | pramater_units | units of the observation | float | Y |
 | date_measured | date of measurement in YYYY-MM-DD | string | Y |
 | time_measured | time of measurement in HH:MM:SS or HH:MM:SS.mmm | string | N |
+| source_parameter_name | the name of the parameter from the source | Y |
+| source_parameter_unit | the unit of measurement from the source | Y |
+| conversion_factor | the factor applied to the result to convert the measurement to standardized units | Y |
 
 ### Source Inclusion & Exclusion
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
