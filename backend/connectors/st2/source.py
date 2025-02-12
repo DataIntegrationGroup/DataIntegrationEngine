@@ -17,7 +17,7 @@ import datetime
 
 import frost_sta_client as fsc
 
-from backend.connectors import PVACD_BOUNDING_POLYGON, BERNCO_BOUNDING_POLYGON
+from backend.connectors import PVACD_BOUNDING_POLYGON, BERNCO_BOUNDING_POLYGON, EBID_BOUNDING_POLYGON, CABQ_BOUNDING_POLYGON
 from backend.connectors.st2.transformer import (
     PVACDSiteTransformer,
     PVACDWaterLevelTransformer,
@@ -71,6 +71,7 @@ class PVACDSiteSource(ST2SiteSource):
 class EBIDSiteSource(ST2SiteSource):
     transformer_klass = EBIDSiteTransformer
     agency = "EBID"
+    bounding_polygon = EBID_BOUNDING_POLYGON
 
     def __repr__(self):
         return "EBIDSiteSource"
@@ -88,6 +89,7 @@ class BernCoSiteSource(ST2SiteSource):
 class CABQSiteSource(ST2SiteSource):
     transformer_klass = CABQSiteTransformer
     agency = "CABQ"
+    bounding_polygon = CABQ_BOUNDING_POLYGON
 
     def __repr__(self):
         return "CABQSiteSource"
