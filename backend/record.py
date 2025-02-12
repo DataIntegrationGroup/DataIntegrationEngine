@@ -13,7 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from backend.constants import DTW, PARAMETER, PARAMETER_VALUE, PARAMETER_UNITS, FEET
+from backend.constants import (
+    PARAMETER_NAME,
+    PARAMETER_VALUE,
+    PARAMETER_UNITS,
+    SOURCE_PARAMETER_NAME,
+    SOURCE_PARAMETER_UNITS,
+    CONVERSION_FACTOR,
+    FEET,
+)
 
 
 class BaseRecord:
@@ -68,7 +76,7 @@ class BaseRecord:
         return v
 
 
-class WaterLevelRecord(BaseRecord):
+class ParameterRecord(BaseRecord):
     keys: tuple = (
         "source",
         "id",
@@ -77,33 +85,25 @@ class WaterLevelRecord(BaseRecord):
         # "longitude",
         # "surface_elevation_ft",
         # "well_depth_ft_below_ground_surface",
-        PARAMETER,
+        PARAMETER_NAME,
         PARAMETER_VALUE,
         PARAMETER_UNITS,
         "date_measured",
         "time_measured",
+        SOURCE_PARAMETER_NAME,
+        SOURCE_PARAMETER_UNITS,
+        CONVERSION_FACTOR,
     )
 
     defaults: dict = {}
 
 
-class AnalyteRecord(BaseRecord):
-    keys: tuple = (
-        "source",
-        "id",
-        # "location",
-        # "latitude",
-        # "longitude",
-        # "surface_elevation_ft",
-        # "well_depth_ft_below_ground_surface",
-        PARAMETER,
-        PARAMETER_VALUE,
-        PARAMETER_UNITS,
-        "date_measured",
-        "time_measured",
-    )
+class WaterLevelRecord(ParameterRecord):
+    pass
 
-    defaults: dict = {}
+
+class AnalyteRecord(ParameterRecord):
+    pass
 
 
 class SummaryRecord(BaseRecord):
@@ -120,8 +120,8 @@ class SummaryRecord(BaseRecord):
         "elevation_units",
         "well_depth",
         "well_depth_units",
-        "parameter",
-        "parameter_units",
+        PARAMETER_NAME,
+        PARAMETER_UNITS,
         "nrecords",
         "min",
         "max",
