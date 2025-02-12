@@ -134,7 +134,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | name | the colloquial name for the site | string | Y |
 | latitude | latitude in decimal degrees | float | Y |
 | longitude | longitude in decimal degrees | float | Y |
-| elevation | ground surface elevation of the site | float | Y |
+| elevation^1^ | ground surface elevation of the site | float | Y |
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
 | vertical_datum | vertical datum of the elevation | string | N |
@@ -144,7 +144,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
 
-
+^1^ elevation at top of casing for EBID
 #### Time Series Table(s)
 
 | field/header | description | data type | always present |
