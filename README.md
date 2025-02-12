@@ -124,7 +124,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | most_recent_value | value of the most recent record  | float | Y |
 | most_recent_units | units of the most recent record | string | Y |
 
-<sup>* elevation at top of casing for EBID</sup>
+<sup>* elevation at top of casing for CABQ</sup>
 
 #### Sites Table
 
@@ -145,7 +145,8 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
 
-<sup>** elevation at top of casing for EBID</sup>
+<sup>** elevation at top of casing for CABQ</sup>
+
 #### Time Series Table(s)
 
 | field/header | description | data type | always present |
