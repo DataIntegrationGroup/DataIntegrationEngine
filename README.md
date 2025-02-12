@@ -159,7 +159,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | date_measured | date of measurement in YYYY-MM-DD | string | Y |
 | time_measured | time of measurement in HH:MM:SS or HH:MM:SS.mmm | string | N |
 | source_parameter_name | the name of the parameter from the source | Y |
-| source_parameter_unit | the unit of measurement from the source | Y |
+| source_parameter_units | the unit of measurement from the source | Y |
 | conversion_factor | the factor applied to the result to convert the measurement to standardized units | Y |
 
 ### Source Inclusion & Exclusion
