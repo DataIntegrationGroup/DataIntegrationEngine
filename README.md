@@ -22,6 +22,10 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`
 - [Bureau of Reclamation (BoR)](https://data.usbr.gov/) 
   - Available data: `water quality`
+- [City of Albuquerque (CABQ)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27CABQ%27)
+  - Availabled data: `water levels`
+- [Elephant Butte Irrigation District (EBID)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27EBID%27)
+  - Available data: `water levels`
 - [New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP)](https://waterdata.nmt.edu/)
   - Available data: `water levels`, `water quality`
 - [New Mexico Environment Department Drinking Water Bureau (NMED DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
@@ -156,7 +160,9 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
 
 - `--no-bernco` to exclude Bernalillo County (BernCo) data
-- `--no-bor` to exclude Bureaof of Reclamation (Bor) data
+- `--no-bor` to exclude Bureau of of Reclamation (Bor) data
+- `--no-cabq` to exclude City of Albuquerque (CABQ) data
+- `--no-ebig` to exclude Elephant Butte Irrigation District (EBID) data
 - `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
 - `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
 - `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
