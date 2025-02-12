@@ -113,7 +113,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | well_depth | depth of well | float | N |
 | well_depth_units | units of well depth. Defaults to ft | float | N |
-| parameter | the name of the parameter whose measurements are reported in the table | string | Y |
+| parameter_name | the name of the parameter whose measurements are reported in the table | string | Y |
 | paramater_units | units of the observation | float | Y |
 | nrecords | number of records at the site for the parameter | integer | Y |
 | min | the minimum observation | float | Y |
