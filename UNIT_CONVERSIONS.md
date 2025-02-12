@@ -55,3 +55,4 @@ Records with the following source parameter names, source units, die parameter n
 | :-------------------- | :----------- | :---- |
 | -                     | tons/day     | This is not a unit of concentration |
 | -                     | mg/kg        | This is not a unit of aqueous concentration |
+| sodium                | %            | This is "Sodium fraction of cations, water, percent in equivalents of major cations" - see USGS pcode 00932 |
