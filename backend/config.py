@@ -421,6 +421,11 @@ class Config(Loggable):
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 
+    def _update_output_units(self):
+        parameter = self.parameter.lower()
+        if parameter == "ph":
+            self.analyte_output_units = ""
+
     @property
     def start_dt(self):
         return self._extract_date(self.start_date)

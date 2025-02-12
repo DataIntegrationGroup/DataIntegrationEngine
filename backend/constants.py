@@ -47,9 +47,13 @@ DT_MEASURED = "datetime_measured"
 DTW = "depth_to_water_below_ground_surface"
 DTW_UNITS = FEET
 
-PARAMETER = "parameter"
+PARAMETER_NAME = "parameter_name"
 PARAMETER_UNITS = "parameter_units"
 PARAMETER_VALUE = "parameter_value"
+
+SOURCE_PARAMETER_NAME = "source_parameter_name"
+SOURCE_PARAMETER_UNITS = "source_parameter_units"
+CONVERSION_FACTOR = "conversion_factor"
 
 ANALYTE_OPTIONS = sorted(
     [
