@@ -48,10 +48,13 @@ from .connectors.isc_seven_rivers.source import (
 from .connectors.st2.source import (
     ST2SiteSource,
     PVACDSiteSource,
-    EBIDSiteSource,
     PVACDWaterLevelSource,
+    EBIDSiteSource,
+    EBIDWaterLevelSource,
     BernCoSiteSource,
     BernCoWaterLevelSource,
+    CABQSiteSource,
+    CABQWaterLevelSource
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
@@ -59,6 +62,8 @@ from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
 SOURCE_KEYS = (
     "bernco",
     "bor",
+    "cabq",
+    "ebid",
     "nmbgmr_amp",
     "nmed_dwb",
     "nmose_isc_seven_rivers",
@@ -74,6 +79,10 @@ def get_source(source):
         return BernCoSiteSource()
     elif source == "bor":
         return BORSiteSource()
+    elif source == "cabq":
+        return CABQSiteSource()
+    elif source == "ebid":
+        return EBIDSiteSource()
     elif source == "nmbgmr_amp":
         return NMBGMRSiteSource()
     elif source == "nmed_dwb":
@@ -108,6 +117,8 @@ class Config(Loggable):
     # sources
     use_source_bernco: bool = True
     use_source_bor: bool = True
+    use_source_cabq: bool = True
+    use_source_ebid: bool = True
     use_source_nmbgmr_amp: bool = True
     use_source_nmed_dwb: bool = True
     use_source_nmose_isc_seven_rivers: bool = True
@@ -229,6 +240,10 @@ class Config(Loggable):
             sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
         if self.use_source_bernco:
             sources.append((BernCoSiteSource(), BernCoWaterLevelSource()))
+        if self.use_source_ebid:
+            sources.append((EBIDSiteSource(), EBIDWaterLevelSource()))
+        if self.use_source_cabq:
+            sources.append((CABQSiteSource(), CABQWaterLevelSource()))
 
         for s, ss in sources:
             s.set_config(self)

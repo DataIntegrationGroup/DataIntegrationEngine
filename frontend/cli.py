@@ -47,6 +47,20 @@ ALL_SOURCE_OPTIONS = [
         help="Exclude BoR data. Default is to include",
     ),
     click.option(
+        "--no-cabq",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude CABQ data. Default is to include",
+    ),
+    click.option(
+        "--no-ebid",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude EBID data. Default is to include",
+    ),
+    click.option(
         "--no-nmbgmr-amp",
         is_flag=True,
         default=True,
@@ -192,14 +206,16 @@ def weave(
     bbox,
     county,
     no_bernco,
-    no_bor,  # has no water levels
+    no_bor,
+    no_cabq,
+    no_ebid,
     no_nmbgmr_amp,
-    no_nmed_dwb,  # has no water levels
+    no_nmed_dwb,
     no_nmose_isc_seven_rivers,
     no_nmose_roswell,
     no_nwis,
     no_pvacd,
-    no_wqp,  # has no water levels
+    no_wqp,
     site_limit,
     dry,
 ):
@@ -241,6 +257,8 @@ def weave(
     # sources
     if parameter.lower() == "waterlevels":
         config.use_source_bernco = no_bernco
+        config.use_source_cabq = no_cabq
+        config.use_source_ebid = no_ebid
         config.use_source_nmbgmr_amp = no_nmbgmr_amp
         config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
         config.use_source_nmose_roswell = no_nmose_roswell
@@ -258,6 +276,8 @@ def weave(
         config.use_source_wqp = no_wqp
 
         config.use_source_bernco = False
+        config.use_source_cabq = False
+        config.use_source_ebid = False
         config.use_source_nmose_roswell = False
         config.use_source_nwis = False
         config.use_source_pvacd = False
