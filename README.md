@@ -158,9 +158,9 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | paramater_units | units of the observation | float | Y |
 | date_measured | date of measurement in YYYY-MM-DD | string | Y |
 | time_measured | time of measurement in HH:MM:SS or HH:MM:SS.mmm | string | N |
-| source_parameter_name | the name of the parameter from the source | Y |
-| source_parameter_units | the unit of measurement from the source | Y |
-| conversion_factor | the factor applied to the result to convert the measurement to standardized units | Y |
+| source_parameter_name | the name of the parameter from the source | string | Y |
+| source_parameter_units | the unit of measurement from the source | string | Y |
+| conversion_factor | the factor applied to the result to convert the measurement to standardized units | float or int | Y |
 
 ### Source Inclusion & Exclusion
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
