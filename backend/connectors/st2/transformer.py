@@ -95,6 +95,7 @@ class EBIDWaterLevelTransformer(WaterLevelTransformer):
 class BernCoWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ST2/BernCo"
 
+
 class CABQWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ST2/CABQ"
 
