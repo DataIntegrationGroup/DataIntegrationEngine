@@ -163,7 +163,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-bernco` to exclude Bernalillo County (BernCo) data
 - `--no-bor` to exclude Bureau of of Reclamation (Bor) data
 - `--no-cabq` to exclude City of Albuquerque (CABQ) data
-- `--no-ebig` to exclude Elephant Butte Irrigation District (EBID) data
+- `--no-ebid` to exclude Elephant Butte Irrigation District (EBID) data
 - `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
 - `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
 - `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
