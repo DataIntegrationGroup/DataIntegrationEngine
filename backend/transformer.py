@@ -173,106 +173,64 @@ def convert_units(
     conversion_factor = None
 
     input_value = float(input_value)
-    input_units = input_units.lower()
-    output_units = output_units.lower()
+    input_units = input_units.strip().lower()
+    output_units = output_units.strip().lower()
+    source_parameter_name = source_parameter_name.strip().lower()
+    die_parameter_name = die_parameter_name.strip().lower()
 
     mgl = MILLIGRAMS_PER_LITER.lower()
     ugl = MICROGRAMS_PER_LITER.lower()
     ppm = PARTS_PER_MILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
-
-    source_parameter_name = source_parameter_name.strip()
-    die_parameter_name = die_parameter_name.strip()
-
-    if (
-        input_units.lower() in ["mg/l caco3", "mg/l caco3**"]
-        and output_units == mgl
-        and die_parameter_name == "bicarbonate"
-    ):
-        conversion_factor = 1.22
-
-    if (
-        input_units in ["mg/l caco3", "mg/l caco3**"]
-        and output_units == mgl
-        and die_parameter_name == "calcium"
-    ):
-        conversion_factor = 0.4
-
-    if (
-        input_units.lower() in ["mg/l caco3"]
-        and output_units == mgl
-        and die_parameter_name == "carbonate"
-        and source_parameter_name.lower() == "carbonate"
-    ):
-        conversion_factor = 0.6
-
-    if (
-        input_units.lower() == "mg/l"
-        and output_units == mgl
-        and die_parameter_name == "nitrate"
-        and source_parameter_name.lower() == "nitrate as n"
-    ):
-        conversion_factor = 4.4268
-
-    if (
-        input_units.lower() == "mg/l as n"
-        and output_units == mgl
-        and die_parameter_name == "nitrate"
-        and source_parameter_name.lower() in ["nitrate as n", "nitrate"]
-    ):
-        conversion_factor = 4.4268
-
-    if (
-        input_units.lower() == "ug/l as n"
-        and output_units == mgl
-        and die_parameter_name == "nitrate"
-        and source_parameter_name.lower() in ["nitrate as n", "nitrate"]
-    ):
-        conversion_factor = 0.0044268
-
-    if (
-        input_units.lower() in ["mg/l asno3", "mg/l as no3", "mg/l"]
-        and output_units == mgl
-        and die_parameter_name == "nitrate"
-        and source_parameter_name.lower() == "nitrate"
-    ):
-        conversion_factor = 1
-
-    if input_units.lower() == "pci/l" and output_units == mgl:
-        conversion_factor = 0.00149
-
-    if die_parameter_name == "ph":
-        conversion_factor = 1
-
-    if input_units == tpaf and output_units == mgl:
-        conversion_factor = 735.47
-
-    if (
-        input_units == mgl
-        and output_units == ppm
-        or input_units == ppm
-        and output_units == mgl
-    ):
-        conversion_factor = 1.0
-
-    if input_units == ugl and output_units == mgl:
-        conversion_factor = 0.001
-
     ft = FEET.lower()
     m = METERS.lower()
 
-    if input_units == "feet":
-        input_units = ft
-    if input_units == "meters":
-        input_units = m
+    """
+    Each output_unit block needs a check for if input_units == output_units.
 
-    if input_units == ft and output_units == m:
-        conversion_factor = 0.3048
-    if input_units == m and output_units == ft:
-        conversion_factor = 3.28084
-
-    if input_units == output_units:
+    This should go at the end of each block because there are some cases where
+    the input_units == output_units, but the conversion factor is not 1 due to
+    the source_parameter_name (e.g. nitrate as n).
+    """
+    if die_parameter_name == "ph":
         conversion_factor = 1
+    elif output_units == mgl:
+        if input_units in ["mg/l caco3", "mg/l caco3**"]:
+            if die_parameter_name == "bicarbonate":
+                conversion_factor = 1.22
+            elif die_parameter_name == "calcium":
+                conversion_factor = 0.4
+            elif die_parameter_name == "carbonate":
+                conversion_factor = 0.6
+        elif input_units == "mg/l as n":
+            conversion_factor = 4.4268
+        elif input_units in ["mg/l asno3", "mg/l as no3"]:
+            conversion_factor = 1
+        elif input_units == "ug/l as n":
+            conversion_factor = 0.0044268
+        elif input_units == "pci/l":
+            conversion_factor = 0.00149
+        elif input_units == ugl:
+            conversion_factor = 0.001
+        elif input_units == tpaf:
+            conversion_factor = 735.47
+        elif input_units == ppm:
+            conversion_factor = 1
+        elif input_units == output_units:
+            if source_parameter_name in ["nitrate as n", "nitrate (as n)"]:
+                conversion_factor = 4.4268
+            else:
+                conversion_factor = 1
+    elif output_units == ft:
+        if input_units in [m, "meters"]:
+            conversion_factor = 3.28084
+        elif input_units in [ft, "feet"]:
+            conversion_factor = 1
+    elif output_units == m:
+        if input_units in [ft, "feet"]:
+            conversion_factor = 0.3048
+        elif input_units in [m, "meters"]:
+            conversion_factor = 1
 
     if conversion_factor:
         return input_value * conversion_factor, conversion_factor, warning
