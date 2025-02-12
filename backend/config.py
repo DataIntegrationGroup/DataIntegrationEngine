@@ -54,7 +54,7 @@ from .connectors.st2.source import (
     BernCoSiteSource,
     BernCoWaterLevelSource,
     CABQSiteSource,
-    CABQWaterLevelSource
+    CABQWaterLevelSource,
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource

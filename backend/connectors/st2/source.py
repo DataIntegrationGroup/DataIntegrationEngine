@@ -26,7 +26,7 @@ from backend.connectors.st2.transformer import (
     BernCoSiteTransformer,
     BernCoWaterLevelTransformer,
     CABQSiteTransformer,
-    CABQWaterLevelTransformer
+    CABQWaterLevelTransformer,
 )
 from backend.connectors.st_connector import (
     STSiteSource,
@@ -83,7 +83,7 @@ class BernCoSiteSource(ST2SiteSource):
 
     def __repr__(self):
         return "BernCoSiteSource"
-    
+
 
 class CABQSiteSource(ST2SiteSource):
     transformer_klass = CABQSiteTransformer
