@@ -114,7 +114,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | well_depth | depth of well | float | N |
 | well_depth_units | units of well depth. Defaults to ft | float | N |
 | parameter | the name of the parameter whose measurements are reported in the table | string | Y |
-| pramater_units | units of the observation | float | Y |
+| paramater_units | units of the observation | float | Y |
 | nrecords | number of records at the site for the parameter | integer | Y |
 | min | the minimum observation | float | Y |
 | max | the maximum observation | float | Y |
@@ -155,7 +155,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
 | parameter_name | the name of the parameter whose measurements are reported in the table | string | Y |
 | parameter_value | value of the observation | float | Y |
-| pramater_units | units of the observation | float | Y |
+| paramater_units | units of the observation | float | Y |
 | date_measured | date of measurement in YYYY-MM-DD | string | Y |
 | time_measured | time of measurement in HH:MM:SS or HH:MM:SS.mmm | string | N |
 | source_parameter_name | the name of the parameter from the source | Y |
