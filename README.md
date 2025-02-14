@@ -24,7 +24,6 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water quality`
 - [City of Albuquerque (CABQ)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27CABQ%27)
   - Available data: `water levels`
-  - Note: the elevation data is the top of casing, not ground surface elevation
 - [Elephant Butte Irrigation District (EBID)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27EBID%27)
   - Available data: `water levels`
 - [New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP)](https://waterdata.nmt.edu/)
@@ -124,7 +123,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | most_recent_value | value of the most recent record  | float | Y |
 | most_recent_units | units of the most recent record | string | Y |
 
-<sup>* elevation at top of casing for CABQ</sup>
+<sup>*CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
 
 #### Sites Table
 
@@ -145,7 +144,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
 
-<sup>** elevation at top of casing for CABQ</sup>
+<sup>**CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
 
 #### Time Series Table(s)
 
