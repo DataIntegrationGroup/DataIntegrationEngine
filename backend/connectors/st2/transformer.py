@@ -18,7 +18,12 @@ import sys
 
 from backend.connectors.st_connector import STSiteTransformer
 from backend.record import SiteRecord, WaterLevelRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer, convert_units
+from backend.transformer import (
+    BaseTransformer,
+    WaterLevelTransformer,
+    SiteTransformer,
+    convert_units,
+)
 
 
 class PVACDSiteTransformer(STSiteTransformer):
@@ -78,11 +83,12 @@ class CABQSiteTransformer(STSiteTransformer):
             try:
                 thing = record.things._entities[0]
                 stickup_height_ft = thing._properties["stickup_height"]["value"]
-                stickup_height_m, conversion_factor, warning_msg = convert_units(stickup_height_ft, "ft", "m", "stickup_height", "stickup_height")
+                stickup_height_m, conversion_factor, warning_msg = convert_units(
+                    stickup_height_ft, "ft", "m", "stickup_height", "stickup_height"
+                )
                 ele = ele - stickup_height_m
             except KeyError:
                 self.config.warn(f"No stickup_height for {record.id}")
-
 
         rec = {
             "source": self.source_id,
@@ -96,6 +102,7 @@ class CABQSiteTransformer(STSiteTransformer):
         }
 
         return self._transform_hook(rec)
+
 
 # class ST2WaterLevelTransformer(WaterLevelTransformer):
 #     source_tag = "ST2"

@@ -25,7 +25,7 @@ from backend.transformer import (
 
 class NMBGMRSiteTransformer(SiteTransformer):
     def _transform(self, record):
-        props = record["properties"]       
+        props = record["properties"]
         rec = {
             "source": "NMBGMR",
             "id": props["point_id"],

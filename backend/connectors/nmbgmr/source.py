@@ -94,8 +94,9 @@ class NMBGMRSiteSource(BaseSiteSource):
             site["properties"]["formation"] = well_data["formation"]
             site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
             site["properties"]["well_depth_units"] = FEET
-            
+
         return sites
+
 
 class NMBGMRAnalyteSource(BaseAnalyteSource):
     transformer_klass = NMBGMRAnalyteTransformer
