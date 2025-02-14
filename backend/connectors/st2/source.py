@@ -17,14 +17,21 @@ import datetime
 
 import frost_sta_client as fsc
 
-from backend.connectors import PVACD_BOUNDING_POLYGON, BERNCO_BOUNDING_POLYGON
+from backend.connectors import (
+    PVACD_BOUNDING_POLYGON,
+    BERNCO_BOUNDING_POLYGON,
+    EBID_BOUNDING_POLYGON,
+    CABQ_BOUNDING_POLYGON,
+)
 from backend.connectors.st2.transformer import (
     PVACDSiteTransformer,
-    EBIDSiteTransformer,
     PVACDWaterLevelTransformer,
+    EBIDSiteTransformer,
     EBIDWaterLevelTransformer,
     BernCoSiteTransformer,
     BernCoWaterLevelTransformer,
+    CABQSiteTransformer,
+    CABQWaterLevelTransformer,
 )
 from backend.connectors.st_connector import (
     STSiteSource,
@@ -69,6 +76,7 @@ class PVACDSiteSource(ST2SiteSource):
 class EBIDSiteSource(ST2SiteSource):
     transformer_klass = EBIDSiteTransformer
     agency = "EBID"
+    bounding_polygon = EBID_BOUNDING_POLYGON
 
     def __repr__(self):
         return "EBIDSiteSource"
@@ -81,6 +89,15 @@ class BernCoSiteSource(ST2SiteSource):
 
     def __repr__(self):
         return "BernCoSiteSource"
+
+
+class CABQSiteSource(ST2SiteSource):
+    transformer_klass = CABQSiteTransformer
+    agency = "CABQ"
+    bounding_polygon = CABQ_BOUNDING_POLYGON
+
+    def __repr__(self):
+        return "CABQSiteSource"
 
 
 class ST2WaterLevelSource(STWaterLevelSource):
@@ -177,6 +194,14 @@ class BernCoWaterLevelSource(ST2WaterLevelSource):
 
     def __repr__(self):
         return "BernCoWaterLevelSource"
+
+
+class CABQWaterLevelSource(ST2WaterLevelSource):
+    transformer_klass = CABQWaterLevelTransformer
+    agency = "CABQ"
+
+    def __repr__(self):
+        return "CABQWaterLevelSource"
 
 
 # ============= EOF =============================================
