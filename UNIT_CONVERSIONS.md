@@ -11,9 +11,9 @@ The conversion factor is applied to the reported value from the source to obtain
 | bicarbonate           | mg/L as CaCO3 | bicarbonate       | mg/L                | 1.22              | equivalent mass HCO3 - = 61 |
 | calcium               | mg/L as CaCO3 | calcium           | mg/L                | 0.4               | equivalent mass Ca 2+ = 20 |
 | carbonate             | mg/L as CaCO3 | carbonate         | mg/L                | 0.6               | equivalent mass CO3 2- = 30 |
-| nitrate as n          | mg/L as N    | nitrate            | mg/L                | 4.4268            | -     |
-| nitrate               | mg/L as N    | nitrate            | mg/L                | 4.4268            | -     |
-| nitrate               | ug/L as N    | nitrate            | mg/L                | 0.0044268         | -     |
+| nitrate as n          | mg/L as N    | nitrate            | mg/L                | 4.427             | -     |
+| nitrate               | mg/L as N    | nitrate            | mg/L                | 4.427             | -     |
+| nitrate               | ug/L as N    | nitrate            | mg/L                | 0.004427          | -     |
 | nitrate               | mg/L as NO3  | nitrate            | mg/L                | 1                 | -     |
 | sulfate as SO4        | mg/L         | sulfate            | mg/L                | 1                 | -     |
 | sulfur sulfate        | mg/L         | sulfate            | mg/L                | 1                 | -     |
