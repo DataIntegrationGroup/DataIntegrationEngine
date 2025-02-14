@@ -23,7 +23,7 @@ Data comes from the following sources. We are continuously adding new sources as
 - [Bureau of Reclamation (BoR)](https://data.usbr.gov/) 
   - Available data: `water quality`
 - [City of Albuquerque (CABQ)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27CABQ%27)
-  - Availabled data: `water levels`
+  - Available data: `water levels`
   - Note: the elevation data is the top of casing, not ground surface elevation
 - [Elephant Butte Irrigation District (EBID)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27EBID%27)
   - Available data: `water levels`
