@@ -203,11 +203,11 @@ def convert_units(
             elif die_parameter_name == "carbonate":
                 conversion_factor = 0.6
         elif input_units == "mg/l as n":
-            conversion_factor = 4.4268
+            conversion_factor = 4.427
         elif input_units in ["mg/l asno3", "mg/l as no3"]:
             conversion_factor = 1
         elif input_units == "ug/l as n":
-            conversion_factor = 0.0044268
+            conversion_factor = 0.004427
         elif input_units == "pci/l":
             conversion_factor = 0.00149
         elif input_units == ugl:
@@ -218,7 +218,7 @@ def convert_units(
             conversion_factor = 1
         elif input_units == output_units:
             if source_parameter_name in ["nitrate as n", "nitrate (as n)"]:
-                conversion_factor = 4.4268
+                conversion_factor = 4.427
             else:
                 conversion_factor = 1
     elif output_units == ft:
