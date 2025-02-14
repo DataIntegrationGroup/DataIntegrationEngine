@@ -148,6 +148,9 @@ class STSiteTransformer(SiteTransformer):
     source_id: str
     check_contained = False  # API returns only records within the bounds
 
+    def _transform_elevation(self, elevation, record):
+        return elevation
+
     def _transform_hook(self, rec):
         return rec
 
@@ -166,6 +169,7 @@ class STSiteTransformer(SiteTransformer):
         ele = None
         if len(coordinates) == 3:
             ele = coordinates[2]
+            ele = self._transform_elevation(ele, record)
 
         rec = {
             "source": self.source_id,

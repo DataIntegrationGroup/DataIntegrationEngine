@@ -64,45 +64,18 @@ class EBIDSiteTransformer(STSiteTransformer):
 class CABQSiteTransformer(STSiteTransformer):
     source_id = "ST2/CABQ"
 
-    def _transform(self, record):
-        if self.source_id is None:
-            raise ValueError(f"{self.__class__.__name__} Source ID not set")
-
-        coordinates = record.location["coordinates"]
-
-        lat = coordinates[1]
-        lng = coordinates[0]
-        # if not self.contained(lng, lat):
-        #     print("not contained")
-        #     return
-
-        ele = None
-        if len(coordinates) == 3:
-            ele = coordinates[2]
-
+    def _transform_elevation(self, elevation, record):
+        if elevation:
             try:
                 thing = record.things._entities[0]
                 stickup_height_ft = thing._properties["stickup_height"]["value"]
                 stickup_height_m, conversion_factor, warning_msg = convert_units(
                     stickup_height_ft, "ft", "m", "stickup_height", "stickup_height"
                 )
-                ele = ele - stickup_height_m
+                elevation = elevation - stickup_height_m
             except KeyError:
                 self.config.warn(f"No stickup_height for {record.id}")
-
-        rec = {
-            "source": self.source_id,
-            "id": record.id,
-            "name": record.name,
-            "latitude": lat,
-            "longitude": lng,
-            "elevation": ele,
-            "elevation_units": "m",
-            "horizontal_datum": "WGS84",
-        }
-
-        return self._transform_hook(rec)
-
+        return elevation
 
 # class ST2WaterLevelTransformer(WaterLevelTransformer):
 #     source_tag = "ST2"
