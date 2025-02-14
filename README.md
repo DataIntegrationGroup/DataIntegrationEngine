@@ -22,6 +22,11 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`
 - [Bureau of Reclamation (BoR)](https://data.usbr.gov/) 
   - Available data: `water quality`
+- [City of Albuquerque (CABQ)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27CABQ%27)
+  - Availabled data: `water levels`
+  - Note: the elevation data is the top of casing, not ground surface elevation
+- [Elephant Butte Irrigation District (EBID)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27EBID%27)
+  - Available data: `water levels`
 - [New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP)](https://waterdata.nmt.edu/)
   - Available data: `water levels`, `water quality`
 - [New Mexico Environment Department Drinking Water Bureau (NMED DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
@@ -104,12 +109,12 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | latitude | latitude in decimal degrees | float | Y |
 | longitude | longitude in decimal degrees | float | Y |
 | horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
-| elevation | ground surface elevation of the site | float | Y |
+| elevation<sup>*</sup> | ground surface elevation of the site | float | Y |
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | well_depth | depth of well | float | N |
-| well_depth_units | units of well depth. Defaults to ft | float | N |
-| parameter | the name of the parameter whose measurements are reported in the table | string | Y |
-| pramater_units | units of the observation | float | Y |
+| well_depth_units | units of well depth. Defaults to ft | string | N |
+| parameter_name | the name of the parameter whose measurements are reported in the table | string | Y |
+| parameter_units | units of the observation | string | Y |
 | nrecords | number of records at the site for the parameter | integer | Y |
 | min | the minimum observation | float | Y |
 | max | the maximum observation | float | Y |
@@ -119,6 +124,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | most_recent_value | value of the most recent record  | float | Y |
 | most_recent_units | units of the most recent record | string | Y |
 
+<sup>* elevation at top of casing for CABQ</sup>
 
 #### Sites Table
 
@@ -129,7 +135,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | name | the colloquial name for the site | string | Y |
 | latitude | latitude in decimal degrees | float | Y |
 | longitude | longitude in decimal degrees | float | Y |
-| elevation | ground surface elevation of the site | float | Y |
+| elevation<sup>**</sup> | ground surface elevation of the site | float | Y |
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
 | vertical_datum | vertical datum of the elevation | string | N |
@@ -139,6 +145,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
 
+<sup>** elevation at top of casing for CABQ</sup>
 
 #### Time Series Table(s)
 
@@ -146,17 +153,22 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | :----------- | :---------- | :-------- | :------------- |
 | source | the organization/source for the site | string | Y |
 | id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
-| parameter | the name of the parameter whose measurements are reported in the table | string | Y |
+| parameter_name | the name of the parameter whose measurements are reported in the table | string | Y |
 | parameter_value | value of the observation | float | Y |
-| pramater_units | units of the observation | float | Y |
+| parameter_units | units of the observation | string | Y |
 | date_measured | date of measurement in YYYY-MM-DD | string | Y |
 | time_measured | time of measurement in HH:MM:SS or HH:MM:SS.mmm | string | N |
+| source_parameter_name | the name of the parameter from the source | string | Y |
+| source_parameter_units | the unit of measurement from the source | string | Y |
+| conversion_factor | the factor applied to the result to convert the measurement to standardized units | float or int | Y |
 
 ### Source Inclusion & Exclusion
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
 
 - `--no-bernco` to exclude Bernalillo County (BernCo) data
-- `--no-bor` to exclude Bureaof of Reclamation (Bor) data
+- `--no-bor` to exclude Bureau of of Reclamation (Bor) data
+- `--no-cabq` to exclude City of Albuquerque (CABQ) data
+- `--no-ebid` to exclude Elephant Butte Irrigation District (EBID) data
 - `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
 - `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
 - `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data

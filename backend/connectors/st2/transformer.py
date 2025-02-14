@@ -52,7 +52,11 @@ class BernCoSiteTransformer(STSiteTransformer):
 
 
 class EBIDSiteTransformer(STSiteTransformer):
-    source_tag = "ST2/EBID"
+    source_id = "ST2/EBID"
+
+
+class CABQSiteTransformer(STSiteTransformer):
+    source_id = "ST2/CABQ"
 
 
 # class ST2WaterLevelTransformer(WaterLevelTransformer):
@@ -90,6 +94,10 @@ class EBIDWaterLevelTransformer(WaterLevelTransformer):
 
 class BernCoWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ST2/BernCo"
+
+
+class CABQWaterLevelTransformer(WaterLevelTransformer):
+    source_tag = "ST2/CABQ"
 
 
 # ============= EOF =============================================
