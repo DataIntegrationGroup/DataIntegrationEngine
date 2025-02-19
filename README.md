@@ -72,6 +72,22 @@ The following parameters are currently available for retrieval:
 - tds
 - uranium
 
+See the table below for the parameters that are available from each source:
+
+|                            | waterlevels | arsenic | bicarbonate | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | sulfate | tds | uranium |
+| -------------------------- | ----------- | ------- | ----------- | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | ------- | --- | ------- |
+| **bernco**                 | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **bor**                    | -           | X       | -           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **cabq**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **ebid**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **nmbgmr-amp**             | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **nmed-dwb**               | -           | X       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **nmose-isc-seven-rivers** | X           | -       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | -       |
+| **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **wqp**                    | -           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+
 ### Output
 The `--output` option is required and used to set the output type:
 
