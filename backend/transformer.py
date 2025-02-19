@@ -239,7 +239,7 @@ def convert_units(
         return input_value, conversion_factor, warning
 
 
-def standardize_datetime(dt):
+def standardize_datetime(dt, record_id):
     if isinstance(dt, tuple):
         dt = [di for di in dt if di is not None]
         dt = " ".join(dt)
@@ -274,7 +274,7 @@ def standardize_datetime(dt):
                 except ValueError as e:
                     pass
         else:
-            raise ValueError(f"Failed to parse datetime {dt}")
+            raise ValueError(f"Failed to parse datetime {dt} for {record_id}")
 
     if fmt == "%Y-%m-%d":
         return dt.strftime("%Y-%m-%d"), ""
@@ -405,13 +405,13 @@ class BaseTransformer(Loggable):
         # standardize datetime
         dt = record.get(DT_MEASURED)
         if dt:
-            d, t = standardize_datetime(dt)
+            d, t = standardize_datetime(dt, record["id"])
             record["date_measured"] = d
             record["time_measured"] = t
         else:
             mrd = record.get("most_recent_datetime")
             if mrd:
-                d, t = standardize_datetime(mrd)
+                d, t = standardize_datetime(mrd, record["id"])
                 record["date_measured"] = d
                 record["time_measured"] = t
 
@@ -661,7 +661,7 @@ class ParameterTransformer(BaseTransformer):
         rec = {}
 
         if self.config.output_summary:
-            self._transform_most_recents(record)
+            self._transform_most_recents(record, site_record.id)
 
             parameter, units = self._get_parameter_name_and_units()
             rec.update(
@@ -693,9 +693,9 @@ class ParameterTransformer(BaseTransformer):
         rec.update(source_id)
         return rec
 
-    def _transform_most_recents(self, record):
+    def _transform_most_recents(self, record, site_id):
         # convert most_recents
-        dt, tt = standardize_datetime(record["most_recent_datetime"])
+        dt, tt = standardize_datetime(record["most_recent_datetime"], site_id)
         record["most_recent_date"] = dt
         record["most_recent_time"] = tt
         parameter_name, unit = self._get_parameter_name_and_units()
