@@ -52,7 +52,7 @@ def _make_url(endpoint):
 
 class NMBGMRSiteSource(BaseSiteSource):
     transformer_klass = NMBGMRSiteTransformer
-    chunk_size = 100
+    chunk_size = 50
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def __repr__(self):
@@ -94,6 +94,9 @@ class NMBGMRSiteSource(BaseSiteSource):
             site["properties"]["formation"] = well_data["formation"]
             site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
             site["properties"]["well_depth_units"] = FEET
+            # site["properties"]["formation"] = None
+            # site["properties"]["well_depth"] = None
+            # site["properties"]["well_depth_units"] = FEET
 
         return sites
 
