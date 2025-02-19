@@ -296,8 +296,18 @@ def weave(
         config.use_source_nmose_roswell = False
         config.use_source_nwis = False
         config.use_source_pvacd = False
-    
-    elif parameter in ["bicarbonate", "calcium", "chloride", "fluoride", "magnesium", "nitrate", "potassium", "sodium", "sulfate"]:
+
+    elif parameter in [
+        "bicarbonate",
+        "calcium",
+        "chloride",
+        "fluoride",
+        "magnesium",
+        "nitrate",
+        "potassium",
+        "sodium",
+        "sulfate",
+    ]:
         config.use_source_bor = no_bor
         config.use_source_nmbgmr_amp = no_nmbgmr_amp
         config.use_source_nmed_dwb = no_nmed_dwb
@@ -310,9 +320,6 @@ def weave(
         config.use_source_nmose_roswell = False
         config.use_source_nwis = False
         config.use_source_pvacd = False
-    
-    
-
 
     # dates
     config.start_date = start_date
