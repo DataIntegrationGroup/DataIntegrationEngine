@@ -54,26 +54,6 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 
 
 #### Available Parameters
-The following parameters are currently available for retrieval:
-- waterlevels
-- arsenic
-- bicarbonate
-- calcium
-- carbonate
-- chloride
-- fluoride
-- magnesium
-- nitrate
-- ph
-- potassium
-- silica
-- sodium
-- sulfate
-- tds
-- uranium
-
-See the table below for the parameters that are available from each source:
-
 |                            | waterlevels | arsenic | bicarbonate | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | sulfate | tds | uranium |
 | -------------------------- | ----------- | ------- | ----------- | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | ------- | --- | ------- |
 | **bernco**                 | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
