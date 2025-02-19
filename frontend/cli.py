@@ -304,9 +304,12 @@ def weave(
         "fluoride",
         "magnesium",
         "nitrate",
+        "ph",
         "potassium",
+        "silica",
         "sodium",
         "sulfate",
+        "tds"
     ]:
         config.use_source_bor = no_bor
         config.use_source_nmbgmr_amp = no_nmbgmr_amp
