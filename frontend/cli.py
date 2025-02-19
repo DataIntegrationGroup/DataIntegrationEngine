@@ -255,7 +255,7 @@ def weave(
     config.output_timeseries_separated = timeseries_separated
 
     # sources
-    if parameter.lower() == "waterlevels":
+    if parameter == "waterlevels":
         config.use_source_bernco = no_bernco
         config.use_source_cabq = no_cabq
         config.use_source_ebid = no_ebid
@@ -268,7 +268,36 @@ def weave(
         config.use_source_bor = False
         config.use_source_nmed_dwb = False
         config.use_source_wqp = False
-    else:
+
+    elif parameter == "carbonate":
+        config.use_source_nmbgmr_amp = no_nmbgmr_amp
+        config.use_source_wqp = no_wqp
+
+        config.use_source_bor = False
+        config.use_source_bernco = False
+        config.use_source_cabq = False
+        config.use_source_ebid = False
+        config.use_source_nmed_dwb = False
+        config.use_source_nmose_isc_seven_rivers = False
+        config.use_source_nmose_roswell = False
+        config.use_source_nwis = False
+        config.use_source_pvacd = False
+
+    elif parameter in ["arsenic", "uranium"]:
+        config.use_source_bor = no_bor
+        config.use_source_nmbgmr_amp = no_nmbgmr_amp
+        config.use_source_nmed_dwb = no_nmed_dwb
+        config.use_source_wqp = no_wqp
+
+        config.use_source_bernco = False
+        config.use_source_cabq = False
+        config.use_source_ebid = False
+        config.use_source_nmose_isc_seven_rivers = False
+        config.use_source_nmose_roswell = False
+        config.use_source_nwis = False
+        config.use_source_pvacd = False
+    
+    elif parameter in ["bicarbonate", "calcium", "chloride", "fluoride", "magnesium", "nitrate", "potassium", "sodium", "sulfate"]:
         config.use_source_bor = no_bor
         config.use_source_nmbgmr_amp = no_nmbgmr_amp
         config.use_source_nmed_dwb = no_nmed_dwb
@@ -281,6 +310,9 @@ def weave(
         config.use_source_nmose_roswell = False
         config.use_source_nwis = False
         config.use_source_pvacd = False
+    
+    
+
 
     # dates
     config.start_date = start_date
