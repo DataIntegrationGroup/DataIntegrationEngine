@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 
-TDS = "tds"
+WATERLEVELS = "waterlevels"
 ARSENIC = "arsenic"
 BICARBONATE = "bicarbonate"
 CALCIUM = "calcium"
@@ -23,15 +23,13 @@ CHLORIDE = "chloride"
 FLUORIDE = "fluoride"
 MAGNESIUM = "magnesium"
 NITRATE = "nitrate"
+PH = "ph"
 POTASSIUM = "potassium"
 SILICA = "silica"
 SODIUM = "sodium"
 SULFATE = "sulfate"
+TDS = "tds"
 URANIUM = "uranium"
-WATERLEVELS = "waterlevels"
-
-
-PH = "ph"
 
 
 MILLIGRAMS_PER_LITER = "mg/L"
@@ -65,13 +63,13 @@ ANALYTE_OPTIONS = sorted(
         FLUORIDE,
         MAGNESIUM,
         NITRATE,
+        PH,
         POTASSIUM,
         SILICA,
         SODIUM,
         SULFATE,
         TDS,
         URANIUM,
-        PH,
     ]
 )
 
