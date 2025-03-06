@@ -52,7 +52,7 @@ def _make_url(endpoint):
 
 class NMBGMRSiteSource(BaseSiteSource):
     transformer_klass = NMBGMRSiteTransformer
-    chunk_size = 50
+    chunk_size = 10
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def __repr__(self):
