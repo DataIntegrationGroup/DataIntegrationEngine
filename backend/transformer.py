@@ -23,6 +23,7 @@ from shapely import Point
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
     PARTS_PER_MILLION,
+    PARTS_PER_BILLION,
     FEET,
     METERS,
     TONS_PER_ACRE_FOOT,
@@ -181,6 +182,7 @@ def convert_units(
     mgl = MILLIGRAMS_PER_LITER.lower()
     ugl = MICROGRAMS_PER_LITER.lower()
     ppm = PARTS_PER_MILLION.lower()
+    ppb = PARTS_PER_BILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
     ft = FEET.lower()
     m = METERS.lower()
@@ -210,7 +212,7 @@ def convert_units(
             conversion_factor = 0.004427
         elif input_units == "pci/l":
             conversion_factor = 0.00149
-        elif input_units == ugl:
+        elif input_units in (ugl, ppb):
             conversion_factor = 0.001
         elif input_units == tpaf:
             conversion_factor = 735.47
