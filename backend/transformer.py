@@ -23,6 +23,7 @@ from shapely import Point
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
     PARTS_PER_MILLION,
+    PARTS_PER_BILLION,
     FEET,
     METERS,
     TONS_PER_ACRE_FOOT,
@@ -181,6 +182,7 @@ def convert_units(
     mgl = MILLIGRAMS_PER_LITER.lower()
     ugl = MICROGRAMS_PER_LITER.lower()
     ppm = PARTS_PER_MILLION.lower()
+    ppb = PARTS_PER_BILLION.lower()
     tpaf = TONS_PER_ACRE_FOOT.lower()
     ft = FEET.lower()
     m = METERS.lower()
@@ -210,7 +212,7 @@ def convert_units(
             conversion_factor = 0.004427
         elif input_units == "pci/l":
             conversion_factor = 0.00149
-        elif input_units == ugl:
+        elif input_units in (ugl, ppb):
             conversion_factor = 0.001
         elif input_units == tpaf:
             conversion_factor = 735.47
@@ -239,7 +241,7 @@ def convert_units(
         return input_value, conversion_factor, warning
 
 
-def standardize_datetime(dt):
+def standardize_datetime(dt, record_id):
     if isinstance(dt, tuple):
         dt = [di for di in dt if di is not None]
         dt = " ".join(dt)
@@ -274,7 +276,7 @@ def standardize_datetime(dt):
                 except ValueError as e:
                     pass
         else:
-            raise ValueError(f"Failed to parse datetime {dt}")
+            raise ValueError(f"Failed to parse datetime {dt} for {record_id}")
 
     if fmt == "%Y-%m-%d":
         return dt.strftime("%Y-%m-%d"), ""
@@ -405,13 +407,13 @@ class BaseTransformer(Loggable):
         # standardize datetime
         dt = record.get(DT_MEASURED)
         if dt:
-            d, t = standardize_datetime(dt)
+            d, t = standardize_datetime(dt, record["id"])
             record["date_measured"] = d
             record["time_measured"] = t
         else:
             mrd = record.get("most_recent_datetime")
             if mrd:
-                d, t = standardize_datetime(mrd)
+                d, t = standardize_datetime(mrd, record["id"])
                 record["date_measured"] = d
                 record["time_measured"] = t
 
@@ -661,7 +663,7 @@ class ParameterTransformer(BaseTransformer):
         rec = {}
 
         if self.config.output_summary:
-            self._transform_most_recents(record)
+            self._transform_most_recents(record, site_record.id)
 
             parameter, units = self._get_parameter_name_and_units()
             rec.update(
@@ -693,9 +695,9 @@ class ParameterTransformer(BaseTransformer):
         rec.update(source_id)
         return rec
 
-    def _transform_most_recents(self, record):
+    def _transform_most_recents(self, record, site_id):
         # convert most_recents
-        dt, tt = standardize_datetime(record["most_recent_datetime"])
+        dt, tt = standardize_datetime(record["most_recent_datetime"], site_id)
         record["most_recent_date"] = dt
         record["most_recent_time"] = tt
         parameter_name, unit = self._get_parameter_name_and_units()
