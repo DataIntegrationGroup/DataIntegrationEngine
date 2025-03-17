@@ -170,7 +170,7 @@ WQP_ANALYTE_MAPPING: dict = {
         "Total Sulfate",
     ],
     TDS: ["Total dissolved solids"],
-    URANIUM: ["Uranium", "Uranium-238"],
+    URANIUM: ["Uranium"],
     PH: ["pH"],
 }
 # BOR ===============================================================================
