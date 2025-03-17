@@ -54,23 +54,19 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 
 
 #### Available Parameters
-The following parameters are currently available for retrieval:
-- waterlevels
-- arsenic
-- bicarbonate
-- calcium
-- carbonate
-- chloride
-- fluoride
-- magnesium
-- nitrate
-- ph
-- potassium
-- silica
-- sodium
-- sulfate
-- tds
-- uranium
+|                            | waterlevels | arsenic | bicarbonate | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | sulfate | tds | uranium |
+| -------------------------- | ----------- | ------- | ----------- | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | ------- | --- | ------- |
+| **bernco**                 | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **bor**                    | -           | X       | -           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **cabq**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **ebid**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **nmbgmr-amp**             | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **nmed-dwb**               | -           | X       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **nmose-isc-seven-rivers** | X           | -       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | -       |
+| **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
+| **wqp**                    | -           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 
 ### Output
 The `--output` option is required and used to set the output type:
