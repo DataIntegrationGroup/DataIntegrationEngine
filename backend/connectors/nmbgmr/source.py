@@ -15,8 +15,6 @@
 # ===============================================================================
 import os
 
-import httpx
-
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.nmbgmr.transformer import (
     NMBGMRSiteTransformer,
@@ -47,12 +45,12 @@ from backend.source import (
 def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
         return f"http://localhost:8000/latest/{endpoint}"
-    return f"https://waterdata.nmt.edu/latest/{endpoint}"
+    return f"https://waterdata.nmt.edu//latest/{endpoint}"
 
 
 class NMBGMRSiteSource(BaseSiteSource):
     transformer_klass = NMBGMRSiteTransformer
-    chunk_size = 10
+    chunk_size = 100
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def __repr__(self):
@@ -168,7 +166,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
 
     def _clean_records(self, records):
         # remove records with no depth to water value
-        return [r for r in records if r["DepthToWaterBGS"] is not None]
+        return [r for r in records if r["DepthToWaterBGS"] is not None and r["DateMeasured"] is not None]
 
     def _extract_parameter_record(self, record, *args, **kw):
         record[PARAMETER_NAME] = DTW
@@ -195,7 +193,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         return [r["DepthToWaterBGS"] for r in records]
 
     def _extract_site_records(self, records, site_record):
-        return [ri for ri in records if ri["Well"]["PointID"] == site_record.id]
+        return [ri for ri in records if ri["PointID"] == site_record.id]
 
     def _extract_source_parameter_names(self, records):
         return ["DepthToWaterBGS" for r in records]
@@ -212,7 +210,19 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 
-        return self._execute_json_request(url, params)
+        paginated_records = self._execute_json_request(url, params, tag="")
+        items = paginated_records["items"]
+        page = paginated_records["page"]
+        pages = paginated_records["pages"]
+
+        while page < pages:
+            page += 1
+            params["page"] = page
+            new_records = self._execute_json_request(url, params, tag="")
+            items.extend(new_records["items"])
+            pages = new_records["pages"]
+
+        return items
 
 
 # ============= EOF =============================================
