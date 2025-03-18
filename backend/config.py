@@ -57,7 +57,7 @@ from .connectors.st2.source import (
     CABQWaterLevelSource,
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
-from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource
+from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
 
 SOURCE_KEYS = (
     "bernco",
@@ -244,6 +244,8 @@ class Config(Loggable):
             sources.append((EBIDSiteSource(), EBIDWaterLevelSource()))
         if self.use_source_cabq:
             sources.append((CABQSiteSource(), CABQWaterLevelSource()))
+        if self.use_source_wqp:
+            sources.append((WQPSiteSource(), WQPWaterLevelSource()))
 
         for s, ss in sources:
             s.set_config(self)

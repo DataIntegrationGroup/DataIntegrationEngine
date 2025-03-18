@@ -264,10 +264,10 @@ def weave(
         config.use_source_nmose_roswell = no_nmose_roswell
         config.use_source_nwis = no_nwis
         config.use_source_pvacd = no_pvacd
+        config.use_source_wqp = no_wqp
 
         config.use_source_bor = False
         config.use_source_nmed_dwb = False
-        config.use_source_wqp = False
 
     elif parameter == "carbonate":
         config.use_source_nmbgmr_amp = no_nmbgmr_amp

@@ -20,12 +20,6 @@ import httpx
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.mappings import WQP_ANALYTE_MAPPING
 from backend.constants import (
-    TDS,
-    URANIUM,
-    NITRATE,
-    SULFATE,
-    ARSENIC,
-    CHLORIDE,
     PARAMETER_NAME,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
@@ -33,11 +27,12 @@ from backend.constants import (
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
 )
-from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer
+from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer, WQPWaterLevelTransformer
 from backend.source import (
-    BaseSource,
     BaseSiteSource,
     BaseAnalyteSource,
+    BaseWaterLevelSource,
+    BaseParameterSource,
     make_site_list,
     get_most_recent,
     get_analyte_search_param,
@@ -93,6 +88,10 @@ class WQPSiteSource(BaseSiteSource):
             params["characteristicName"] = get_analyte_search_param(
                 config.parameter, WQP_ANALYTE_MAPPING
             )
+        else:
+            # every record with pCode 30210 (depth in m) has a corresponding
+            # record with pCode 72019 (depth in ft) but not vice versa
+            params["pCode"] = "30210"
 
         params.update(get_date_range(config))
 
@@ -103,17 +102,13 @@ class WQPSiteSource(BaseSiteSource):
             return parse_tsv(text)
 
 
-class WQPAnalyteSource(BaseAnalyteSource):
-    transformer_klass = WQPAnalyteTransformer
-
-    def __repr__(self):
-        return "WQPAnalyteSource"
+class WQPParameterSource(BaseParameterSource):
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = record["ResultMeasureValue"]
-        record[PARAMETER_UNITS] = self.config.analyte_output_units
-        record[DT_MEASURED] = record["ActivityStartDate"]
+        record[PARAMETER_UNITS] = self._parameter_units_hook()
+        record[DT_MEASURED] = f"{record['ActivityStartDate']} {record['ActivityStartTime/Time']}"
         record[SOURCE_PARAMETER_NAME] = record["CharacteristicName"]
         record[SOURCE_PARAMETER_UNITS] = record["ResultMeasure/MeasureUnitCode"]
         return record
@@ -148,22 +143,53 @@ class WQPAnalyteSource(BaseAnalyteSource):
         }
 
     def get_records(self, site_record):
+        config = self.config
         sites = make_site_list(site_record)
 
         params = {
             "siteid": sites,
             "mimeType": "tsv",
-            "characteristicName": get_analyte_search_param(
-                self.config.parameter, WQP_ANALYTE_MAPPING
-            ),
         }
         params.update(get_date_range(self.config))
 
+        if config.parameter.lower() != "waterlevels":
+            params["characteristicName"] = get_analyte_search_param(
+                config.parameter, WQP_ANALYTE_MAPPING
+            )
+        else:
+            # every record with pCode 30210 (depth in m) has a corresponding
+            # record with pCode 72019 (depth in ft) but not vice versa
+            params["pCode"] = "30210"
+
+        params.update(get_date_range(config))
+
         text = self._execute_text_request(
-            "https://www.waterqualitydata.us/data/Result/search?", params
+            "https://www.waterqualitydata.us/data/Result/search?", params, timeout=30
         )
         if text:
             return parse_tsv(text)
 
+    def _parameter_units_hook(self):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement _parameter_units_hook"
+        )
+
+class WQPAnalyteSource(BaseAnalyteSource, WQPParameterSource):
+    transformer_klass = WQPAnalyteTransformer
+
+    def __repr__(self):
+        return "WQPAnalyteSource"
+
+    def _parameter_units_hook(self):
+        return self.config.analyte_output_units
+    
+class WQPWaterLevelSource(BaseWaterLevelSource, WQPParameterSource):
+    transformer_klass = WQPWaterLevelTransformer
+
+    def __repr__(self):
+        return "WQPWaterLevelSource"
+    
+    def _parameter_units_hook(self):
+        return self.config.waterlevel_output_units
 
 # ============= EOF =============================================

@@ -16,7 +16,7 @@
 import pprint
 
 from backend.record import SiteRecord, AnalyteSummaryRecord
-from backend.transformer import BaseTransformer, SiteTransformer, AnalyteTransformer
+from backend.transformer import BaseTransformer, SiteTransformer, AnalyteTransformer, WaterLevelTransformer
 
 
 class WQPSiteTransformer(SiteTransformer):
@@ -41,6 +41,10 @@ class WQPSiteTransformer(SiteTransformer):
 
 
 class WQPAnalyteTransformer(AnalyteTransformer):
+    source_tag = "WQP"
+
+
+class WQPWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "WQP"
 
 
