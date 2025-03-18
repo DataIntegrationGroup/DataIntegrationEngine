@@ -24,6 +24,8 @@ from backend.connectors import (
     CABQ_BOUNDING_POLYGON,
 )
 from backend.connectors.st2.transformer import (
+    NMOSERoswellSiteTransformer,
+    NMOSERoswellWaterLevelTransformer,
     PVACDSiteTransformer,
     PVACDWaterLevelTransformer,
     EBIDSiteTransformer,
@@ -62,6 +64,14 @@ class ST2SiteSource(STSiteSource):
             raise ValueError(f"{self.__class__.__name__}. Agency not set")
 
         return [f"properties/agency eq '{self.agency}'"]
+
+
+class NMOSERoswellSiteSource(ST2SiteSource):
+    transformer_klass = NMOSERoswellSiteTransformer
+    agency = "OSE-Roswell"
+
+    def __repr__(self):
+        return "NMOSERoswellSiteSource"
 
 
 class PVACDSiteSource(ST2SiteSource):
@@ -170,6 +180,13 @@ class ST2WaterLevelSource(STWaterLevelSource):
                         # if config.latest_water_level_only and not config.output_summary:
                         #     break
         return records
+
+class NMOSERoswellWaterLevelSource(ST2WaterLevelSource):
+    transformer_klass = NMOSERoswellWaterLevelTransformer
+    agency = "OSE-Roswell"
+
+    def __repr__(self):
+        return "NMOSERoswellWaterLevelSource"
 
 
 class PVACDWaterLevelSource(ST2WaterLevelSource):
