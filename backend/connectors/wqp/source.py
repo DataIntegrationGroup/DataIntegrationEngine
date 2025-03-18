@@ -174,7 +174,7 @@ class WQPParameterSource(BaseParameterSource):
             f"{self.__class__.__name__} must implement _parameter_units_hook"
         )
 
-class WQPAnalyteSource(BaseAnalyteSource, WQPParameterSource):
+class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
     transformer_klass = WQPAnalyteTransformer
 
     def __repr__(self):
@@ -183,7 +183,8 @@ class WQPAnalyteSource(BaseAnalyteSource, WQPParameterSource):
     def _parameter_units_hook(self):
         return self.config.analyte_output_units
     
-class WQPWaterLevelSource(BaseWaterLevelSource, WQPParameterSource):
+# inherit from WQPParameterSource first so that its _extract_souce_parameter_units method is used instead of BaseWaterLevelSource's method
+class WQPWaterLevelSource(WQPParameterSource, BaseWaterLevelSource):
     transformer_klass = WQPWaterLevelTransformer
 
     def __repr__(self):
