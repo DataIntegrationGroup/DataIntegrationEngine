@@ -55,6 +55,8 @@ from .connectors.st2.source import (
     BernCoWaterLevelSource,
     CABQSiteSource,
     CABQWaterLevelSource,
+    NMOSERoswellSiteSource,
+    NMOSERoswellWaterLevelSource,
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
@@ -90,7 +92,7 @@ def get_source(source):
     elif source == "nmose_isc_seven_rivers":
         return ISCSevenRiversSiteSource()
     elif source == "nmose_roswell":
-        return OSERoswellSiteSource(HONDO_RESOURCE_ID)
+        return NMOSERoswellSiteSource()
     elif source == "nwis":
         return NWISSiteSource()
     elif source == "pvacd":
@@ -218,24 +220,7 @@ class Config(Loggable):
             sources.append((NWISSiteSource(), NWISWaterLevelSource()))
 
         if self.use_source_nmose_roswell:
-            sources.append(
-                (
-                    OSERoswellSiteSource(HONDO_RESOURCE_ID),
-                    OSERoswellWaterLevelSource(HONDO_RESOURCE_ID),
-                )
-            )
-            sources.append(
-                (
-                    OSERoswellSiteSource(FORT_SUMNER_RESOURCE_ID),
-                    OSERoswellWaterLevelSource(FORT_SUMNER_RESOURCE_ID),
-                )
-            )
-            sources.append(
-                (
-                    OSERoswellSiteSource(ROSWELL_RESOURCE_ID),
-                    OSERoswellWaterLevelSource(ROSWELL_RESOURCE_ID),
-                )
-            )
+            sources.append((NMOSERoswellSiteSource(), NMOSERoswellWaterLevelSource()))
         if self.use_source_pvacd:
             sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
         if self.use_source_bernco:
