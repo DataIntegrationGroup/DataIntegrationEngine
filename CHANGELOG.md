@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - water level for WQP
 
 ### Changed
+- NM OSE Roswell data is now pulled from ST2 and not CKAN
 
 ### Fixed
 
