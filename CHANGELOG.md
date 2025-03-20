@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unrelease
+## Unreleased: 0.8.0
+
+### Added
+- water level for WQP
+
+### Changed
+- NM OSE Roswell data is now pulled from ST2 and not CKAN
+
+### Fixed
 
 
 ## 0.7.0

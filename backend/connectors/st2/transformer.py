@@ -26,6 +26,10 @@ from backend.transformer import (
 )
 
 
+class NMOSERoswellSiteTransformer(STSiteTransformer):
+    source_id = "ST2/NMOSE-Roswell"
+
+
 class PVACDSiteTransformer(STSiteTransformer):
     source_id = "ST2/PVACD"
 
@@ -101,6 +105,10 @@ class CABQSiteTransformer(STSiteTransformer):
 #         rec["datetime_measured"] = dt
 #
 #     return rec
+
+
+class NMOSERoswellWaterLevelTransformer(WaterLevelTransformer):
+    source_tag = "ST2/NMOSE-Roswell"
 
 
 class PVACDWaterLevelTransformer(WaterLevelTransformer):
