@@ -56,7 +56,7 @@ def get_date_range(config):
 
 class WQPSiteSource(BaseSiteSource):
     transformer_klass = WQPSiteTransformer
-    chunk_size = 100
+    chunk_size = 50
 
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
