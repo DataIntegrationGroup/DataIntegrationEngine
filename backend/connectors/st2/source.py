@@ -181,6 +181,7 @@ class ST2WaterLevelSource(STWaterLevelSource):
                         #     break
         return records
 
+
 class NMOSERoswellWaterLevelSource(ST2WaterLevelSource):
     transformer_klass = NMOSERoswellWaterLevelTransformer
     agency = "OSE-Roswell"

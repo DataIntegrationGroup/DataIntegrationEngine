@@ -110,6 +110,7 @@ class CABQSiteTransformer(STSiteTransformer):
 class NMOSERoswellWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ST2/NMOSE-Roswell"
 
+
 class PVACDWaterLevelTransformer(WaterLevelTransformer):
     source_tag = "ST2/PVACD"
 

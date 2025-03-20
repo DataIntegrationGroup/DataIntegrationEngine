@@ -16,7 +16,12 @@
 import pprint
 
 from backend.record import SiteRecord, AnalyteSummaryRecord
-from backend.transformer import BaseTransformer, SiteTransformer, AnalyteTransformer, WaterLevelTransformer
+from backend.transformer import (
+    BaseTransformer,
+    SiteTransformer,
+    AnalyteTransformer,
+    WaterLevelTransformer,
+)
 
 
 class WQPSiteTransformer(SiteTransformer):

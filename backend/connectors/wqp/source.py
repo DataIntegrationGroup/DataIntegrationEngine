@@ -27,7 +27,11 @@ from backend.constants import (
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
 )
-from backend.connectors.wqp.transformer import WQPSiteTransformer, WQPAnalyteTransformer, WQPWaterLevelTransformer
+from backend.connectors.wqp.transformer import (
+    WQPSiteTransformer,
+    WQPAnalyteTransformer,
+    WQPWaterLevelTransformer,
+)
 from backend.source import (
     BaseSiteSource,
     BaseAnalyteSource,
@@ -108,7 +112,9 @@ class WQPParameterSource(BaseParameterSource):
         record[PARAMETER_NAME] = self.config.parameter
         record[PARAMETER_VALUE] = record["ResultMeasureValue"]
         record[PARAMETER_UNITS] = self._parameter_units_hook()
-        record[DT_MEASURED] = f"{record['ActivityStartDate']} {record['ActivityStartTime/Time']}"
+        record[DT_MEASURED] = (
+            f"{record['ActivityStartDate']} {record['ActivityStartTime/Time']}"
+        )
         record[SOURCE_PARAMETER_NAME] = record["CharacteristicName"]
         record[SOURCE_PARAMETER_UNITS] = record["ResultMeasure/MeasureUnitCode"]
         return record
@@ -174,6 +180,7 @@ class WQPParameterSource(BaseParameterSource):
             f"{self.__class__.__name__} must implement _parameter_units_hook"
         )
 
+
 class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
     transformer_klass = WQPAnalyteTransformer
 
@@ -182,15 +189,17 @@ class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
 
     def _parameter_units_hook(self):
         return self.config.analyte_output_units
-    
+
+
 # inherit from WQPParameterSource first so that its _extract_souce_parameter_units method is used instead of BaseWaterLevelSource's method
 class WQPWaterLevelSource(WQPParameterSource, BaseWaterLevelSource):
     transformer_klass = WQPWaterLevelTransformer
 
     def __repr__(self):
         return "WQPWaterLevelSource"
-    
+
     def _parameter_units_hook(self):
         return self.config.waterlevel_output_units
+
 
 # ============= EOF =============================================
