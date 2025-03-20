@@ -39,7 +39,7 @@ Data comes from the following sources. We are continuously adding new sources as
 - [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
   - Available data: `water levels`
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
-  - Available data: `water quality`
+  - Available data: `water levels`, `water quality`
 
 ## Usage
 
@@ -66,7 +66,7 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 | **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **wqp**                    | -           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 
 ### Output
 The `--output` option is required and used to set the output type:
