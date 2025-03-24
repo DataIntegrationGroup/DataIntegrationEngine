@@ -110,7 +110,7 @@ class SummaryRecord(BaseRecord):
     keys: tuple = (
         "source",
         "id",
-        "location",
+        "name",
         "usgs_site_id",
         "alternate_site_id",
         "latitude",

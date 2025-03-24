@@ -668,7 +668,7 @@ class ParameterTransformer(BaseTransformer):
             parameter, units = self._get_parameter_name_and_units()
             rec.update(
                 {
-                    "location": site_record.name,
+                    "name": site_record.name,
                     "usgs_site_id": site_record.usgs_site_id,
                     "alternate_site_id": site_record.alternate_site_id,
                     "latitude": site_record.latitude,
