@@ -38,7 +38,7 @@ from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
     make_site_list,
 )
@@ -132,7 +132,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         return [r["Units"] for r in records]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, "info.CollectionDate")
+        record = get_terminal_record(records, "info.CollectionDate", side="last")
         return {
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
@@ -180,7 +180,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         return record
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, "DateMeasured")
+        record = get_terminal_record(records, "DateMeasured", side="last")
         return {
             "value": record["DepthToWaterBGS"],
             "datetime": (record["DateMeasured"], record["TimeMeasured"]),

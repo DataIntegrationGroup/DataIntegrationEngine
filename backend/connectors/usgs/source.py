@@ -37,7 +37,7 @@ from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
     make_site_list,
-    get_most_recent,
+    get_terminal_record,
 )
 
 
@@ -194,7 +194,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return [r["source_parameter_units"] for r in records]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, "datetime_measured")
+        record = get_terminal_record(records, "datetime_measured", side="last")
         return {
             "value": float(record["value"]),
             # "datetime": (record["date_measured"], record["time_measured"]),

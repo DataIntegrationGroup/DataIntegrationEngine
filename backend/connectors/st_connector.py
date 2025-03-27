@@ -23,7 +23,7 @@ from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
 )
 from backend.transformer import SiteTransformer
 
@@ -57,8 +57,8 @@ class STSource:
         return things.list()
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(
-            records, tag=lambda x: x["observation"].phenomenon_time
+        record = get_terminal_record(
+            records, tag=lambda x: x["observation"].phenomenon_time, side="last"
         )
 
         return {

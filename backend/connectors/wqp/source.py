@@ -38,7 +38,7 @@ from backend.source import (
     BaseWaterLevelSource,
     BaseParameterSource,
     make_site_list,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
 )
 
@@ -140,7 +140,7 @@ class WQPParameterSource(BaseParameterSource):
         return [ri["CharacteristicName"] for ri in records]
 
     def _extract_most_recent(self, records):
-        ri = get_most_recent(records, "ActivityStartDate")
+        ri = get_terminal_record(records, "ActivityStartDate", side="last")
         return {
             "value": ri["ResultMeasureValue"],
             "datetime": ri["ActivityStartDate"],

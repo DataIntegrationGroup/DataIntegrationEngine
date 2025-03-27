@@ -39,7 +39,7 @@ from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
 )
 
@@ -121,7 +121,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         return record
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, "dateTime")
+        record = get_terminal_record(records, "dateTime", side="last")
 
         return {
             "value": record["result"],
@@ -211,7 +211,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return [self._source_parameter_units for r in records]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, "dateTime")
+        record = get_terminal_record(records, "dateTime", side="last")
         t = get_datetime(record)
         return {
             "value": record["depthToWaterFeet"],

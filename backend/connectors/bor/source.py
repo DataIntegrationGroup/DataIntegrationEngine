@@ -33,7 +33,7 @@ from backend.source import (
     BaseSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
 )
 
@@ -95,7 +95,7 @@ class BORAnalyteSource(BaseAnalyteSource):
 
     def _extract_most_recent(self, rs):
 
-        record = get_most_recent(rs, "attributes.dateTime")
+        record = get_terminal_record(rs, "attributes.dateTime", side="last")
         return {
             "value": record["attributes"]["result"],
             "datetime": parse_dt(record["attributes"]["dateTime"]),

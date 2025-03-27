@@ -114,8 +114,8 @@ class ST2WaterLevelSource(STWaterLevelSource):
     url = URL
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(
-            records, tag=lambda x: x["observation"].phenomenon_time
+        record = get_terminal_record(
+            records, tag=lambda x: x["observation"].phenomenon_time, side="last"
         )
 
         return {

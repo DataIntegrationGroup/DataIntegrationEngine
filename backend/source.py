@@ -65,7 +65,7 @@ def make_site_list(site_record: list | dict) -> list | str:
     return sites
 
 
-def get_most_recent(records: list, tag: Union[str, callable]) -> dict:
+def get_terminal_record(records: list, tag: Union[str, callable], side: str) -> dict:
     """
     Returns the most recent record based on the tag
 
@@ -76,6 +76,9 @@ def get_most_recent(records: list, tag: Union[str, callable]) -> dict:
 
     tag: str or callable
         the tag to use to sort the records
+
+    side: str
+        determines if the first or last record is retrieved
 
     Returns
     -------
@@ -97,7 +100,10 @@ def get_most_recent(records: list, tag: Union[str, callable]) -> dict:
             def func(x):
                 return x[tag]
 
-    return sorted(records, key=func)[-1]
+    if side == "first":
+        return sorted(records, key=func)[0]
+    elif side == "last":
+        return sorted(records, key=func)[-1]
 
 
 def get_analyte_search_param(parameter: str, mapping: dict) -> str:

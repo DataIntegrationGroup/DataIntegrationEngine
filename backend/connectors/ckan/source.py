@@ -46,7 +46,7 @@ from backend.source import (
     BaseSource,
     BaseSiteSource,
     BaseWaterLevelSource,
-    get_most_recent,
+    get_terminal_record,
 )
 
 
@@ -139,7 +139,7 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
         return [float(r["DTWGS"]) for r in records]
 
     def _extract_most_recent(self, records):
-        record = get_most_recent(records, tag="Date")
+        record = get_terminal_record(records, tag="Date", side="last")
         return {
             "value": record["DTWGS"],
             "datetime": record["Date"],
