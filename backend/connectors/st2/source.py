@@ -50,7 +50,7 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
 )
-from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
+from backend.source import BaseSiteSource, BaseWaterLevelSource, get_terminal_record
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.1"
 
