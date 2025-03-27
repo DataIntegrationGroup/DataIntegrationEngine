@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 - NM OSE Roswell data is now pulled from ST2 and not CKAN
+- renamed the column `location` to `name` in the summary table to match the format of the `sites` table when timeseries data are exported
 
 ### Fixed
 
