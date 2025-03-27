@@ -73,6 +73,16 @@ def unify_waterlevels(config):
 
     return True
 
+def unify_sites_only(config):
+    print("Unifying sites only\n")
+
+    # config.report() -- report is done in cli.py, no need to do it twice
+    config.validate()
+
+    if not config.dry:
+        _unify_parameter(config, config.all_site_sources())
+
+    return True
 
 def _perister_factory(config):
     """
@@ -136,39 +146,44 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         start_ind = 1
         end_ind = 0
         first_flag = True
-        for sites in site_source.chunks(sites):
-            if site_limit and sites_with_records_count == site_limit:
-                break
 
-            if type(sites) == list:
-                if first_flag:
-                    end_ind += len(sites)
-                    first_flag = False
+        if config.sites_only:
+            persister.sites.extend(sites)
+        else:
+            for sites in site_source.chunks(sites):
+                if site_limit and sites_with_records_count == site_limit:
+                    break
+
+                if type(sites) == list:
+                    n = len(sites)
+                    if first_flag:
+                        first_flag = False
+                    else:
+                        start_ind = end_ind + 1
+
+                    end_ind += n
+
+                if use_summarize:
+                    summary_records = parameter_source.read(
+                        sites, use_summarize, start_ind, end_ind
+                    )
+                    if summary_records:
+                        persister.records.extend(summary_records)
                 else:
-                    start_ind = end_ind + 1
-                    end_ind += len(sites)
+                    results = parameter_source.read(
+                        sites, use_summarize, start_ind, end_ind
+                    )
+                    # no records are returned if there is no site record for parameter
+                    # or if the record isn't clean (doesn't have the correct fields)
+                    # don't count these sites to apply to site_limit
+                    if results is None or len(results) == 0:
+                        continue
 
-            if use_summarize:
-                summary_records = parameter_source.read(
-                    sites, use_summarize, start_ind, end_ind
-                )
-                if summary_records:
-                    persister.records.extend(summary_records)
-            else:
-                results = parameter_source.read(
-                    sites, use_summarize, start_ind, end_ind
-                )
-                # no records are returned if there is no site record for parameter
-                # or if the record isn't clean (doesn't have the correct fields)
-                # don't count these sites to apply to site_limit
-                if results is None or len(results) == 0:
-                    continue
+                    for site, records in results:
+                        persister.timeseries.append((site, records))
+                        persister.sites.append(site)
 
-                for site, records in results:
-                    persister.timeseries.append((site, records))
-                    persister.sites.append(site)
-
-            sites_with_records_count += 1
+                sites_with_records_count += 1
 
     except BaseException:
         import traceback
@@ -190,6 +205,8 @@ def _unify_parameter(
         persister.dump_summary(config.output_path)
     elif config.output_timeseries_unified:
         persister.dump_timeseries_unified(config.output_path)
+        persister.dump_sites(config.output_path)
+    elif config.sites_only:
         persister.dump_sites(config.output_path)
     else:  # config.output_timeseries_separated
         persister.dump_timeseries_separated(config.output_path)
@@ -297,12 +314,40 @@ def waterlevel_unification_test():
     cfg.use_source_nwis = False
     cfg.use_source_nmbgmr = False
     cfg.use_source_iscsevenrivers = False
-    # cfg.use_source_pvacd = False
-    cfg.use_source_oseroswell = False
+    cfg.use_source_pvacd = False
+    # cfg.use_source_oseroswell = False
     cfg.use_source_bernco = False
+    cfg.use_source_iscsevenrivers = False
+    cfg.use_source_nmose_isc_seven_rivers = False
+    cfg.use_source_ebid = False
     # cfg.site_limit = 10
 
     unify_waterlevels(cfg)
+
+def site_unification_test():
+    cfg = Config()
+    cfg.county = "chaves"
+
+
+    cfg.output_summary = False
+    cfg.output_name = "sitesonly"
+    cfg.sites_only = True
+    # cfg.output_summary = True
+    # cfg.output_single_timeseries = True
+
+    cfg.use_source_nwis = False
+    cfg.use_source_nmbgmr = False
+    cfg.use_source_iscsevenrivers = False
+    cfg.use_source_pvacd = False
+    # cfg.use_source_oseroswell = False
+    cfg.use_source_bernco = False
+    cfg.use_source_iscsevenrivers = False
+    cfg.use_source_nmose_isc_seven_rivers = False
+    cfg.use_source_ebid = False
+
+    cfg.finalize()
+
+    unify_sites_only(cfg)
 
 
 def get_datastream(siteid):
@@ -329,7 +374,8 @@ if __name__ == "__main__":
     # shandler = logging.StreamHandler()
     # get_sources(Config())
     setup_logging()
-    waterlevel_unification_test()
+    site_unification_test()
+    # waterlevel_unification_test()
     # analyte_unification_test()
     # print(health_check("nwis"))
     # generate_site_bounds()

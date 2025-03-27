@@ -47,29 +47,42 @@ class DWBSiteSource(STSiteSource):
         return self.get_records(top=10, analyte="TDS")
 
     def get_records(self, *args, **kw):
+
         analyte = None
         if "analyte" in kw:
             analyte = kw["analyte"]
         elif self.config:
             analyte = self.config.parameter
 
-        analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
-        if analyte is None:
-            return []
-
         service = self.get_service()
-        ds = service.datastreams()
-        q = ds.query()
-        fs = [f"ObservedProperty/id eq {analyte}"]
-        if self.config:
+        if self.config.sites_only:
+            ds = service.things()
+            q = ds.query()
+            fs = []
             if self.config.has_bounds():
                 fs.append(
-                    f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
+                    f"st_within(Locations/location, geography'{self.config.bounding_wkt()}')"
                 )
+            q = q.expand("Locations")
+            q = q.filter(" and ".join(fs))
+            return [thing.locations.entities[0] for thing in q.list()]
+        else:
+            analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
+            if analyte is None:
+                return []
 
-        q = q.filter(" and ".join(fs))
-        q = q.expand("Thing/Locations")
-        return [ds.thing.locations.entities[0] for ds in q.list()]
+            ds = service.datastreams()
+            q = ds.query()
+            fs = [f"ObservedProperty/id eq {analyte}"]
+            if self.config:
+                if self.config.has_bounds():
+                    fs.append(
+                        f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
+                    )
+
+            q = q.filter(" and ".join(fs))
+            q = q.expand("Thing/Locations")
+            return [di.thing.locations.entities[0] for di in q.list()]
 
 
 class DWBAnalyteSource(STAnalyteSource):

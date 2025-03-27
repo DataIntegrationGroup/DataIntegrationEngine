@@ -116,6 +116,8 @@ class Config(Loggable):
     county: str = ""
     wkt: str = ""
 
+    sites_only = False
+
     # sources
     use_source_bernco: bool = True
     use_source_bor: bool = True
@@ -185,6 +187,15 @@ class Config(Loggable):
 
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
+
+    def finalize(self):
+        self.update_output_name()
+        self.make_output_path()
+
+    def all_site_sources(self):
+        sources = self.water_level_sources()
+        sources.extend(self.analyte_sources())
+        return sources
 
     def analyte_sources(self):
         sources = []
@@ -384,7 +395,7 @@ class Config(Loggable):
 
         return True
 
-    def _update_output_name(self):
+    def update_output_name(self):
         """
         Generate a unique output name based on existing directories in the output directory.
 
@@ -419,7 +430,7 @@ class Config(Loggable):
 
         self.output_name = output_name
 
-    def _make_output_path(self):
+    def make_output_path(self):
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 

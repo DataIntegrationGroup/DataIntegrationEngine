@@ -228,10 +228,10 @@ def weave(
     config.parameter = parameter
 
     # make sure config.output_name is properly set
-    config._update_output_name()
+    config.update_output_name()
 
     # make output_path now so that die.log can be written to it live
-    config._make_output_path()
+    config.make_output_path()
 
     # setup logging here so that the path can be set to config.output_path
     setup_logging(path=config.output_path)
