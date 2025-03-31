@@ -61,46 +61,31 @@ from .connectors.st2.source import (
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
 
-SOURCE_KEYS = (
-    "bernco",
-    "bor",
-    "cabq",
-    "ebid",
-    "nmbgmr_amp",
-    "nmed_dwb",
-    "nmose_isc_seven_rivers",
-    "nmose_roswell",
-    "nwis",
-    "pvacd",
-    "wqp",
-)
 
+SOURCE_DICT = {
+    "bernco": BernCoSiteSource,
+    "bor": BORSiteSource,
+    "cabq": CABQSiteSource,
+    "ebid": EBIDSiteSource,
+    "nmbgmr_amp": NMBGMRSiteSource,
+    "nmed_dwb": DWBSiteSource,
+    "nmose_isc_seven_rivers": ISCSevenRiversSiteSource,
+    "nmose_roswell": NMOSERoswellSiteSource,
+    "nwis": NWISSiteSource,
+    "pvacd": PVACDSiteSource,
+    "wqp": WQPSiteSource,
+}
+
+SOURCE_KEYS = list(SOURCE_DICT.keys())
 
 def get_source(source):
-    if source == "bernco":
-        return BernCoSiteSource()
-    elif source == "bor":
-        return BORSiteSource()
-    elif source == "cabq":
-        return CABQSiteSource()
-    elif source == "ebid":
-        return EBIDSiteSource()
-    elif source == "nmbgmr_amp":
-        return NMBGMRSiteSource()
-    elif source == "nmed_dwb":
-        return DWBSiteSource()
-    elif source == "nmose_isc_seven_rivers":
-        return ISCSevenRiversSiteSource()
-    elif source == "nmose_roswell":
-        return NMOSERoswellSiteSource()
-    elif source == "nwis":
-        return NWISSiteSource()
-    elif source == "pvacd":
-        return PVACDSiteSource()
-    elif source == "wqp":
-        return WQPSiteSource()
+    try:
+        klass = SOURCE_DICT[source]
+    except KeyError:
+        raise ValueError(f"Unknown source {source}")
 
-    return None
+    if klass:
+        return klass()
 
 
 class Config(Loggable):
