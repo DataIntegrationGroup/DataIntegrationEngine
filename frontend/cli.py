@@ -185,11 +185,11 @@ OUTPUT_OPTIONS = [
 
 ]
 PERSISTER_OPTIONS = [
-    click.option(click.option(
+    click.option(
         "--output-dir",
         default=".",
         help="Output root directory. Default is current directory",
-    ))
+    )
 ]
 
 
