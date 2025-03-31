@@ -350,6 +350,7 @@ def wells(bbox, county,
     for agency in config_agencies:
         setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
 
+    config.sites_only = True
     config.report()
     # prompt user to continue
     if not click.confirm("Do you want to continue?", default=True):
