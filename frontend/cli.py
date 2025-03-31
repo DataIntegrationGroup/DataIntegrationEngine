@@ -23,6 +23,7 @@ from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 from backend.logging import setup_logging
 
+
 # setup_logging()
 
 
@@ -180,7 +181,12 @@ OUTPUT_OPTIONS = [
         type=click.Choice(["summary", "timeseries_unified", "timeseries_separated"]),
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
-    )
+    ),
+    click.option(
+        "--output-dir",
+        default=".",
+        help="Output root directory. Default is current directory",
+    ),
 ]
 
 
@@ -205,25 +211,26 @@ def add_options(options):
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def weave(
-    weave,
-    output,
-    start_date,
-    end_date,
-    bbox,
-    county,
-    no_bernco,
-    no_bor,
-    no_cabq,
-    no_ebid,
-    no_nmbgmr_amp,
-    no_nmed_dwb,
-    no_nmose_isc_seven_rivers,
-    no_nmose_roswell,
-    no_nwis,
-    no_pvacd,
-    no_wqp,
-    site_limit,
-    dry,
+        weave,
+        output,
+        output_dir,
+        start_date,
+        end_date,
+        bbox,
+        county,
+        no_bernco,
+        no_bor,
+        no_cabq,
+        no_ebid,
+        no_nmbgmr_amp,
+        no_nmed_dwb,
+        no_nmose_isc_seven_rivers,
+        no_nmose_roswell,
+        no_nwis,
+        no_pvacd,
+        no_wqp,
+        site_limit,
+        dry,
 ):
     """
     Get parameter timeseries or summary data
@@ -264,20 +271,20 @@ def weave(
     config_agencies = []
     # sources
     if parameter == "waterlevels":
-        config_agencies =["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                          "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd"]
+        config_agencies = ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
+                           "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd"]
 
         false_agencies = ['bor', 'nmed_dwb']
 
     elif parameter == "carbonate":
         config_agencies = ['nmbgmr_amp', 'wqp']
         false_agencies = ['bor', 'bernco', 'cabq', 'ebid', 'nmed_dwb',
-                       'nmose_isc_seven_rivers', 'nmose_roswell', 'nwis', 'pvacd']
+                          'nmose_isc_seven_rivers', 'nmose_roswell', 'nwis', 'pvacd']
 
     elif parameter in ["arsenic", "uranium"]:
         config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'wqp']
         false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_isc_seven_rivers',
-                       'nmose_roswell', 'nwis', 'pvacd']
+                          'nmose_roswell', 'nwis', 'pvacd']
 
 
     elif parameter in [
@@ -294,7 +301,7 @@ def weave(
         "sulfate",
         "tds",
     ]:
-        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb','nmose_isc_seven_rivers', 'wqp']
+        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'nmose_isc_seven_rivers', 'wqp']
         false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_roswell', 'nwis', 'pvacd']
 
     if false_agencies:
@@ -332,6 +339,7 @@ def weave(
 @add_options(DEBUG_OPTIONS)
 def wells(bbox, county,
           output,
+          output_dir,
           no_bernco,
           no_bor,
           no_cabq,
@@ -359,7 +367,7 @@ def wells(bbox, county,
         setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
 
     config.sites_only = True
-
+    config.output_dir = output_dir
     config.finalize()
     # setup logging here so that the path can be set to config.output_path
     setup_logging(path=config.output_path)
@@ -413,6 +421,5 @@ def setup_config(tag, bbox, county, site_limit, dry):
     config.dry = dry
 
     return config
-
 
 # ============= EOF =============================================
