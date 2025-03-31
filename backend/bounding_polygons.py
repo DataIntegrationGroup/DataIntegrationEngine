@@ -232,7 +232,5 @@ def _get_cached_object(name, msg, url):
 
 
 if __name__ == "__main__":
-    # w = get_huc_polygon('0101000201')
-    # print(w)
-    print(get_state_hucs_boundaries(state="CO", level=4))
+    print(get_state_polygon("NM"))
 # ============= EOF =============================================

@@ -35,7 +35,7 @@ from backend.constants import (
     EARLIEST,
     LATEST,
 )
-from backend.logging import Loggable
+from backend.logger import Loggable
 from backend.persister import BasePersister, CSVPersister
 from backend.record import (
     AnalyteRecord,

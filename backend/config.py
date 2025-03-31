@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 
 import shapely.wkt
 
-from backend.logging import Loggable
+from backend.logger import Loggable
 
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (

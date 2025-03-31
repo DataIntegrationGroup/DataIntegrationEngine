@@ -34,7 +34,7 @@ from backend.constants import (
     LATEST
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
-from backend.logging import Loggable
+from backend.logger import Loggable
 from backend.record import (
     WaterLevelSummaryRecord,
     WaterLevelRecord,

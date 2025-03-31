@@ -21,7 +21,7 @@ from backend.config import Config
 from backend.constants import PARAMETER_OPTIONS
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
-from backend.logging import setup_logging
+from backend.logger import setup_logging
 
 # setup_logging()
 
