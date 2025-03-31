@@ -15,6 +15,7 @@
 # ===============================================================================
 import json
 import os
+from pprint import pprint
 
 import click
 import httpx
@@ -167,9 +168,7 @@ def get_state_polygon(state):
             f"{state} state",
             f"https://reference.geoconnex.us/collections/states/items/{statefp}?&f=json",
         )
-
-        return shape(obj["geometry"])
-
+        return shape(obj["features"][0]["geometry"])
 
 # private helpers ============================
 def _make_shape(obj, as_wkt):
@@ -229,6 +228,9 @@ def _get_cached_object(name, msg, url):
     with open(path, "r") as rfile:
         obj = json.load(rfile)
     return obj
+
+
+NM_BOUNDARY = get_state_polygon("NM")
 
 
 if __name__ == "__main__":

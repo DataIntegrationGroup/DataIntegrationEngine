@@ -20,6 +20,7 @@ from datetime import datetime, date, timedelta
 import shapely
 from shapely import Point
 
+from backend.bounding_polygons import NM_BOUNDARY
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
     PARTS_PER_MILLION,
@@ -458,9 +459,18 @@ class BaseTransformer(Loggable):
                 input_horizontal_datum,
                 output_horizontal_datum,
             )
+
+            if not self.in_nm(lng, lat):
+                self.warn(
+                    f"Skipping site {record.id}. Coordinates {x}, {y} with datum {input_horizontal_datum} are not in New Mexico"
+                )
+                return None
+
             record.update(latitude=lat)
             record.update(longitude=lng)
             record.update(horizontal_datum=datum)
+
+            
 
             elevation, elevation_unit = transform_length_units(
                 record.elevation,
@@ -521,6 +531,29 @@ class BaseTransformer(Loggable):
                 record = None
 
         return record
+
+    def in_nm(self, lng: float | int | str, lat: float | int | str) -> bool:
+        """
+        Returns True if the point is in New Mexico, otherwise returns False
+
+        Parameters
+        --------
+        lng: float | int | str
+            The longitude of the point
+
+        lat: float | int | str
+            The latitude of the point
+
+        Returns
+        --------
+        bool
+            True if the point is in New Mexico, otherwise False
+        """
+        point = Point(lng, lat)
+        if NM_BOUNDARY.contains(point):
+            return True
+        else:
+            return False
 
     def contained(
         self,
