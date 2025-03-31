@@ -136,6 +136,12 @@ DEBUG_OPTIONS = [
         default=False,
         help="Dry run. Do not execute unifier. Used by unit tests",
     ),
+    click.option(
+        "--yes",
+        is_flag=True,
+        default=False,
+        help="Do not ask for confirmation before running",
+    ),
 ]
 
 DT_OPTIONS = [
@@ -337,7 +343,8 @@ def wells(bbox, county,
           no_pvacd,
           no_wqp,
           site_limit,
-          dry,):
+          dry,
+          yes):
     """
     Get locations
     """
@@ -352,9 +359,10 @@ def wells(bbox, county,
 
     config.sites_only = True
     config.report()
-    # prompt user to continue
-    if not click.confirm("Do you want to continue?", default=True):
-        return
+    if not yes:
+        # prompt user to continue
+        if not click.confirm("Do you want to continue?", default=True):
+            return
 
     unify_sites(config)
 
