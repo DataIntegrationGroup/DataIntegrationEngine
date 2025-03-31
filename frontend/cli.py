@@ -276,7 +276,7 @@ def weave(
     # sources
     if parameter == "waterlevels":
         config_agencies = ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                           "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd"]
+                           "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]
 
         false_agencies = ['bor', 'nmed_dwb']
 
