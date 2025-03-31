@@ -298,9 +298,10 @@ def weave(
         for agency in false_agencies:
             setattr(config, f"use_source_{agency}", False)
 
+    lcs = locals()
     if config_agencies:
         for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", getattr(locals(),f'no_{agency}'))
+            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -341,13 +342,13 @@ def wells(bbox, county,
     Get locations
     """
 
-
     config = setup_config("sites", bbox, county, site_limit, dry)
     config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
                        "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
                        "wqp"]
+    lcs = locals()
     for agency in config_agencies:
-        setattr(config, f"use_source_{agency}", getattr(locals(),f'no_{agency}'))
+        setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
 
     unify_sites(config)
 
