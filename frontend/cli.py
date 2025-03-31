@@ -23,6 +23,7 @@ from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 from backend.logging import setup_logging
 
+
 # setup_logging()
 
 
@@ -136,6 +137,12 @@ DEBUG_OPTIONS = [
         default=False,
         help="Dry run. Do not execute unifier. Used by unit tests",
     ),
+    click.option(
+        "--yes",
+        is_flag=True,
+        default=False,
+        help="Do not ask for confirmation before running",
+    ),
 ]
 
 DT_OPTIONS = [
@@ -174,6 +181,14 @@ OUTPUT_OPTIONS = [
         type=click.Choice(["summary", "timeseries_unified", "timeseries_separated"]),
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
+    ),
+
+]
+PERSISTER_OPTIONS = [
+    click.option(
+        "--output-dir",
+        default=".",
+        help="Output root directory. Default is current directory",
     )
 ]
 
@@ -194,30 +209,32 @@ def add_options(options):
     required=True,
 )
 @add_options(OUTPUT_OPTIONS)
+@add_options(PERSISTER_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def weave(
-    weave,
-    output,
-    start_date,
-    end_date,
-    bbox,
-    county,
-    no_bernco,
-    no_bor,
-    no_cabq,
-    no_ebid,
-    no_nmbgmr_amp,
-    no_nmed_dwb,
-    no_nmose_isc_seven_rivers,
-    no_nmose_roswell,
-    no_nwis,
-    no_pvacd,
-    no_wqp,
-    site_limit,
-    dry,
+        weave,
+        output,
+        output_dir,
+        start_date,
+        end_date,
+        bbox,
+        county,
+        no_bernco,
+        no_bor,
+        no_cabq,
+        no_ebid,
+        no_nmbgmr_amp,
+        no_nmed_dwb,
+        no_nmose_isc_seven_rivers,
+        no_nmose_roswell,
+        no_nwis,
+        no_pvacd,
+        no_wqp,
+        site_limit,
+        dry,
 ):
     """
     Get parameter timeseries or summary data
@@ -227,14 +244,11 @@ def weave(
     config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
     config.parameter = parameter
 
-    # make sure config.output_name is properly set
-    config._update_output_name()
-
-    # make output_path now so that die.log can be written to it live
-    config._make_output_path()
-
-    # setup logging here so that the path can be set to config.output_path
-    setup_logging(path=config.output_path)
+    # # make sure config.output_name is properly set
+    # config.update_output_name()
+    #
+    # # make output_path now so that die.log can be written to it live
+    # config.make_output_path()
 
     # output type
     if output == "summary":
@@ -249,53 +263,33 @@ def weave(
         summary = False
         timeseries_unified = False
         timeseries_separated = True
+    else:
+        click.echo(f"Invalid output type: {output}")
+        return
 
     config.output_summary = summary
     config.output_timeseries_unified = timeseries_unified
     config.output_timeseries_separated = timeseries_separated
 
+    false_agencies = []
+    config_agencies = []
     # sources
     if parameter == "waterlevels":
-        config.use_source_bernco = no_bernco
-        config.use_source_cabq = no_cabq
-        config.use_source_ebid = no_ebid
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-        config.use_source_nmose_roswell = no_nmose_roswell
-        config.use_source_nwis = no_nwis
-        config.use_source_pvacd = no_pvacd
-        config.use_source_wqp = no_wqp
+        config_agencies = ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
+                           "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]
 
-        config.use_source_bor = False
-        config.use_source_nmed_dwb = False
+        false_agencies = ['bor', 'nmed_dwb']
 
     elif parameter == "carbonate":
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_wqp = no_wqp
-
-        config.use_source_bor = False
-        config.use_source_bernco = False
-        config.use_source_cabq = False
-        config.use_source_ebid = False
-        config.use_source_nmed_dwb = False
-        config.use_source_nmose_isc_seven_rivers = False
-        config.use_source_nmose_roswell = False
-        config.use_source_nwis = False
-        config.use_source_pvacd = False
+        config_agencies = ['nmbgmr_amp', 'wqp']
+        false_agencies = ['bor', 'bernco', 'cabq', 'ebid', 'nmed_dwb',
+                          'nmose_isc_seven_rivers', 'nmose_roswell', 'nwis', 'pvacd']
 
     elif parameter in ["arsenic", "uranium"]:
-        config.use_source_bor = no_bor
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmed_dwb = no_nmed_dwb
-        config.use_source_wqp = no_wqp
+        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'wqp']
+        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_isc_seven_rivers',
+                          'nmose_roswell', 'nwis', 'pvacd']
 
-        config.use_source_bernco = False
-        config.use_source_cabq = False
-        config.use_source_ebid = False
-        config.use_source_nmose_isc_seven_rivers = False
-        config.use_source_nmose_roswell = False
-        config.use_source_nwis = False
-        config.use_source_pvacd = False
 
     elif parameter in [
         "bicarbonate",
@@ -311,30 +305,30 @@ def weave(
         "sulfate",
         "tds",
     ]:
-        config.use_source_bor = no_bor
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmed_dwb = no_nmed_dwb
-        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-        config.use_source_wqp = no_wqp
+        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'nmose_isc_seven_rivers', 'wqp']
+        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_roswell', 'nwis', 'pvacd']
 
-        config.use_source_bernco = False
-        config.use_source_cabq = False
-        config.use_source_ebid = False
-        config.use_source_nmose_roswell = False
-        config.use_source_nwis = False
-        config.use_source_pvacd = False
+    if false_agencies:
+        for agency in false_agencies:
+            setattr(config, f"use_source_{agency}", False)
 
+    lcs = locals()
+    if config_agencies:
+        for agency in config_agencies:
+            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
+
+    config.finalize()
+    # setup logging here so that the path can be set to config.output_path
+    setup_logging(path=config.output_path)
 
     if not dry:
         config.report()
         # prompt user to continue
         if not click.confirm("Do you want to continue?", default=True):
             return
-
-    config._update_output_units()
 
     if parameter.lower() == "waterlevels":
         unify_waterlevels(config)
@@ -344,11 +338,49 @@ def weave(
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
-def wells(bbox, county):
+@add_options(PERSISTER_OPTIONS)
+@add_options(ALL_SOURCE_OPTIONS)
+@add_options(DEBUG_OPTIONS)
+def wells(bbox, county,
+          output_dir,
+          no_bernco,
+          no_bor,
+          no_cabq,
+          no_ebid,
+          no_nmbgmr_amp,
+          no_nmed_dwb,
+          no_nmose_isc_seven_rivers,
+          no_nmose_roswell,
+          no_nwis,
+          no_pvacd,
+          no_wqp,
+          site_limit,
+          dry,
+          yes):
     """
     Get locations
     """
-    config = setup_config("sites", bbox, county)
+
+    config = setup_config("sites", bbox, county, site_limit, dry)
+    config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
+                       "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
+                       "wqp"]
+    lcs = locals()
+    for agency in config_agencies:
+        setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+
+    config.sites_only = True
+    config.output_dir = output_dir
+    config.finalize()
+    # setup logging here so that the path can be set to config.output_path
+    setup_logging(path=config.output_path)
+
+    config.report()
+    if not yes:
+        # prompt user to continue
+        if not click.confirm("Do you want to continue?", default=True):
+            return
+
     unify_sites(config)
 
 
@@ -392,6 +424,5 @@ def setup_config(tag, bbox, county, site_limit, dry):
     config.dry = dry
 
     return config
-
 
 # ============= EOF =============================================
