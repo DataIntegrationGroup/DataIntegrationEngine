@@ -64,7 +64,8 @@ class DWBSiteSource(STSiteSource):
                     f"st_within(Locations/location, geography'{self.config.bounding_wkt()}')"
                 )
             q = q.expand("Locations")
-            q = q.filter(" and ".join(fs))
+            if fs:
+                q = q.filter(" and ".join(fs))
             return [thing.locations.entities[0] for thing in q.list()]
         else:
             analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)

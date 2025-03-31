@@ -227,11 +227,11 @@ def weave(
     config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
     config.parameter = parameter
 
-    # make sure config.output_name is properly set
-    config.update_output_name()
-
-    # make output_path now so that die.log can be written to it live
-    config.make_output_path()
+    # # make sure config.output_name is properly set
+    # config.update_output_name()
+    #
+    # # make output_path now so that die.log can be written to it live
+    # config.make_output_path()
 
     # setup logging here so that the path can be set to config.output_path
     setup_logging(path=config.output_path)
@@ -249,53 +249,33 @@ def weave(
         summary = False
         timeseries_unified = False
         timeseries_separated = True
+    else:
+        click.echo(f"Invalid output type: {output}")
+        return
 
     config.output_summary = summary
     config.output_timeseries_unified = timeseries_unified
     config.output_timeseries_separated = timeseries_separated
 
+    false_agencies = []
+    config_agencies = []
     # sources
     if parameter == "waterlevels":
-        config.use_source_bernco = no_bernco
-        config.use_source_cabq = no_cabq
-        config.use_source_ebid = no_ebid
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-        config.use_source_nmose_roswell = no_nmose_roswell
-        config.use_source_nwis = no_nwis
-        config.use_source_pvacd = no_pvacd
-        config.use_source_wqp = no_wqp
+        config_agencies =["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
+                          "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd"]
 
-        config.use_source_bor = False
-        config.use_source_nmed_dwb = False
+        false_agencies = ['bor', 'nmed_dwb']
 
     elif parameter == "carbonate":
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_wqp = no_wqp
-
-        config.use_source_bor = False
-        config.use_source_bernco = False
-        config.use_source_cabq = False
-        config.use_source_ebid = False
-        config.use_source_nmed_dwb = False
-        config.use_source_nmose_isc_seven_rivers = False
-        config.use_source_nmose_roswell = False
-        config.use_source_nwis = False
-        config.use_source_pvacd = False
+        config_agencies = ['nmbgmr_amp', 'wqp']
+        false_agencies = ['bor', 'bernco', 'cabq', 'ebid', 'nmed_dwb',
+                       'nmose_isc_seven_rivers', 'nmose_roswell', 'nwis', 'pvacd']
 
     elif parameter in ["arsenic", "uranium"]:
-        config.use_source_bor = no_bor
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmed_dwb = no_nmed_dwb
-        config.use_source_wqp = no_wqp
+        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'wqp']
+        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_isc_seven_rivers',
+                       'nmose_roswell', 'nwis', 'pvacd']
 
-        config.use_source_bernco = False
-        config.use_source_cabq = False
-        config.use_source_ebid = False
-        config.use_source_nmose_isc_seven_rivers = False
-        config.use_source_nmose_roswell = False
-        config.use_source_nwis = False
-        config.use_source_pvacd = False
 
     elif parameter in [
         "bicarbonate",
@@ -311,19 +291,16 @@ def weave(
         "sulfate",
         "tds",
     ]:
-        config.use_source_bor = no_bor
-        config.use_source_nmbgmr_amp = no_nmbgmr_amp
-        config.use_source_nmed_dwb = no_nmed_dwb
-        config.use_source_nmose_isc_seven_rivers = no_nmose_isc_seven_rivers
-        config.use_source_wqp = no_wqp
+        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb','nmose_isc_seven_rivers', 'wqp']
+        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_roswell', 'nwis', 'pvacd']
 
-        config.use_source_bernco = False
-        config.use_source_cabq = False
-        config.use_source_ebid = False
-        config.use_source_nmose_roswell = False
-        config.use_source_nwis = False
-        config.use_source_pvacd = False
+    if false_agencies:
+        for agency in false_agencies:
+            setattr(config, f"use_source_{agency}", False)
 
+    if config_agencies:
+        for agency in config_agencies:
+            setattr(config, f"use_source_{agency}", getattr(locals(),f'no_{agency}'))
     # dates
     config.start_date = start_date
     config.end_date = end_date

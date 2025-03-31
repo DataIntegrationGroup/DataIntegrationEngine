@@ -40,22 +40,11 @@ def health_check(source: BaseSiteSource) -> bool:
         return bool(source.health())
 
 
-def unify_sites(config):
-    print("Unifying sites\n")
-
-    # def func(config, persister):
-    #     for source in config.site_sources():
-    #         s = source()
-    #         persister.load(s.read(config))
-
-    # _unify_wrapper(config, func)
-
-
 def unify_analytes(config):
     print("Unifying analytes\n")
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
-
+    config.finalize()
     if not config.dry:
         _unify_parameter(config, config.analyte_sources())
 
@@ -67,17 +56,18 @@ def unify_waterlevels(config):
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
-
+    config.finalize()
     if not config.dry:
         _unify_parameter(config, config.water_level_sources())
 
     return True
 
-def unify_sites_only(config):
+def unify_sites(config):
     print("Unifying sites only\n")
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
+    config.finalize()
 
     if not config.dry:
         _unify_parameter(config, config.all_site_sources())
@@ -335,19 +325,25 @@ def site_unification_test():
     # cfg.output_summary = True
     # cfg.output_single_timeseries = True
 
-    cfg.use_source_nwis = False
-    cfg.use_source_nmbgmr = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_pvacd = False
-    # cfg.use_source_oseroswell = False
     cfg.use_source_bernco = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_nmose_isc_seven_rivers = False
+    cfg.use_source_bor = False
+    cfg.use_source_cabq = False
     cfg.use_source_ebid = False
+    cfg.use_source_nmbgmr_amp = False
+    cfg.use_source_nmed_dwb = False
+    cfg.use_source_nmose_isc_seven_rivers = False
+    cfg.use_source_nmose_roswell = False
+    cfg.use_source_nwis = False
+    cfg.use_source_pvacd = False
+    cfg.use_source_wqp = False
+
+    cfg.use_source_nmed_dwb = True
+
+
 
     cfg.finalize()
 
-    unify_sites_only(cfg)
+    unify_sites(cfg)
 
 
 def get_datastream(siteid):
