@@ -113,18 +113,6 @@ class CABQSiteSource(ST2SiteSource):
 class ST2WaterLevelSource(STWaterLevelSource):
     url = URL
 
-    def _extract_most_recent(self, records):
-        record = get_terminal_record(
-            records, tag=lambda x: x["observation"].phenomenon_time, side="last"
-        )
-
-        return {
-            "value": record["observation"].result,
-            "datetime": record["observation"].phenomenon_time,
-            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].name,
-        }
-
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = DTW
         record[PARAMETER_VALUE] = record["observation"].result

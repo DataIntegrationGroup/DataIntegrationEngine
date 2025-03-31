@@ -32,6 +32,8 @@ from backend.constants import (
     PARAMETER_NAME,
     PARAMETER_UNITS,
     PARAMETER_VALUE,
+    EARLIEST,
+    LATEST,
 )
 from backend.logging import Loggable
 from backend.persister import BasePersister, CSVPersister
@@ -65,7 +67,7 @@ def make_site_list(site_record: list | dict) -> list | str:
     return sites
 
 
-def get_terminal_record(records: list, tag: Union[str, callable], side: str) -> dict:
+def get_terminal_record(records: list, tag: Union[str, callable], bookend: str) -> dict:
     """
     Returns the most recent record based on the tag
 
@@ -77,8 +79,8 @@ def get_terminal_record(records: list, tag: Union[str, callable], side: str) -> 
     tag: str or callable
         the tag to use to sort the records
 
-    side: str
-        determines if the first or last record is retrieved
+    bookend: str
+        determines if the earliest or lastest record is retrieved
 
     Returns
     -------
@@ -100,9 +102,9 @@ def get_terminal_record(records: list, tag: Union[str, callable], side: str) -> 
             def func(x):
                 return x[tag]
 
-    if side == "first":
+    if bookend == EARLIEST:
         return sorted(records, key=func)[0]
-    elif side == "last":
+    elif bookend == LATEST:
         return sorted(records, key=func)[-1]
 
 
@@ -553,6 +555,14 @@ class BaseParameterSource(BaseSource):
     Methods With Universal Implementations (Already Implemented)
     ============================================================================
 
+    _extract_earliest_record
+        Returns the earliest record for a particular site. Requires _extract_terminal_record
+        to be implemented for each source
+
+    _extract_latest_record
+        Returns the most recent record for a particular site. Requires _extract_terminal_record
+        to be implemented for each source
+
     read
         Reads the parameter records and returns the transformed records, where the
         transform standardizes the records so the format is the same for all sources
@@ -579,8 +589,9 @@ class BaseParameterSource(BaseSource):
     _extract_site_records
         Returns all records for a single site as a list of records
 
-    _extract_most_recent
-        Returns the most recent record
+    _extract_terminal_record
+        Returns the terminal record for a particular site. This is only used for
+        summary, not time series, outputs.
 
     _clean_records (optional)
         Returns cleaned records if this function is defined for each source.
@@ -605,6 +616,39 @@ class BaseParameterSource(BaseSource):
     # ==========================================================================
     # Methods Already Implemented
     # ==========================================================================
+
+    def _extract_earliest_record(self, records: list) -> dict:
+        """
+        Returns the earliest record for a particular site
+
+        Parameters
+        ----------
+        records : list
+            a list of records
+
+        Returns
+        -------
+        dict
+            the earliest record
+        """
+        return self._extract_terminal_record(records, bookend=EARLIEST)
+    
+
+    def _extract_latest_record(self, records: list) -> dict:
+        """
+        Returns the most recent record for a particular site
+
+        Parameters
+        ----------
+        records : list
+            a list of records
+
+        Returns
+        -------
+        dict
+            the most recent record
+        """
+        return self._extract_terminal_record(records, bookend=LATEST)
 
     def read(
         self, site_record: SiteRecord, use_summarize: bool, start_ind: int, end_ind: int
@@ -657,7 +701,6 @@ class BaseParameterSource(BaseSource):
                 if not site_records:
                     self.warn(f"{site.id}: No records found")
                     continue
-
                 # get cleaned records if _clean_records is defined by the source. This usually removes Nones/Null
                 cleaned = self._clean_records(site_records)
                 if not cleaned:
@@ -711,20 +754,29 @@ class BaseParameterSource(BaseSource):
                     if kept_items is not None and len(kept_items):
                         n = len(kept_items)
 
-                        most_recent_result = self._extract_most_recent(cleaned)
-                        if not most_recent_result:
+                        earliest_result = self._extract_earliest_record(cleaned)
+                        latest_result = self._extract_latest_record(cleaned)
+                        if not latest_result:
                             continue
                         rec = {
                             "nrecords": n,
                             "min": min(kept_items),
                             "max": max(kept_items),
                             "mean": sum(kept_items) / n,
-                            "most_recent_datetime": most_recent_result["datetime"],
-                            "most_recent_value": most_recent_result["value"],
-                            "most_recent_source_units": most_recent_result[
+                            "earliest_datetime": earliest_result["datetime"],
+                            "earliest_value": earliest_result["value"],
+                            "earliest_source_units": earliest_result[
                                 "source_parameter_units"
                             ],
-                            "most_recent_source_name": most_recent_result[
+                            "earliest_source_name": earliest_result[
+                                "source_parameter_name"
+                            ],
+                            "latest_datetime": latest_result["datetime"],
+                            "latest_value": latest_result["value"],
+                            "latest_source_units": latest_result[
+                                "source_parameter_units"
+                            ],
+                            "latest_source_name": latest_result[
                                 "source_parameter_name"
                             ],
                         }
@@ -850,23 +902,26 @@ class BaseParameterSource(BaseSource):
             source. Otherwise returns the records as is.
         """
         return records
-
-    def _extract_most_recent(self, records: list) -> dict:
+    
+    def _extract_terminal_record(self, records, bookend):
         """
-        Returns the most recent record for a particular site
+        Returns the terminal record for a particular site
 
         Parameters
         ----------
         records : list
             a list of records
 
+        bookend : str
+            determines if the first or last record is retrieved
+
         Returns
         -------
         dict
-            the most recent record
+            the most recent record for every site
         """
         raise NotImplementedError(
-            f"{self.__class__.__name__} Must implement _extract_most_recent"
+            f"{self.__class__.__name__} Must implement _extract_terminal_record"
         )
 
     def _extract_source_parameter_units(self, records: list) -> list:

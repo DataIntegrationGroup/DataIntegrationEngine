@@ -26,6 +26,8 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
+    EARLIEST,
+    LATEST,
 )
 from backend.connectors.wqp.transformer import (
     WQPSiteTransformer,
@@ -139,13 +141,13 @@ class WQPParameterSource(BaseParameterSource):
     def _extract_source_parameter_names(self, records):
         return [ri["CharacteristicName"] for ri in records]
 
-    def _extract_most_recent(self, records):
-        ri = get_terminal_record(records, "ActivityStartDate", side="last")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "ActivityStartDate", bookend=bookend)
         return {
-            "value": ri["ResultMeasureValue"],
-            "datetime": ri["ActivityStartDate"],
-            "source_parameter_units": ri["ResultMeasure/MeasureUnitCode"],
-            "source_parameter_name": ri["CharacteristicName"],
+            "value": record["ResultMeasureValue"],
+            "datetime": record["ActivityStartDate"],
+            "source_parameter_units": record["ResultMeasure/MeasureUnitCode"],
+            "source_parameter_name": record["CharacteristicName"],
         }
 
     def get_records(self, site_record):

@@ -27,6 +27,8 @@ from backend.constants import (
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    EARLIEST,
+    LATEST,
 )
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
@@ -193,8 +195,8 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
     def _extract_source_parameter_units(self, records):
         return [r["source_parameter_units"] for r in records]
 
-    def _extract_most_recent(self, records):
-        record = get_terminal_record(records, "datetime_measured", side="last")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "datetime_measured", bookend=bookend)
         return {
             "value": float(record["value"]),
             # "datetime": (record["date_measured"], record["time_measured"]),

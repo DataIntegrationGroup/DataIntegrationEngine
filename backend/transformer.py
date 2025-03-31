@@ -30,6 +30,8 @@ from backend.constants import (
     MICROGRAMS_PER_LITER,
     DT_MEASURED,
     DTW,
+    EARLIEST,
+    LATEST
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.logging import Loggable
@@ -411,7 +413,7 @@ class BaseTransformer(Loggable):
             record["date_measured"] = d
             record["time_measured"] = t
         else:
-            mrd = record.get("most_recent_datetime")
+            mrd = record.get("latest_datetime")
             if mrd:
                 d, t = standardize_datetime(mrd, record["id"])
                 record["date_measured"] = d
@@ -663,7 +665,8 @@ class ParameterTransformer(BaseTransformer):
         rec = {}
 
         if self.config.output_summary:
-            self._transform_most_recents(record, site_record.id)
+            self._transform_earliest_record(record, site_record.id)
+            self._transform_latest_record(record, site_record.id)
 
             parameter, units = self._get_parameter_name_and_units()
             rec.update(
@@ -695,25 +698,61 @@ class ParameterTransformer(BaseTransformer):
         rec.update(source_id)
         return rec
 
-    def _transform_most_recents(self, record, site_id):
-        # convert most_recents
-        dt, tt = standardize_datetime(record["most_recent_datetime"], site_id)
-        record["most_recent_date"] = dt
-        record["most_recent_time"] = tt
-        parameter_name, unit = self._get_parameter_name_and_units()
+    def _transform_terminal_record(self, record, site_id, bookend):
+        """
+        Convert either the earliest or latest record to the standard format.
 
-        converted_most_recent_value, conversion_factor, warning_msg = convert_units(
-            record["most_recent_value"],
-            record["most_recent_source_units"],
+        Parameters
+        --------
+        record: dict
+            The record to convert
+
+        site_id: str
+            The site ID for the record
+
+        bookend: str
+            The bookend of the record to convert. Either "earliest" or "latest"
+        """
+        if bookend == EARLIEST:
+            datetime_key = "earliest_datetime"
+            date_key = "earliest_date"
+            time_key = "earliest_time"
+            value_key = "earliest_value"
+            unit_key = "earliest_units"
+            source_units_key = "earliest_source_units"
+            source_name_key = "earliest_source_name"
+        elif bookend == LATEST:
+            datetime_key = "latest_datetime"
+            date_key = "latest_date"
+            time_key = "latest_time"
+            value_key = "latest_value"
+            unit_key = "latest_units"
+            source_units_key = "latest_source_units"
+            source_name_key = "latest_source_name"
+
+        dt, tt = standardize_datetime(record[datetime_key], site_id)
+        parameter_name, unit = self._get_parameter_name_and_units()
+        converted_value, conversion_factor, warning_msg = convert_units(
+            record[value_key],
+            record[source_units_key],
             unit,
-            record["most_recent_source_name"],
+            record[source_name_key],
             parameter_name,
             dt,
         )
 
         # all failed conversions are skipped and handled in source.read(), so no need to duplicate here
-        record["most_recent_value"] = converted_most_recent_value
-        record["most_recent_units"] = unit
+        record[date_key] = dt
+        record[time_key] = tt
+        record[value_key] = converted_value
+        record[unit_key] = unit
+
+
+    def _transform_earliest_record(self, record, site_id):
+        self._transform_terminal_record(record, site_id, EARLIEST)
+
+    def _transform_latest_record(self, record, site_id):
+        self._transform_terminal_record(record, site_id, LATEST)
 
 
 class WaterLevelTransformer(ParameterTransformer):

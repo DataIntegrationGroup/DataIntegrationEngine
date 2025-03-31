@@ -19,6 +19,7 @@ import frost_sta_client as fsc
 from shapely import MultiPolygon, Polygon, unary_union
 
 from backend.bounding_polygons import get_state_polygon
+from backend.constants import EARLIEST, LATEST
 from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
@@ -55,16 +56,17 @@ class STSource:
             things.filter(" and ".join(fs))
 
         return things.list()
-
-    def _extract_most_recent(self, records):
+    
+    def _extract_terminal_record(self, records, bookend):
         record = get_terminal_record(
-            records, tag=lambda x: x["observation"].phenomenon_time, side="last"
+            records, tag=lambda x: x["observation"].phenomenon_time, bookend=bookend
         )
 
         return {
             "value": self._parse_result(record["observation"].result),
             "datetime": record["observation"].phenomenon_time,
-            "units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_name": record["datastream"].name,
         }
 
     def _parse_result(self, result):
