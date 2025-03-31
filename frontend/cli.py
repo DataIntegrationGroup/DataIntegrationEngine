@@ -321,11 +321,34 @@ def weave(
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
-def wells(bbox, county):
+@add_options(ALL_SOURCE_OPTIONS)
+@add_options(DEBUG_OPTIONS)
+def wells(bbox, county,
+          no_bernco,
+          no_bor,
+          no_cabq,
+          no_ebid,
+          no_nmbgmr_amp,
+          no_nmed_dwb,
+          no_nmose_isc_seven_rivers,
+          no_nmose_roswell,
+          no_nwis,
+          no_pvacd,
+          no_wqp,
+          site_limit,
+          dry,):
     """
     Get locations
     """
-    config = setup_config("sites", bbox, county)
+
+
+    config = setup_config("sites", bbox, county, site_limit, dry)
+    config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
+                       "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
+                       "wqp"]
+    for agency in config_agencies:
+        setattr(config, f"use_source_{agency}", getattr(locals(),f'no_{agency}'))
+
     unify_sites(config)
 
 
