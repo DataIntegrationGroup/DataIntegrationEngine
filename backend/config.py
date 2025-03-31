@@ -192,6 +192,7 @@ class Config(Loggable):
         self._update_output_units()
         self.update_output_name()
         self.make_output_path()
+        self.make_output_directory()
 
     def all_site_sources(self):
         sources = self.water_level_sources()
@@ -395,6 +396,12 @@ class Config(Loggable):
             return bool(get_county_polygon(self.county))
 
         return True
+    def make_output_directory(self):
+        """
+        Create the output directory if it doesn't exist.
+        """
+        if not os.path.exists(self.output_dir):
+            os.mkdir(self.output_dir)
 
     def update_output_name(self):
         """
