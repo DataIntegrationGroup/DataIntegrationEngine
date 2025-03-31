@@ -190,9 +190,9 @@ class Config(Loggable):
 
     def finalize(self):
         self._update_output_units()
+        self.make_output_directory()
         self.update_output_name()
         self.make_output_path()
-        self.make_output_directory()
 
     def all_site_sources(self):
         sources = self.water_level_sources()
