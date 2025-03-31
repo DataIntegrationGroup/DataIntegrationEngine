@@ -189,6 +189,7 @@ class Config(Loggable):
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
 
     def finalize(self):
+        self._update_output_units()
         self.update_output_name()
         self.make_output_path()
 

@@ -44,7 +44,7 @@ def unify_analytes(config):
     print("Unifying analytes\n")
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
-    config.finalize()
+
     if not config.dry:
         _unify_parameter(config, config.analyte_sources())
 
@@ -56,7 +56,7 @@ def unify_waterlevels(config):
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
-    config.finalize()
+
     if not config.dry:
         _unify_parameter(config, config.water_level_sources())
 
@@ -67,7 +67,6 @@ def unify_sites(config):
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
-    config.finalize()
 
     if not config.dry:
         _unify_parameter(config, config.all_site_sources())

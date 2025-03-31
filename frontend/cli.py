@@ -239,9 +239,6 @@ def weave(
     # # make output_path now so that die.log can be written to it live
     # config.make_output_path()
 
-    # setup logging here so that the path can be set to config.output_path
-    setup_logging(path=config.output_path)
-
     # output type
     if output == "summary":
         summary = True
@@ -312,13 +309,15 @@ def weave(
     config.start_date = start_date
     config.end_date = end_date
 
+    config.finalize()
+    # setup logging here so that the path can be set to config.output_path
+    setup_logging(path=config.output_path)
+
     if not dry:
         config.report()
         # prompt user to continue
         if not click.confirm("Do you want to continue?", default=True):
             return
-
-    config._update_output_units()
 
     if parameter.lower() == "waterlevels":
         unify_waterlevels(config)
@@ -328,9 +327,11 @@ def weave(
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
+@add_options(OUTPUT_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def wells(bbox, county,
+          output,
           no_bernco,
           no_bor,
           no_cabq,
@@ -358,6 +359,11 @@ def wells(bbox, county,
         setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
 
     config.sites_only = True
+
+    config.finalize()
+    # setup logging here so that the path can be set to config.output_path
+    setup_logging(path=config.output_path)
+
     config.report()
     if not yes:
         # prompt user to continue
