@@ -338,12 +338,10 @@ def weave(
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
-@add_options(OUTPUT_OPTIONS)
 @add_options(PERSISTER_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def wells(bbox, county,
-          output,
           output_dir,
           no_bernco,
           no_bor,
