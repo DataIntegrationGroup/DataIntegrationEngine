@@ -182,11 +182,14 @@ OUTPUT_OPTIONS = [
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
     ),
-    click.option(
+
+]
+PERSISTER_OPTIONS = [
+    click.option(click.option(
         "--output-dir",
         default=".",
         help="Output root directory. Default is current directory",
-    ),
+    ))
 ]
 
 
@@ -206,6 +209,7 @@ def add_options(options):
     required=True,
 )
 @add_options(OUTPUT_OPTIONS)
+@add_options(PERSISTER_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
@@ -335,6 +339,7 @@ def weave(
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
 @add_options(OUTPUT_OPTIONS)
+@add_options(PERSISTER_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def wells(bbox, county,
