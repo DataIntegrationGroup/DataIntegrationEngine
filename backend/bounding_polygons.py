@@ -173,6 +173,7 @@ def get_state_polygon(state):
 # private helpers ============================
 def _make_shape(obj, as_wkt):
     poly = shape(obj["geometry"])
+    poly = poly.simplify(0.1)
     if as_wkt:
         return poly.wkt
     return poly

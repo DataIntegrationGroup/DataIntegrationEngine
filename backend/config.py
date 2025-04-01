@@ -61,46 +61,31 @@ from .connectors.st2.source import (
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
 
-SOURCE_KEYS = (
-    "bernco",
-    "bor",
-    "cabq",
-    "ebid",
-    "nmbgmr_amp",
-    "nmed_dwb",
-    "nmose_isc_seven_rivers",
-    "nmose_roswell",
-    "nwis",
-    "pvacd",
-    "wqp",
-)
 
+SOURCE_DICT = {
+    "bernco": BernCoSiteSource,
+    "bor": BORSiteSource,
+    "cabq": CABQSiteSource,
+    "ebid": EBIDSiteSource,
+    "nmbgmr_amp": NMBGMRSiteSource,
+    "nmed_dwb": DWBSiteSource,
+    "nmose_isc_seven_rivers": ISCSevenRiversSiteSource,
+    "nmose_roswell": NMOSERoswellSiteSource,
+    "nwis": NWISSiteSource,
+    "pvacd": PVACDSiteSource,
+    "wqp": WQPSiteSource,
+}
+
+SOURCE_KEYS = list(SOURCE_DICT.keys())
 
 def get_source(source):
-    if source == "bernco":
-        return BernCoSiteSource()
-    elif source == "bor":
-        return BORSiteSource()
-    elif source == "cabq":
-        return CABQSiteSource()
-    elif source == "ebid":
-        return EBIDSiteSource()
-    elif source == "nmbgmr_amp":
-        return NMBGMRSiteSource()
-    elif source == "nmed_dwb":
-        return DWBSiteSource()
-    elif source == "nmose_isc_seven_rivers":
-        return ISCSevenRiversSiteSource()
-    elif source == "nmose_roswell":
-        return NMOSERoswellSiteSource()
-    elif source == "nwis":
-        return NWISSiteSource()
-    elif source == "pvacd":
-        return PVACDSiteSource()
-    elif source == "wqp":
-        return WQPSiteSource()
+    try:
+        klass = SOURCE_DICT[source]
+    except KeyError:
+        raise ValueError(f"Unknown source {source}")
 
-    return None
+    if klass:
+        return klass()
 
 
 class Config(Loggable):
@@ -115,6 +100,8 @@ class Config(Loggable):
     bbox: dict  # dict or str
     county: str = ""
     wkt: str = ""
+
+    sites_only = False
 
     # sources
     use_source_bernco: bool = True
@@ -185,6 +172,17 @@ class Config(Loggable):
 
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
+
+    def finalize(self):
+        self._update_output_units()
+        self.make_output_directory()
+        self.update_output_name()
+        self.make_output_path()
+
+    def all_site_sources(self):
+        sources = self.water_level_sources()
+        sources.extend(self.analyte_sources())
+        return sources
 
     def analyte_sources(self):
         sources = []
@@ -383,8 +381,14 @@ class Config(Loggable):
             return bool(get_county_polygon(self.county))
 
         return True
+    def make_output_directory(self):
+        """
+        Create the output directory if it doesn't exist.
+        """
+        if not os.path.exists(self.output_dir):
+            os.mkdir(self.output_dir)
 
-    def _update_output_name(self):
+    def update_output_name(self):
         """
         Generate a unique output name based on existing directories in the output directory.
 
@@ -419,7 +423,7 @@ class Config(Loggable):
 
         self.output_name = output_name
 
-    def _make_output_path(self):
+    def make_output_path(self):
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 
