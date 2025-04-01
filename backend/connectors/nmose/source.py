@@ -8,8 +8,9 @@ from backend.connectors.nmose.transformer import NMOSEPODSiteTransformer
 from backend.source import BaseSiteSource
 
 
-def wkt_to_arcgis_json(polygon_wkt):
-    obj = wkt.loads(polygon_wkt)
+def wkt_to_arcgis_json(obj):
+    if isinstance(obj, str):
+        obj = wkt.loads(obj)
     coords = [[coord[0], coord[1]] for coord in obj.exterior.coords]
     return {
         'rings': [coords],
