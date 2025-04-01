@@ -180,8 +180,11 @@ class Config(Loggable):
         self.make_output_path()
 
     def all_site_sources(self):
-        sources = self.water_level_sources()
-        sources.extend(self.analyte_sources())
+        sources =[]
+        for s in SOURCE_KEYS:
+            if getattr(self, f"use_source_{s}"):
+                sources.append((get_source(s), None))
+
         return sources
 
     def analyte_sources(self):
