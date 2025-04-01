@@ -76,7 +76,7 @@ SOURCE_DICT = {
     "wqp": WQPSiteSource,
 }
 
-SOURCE_KEYS = list(SOURCE_DICT.keys())
+SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
 
 def get_source(source):
     try:
