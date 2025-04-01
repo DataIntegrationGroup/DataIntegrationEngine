@@ -200,7 +200,6 @@ class Config(Loggable):
                 "cabq",
                 "ebid",
                 "nmbgmr_amp",
-                "nmed_dwb",
                 "nmose_isc_seven_rivers",
                 "nmose_roswell",
                 "nwis",
