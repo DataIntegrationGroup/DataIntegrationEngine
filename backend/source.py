@@ -700,9 +700,6 @@ class BaseParameterSource(BaseSource):
                             else:
                                 msg = f"{warning_msg} for {site.id}"
                                 self.warn(msg)
-                                skipped_items.append(
-                                    (site.id, source_result, source_unit)
-                                )
                         except TypeError:
                             skipped_items.append((site.id, source_result, source_unit))
                         except ValueError:

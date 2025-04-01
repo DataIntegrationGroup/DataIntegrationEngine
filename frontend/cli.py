@@ -235,6 +235,7 @@ def weave(
         no_wqp,
         site_limit,
         dry,
+        yes,
 ):
     """
     Get parameter timeseries or summary data
@@ -243,12 +244,6 @@ def weave(
     # instantiate config and set up parameter
     config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
     config.parameter = parameter
-
-    # # make sure config.output_name is properly set
-    # config.update_output_name()
-    #
-    # # make output_path now so that die.log can be written to it live
-    # config.make_output_path()
 
     # output type
     if output == "summary":
@@ -271,51 +266,14 @@ def weave(
     config.output_timeseries_unified = timeseries_unified
     config.output_timeseries_separated = timeseries_separated
 
-    false_agencies = []
-    config_agencies = []
-    # sources
-    if parameter == "waterlevels":
-        config_agencies = ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                           "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]
+    config_agencies, false_agencies = config.get_config_and_false_agencies()
 
-        false_agencies = ['bor', 'nmed_dwb']
-
-    elif parameter == "carbonate":
-        config_agencies = ['nmbgmr_amp', 'wqp']
-        false_agencies = ['bor', 'bernco', 'cabq', 'ebid', 'nmed_dwb',
-                          'nmose_isc_seven_rivers', 'nmose_roswell', 'nwis', 'pvacd']
-
-    elif parameter in ["arsenic", "uranium"]:
-        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'wqp']
-        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_isc_seven_rivers',
-                          'nmose_roswell', 'nwis', 'pvacd']
-
-
-    elif parameter in [
-        "bicarbonate",
-        "calcium",
-        "chloride",
-        "fluoride",
-        "magnesium",
-        "nitrate",
-        "ph",
-        "potassium",
-        "silica",
-        "sodium",
-        "sulfate",
-        "tds",
-    ]:
-        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'nmose_isc_seven_rivers', 'wqp']
-        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_roswell', 'nwis', 'pvacd']
-
-    if false_agencies:
-        for agency in false_agencies:
-            setattr(config, f"use_source_{agency}", False)
+    for agency in false_agencies:
+        setattr(config, f"use_source_{agency}", False)
 
     lcs = locals()
-    if config_agencies:
-        for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+    for agency in config_agencies:
+        setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -405,6 +363,11 @@ def sources(sources, bbox, county):
 
     parameter = sources
     config.parameter = parameter
+    config_agencies, false_agencies = config.get_config_and_false_agencies()
+
+    for agency in false_agencies:
+        setattr(config, f"use_source_{agency}", False)
+
     sources = get_sources(config)
     for s in sources:
         click.echo(s)

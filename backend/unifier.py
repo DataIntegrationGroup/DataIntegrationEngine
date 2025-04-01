@@ -16,6 +16,7 @@
 import shapely
 
 from backend.config import Config, get_source
+from backend.constants import WATERLEVELS
 from backend.logging import setup_logging
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 from backend.source import BaseSiteSource
@@ -250,7 +251,7 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.parameter.lower() == "waterlevels":
+    if config.parameter == WATERLEVELS:
         allsources = config.water_level_sources()
     else:
         allsources = config.analyte_sources()
