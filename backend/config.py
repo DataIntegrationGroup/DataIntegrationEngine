@@ -183,7 +183,9 @@ class Config(Loggable):
         sources =[]
         for s in SOURCE_KEYS:
             if getattr(self, f"use_source_{s}"):
-                sources.append((get_source(s), None))
+                source = get_source(s)
+                source.set_config(self)
+                sources.append((source, None))
 
         return sources
 
