@@ -319,7 +319,7 @@ def waterlevel_unification_test():
 
 def site_unification_test():
     cfg = Config()
-    cfg.county = "chaves"
+    # cfg.county = "chaves"
 
     cfg.output_summary = False
     cfg.output_name = "sitesonly"
@@ -338,8 +338,9 @@ def site_unification_test():
     cfg.use_source_nwis = False
     cfg.use_source_pvacd = False
     cfg.use_source_wqp = False
+    cfg.use_source_nmose_pod = True
 
-    cfg.use_source_nmed_dwb = True
+    cfg.use_source_nmed_dwb = False
 
     cfg.finalize()
 

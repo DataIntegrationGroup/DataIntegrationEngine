@@ -273,6 +273,7 @@ class BaseSource(Loggable):
         else:
             self.warn(f"service responded with status {resp.status_code}")
             self.warn(f"service responded with text {resp.text}")
+            self.warn(f"service at url:  {resp.url}")
             return []
 
     # ==========================================================================
