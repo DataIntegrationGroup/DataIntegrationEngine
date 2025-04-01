@@ -394,7 +394,6 @@ class BaseTransformer(Loggable):
         if not record:
             return
 
-        print(record)
         # ensure that a site or summary record is contained within the boundaing polygon
         if "longitude" in record and "latitude" in record:
             if not self.contained(record["longitude"], record["latitude"]):
