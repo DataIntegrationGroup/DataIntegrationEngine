@@ -28,7 +28,7 @@ from backend.constants import (
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
     EARLIEST,
-    LATEST
+    LATEST,
 )
 
 from backend.source import (

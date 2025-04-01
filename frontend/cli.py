@@ -182,7 +182,6 @@ OUTPUT_OPTIONS = [
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
     ),
-
 ]
 PERSISTER_OPTIONS = [
     click.option(
@@ -215,27 +214,27 @@ def add_options(options):
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def weave(
-        weave,
-        output,
-        output_dir,
-        start_date,
-        end_date,
-        bbox,
-        county,
-        no_bernco,
-        no_bor,
-        no_cabq,
-        no_ebid,
-        no_nmbgmr_amp,
-        no_nmed_dwb,
-        no_nmose_isc_seven_rivers,
-        no_nmose_roswell,
-        no_nwis,
-        no_pvacd,
-        no_wqp,
-        site_limit,
-        dry,
-        yes,
+    weave,
+    output,
+    output_dir,
+    start_date,
+    end_date,
+    bbox,
+    county,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
 ):
     """
     Get parameter timeseries or summary data
@@ -273,7 +272,7 @@ def weave(
 
     lcs = locals()
     for agency in config_agencies:
-        setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+        setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -299,33 +298,46 @@ def weave(
 @add_options(PERSISTER_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-def wells(bbox, county,
-          output_dir,
-          no_bernco,
-          no_bor,
-          no_cabq,
-          no_ebid,
-          no_nmbgmr_amp,
-          no_nmed_dwb,
-          no_nmose_isc_seven_rivers,
-          no_nmose_roswell,
-          no_nwis,
-          no_pvacd,
-          no_wqp,
-          site_limit,
-          dry,
-          yes):
+def wells(
+    bbox,
+    county,
+    output_dir,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
+):
     """
     Get locations
     """
 
     config = setup_config("sites", bbox, county, site_limit, dry)
-    config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                       "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
-                       "wqp"]
+    config_agencies = [
+        "bernco",
+        "bor",
+        "cabq",
+        "ebid",
+        "nmbgmr_amp",
+        "nmed_dwb",
+        "nmose_isc_seven_rivers",
+        "nmose_roswell",
+        "nwis",
+        "pvacd",
+        "wqp",
+    ]
     lcs = locals()
     for agency in config_agencies:
-        setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+        setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
 
     config.sites_only = True
     config.output_dir = output_dir
@@ -387,5 +399,6 @@ def setup_config(tag, bbox, county, site_limit, dry):
     config.dry = dry
 
     return config
+
 
 # ============= EOF =============================================

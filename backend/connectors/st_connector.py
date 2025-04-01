@@ -56,7 +56,7 @@ class STSource:
             things.filter(" and ".join(fs))
 
         return things.list()
-    
+
     def _extract_terminal_record(self, records, bookend):
         record = get_terminal_record(
             records, tag=lambda x: x["observation"].phenomenon_time, bookend=bookend

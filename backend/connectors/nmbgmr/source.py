@@ -135,7 +135,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
     def _extract_source_parameter_units(self, records):
         return [r["Units"] for r in records]
-    
+
     def _extract_terminal_record(self, records, bookend):
         record = get_terminal_record(records, "info.CollectionDate", bookend=bookend)
         return {

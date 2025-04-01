@@ -63,6 +63,7 @@ def unify_waterlevels(config):
 
     return True
 
+
 def unify_sites(config):
     print("Unifying sites only\n")
 
@@ -73,6 +74,7 @@ def unify_sites(config):
         _unify_parameter(config, config.all_site_sources())
 
     return True
+
 
 def _perister_factory(config):
     """
@@ -314,10 +316,10 @@ def waterlevel_unification_test():
 
     unify_waterlevels(cfg)
 
+
 def site_unification_test():
     cfg = Config()
     cfg.county = "chaves"
-
 
     cfg.output_summary = False
     cfg.output_name = "sitesonly"
@@ -338,8 +340,6 @@ def site_unification_test():
     cfg.use_source_wqp = False
 
     cfg.use_source_nmed_dwb = True
-
-
 
     cfg.finalize()
 

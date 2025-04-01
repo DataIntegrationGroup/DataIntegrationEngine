@@ -59,7 +59,7 @@ from .constants import (
     SULFATE,
     TDS,
     URANIUM,
-    )
+)
 from .connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
@@ -97,6 +97,7 @@ SOURCE_DICT = {
 }
 
 SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
+
 
 def get_source(source):
     try:
@@ -204,8 +205,8 @@ class Config(Loggable):
                 "nmose_roswell",
                 "nwis",
                 "pvacd",
-                "wqp"
-                ]
+                "wqp",
+            ]
             false_agencies = ["bor", "nmed_dwb"]
         elif self.parameter == CARBONATE:
             config_agencies = ["nmbgmr_amp", "wqp"]
@@ -245,7 +246,13 @@ class Config(Loggable):
             SULFATE,
             TDS,
         ]:
-            config_agencies = ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]
+            config_agencies = [
+                "bor",
+                "nmbgmr_amp",
+                "nmed_dwb",
+                "nmose_isc_seven_rivers",
+                "wqp",
+            ]
             false_agencies = [
                 "bernco",
                 "cabq",
@@ -464,6 +471,7 @@ class Config(Loggable):
             return bool(get_county_polygon(self.county))
 
         return True
+
     def make_output_directory(self):
         """
         Create the output directory if it doesn't exist.

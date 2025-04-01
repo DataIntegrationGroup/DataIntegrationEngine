@@ -29,7 +29,7 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     EARLIEST,
-    LATEST
+    LATEST,
 )
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
@@ -187,7 +187,11 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         )
 
     def _clean_records(self, records):
-        return [r for r in records if r["depthToWaterFeet"] is not None and not r["invalid"] and not r["dry"]]
+        return [
+            r
+            for r in records
+            if r["depthToWaterFeet"] is not None and not r["invalid"] and not r["dry"]
+        ]
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = DTW
@@ -219,5 +223,6 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
             "source_parameter_units": self._source_parameter_units,
             "source_parameter_name": self._source_parameter_name,
         }
+
 
 # ============= EOF =============================================

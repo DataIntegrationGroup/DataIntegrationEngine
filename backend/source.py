@@ -595,7 +595,6 @@ class BaseParameterSource(BaseSource):
             the earliest record
         """
         return self._extract_terminal_record(records, bookend=EARLIEST)
-    
 
     def _extract_latest_record(self, records: list) -> dict:
         """
@@ -862,7 +861,7 @@ class BaseParameterSource(BaseSource):
             source. Otherwise returns the records as is.
         """
         return records
-    
+
     def _extract_terminal_record(self, records, bookend):
         """
         Returns the terminal record for a particular site

@@ -179,6 +179,7 @@ def get_state_polygon(state, buffer):
 
         return geom_gcs
 
+
 # private helpers ============================
 def _make_shape(obj, as_wkt):
     poly = shape(obj["geometry"])

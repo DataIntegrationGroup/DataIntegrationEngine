@@ -32,7 +32,7 @@ from backend.constants import (
     DT_MEASURED,
     DTW,
     EARLIEST,
-    LATEST
+    LATEST,
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.logger import Loggable
@@ -470,8 +470,6 @@ class BaseTransformer(Loggable):
             record.update(longitude=lng)
             record.update(horizontal_datum=datum)
 
-            
-
             elevation, elevation_unit = transform_length_units(
                 record.elevation,
                 record.elevation_units,
@@ -779,7 +777,6 @@ class ParameterTransformer(BaseTransformer):
         record[time_key] = tt
         record[value_key] = converted_value
         record[unit_key] = unit
-
 
     def _transform_earliest_record(self, record, site_id):
         self._transform_terminal_record(record, site_id, EARLIEST)
