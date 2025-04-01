@@ -300,6 +300,7 @@ class BaseSource(Loggable):
                 self.warn(f"service responded but with no data. \n{resp.text}")
                 return []
         else:
+            print('ffasdfsafasdfasdf', resp.url)
             self.warn(f"service responded with status {resp.status_code}")
             self.warn(f"service responded with text {resp.text}")
             return []

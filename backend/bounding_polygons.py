@@ -119,6 +119,17 @@ def get_huc_polygon(huc, as_wkt=True):
     return _make_shape(obj, as_wkt)
 
 
+def get_county_names(state="NM"):
+    state, statefp = _get_statefp(state)
+    obj = _get_cached_object(
+        f"{state}.counties",
+        f"{state} counties",
+        f"https://reference.geoconnex.us/collections/counties/items?statefp={statefp}&f=json",
+    )
+
+    return [f['properties']['name'] for f in obj['features']]
+
+
 def get_county_polygon(name, as_wkt=True):
     if ":" in name:
         state, county = name.split(":")

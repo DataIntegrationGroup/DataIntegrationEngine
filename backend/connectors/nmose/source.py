@@ -3,6 +3,7 @@ import os
 from shapely import wkt
 from shapely.geometry.polygon import Polygon
 
+from backend.bounding_polygons import get_county_polygon, get_county_names
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.nmose.transformer import NMOSEPODSiteTransformer
 from backend.source import BaseSiteSource
@@ -26,7 +27,7 @@ class NMOSEPODSiteSource(BaseSiteSource):
     """
 
     transformer_klass = NMOSEPODSiteTransformer
-    chunk_size = 1000
+    chunk_size = 5000
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def get_records(self, *args, **kw) -> dict:
@@ -43,18 +44,29 @@ class NMOSEPODSiteSource(BaseSiteSource):
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
 
+        url = "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
+
         params['where'] = "pod_status = 'ACT' AND pod_basin IN ('A','B','C','CC','CD','CL','CP','CR','CT','E','FS','G','GSF','H', 'HA','HC','HS','HU','J','L','LA','LRG','LV','M','MR','NH','P','PL','PN','RA','RG','S','SB','SJ','SS','T','TU','UP','VV')"
         params["outFields"] = "OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county,pod_name,pod_nbr,pod_suffix,pod_file"
         params["outSR"] = 4326
         params["f"] = "json"
+        params["resultRecordCount"] = self.chunk_size
+        params['resultOffset'] = 0
+
         if config.has_bounds():
             wkt = config.bounding_wkt()
-        else:
-            wkt = NM_STATE_BOUNDING_POLYGON
+            params["geometry"] = wkt_to_arcgis_json(wkt)
+            params["geometryType"] = "esriGeometryPolygon"
 
-        params["geometry"] = wkt_to_arcgis_json(wkt)
-        params["geometryType"] = "esriGeometryPolygon"
-        url = "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
-        obj = self._execute_json_request(url, params, tag='features')
+        records = []
+        i=1
+        while 1:
+            rs = self._execute_json_request(url, params, tag='features')
+            records.extend(rs)
+            params['resultOffset'] += self.chunk_size
+            print((i, len(rs)))
+            if len(rs) < self.chunk_size:
+                break
+            i+=1
 
-        return obj
+        return records

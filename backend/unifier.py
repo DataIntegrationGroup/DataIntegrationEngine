@@ -315,7 +315,7 @@ def waterlevel_unification_test():
 
 def site_unification_test():
     cfg = Config()
-    cfg.county = "chaves"
+    # cfg.county = "chaves"
 
 
     cfg.output_summary = False
