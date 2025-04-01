@@ -273,7 +273,7 @@ class Config(Loggable):
         self.make_output_path()
 
     def all_site_sources(self):
-        sources =[]
+        sources = []
         for s in SOURCE_KEYS:
             if getattr(self, f"use_source_{s}"):
                 source = get_source(s)
