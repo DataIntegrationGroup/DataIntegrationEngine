@@ -91,11 +91,11 @@ SOURCE_DICT = {
     "nmbgmr_amp": NMBGMRSiteSource,
     "nmed_dwb": DWBSiteSource,
     "nmose_isc_seven_rivers": ISCSevenRiversSiteSource,
+    "nmose_pod": NMOSEPODSiteSource,
     "nmose_roswell": NMOSERoswellSiteSource,
     "nwis": NWISSiteSource,
     "pvacd": PVACDSiteSource,
     "wqp": WQPSiteSource,
-    "nmose_pod": NMOSEPODSiteSource,
 }
 
 SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
@@ -134,11 +134,11 @@ class Config(Loggable):
     use_source_nmbgmr_amp: bool = True
     use_source_nmed_dwb: bool = True
     use_source_nmose_isc_seven_rivers: bool = True
+    use_source_nmose_pod: bool = True
     use_source_nmose_roswell: bool = True
     use_source_nwis: bool = True
     use_source_pvacd: bool = True
     use_source_wqp: bool = True
-    use_source_nmose_pod: bool = True
 
     # parameter
     parameter: str = ""
@@ -205,12 +205,13 @@ class Config(Loggable):
                 "ebid",
                 "nmbgmr_amp",
                 "nmose_isc_seven_rivers",
+                "nmose_pod",
                 "nmose_roswell",
                 "nwis",
                 "pvacd",
                 "wqp",
             ]
-            false_agencies = ["bor", "nmed_dwb"]
+            false_agencies = ["bor", "nmose_pod", "nmed_dwb"]
         elif self.parameter == CARBONATE:
             config_agencies = ["nmbgmr_amp", "wqp"]
             false_agencies = [
@@ -220,6 +221,7 @@ class Config(Loggable):
                 "ebid",
                 "nmed_dwb",
                 "nmose_isc_seven_rivers",
+                "nmose_pod",
                 "nmose_roswell",
                 "nwis",
                 "pvacd",
@@ -232,6 +234,7 @@ class Config(Loggable):
                 "ebid",
                 "nmose_isc_seven_rivers",
                 "nmose_roswell",
+                "nmose_pod",
                 "nwis",
                 "pvacd",
             ]
@@ -261,6 +264,7 @@ class Config(Loggable):
                 "cabq",
                 "ebid",
                 "nmose_roswell",
+                "nmose_pod",
                 "nwis",
                 "pvacd",
             ]
