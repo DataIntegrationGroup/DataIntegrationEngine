@@ -30,6 +30,8 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`, `water quality`
 - [New Mexico Environment Department Drinking Water Bureau (NMED DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
   - Available data: `water quality`
+- [New Mexico Office of the State Engineer Points of Diversions (NMOSEPODs)](https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/ArcGIS/rest/services/OSE_PODs/FeatureServer/0)
+  - Available data: `None`
 - [New Mexico Office of the State Engineer ISC Seven Rivers (NMOSE ISC Seven Rivers)](https://nmisc-wf.gladata.com/api/getMonitoringPoints.ashx)
   - Available data: `water levels`, `water quality`
 - [New Mexico Office of the State Engineer Roswell District Office (NMOSE Roswell)](https://catalog.newmexicowaterdata.org/dataset/pecos_region_manual_groundwater_levels)
@@ -63,6 +65,7 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 | **nmbgmr-amp**             | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 | **nmed-dwb**               | -           | X       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 | **nmose-isc-seven-rivers** | X           | -       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | -       |
+| **nmose-pod**              | -           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
@@ -171,6 +174,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
 - `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
 - `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
+- `--no-nmose-pod` to exclude New Mexico Office of State Engineer (NMOSE) Point of Diversion (POD) data (though none except for well information is currently available)
 - `--no-nmose-roswell` to exclude New Mexico Office of State Engineer (NMOSE) Roswell data
 - `--no-nwis` to exclude USGS NWIS data
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
