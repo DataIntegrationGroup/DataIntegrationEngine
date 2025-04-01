@@ -117,7 +117,7 @@ class Config(Loggable):
     use_source_nwis: bool = True
     use_source_pvacd: bool = True
     use_source_wqp: bool = True
-    use_source_nmose_pod: bool = False
+    use_source_nmose_pod: bool = True
 
     # parameter
     parameter: str = ""
