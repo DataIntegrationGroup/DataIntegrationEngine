@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 
 import shapely.wkt
 
-from backend.logging import Loggable
+from backend.logger import Loggable
 
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
@@ -40,7 +40,27 @@ from .connectors.ckan.source import (
 )
 from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
 from .connectors.nmose.source import NMOSEPODSiteSource
-from .constants import MILLIGRAMS_PER_LITER, WGS84, FEET
+from .constants import (
+    MILLIGRAMS_PER_LITER,
+    WGS84,
+    FEET,
+    WATERLEVELS,
+    ARSENIC,
+    BICARBONATE,
+    CALCIUM,
+    CARBONATE,
+    CHLORIDE,
+    FLUORIDE,
+    MAGNESIUM,
+    NITRATE,
+    PH,
+    POTASSIUM,
+    SILICA,
+    SODIUM,
+    SULFATE,
+    TDS,
+    URANIUM,
+)
 from .connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
@@ -78,7 +98,8 @@ SOURCE_DICT = {
     "nmose_pod": NMOSEPODSiteSource,
 }
 
-SOURCE_KEYS = list(SOURCE_DICT.keys())
+SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
+
 
 def get_source(source):
     try:
@@ -176,6 +197,75 @@ class Config(Loggable):
             for s in SOURCE_KEYS:
                 setattr(self, f"use_source_{s}", s in payload.get("sources", []))
 
+    def get_config_and_false_agencies(self):
+        if self.parameter == WATERLEVELS:
+            config_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmbgmr_amp",
+                "nmose_isc_seven_rivers",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+                "wqp",
+            ]
+            false_agencies = ["bor", "nmed_dwb"]
+        elif self.parameter == CARBONATE:
+            config_agencies = ["nmbgmr_amp", "wqp"]
+            false_agencies = [
+                "bor",
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmed_dwb",
+                "nmose_isc_seven_rivers",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+            ]
+        elif self.parameter in [ARSENIC, URANIUM]:
+            config_agencies = ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]
+            false_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmose_isc_seven_rivers",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+            ]
+        elif self.parameter in [
+            BICARBONATE,
+            CALCIUM,
+            CHLORIDE,
+            FLUORIDE,
+            MAGNESIUM,
+            NITRATE,
+            PH,
+            POTASSIUM,
+            SILICA,
+            SODIUM,
+            SULFATE,
+            TDS,
+        ]:
+            config_agencies = [
+                "bor",
+                "nmbgmr_amp",
+                "nmed_dwb",
+                "nmose_isc_seven_rivers",
+                "wqp",
+            ]
+            false_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+            ]
+        return config_agencies, false_agencies
+
     def finalize(self):
         self._update_output_units()
         self.make_output_directory()
@@ -183,7 +273,7 @@ class Config(Loggable):
         self.make_output_path()
 
     def all_site_sources(self):
-        sources =[]
+        sources = []
         for s in SOURCE_KEYS:
             if getattr(self, f"use_source_{s}"):
                 source = get_source(s)
@@ -392,6 +482,7 @@ class Config(Loggable):
             return bool(get_county_polygon(self.county))
 
         return True
+
     def make_output_directory(self):
         """
         Create the output directory if it doesn't exist.

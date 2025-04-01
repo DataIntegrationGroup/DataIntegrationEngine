@@ -50,7 +50,7 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
 )
-from backend.source import BaseSiteSource, BaseWaterLevelSource, get_most_recent
+from backend.source import BaseSiteSource, BaseWaterLevelSource, get_terminal_record
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.1"
 
@@ -112,18 +112,6 @@ class CABQSiteSource(ST2SiteSource):
 
 class ST2WaterLevelSource(STWaterLevelSource):
     url = URL
-
-    def _extract_most_recent(self, records):
-        record = get_most_recent(
-            records, tag=lambda x: x["observation"].phenomenon_time
-        )
-
-        return {
-            "value": record["observation"].result,
-            "datetime": record["observation"].phenomenon_time,
-            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].name,
-        }
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = DTW

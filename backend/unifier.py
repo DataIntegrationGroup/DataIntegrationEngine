@@ -16,6 +16,7 @@
 import shapely
 
 from backend.config import Config, get_source
+from backend.constants import WATERLEVELS
 from backend.logging import setup_logging
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 from backend.source import BaseSiteSource
@@ -62,6 +63,7 @@ def unify_waterlevels(config):
 
     return True
 
+
 def unify_sites(config):
     print("Unifying sites only\n")
 
@@ -72,6 +74,7 @@ def unify_sites(config):
         _unify_parameter(config, config.all_site_sources())
 
     return True
+
 
 def _perister_factory(config):
     """
@@ -250,7 +253,7 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.parameter.lower() == "waterlevels":
+    if config.parameter == WATERLEVELS:
         allsources = config.water_level_sources()
     else:
         allsources = config.analyte_sources()
@@ -313,10 +316,10 @@ def waterlevel_unification_test():
 
     unify_waterlevels(cfg)
 
+
 def site_unification_test():
     cfg = Config()
     # cfg.county = "chaves"
-
 
     cfg.output_summary = False
     cfg.output_name = "sitesonly"
@@ -338,8 +341,6 @@ def site_unification_test():
     cfg.use_source_nmose_pod = True
 
     cfg.use_source_nmed_dwb = False
-
-
 
     cfg.finalize()
 

@@ -14,11 +14,26 @@
 # limitations under the License.
 # ===============================================================================
 import pyproj
+from shapely.ops import transform
 
 PROJECTIONS = {}
 TRANSFORMS = {}
 
 ALLOWED_DATUMS = ["NAD27", "NAD83", "WGS84"]
+
+# srids for NM
+SRID_WGS84 = 4326
+SRID_UTM_ZONE_13N = 26913
+
+
+def transform_srid(geometry, source_srid, target_srid):
+    """
+    geometry must be a shapely geometry object, like Point, Polygon, or MultiPolygon
+    """
+    source_crs = pyproj.CRS(f"EPSG:{source_srid}")
+    target_crs = pyproj.CRS(f"EPSG:{target_srid}")
+    transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+    return transform(transformer.transform, geometry)
 
 
 def datum_transform(x, y, in_datum, out_datum):

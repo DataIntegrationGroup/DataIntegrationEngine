@@ -21,7 +21,7 @@ from backend.config import Config
 from backend.constants import PARAMETER_OPTIONS
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
-from backend.logging import setup_logging
+from backend.logger import setup_logging
 
 
 # setup_logging()
@@ -182,7 +182,6 @@ OUTPUT_OPTIONS = [
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
     ),
-
 ]
 PERSISTER_OPTIONS = [
     click.option(
@@ -215,26 +214,27 @@ def add_options(options):
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def weave(
-        weave,
-        output,
-        output_dir,
-        start_date,
-        end_date,
-        bbox,
-        county,
-        no_bernco,
-        no_bor,
-        no_cabq,
-        no_ebid,
-        no_nmbgmr_amp,
-        no_nmed_dwb,
-        no_nmose_isc_seven_rivers,
-        no_nmose_roswell,
-        no_nwis,
-        no_pvacd,
-        no_wqp,
-        site_limit,
-        dry,
+    weave,
+    output,
+    output_dir,
+    start_date,
+    end_date,
+    bbox,
+    county,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
 ):
     """
     Get parameter timeseries or summary data
@@ -243,12 +243,6 @@ def weave(
     # instantiate config and set up parameter
     config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
     config.parameter = parameter
-
-    # # make sure config.output_name is properly set
-    # config.update_output_name()
-    #
-    # # make output_path now so that die.log can be written to it live
-    # config.make_output_path()
 
     # output type
     if output == "summary":
@@ -271,51 +265,14 @@ def weave(
     config.output_timeseries_unified = timeseries_unified
     config.output_timeseries_separated = timeseries_separated
 
-    false_agencies = []
-    config_agencies = []
-    # sources
-    if parameter == "waterlevels":
-        config_agencies = ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                           "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]
+    config_agencies, false_agencies = config.get_config_and_false_agencies()
 
-        false_agencies = ['bor', 'nmed_dwb']
-
-    elif parameter == "carbonate":
-        config_agencies = ['nmbgmr_amp', 'wqp']
-        false_agencies = ['bor', 'bernco', 'cabq', 'ebid', 'nmed_dwb',
-                          'nmose_isc_seven_rivers', 'nmose_roswell', 'nwis', 'pvacd']
-
-    elif parameter in ["arsenic", "uranium"]:
-        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'wqp']
-        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_isc_seven_rivers',
-                          'nmose_roswell', 'nwis', 'pvacd']
-
-
-    elif parameter in [
-        "bicarbonate",
-        "calcium",
-        "chloride",
-        "fluoride",
-        "magnesium",
-        "nitrate",
-        "ph",
-        "potassium",
-        "silica",
-        "sodium",
-        "sulfate",
-        "tds",
-    ]:
-        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'nmose_isc_seven_rivers', 'wqp']
-        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_roswell', 'nwis', 'pvacd']
-
-    if false_agencies:
-        for agency in false_agencies:
-            setattr(config, f"use_source_{agency}", False)
+    for agency in false_agencies:
+        setattr(config, f"use_source_{agency}", False)
 
     lcs = locals()
-    if config_agencies:
-        for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+    for agency in config_agencies:
+        setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -341,33 +298,46 @@ def weave(
 @add_options(PERSISTER_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-def wells(bbox, county,
-          output_dir,
-          no_bernco,
-          no_bor,
-          no_cabq,
-          no_ebid,
-          no_nmbgmr_amp,
-          no_nmed_dwb,
-          no_nmose_isc_seven_rivers,
-          no_nmose_roswell,
-          no_nwis,
-          no_pvacd,
-          no_wqp,
-          site_limit,
-          dry,
-          yes):
+def wells(
+    bbox,
+    county,
+    output_dir,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
+):
     """
     Get locations
     """
 
     config = setup_config("sites", bbox, county, site_limit, dry)
-    config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                       "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
-                       "wqp"]
+    config_agencies = [
+        "bernco",
+        "bor",
+        "cabq",
+        "ebid",
+        "nmbgmr_amp",
+        "nmed_dwb",
+        "nmose_isc_seven_rivers",
+        "nmose_roswell",
+        "nwis",
+        "pvacd",
+        "wqp",
+    ]
     lcs = locals()
     for agency in config_agencies:
-        setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+        setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
 
     config.sites_only = True
     config.output_dir = output_dir
@@ -405,6 +375,11 @@ def sources(sources, bbox, county):
 
     parameter = sources
     config.parameter = parameter
+    config_agencies, false_agencies = config.get_config_and_false_agencies()
+
+    for agency in false_agencies:
+        setattr(config, f"use_source_{agency}", False)
+
     sources = get_sources(config)
     for s in sources:
         click.echo(s)
@@ -424,5 +399,6 @@ def setup_config(tag, bbox, county, site_limit, dry):
     config.dry = dry
 
     return config
+
 
 # ============= EOF =============================================
