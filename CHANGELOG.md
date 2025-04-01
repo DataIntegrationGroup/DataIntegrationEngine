@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - water level for WQP
 - `earliest_date`, `earliest_time`, `earliest_value`, and `earliest_units` to the summary table
+- `die wells` to get all wells for which the DIE reports observations
+- `die source {parameter}` to list sources that report a particular parameter
 
 ### Changed
 - NM OSE Roswell data is now pulled from ST2 and not CKAN

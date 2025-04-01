@@ -22,6 +22,8 @@ import httpx
 from shapely import Polygon, box
 from shapely.geometry import shape
 
+from backend.geo_utils import transform_srid, SRID_WGS84, SRID_UTM_ZONE_13N
+
 
 # polygon retrivial functions
 # multiple polygons
@@ -160,7 +162,7 @@ def get_county_polygon(name, as_wkt=True):
         _warning(f"Invalid state. {state}")
 
 
-def get_state_polygon(state):
+def get_state_polygon(state, buffer):
     statefp = _statelookup(state)
     if statefp:
         obj = _get_cached_object(
@@ -168,7 +170,14 @@ def get_state_polygon(state):
             f"{state} state",
             f"https://reference.geoconnex.us/collections/states/items/{statefp}?&f=json",
         )
-        return shape(obj["features"][0]["geometry"])
+        geom_gcs = shape(obj["features"][0]["geometry"])
+
+        if buffer:
+            geom_utm = transform_srid(geom_gcs, SRID_WGS84, SRID_UTM_ZONE_13N)
+            geom_utm = geom_utm.buffer(buffer)
+            geom_gcs = transform_srid(geom_utm, SRID_UTM_ZONE_13N, SRID_WGS84)
+
+        return geom_gcs
 
 # private helpers ============================
 def _make_shape(obj, as_wkt):
@@ -231,7 +240,7 @@ def _get_cached_object(name, msg, url):
     return obj
 
 
-NM_BOUNDARY = get_state_polygon("NM")
+NM_BOUNDARY_BUFFERED = get_state_polygon("NM", 25000)
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ from datetime import datetime, date, timedelta
 import shapely
 from shapely import Point
 
-from backend.bounding_polygons import NM_BOUNDARY
+from backend.bounding_polygons import NM_BOUNDARY_BUFFERED
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
     PARTS_PER_MILLION,
@@ -462,7 +462,7 @@ class BaseTransformer(Loggable):
 
             if not self.in_nm(lng, lat):
                 self.warn(
-                    f"Skipping site {record.id}. Coordinates {x}, {y} with datum {input_horizontal_datum} are not in New Mexico"
+                    f"Skipping site {record.id}. Coordinates {x}, {y} with datum {input_horizontal_datum} are not within 25km of New Mexico"
                 )
                 return None
 
@@ -550,7 +550,7 @@ class BaseTransformer(Loggable):
             True if the point is in New Mexico, otherwise False
         """
         point = Point(lng, lat)
-        if NM_BOUNDARY.contains(point):
+        if NM_BOUNDARY_BUFFERED.contains(point):
             return True
         else:
             return False
