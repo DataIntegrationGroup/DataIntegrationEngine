@@ -1,9 +1,6 @@
 import os
 
 from shapely import wkt
-from shapely.geometry.polygon import Polygon
-
-from backend.bounding_polygons import get_county_polygon, get_county_names
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.nmose.transformer import NMOSEPODSiteTransformer
 from backend.source import BaseSiteSource
