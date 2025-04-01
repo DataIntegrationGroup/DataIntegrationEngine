@@ -39,6 +39,7 @@ from .connectors.ckan.source import (
     OSERoswellWaterLevelSource,
 )
 from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
+from .connectors.nmose.source import NMOSEPODSiteSource
 from .constants import MILLIGRAMS_PER_LITER, WGS84, FEET
 from .connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
@@ -74,6 +75,7 @@ SOURCE_DICT = {
     "nwis": NWISSiteSource,
     "pvacd": PVACDSiteSource,
     "wqp": WQPSiteSource,
+    "nmose_pod": NMOSEPODSiteSource,
 }
 
 SOURCE_KEYS = list(SOURCE_DICT.keys())
@@ -115,6 +117,7 @@ class Config(Loggable):
     use_source_nwis: bool = True
     use_source_pvacd: bool = True
     use_source_wqp: bool = True
+    use_source_nmose_pod: bool = False
 
     # parameter
     parameter: str = ""
@@ -187,6 +190,9 @@ class Config(Loggable):
                 source.set_config(self)
                 sources.append((source, None))
 
+        # pods = NMOSEPODSiteSource()
+        # pods.set_config(self)
+        # sources.append((pods, None))
         return sources
 
     def analyte_sources(self):
