@@ -64,7 +64,6 @@ class NMOSEPODSiteSource(BaseSiteSource):
             rs = self._execute_json_request(url, params, tag='features')
             records.extend(rs)
             params['resultOffset'] += self.chunk_size
-            print((i, len(rs)))
             if len(rs) < self.chunk_size:
                 break
             i+=1
