@@ -17,7 +17,7 @@ import shapely
 
 from backend.config import Config, get_source
 from backend.constants import WATERLEVELS
-from backend.logging import setup_logging
+from backend.logger import setup_logging
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 from backend.source import BaseSiteSource
 
