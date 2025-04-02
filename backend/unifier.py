@@ -156,11 +156,18 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                     end_ind += n
 
                 if use_summarize:
+                    print("summarize")
+                    print(sites_with_records_count, site_limit)
                     summary_records = parameter_source.read(
                         sites, use_summarize, start_ind, end_ind
                     )
                     if summary_records:
+                        print("here", len(summary_records))
                         persister.records.extend(summary_records)
+                        sites_with_records_count += len(summary_records)
+                    else:
+                        print("there")
+                        continue
                 else:
                     results = parameter_source.read(
                         sites, use_summarize, start_ind, end_ind
@@ -175,7 +182,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         persister.timeseries.append((site, records))
                         persister.sites.append(site)
 
-                sites_with_records_count += 1
+                    print("incrementing sites_with_records_count")
+                    sites_with_records_count += 1
 
     except BaseException:
         import traceback
