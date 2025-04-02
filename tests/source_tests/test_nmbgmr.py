@@ -3,6 +3,7 @@ from tests import BaseTestClass
 
 import pytest
 
+
 class TestNMBGMRWaterlevels(BaseTestClass):
 
     parameter = WATERLEVELS

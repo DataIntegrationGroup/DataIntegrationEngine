@@ -5,6 +5,7 @@ from backend.config import Config, SOURCE_KEYS, get_source
 from backend.constants import WATERLEVELS
 from backend.unifier import unify_analytes, unify_waterlevels
 
+
 class BaseTestClass:
 
     parameter = None
@@ -23,7 +24,7 @@ class BaseTestClass:
 
         for agency in SOURCE_KEYS:
             setattr(self.config, f"use_source_{agency}", False)
-        
+
         setattr(self.config, "site_limit", self.site_limit)
         setattr(self.config, "parameter", self.parameter)
         setattr(self.config, "units", self.units)
@@ -58,13 +59,13 @@ class BaseTestClass:
         # Arrange
         self.config.output_summary = True
         self.config.report()
-        
+
         # Act
         if self.parameter == WATERLEVELS:
             unify_waterlevels(self.config)
         else:
             unify_analytes(self.config)
-        
+
         # Assert
         # Check the summary file
         summary_file = Path(self.config.output_path) / "summary.csv"
