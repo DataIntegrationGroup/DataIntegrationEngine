@@ -181,7 +181,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return [ri for ri in records if ri["site_code"] == site_record.id]
 
     def _clean_records(self, records):
-        return [r for r in records if r["value"] is not None and r["value"].strip()]
+        return [r for r in records if r["value"] is not None and r["value"].strip() and r["value"] != "-999999"]
 
     def _extract_source_parameter_results(self, records):
         return [float(r["value"]) for r in records]
