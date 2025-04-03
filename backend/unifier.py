@@ -129,9 +129,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         use_summarize = config.output_summary
         site_limit = config.site_limit
 
-        sites = site_source.read()
-
-        if not sites:
+        if not site_source.read():
             return
 
         sites_with_records_count = 0
@@ -140,7 +138,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         first_flag = True
 
         if config.sites_only:
-            persister.sites.extend(sites)
+            persister.sites.extend(site_source.read())
         else:
             for sites in site_source.chunks(sites):
                 if site_limit and sites_with_records_count == site_limit:
