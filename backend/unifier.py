@@ -129,23 +129,35 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         use_summarize = config.output_summary
         site_limit = config.site_limit
 
-        if not site_source.read():
+        sites = site_source.read()
+
+        if not sites:
             return
 
         sites_with_records_count = 0
-        start_ind = 1
+        start_ind = 0
         end_ind = 0
         first_flag = True
 
+        """
+        If site_source.chunk_size is greater than site_limit, set it to site_limit
+        so that we don't get too many sites at once. This will need to be repeated
+        within the for loop in conjunction with sites_with_records_count so that
+        the site_limit is not surpassed
+        """
+        if site_limit > 0 and site_source.get_chunk_size() > site_limit:
+            site_source.set_chunk_size(site_limit)
+
         if config.sites_only:
-            persister.sites.extend(site_source.read())
+            persister.sites.extend(sites)
         else:
-            for sites in site_source.chunks(sites):
+            for site_records in site_source.chunks(sites):
                 if site_limit and sites_with_records_count == site_limit:
                     break
+                # elif 
 
-                if type(sites) == list:
-                    n = len(sites)
+                if type(site_records) == list:
+                    n = len(site_records)
                     if first_flag:
                         first_flag = False
                     else:
@@ -155,9 +167,10 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
                 if use_summarize:
                     print("summarize")
-                    print(sites_with_records_count, site_limit)
+                    print("sites_with_records_count:", sites_with_records_count, "site_limit:", site_limit, "chunk_size:", site_source.get_chunk_size())
+                    print("start_ind:", start_ind, "end_ind:", end_ind)
                     summary_records = parameter_source.read(
-                        sites, use_summarize, start_ind, end_ind
+                        site_records, use_summarize, start_ind, end_ind
                     )
                     if summary_records:
                         print("here", len(summary_records))
@@ -168,7 +181,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         continue
                 else:
                     results = parameter_source.read(
-                        sites, use_summarize, start_ind, end_ind
+                        site_records, use_summarize, start_ind, end_ind
                     )
                     # no records are returned if there is no site record for parameter
                     # or if the record isn't clean (doesn't have the correct fields)
@@ -182,6 +195,11 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
                     print("incrementing sites_with_records_count")
                     sites_with_records_count += 1
+
+                if site_limit > 0 and site_limit < sites_with_records_count + site_source.get_chunk_size():
+                    new_chunk_size = site_limit - sites_with_records_count
+                    site_source.set_chunk_size(new_chunk_size)
+                    print("new_chunk_size:", new_chunk_size)
 
     except BaseException:
         import traceback

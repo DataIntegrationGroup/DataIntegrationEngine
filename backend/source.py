@@ -256,7 +256,8 @@ class BaseSource(Loggable):
         dict
             the json response
         """
-        # print(url)
+        print(url)
+        print(params)
         resp = httpx.get(url, params=params, **kw)
         if tag is None:
             tag = "data"
@@ -508,6 +509,30 @@ class BaseSiteSource(BaseSource):
             ]
         else:
             return records
+        
+    def get_chunk_size(self):
+        """
+        Returns the chunk size for the source. This is used to determine how many records
+        to process at once.
+
+        Returns
+        -------
+        int
+            the chunk size for the source
+        """
+        return self.chunk_size
+    
+    def set_chunk_size(self, chunk_size: int):
+        """
+        Sets the chunk size for the source. This is used to determine how many records
+        to process at once.
+
+        Parameters
+        ----------
+        chunk_size : int
+            the chunk size for the source
+        """
+        self.chunk_size = chunk_size
 
 
 class BaseParameterSource(BaseSource):
