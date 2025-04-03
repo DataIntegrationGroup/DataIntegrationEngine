@@ -12,10 +12,8 @@ class BaseTestClass:
     units = None
     agency = None
 
-    dirs_and_files_to_delete = []
-
-    # restrict results to 10 for testing
-    site_limit = 39
+    # set set_limit for tests
+    site_limit = 8
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -35,17 +33,15 @@ class BaseTestClass:
         # run test
         yield
 
-        # Teardown code
+        # Teardown code        
+        path_to_clean = Path(self.config.output_path)
+        print(f"Cleaning and removing {path_to_clean}")
+        for f in Path(path_to_clean).iterdir():
+            f.unlink()
+        path_to_clean.rmdir()
+        self.dirs_to_delete = []
         self.config = None
         self.unifier = None
-        for p in self.dirs_and_files_to_delete:
-            if p.is_file():
-                p.unlink()
-            elif p.is_dir():
-                for f in p.iterdir():
-                    f.unlink()
-                p.rmdir()
-        self.dirs_and_files_to_delete = []
 
     def _unify(self):
         self.unifier(self.config)
@@ -103,7 +99,6 @@ class BaseTestClass:
                 "latest_units",
             ]
             assert headers == expected_headers
-        self.dirs_and_files_to_delete.append(summary_file)
 
     def _test_timeseries_unified(self):
         pass

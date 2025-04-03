@@ -139,15 +139,6 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         end_ind = 0
         first_flag = True
 
-        """
-        If site_source.chunk_size is greater than site_limit, set it to site_limit
-        so that we don't get too many sites at once. This will need to be repeated
-        within the for loop in conjunction with sites_with_records_count so that
-        the site_limit is not surpassed
-        """
-        if site_limit > 0 and site_source. chunk_size > site_limit:
-            site_source.chunk_size = site_limit
-
         if config.sites_only:
             persister.sites.extend(sites)
         else:
@@ -158,7 +149,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                 elif site_limit and sites_with_records_count > site_limit:
                     # remove any extra sites that were gathered
                     num_sites_to_remove = sites_with_records_count - site_limit
-                    print("removing", num_sites_to_remove)
+                    print(f"removing {num_sites_to_remove} to avoid exceeding the site limit")
                     
                     if use_summarize:
                         persister.records = persister.records[:-num_sites_to_remove]
