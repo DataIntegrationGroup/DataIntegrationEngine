@@ -145,16 +145,27 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         within the for loop in conjunction with sites_with_records_count so that
         the site_limit is not surpassed
         """
-        if site_limit > 0 and site_source.get_chunk_size() > site_limit:
-            site_source.set_chunk_size(site_limit)
+        if site_limit > 0 and site_source. chunk_size > site_limit:
+            site_source.chunk_size = site_limit
 
         if config.sites_only:
             persister.sites.extend(sites)
         else:
             for site_records in site_source.chunks(sites):
+                print("sites_with_records_count:", sites_with_records_count, "|", "site_limit:", site_limit, "|", "chunk_size:", site_source.chunk_size)
                 if site_limit and sites_with_records_count == site_limit:
                     break
-                # elif 
+                elif site_limit and sites_with_records_count > site_limit:
+                    # remove any extra sites that were gathered
+                    num_sites_to_remove = sites_with_records_count - site_limit
+                    print("removing", num_sites_to_remove)
+                    
+                    if use_summarize:
+                        persister.records = persister.records[:-num_sites_to_remove]
+                    else:
+                        persister.timeseries = persister.timeseries[:-num_sites_to_remove]
+                        persister.sites = persister.sites[:-num_sites_to_remove]
+                    break
 
                 if type(site_records) == list:
                     n = len(site_records)
@@ -165,19 +176,14 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
                     end_ind += n
 
-                if use_summarize:
-                    print("summarize")
-                    print("sites_with_records_count:", sites_with_records_count, "site_limit:", site_limit, "chunk_size:", site_source.get_chunk_size())
-                    print("start_ind:", start_ind, "end_ind:", end_ind)
+                if use_summarize:                    
                     summary_records = parameter_source.read(
                         site_records, use_summarize, start_ind, end_ind
                     )
                     if summary_records:
-                        print("here", len(summary_records))
                         persister.records.extend(summary_records)
                         sites_with_records_count += len(summary_records)
                     else:
-                        print("there")
                         continue
                 else:
                     results = parameter_source.read(
@@ -188,18 +194,12 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                     # don't count these sites to apply to site_limit
                     if results is None or len(results) == 0:
                         continue
+                    else:
+                        sites_with_records_count += len(results)
 
                     for site, records in results:
                         persister.timeseries.append((site, records))
                         persister.sites.append(site)
-
-                    print("incrementing sites_with_records_count")
-                    sites_with_records_count += 1
-
-                if site_limit > 0 and site_limit < sites_with_records_count + site_source.get_chunk_size():
-                    new_chunk_size = site_limit - sites_with_records_count
-                    site_source.set_chunk_size(new_chunk_size)
-                    print("new_chunk_size:", new_chunk_size)
 
     except BaseException:
         import traceback
