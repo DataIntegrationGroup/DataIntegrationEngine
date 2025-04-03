@@ -33,7 +33,7 @@ class BaseTestClass:
         # run test
         yield
 
-        # Teardown code        
+        # Teardown code
         path_to_clean = Path(self.config.output_path)
         print(f"Cleaning and removing {path_to_clean}")
         for f in Path(path_to_clean).iterdir():
