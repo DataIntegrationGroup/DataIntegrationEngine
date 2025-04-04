@@ -161,13 +161,17 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                             f"removing {num_sites_to_remove} to avoid exceeding the site limit"
                         )
 
+                        # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
+                        # and calling list[:0] will retur an empty list, so subtract
+                        # num_sites_to_remove from the length of the list
+                        # to remove the last num_sites_to_remove sites
                         if use_summarize:
-                            persister.records = persister.records[:-num_sites_to_remove]
+                            persister.records = persister.records[:len(persister.records)-num_sites_to_remove]
                         else:
                             persister.timeseries = persister.timeseries[
-                                :-num_sites_to_remove
+                                :len(persister.timeseries)-num_sites_to_remove
                             ]
-                            persister.sites = persister.sites[:-num_sites_to_remove]
+                            persister.sites = persister.sites[:len(persister.sites)-num_sites_to_remove]
                         break
 
                 if type(site_records) == list:
