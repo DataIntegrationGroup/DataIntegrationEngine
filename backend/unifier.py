@@ -148,7 +148,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                     if sites_with_records_count >= site_limit:
                         # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
                         num_sites_to_remove = sites_with_records_count - site_limit
-                        print(f"removing {num_sites_to_remove} to avoid exceeding the site limit")
+                        print(f"removing {num_sites_to_remove} records to avoid exceeding the site limit")
                         
                         if use_summarize:
                             persister.records = persister.records[:-num_sites_to_remove]
