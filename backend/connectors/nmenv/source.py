@@ -27,8 +27,7 @@ from backend.constants import (
     DT_MEASURED,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
-    EARLIEST,
-    LATEST,
+    TDS
 )
 from backend.source import get_analyte_search_param, get_terminal_record
 
@@ -46,7 +45,7 @@ class DWBSiteSource(STSiteSource):
         return "DWBSiteSource"
 
     def health(self):
-        return self.get_records(top=10, analyte="TDS")
+        return self.get_records(top=10, analyte=tds)
 
     def get_records(self, *args, **kw):
 
