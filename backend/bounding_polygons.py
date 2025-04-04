@@ -162,7 +162,7 @@ def get_county_polygon(name, as_wkt=True):
         _warning(f"Invalid state. {state}")
 
 
-def get_state_polygon(state, buffer):
+def get_state_polygon(state: str, buffer: int | None =None):
     statefp = _statelookup(state)
     if statefp:
         obj = _get_cached_object(

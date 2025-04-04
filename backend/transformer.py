@@ -131,7 +131,7 @@ def convert_units(
     output_units: str,
     source_parameter_name: str,
     die_parameter_name: str,
-    dt: str = None,
+    dt: str | None = None,
 ) -> tuple[float, float, str]:
     """
     Converts the following units for any parameter value:
@@ -198,7 +198,7 @@ def convert_units(
     the source_parameter_name (e.g. nitrate as n).
     """
     if die_parameter_name == "ph":
-        conversion_factor = 1
+        conversion_factor = 1.0
     elif output_units == mgl:
         if input_units in ["mg/l caco3", "mg/l caco3**"]:
             if die_parameter_name == "bicarbonate":
@@ -210,7 +210,7 @@ def convert_units(
         elif input_units == "mg/l as n":
             conversion_factor = 4.427
         elif input_units in ["mg/l asno3", "mg/l as no3"]:
-            conversion_factor = 1
+            conversion_factor = 1.0
         elif input_units == "ug/l as n":
             conversion_factor = 0.004427
         elif input_units == "pci/l":
@@ -220,22 +220,22 @@ def convert_units(
         elif input_units == tpaf:
             conversion_factor = 735.47
         elif input_units == ppm:
-            conversion_factor = 1
+            conversion_factor = 1.0
         elif input_units == output_units:
             if source_parameter_name in ["nitrate as n", "nitrate (as n)"]:
                 conversion_factor = 4.427
             else:
-                conversion_factor = 1
+                conversion_factor = 1.0
     elif output_units == ft:
         if input_units in [m, "meters"]:
             conversion_factor = 3.28084
         elif input_units in [ft, "feet"]:
-            conversion_factor = 1
+            conversion_factor = 1.0
     elif output_units == m:
         if input_units in [ft, "feet"]:
             conversion_factor = 0.3048
         elif input_units in [m, "meters"]:
-            conversion_factor = 1
+            conversion_factor = 1.0
 
     if conversion_factor:
         return input_value * conversion_factor, conversion_factor, warning
@@ -395,7 +395,7 @@ class BaseTransformer(Loggable):
         # _transform is already implemented in each ParameterTransformer
         record = self._transform(inrecord, *args, **kw)
         if not record:
-            return
+            return None
 
         # ensure that a site or summary record is contained within the boundaing polygon
         if "longitude" in record and "latitude" in record:
@@ -403,7 +403,7 @@ class BaseTransformer(Loggable):
                 self.warn(
                     f"Skipping site {record['id']}. It is not within the defined geographic bounds"
                 )
-                return
+                return None
 
         self._post_transform(record, *args, **kw)
 
