@@ -30,7 +30,7 @@ class BaseTestClass:
     agency = None
 
     # set set_limit for tests
-    site_limit = 6
+    site_limit = 3
 
     @pytest.fixture(autouse=True)
     def setup(self):
