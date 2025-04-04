@@ -143,17 +143,30 @@ def _site_wrapper(site_source, parameter_source, persister, config):
             persister.sites.extend(sites)
         else:
             for site_records in site_source.chunks(sites):
-                print("sites_with_records_count:", sites_with_records_count, "|", "site_limit:", site_limit, "|", "chunk_size:", site_source.chunk_size)
+                print(
+                    "sites_with_records_count:",
+                    sites_with_records_count,
+                    "|",
+                    "site_limit:",
+                    site_limit,
+                    "|",
+                    "chunk_size:",
+                    site_source.chunk_size,
+                )
                 if site_limit:
                     if sites_with_records_count >= site_limit:
                         # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
                         num_sites_to_remove = sites_with_records_count - site_limit
-                        print(f"removing {num_sites_to_remove} records to avoid exceeding the site limit")
-                        
+                        print(
+                            f"removing {num_sites_to_remove} to avoid exceeding the site limit"
+                        )
+
                         if use_summarize:
                             persister.records = persister.records[:-num_sites_to_remove]
                         else:
-                            persister.timeseries = persister.timeseries[:-num_sites_to_remove]
+                            persister.timeseries = persister.timeseries[
+                                :-num_sites_to_remove
+                            ]
                             persister.sites = persister.sites[:-num_sites_to_remove]
                         break
 
@@ -166,7 +179,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
                     end_ind += n
 
-                if use_summarize:                    
+                if use_summarize:
                     summary_records = parameter_source.read(
                         site_records, use_summarize, start_ind, end_ind
                     )
