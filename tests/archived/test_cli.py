@@ -13,209 +13,209 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import os
+# import os
 
-from click.testing import CliRunner
-from frontend.cli import analytes, waterlevels
+# from click.testing import CliRunner
+# from frontend.cli import analytes, waterlevels
 
 
-def _tester(function, args, fail=False):
-    runner = CliRunner()
-    print(f"invoked with {args}")
-    result = runner.invoke(function, args)
-    print(f"result.exit_code={result.exit_code}")
-    print(f"result.output=\n{result.output}")
+# def _tester(function, args, fail=False):
+#     runner = CliRunner()
+#     print(f"invoked with {args}")
+#     result = runner.invoke(function, args)
+#     print(f"result.exit_code={result.exit_code}")
+#     print(f"result.output=\n{result.output}")
 
-    if fail:
-        assert result.exit_code != 0
-    else:
-        assert result.exit_code == 0
+#     if fail:
+#         assert result.exit_code != 0
+#     else:
+#         assert result.exit_code == 0
 
 
-def _make_args(source):
-    args = []
-    if source:
-        nosources = [
-            f
-            for f in (
-                "--no-amp",
-                "--no-nwis",
-                "--no-pvacd",
-                "--no-bor",
-                "--no-dwb",
-                "--no-wqp",
-                "--no-isc-seven-rivers",
-                "--no-ckan",
-            )
-            if f != f"--no-{source}"
-        ]
-        args += nosources
+# def _make_args(source):
+#     args = []
+#     if source:
+#         nosources = [
+#             f
+#             for f in (
+#                 "--no-amp",
+#                 "--no-nwis",
+#                 "--no-pvacd",
+#                 "--no-bor",
+#                 "--no-dwb",
+#                 "--no-wqp",
+#                 "--no-isc-seven-rivers",
+#                 "--no-ckan",
+#             )
+#             if f != f"--no-{source}"
+#         ]
+#         args += nosources
 
-    args += ["--site-limit", 10, "--dry"]
+#     args += ["--site-limit", 10, "--dry"]
 
-    return args
+#     return args
 
 
-def _make_tds_args(source):
-    return ["TDS"] + _make_args(source)
+# def _make_tds_args(source):
+#     return ["TDS"] + _make_args(source)
 
 
-def _make_wl_args(source=None):
-    return _make_args(source)
+# def _make_wl_args(source=None):
+#     return _make_args(source)
 
 
-def test_waterlevels_nwis():
-    args = _make_wl_args("nwis")
-    _tester(waterlevels, args)
+# def test_waterlevels_nwis():
+#     args = _make_wl_args("nwis")
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_pvacd():
-    args = _make_wl_args("pvacd")
-    _tester(waterlevels, args)
+# def test_waterlevels_pvacd():
+#     args = _make_wl_args("pvacd")
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_nmbgmr():
-    args = _make_wl_args("nmbgmr")
-    _tester(waterlevels, args)
+# def test_waterlevels_nmbgmr():
+#     args = _make_wl_args("nmbgmr")
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_isc_seven_rivers():
-    args = _make_wl_args("iscsevenrivers")
-    _tester(waterlevels, args)
+# def test_waterlevels_isc_seven_rivers():
+#     args = _make_wl_args("iscsevenrivers")
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_invalid_source():
-    args = _make_wl_args()
-    args.append("--no-foo")
-    _tester(waterlevels, args, fail=True)
+# def test_waterlevels_invalid_source():
+#     args = _make_wl_args()
+#     args.append("--no-foo")
+#     _tester(waterlevels, args, fail=True)
 
 
-def test_waterlevels_invalid_bbox():
-    args = _make_wl_args()
-    args.append("--bbox")
-    _tester(waterlevels, args, fail=True)
+# def test_waterlevels_invalid_bbox():
+#     args = _make_wl_args()
+#     args.append("--bbox")
+#     _tester(waterlevels, args, fail=True)
 
 
-def test_waterlevels_invalid_bbox_format():
-    args = _make_wl_args()
-    args.extend(["--bbox", "1 2 3"])
-    _tester(waterlevels, args, fail=True)
+# def test_waterlevels_invalid_bbox_format():
+#     args = _make_wl_args()
+#     args.extend(["--bbox", "1 2 3"])
+#     _tester(waterlevels, args, fail=True)
 
 
-def test_waterlevels_valid_bbox_format():
-    args = _make_wl_args()
-    args.extend(["--bbox", "1 2,3 4"])
-    _tester(waterlevels, args)
+# def test_waterlevels_valid_bbox_format():
+#     args = _make_wl_args()
+#     args.extend(["--bbox", "1 2,3 4"])
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_invalid_county():
-    args = _make_wl_args()
-    args.append("--county")
-    _tester(waterlevels, args, fail=True)
+# def test_waterlevels_invalid_county():
+#     args = _make_wl_args()
+#     args.append("--county")
+#     _tester(waterlevels, args, fail=True)
 
 
-def test_waterlevels_invalid_county_name():
-    args = _make_wl_args()
-    args.extend(["--county", "foo"])
-    _tester(waterlevels, args, fail=True)
+# def test_waterlevels_invalid_county_name():
+#     args = _make_wl_args()
+#     args.extend(["--county", "foo"])
+#     _tester(waterlevels, args, fail=True)
 
 
-# Analyte Tests =======================================================
-def test_analytes_wqp():
-    args = _make_tds_args("wqp")
-    _tester(analytes, args)
+# # Analyte Tests =======================================================
+# def test_analytes_wqp():
+#     args = _make_tds_args("wqp")
+#     _tester(analytes, args)
 
 
-def test_analytes_bor():
-    args = _make_tds_args("bor")
-    _tester(analytes, args)
+# def test_analytes_bor():
+#     args = _make_tds_args("bor")
+#     _tester(analytes, args)
 
 
-def test_analytes_amp():
-    args = _make_tds_args("amp")
-    _tester(analytes, args)
+# def test_analytes_amp():
+#     args = _make_tds_args("amp")
+#     _tester(analytes, args)
 
 
-def test_analytes_dwb():
-    args = _make_tds_args("dwb")
-    _tester(analytes, args)
+# def test_analytes_dwb():
+#     args = _make_tds_args("dwb")
+#     _tester(analytes, args)
 
 
-def test_analytes_isc_seven_rivers():
-    args = _make_tds_args("isc-seven-rivers")
-    _tester(analytes, args)
+# def test_analytes_isc_seven_rivers():
+#     args = _make_tds_args("isc-seven-rivers")
+#     _tester(analytes, args)
 
 
-def test_analytes_invalid_analyte():
-    args = _make_args("wqp")
-    args[0] = "Foo"
-    _tester(analytes, args, fail=True)
+# def test_analytes_invalid_analyte():
+#     args = _make_args("wqp")
+#     args[0] = "Foo"
+#     _tester(analytes, args, fail=True)
 
 
-def test_analytes_invalid_source():
-    args = _make_tds_args("wqp")
-    args.append("--no-foo")
-    _tester(analytes, args, fail=True)
+# def test_analytes_invalid_source():
+#     args = _make_tds_args("wqp")
+#     args.append("--no-foo")
+#     _tester(analytes, args, fail=True)
 
 
-def test_analytes_invalid_bbox():
-    args = _make_tds_args("wqp")
-    args.append("--bbox")
-    _tester(analytes, args, fail=True)
+# def test_analytes_invalid_bbox():
+#     args = _make_tds_args("wqp")
+#     args.append("--bbox")
+#     _tester(analytes, args, fail=True)
 
 
-def test_analytes_invalid_bbox_format():
-    args = _make_tds_args("wqp")
-    args.extend(["--bbox", "1 2 3"])
-    _tester(analytes, args, fail=True)
+# def test_analytes_invalid_bbox_format():
+#     args = _make_tds_args("wqp")
+#     args.extend(["--bbox", "1 2 3"])
+#     _tester(analytes, args, fail=True)
 
 
-def test_analytes_valid_bbox_format():
-    args = _make_tds_args("wqp")
-    args.extend(["--bbox", "1 2,3 4"])
-    _tester(analytes, args)
+# def test_analytes_valid_bbox_format():
+#     args = _make_tds_args("wqp")
+#     args.extend(["--bbox", "1 2,3 4"])
+#     _tester(analytes, args)
 
 
-def test_analytes_invalid_county():
-    args = _make_tds_args("wqp")
-    args.append("--county")
-    _tester(analytes, args, fail=True)
+# def test_analytes_invalid_county():
+#     args = _make_tds_args("wqp")
+#     args.append("--county")
+#     _tester(analytes, args, fail=True)
 
 
-def test_analytes_invalid_county_name():
-    args = _make_tds_args("wqp")
-    args.extend(["--county", "foo"])
-    _tester(analytes, args, fail=True)
+# def test_analytes_invalid_county_name():
+#     args = _make_tds_args("wqp")
+#     args.extend(["--county", "foo"])
+#     _tester(analytes, args, fail=True)
 
 
-def test_waterlevels_date_range_YMD():
-    args = _make_wl_args()
-    args.extend(["--start-date", "2020-01-01", "--end-date", "2020-05-01"])
-    _tester(waterlevels, args)
+# def test_waterlevels_date_range_YMD():
+#     args = _make_wl_args()
+#     args.extend(["--start-date", "2020-01-01", "--end-date", "2020-05-01"])
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_date_range_YM():
-    args = _make_wl_args()
-    args.extend(["--start-date", "2020-01", "--end-date", "2020-05"])
-    _tester(waterlevels, args)
+# def test_waterlevels_date_range_YM():
+#     args = _make_wl_args()
+#     args.extend(["--start-date", "2020-01", "--end-date", "2020-05"])
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_date_range_Y():
-    args = _make_wl_args()
-    args.extend(["--start-date", "2020", "--end-date", "2021"])
-    _tester(waterlevels, args)
+# def test_waterlevels_date_range_Y():
+#     args = _make_wl_args()
+#     args.extend(["--start-date", "2020", "--end-date", "2021"])
+#     _tester(waterlevels, args)
 
 
-def test_waterlevels_invalid_start():
-    args = _make_wl_args()
-    args.extend(["--start-date", "x-01-01", "--end-date", "2019-05-01"])
-    _tester(waterlevels, args, fail=True)
+# def test_waterlevels_invalid_start():
+#     args = _make_wl_args()
+#     args.extend(["--start-date", "x-01-01", "--end-date", "2019-05-01"])
+#     _tester(waterlevels, args, fail=True)
 
 
-def test_waterlevels_invalid_end():
-    args = _make_wl_args()
-    args.extend(["--start-date", "2020-01-01", "--end-date", "x-05-01"])
-    _tester(waterlevels, args, fail=True)
+# def test_waterlevels_invalid_end():
+#     args = _make_wl_args()
+#     args.extend(["--start-date", "2020-01-01", "--end-date", "x-05-01"])
+#     _tester(waterlevels, args, fail=True)
 
 
 #

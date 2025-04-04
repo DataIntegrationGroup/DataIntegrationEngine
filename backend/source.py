@@ -19,7 +19,7 @@ import click
 import httpx
 import shapely.wkt
 from shapely import MultiPoint
-from typing import Union, List
+from typing import Union, List, Callable
 
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
@@ -47,7 +47,7 @@ from backend.record import (
 from backend.transformer import BaseTransformer, convert_units
 
 
-def make_site_list(site_record: list | dict) -> list | str:
+def make_site_list(site_record: list[SiteRecord] | SiteRecord) -> list | str:
     """
     Returns a list of site ids, as defined by site_record
 
@@ -67,7 +67,7 @@ def make_site_list(site_record: list | dict) -> list | str:
     return sites
 
 
-def get_terminal_record(records: list, tag: Union[str, callable], bookend: str) -> dict:
+def get_terminal_record(records: list, tag: Union[str, Callable], bookend: str) -> dict:
     """
     Returns the most recent record based on the tag
 
