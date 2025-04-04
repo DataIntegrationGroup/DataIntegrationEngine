@@ -8,6 +8,7 @@ class TestNMBGMRWaterlevels(BaseTestClass):
     units = FEET
     agency = "nmbgmr_amp"
 
+
 class TestNMBGMRAnalyte(BaseTestClass):
 
     parameter = CALCIUM

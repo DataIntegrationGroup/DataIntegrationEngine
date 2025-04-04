@@ -55,13 +55,12 @@ class BaseTestClass:
         # 1: log file exists
         log_path = Path(self.config.output_path) / "die.log"
         assert log_path.exists()
-        
 
-        # TEARDOWN CODE --------------------------------------------------------  
-        # 1: close logger to delete log file 
+        # TEARDOWN CODE --------------------------------------------------------
+        # 1: close logger to delete log file
         logger_shutdown()
 
-        # 2: delete newly created dirs and files     
+        # 2: delete newly created dirs and files
         path_to_clean = Path(self.config.output_path)
         print(f"Cleaning and removing {path_to_clean}")
         recursively_clean_directory(path_to_clean)
@@ -125,7 +124,6 @@ class BaseTestClass:
         with open(summary_file, "r") as f:
             lines = f.readlines()
             assert len(lines) == self.site_limit + 1
-            
 
     def test_timeseries_unified(self):
         # Arrange --------------------------------------------------------------
@@ -138,7 +136,7 @@ class BaseTestClass:
         # Assert ---------------------------------------------------------------
         # Check the sites file
         self._check_sites_file()
-        
+
         # Check the timeseries file
         timeseries_dir = Path(self.config.output_path)
         timeseries_file_name = "timeseries_unified.csv"

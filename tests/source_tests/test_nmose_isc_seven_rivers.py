@@ -8,6 +8,7 @@ class TestNMOSEISCSevenRiversWaterlevels(BaseTestClass):
     units = FEET
     agency = "nmose_isc_seven_rivers"
 
+
 class TestNMOSEISCSevenRiversAnalyte(BaseTestClass):
 
     parameter = CALCIUM

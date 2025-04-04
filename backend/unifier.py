@@ -179,15 +179,15 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
                 if site_limit:
                     print(
-                    "sites_with_records_count:",
-                    sites_with_records_count,
-                    "|",
-                    "site_limit:",
-                    site_limit,
-                    "|",
-                    "chunk_size:",
-                    site_source.chunk_size,
-                )
+                        "sites_with_records_count:",
+                        sites_with_records_count,
+                        "|",
+                        "site_limit:",
+                        site_limit,
+                        "|",
+                        "chunk_size:",
+                        site_source.chunk_size,
+                    )
 
                     if sites_with_records_count >= site_limit:
                         # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
@@ -201,12 +201,16 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         # num_sites_to_remove from the length of the list
                         # to remove the last num_sites_to_remove sites
                         if use_summarize:
-                            persister.records = persister.records[:len(persister.records)-num_sites_to_remove]
+                            persister.records = persister.records[
+                                : len(persister.records) - num_sites_to_remove
+                            ]
                         else:
                             persister.timeseries = persister.timeseries[
-                                :len(persister.timeseries)-num_sites_to_remove
+                                : len(persister.timeseries) - num_sites_to_remove
                             ]
-                            persister.sites = persister.sites[:len(persister.sites)-num_sites_to_remove]
+                            persister.sites = persister.sites[
+                                : len(persister.sites) - num_sites_to_remove
+                            ]
                         break
 
     except BaseException:

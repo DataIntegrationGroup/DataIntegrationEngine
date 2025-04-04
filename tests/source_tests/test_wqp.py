@@ -8,6 +8,7 @@ class TestWQPWaterlevels(BaseTestClass):
     units = FEET
     agency = "wqp"
 
+
 class TestWQPAnalyte(BaseTestClass):
 
     parameter = CALCIUM
