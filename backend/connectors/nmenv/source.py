@@ -45,7 +45,7 @@ class DWBSiteSource(STSiteSource):
         return "DWBSiteSource"
 
     def health(self):
-        return self.get_records(top=10, analyte=tds)
+        return self.get_records(top=10, analyte=TDS)
 
     def get_records(self, *args, **kw):
 
