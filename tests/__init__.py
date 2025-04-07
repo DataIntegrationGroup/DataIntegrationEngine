@@ -1,6 +1,7 @@
 from logging import shutdown as logger_shutdown
 from pathlib import Path
 import pytest
+from typing import Optional
 
 from backend.config import Config, SOURCE_KEYS
 from backend.constants import WATERLEVELS
@@ -24,13 +25,12 @@ def recursively_clean_directory(path):
 
 
 class BaseTestClass:
+    parameter: str
+    units: str
+    agency: str
 
-    parameter = None
-    units = None
-    agency = None
-
-    # set set_limit for tests
-    site_limit = 3
+    # set site_limit for tests
+    site_limit: int = 3
 
     @pytest.fixture(autouse=True)
     def setup(self):
