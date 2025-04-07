@@ -1,4 +1,4 @@
-import os
+from typing import List,Dict, Tuple
 
 from shapely import wkt
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
@@ -20,10 +20,10 @@ class NMOSEPODSiteSource(BaseSiteSource):
     """
 
     transformer_klass = NMOSEPODSiteTransformer
-    chunk_size = 5000
+    chunk_size: int = 5000
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
-    def get_records(self, *args, **kw) -> dict:
+    def get_records(self, *args, **kw) -> List[Dict]:
         config = self.config
         params = {}
         # if config.has_bounds():
@@ -37,25 +37,25 @@ class NMOSEPODSiteSource(BaseSiteSource):
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
 
-        url = "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
+        url: str = "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
 
-        params["where"] = (
+        params["where"]: Tuple = (
             "pod_status = 'ACT' AND pod_basin IN ('A','B','C','CC','CD','CL','CP','CR','CT','E','FS','G','GSF','H', 'HA','HC','HS','HU','J','L','LA','LRG','LV','M','MR','NH','P','PL','PN','RA','RG','S','SB','SJ','SS','T','TU','UP','VV')"
         )
-        params["outFields"] = (
+        params["outFields"]: Tuple = (
             "OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county,pod_name,pod_nbr,pod_suffix,pod_file"
         )
-        params["outSR"] = 4326
-        params["f"] = "json"
-        params["resultRecordCount"] = self.chunk_size
-        params["resultOffset"] = 0
+        params["outSR"]: int = 4326
+        params["f"]: str = "json"
+        params["resultRecordCount"]: int = self.chunk_size
+        params["resultOffset"]: int = 0
 
         if config.has_bounds():
             wkt = config.bounding_wkt()
             params["geometry"] = wkt_to_arcgis_json(wkt)
             params["geometryType"] = "esriGeometryPolygon"
 
-        records = []
+        records: List = []
         i = 1
         while 1:
             rs = self._execute_json_request(url, params, tag="features")

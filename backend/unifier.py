@@ -39,6 +39,8 @@ def health_check(source: BaseSiteSource) -> bool:
     source = get_source(source)
     if source:
         return bool(source.health())
+    else:
+        return None
 
 
 def unify_analytes(config):
