@@ -1,4 +1,4 @@
-from typing import List,Dict, Tuple
+from typing import List, Dict, Tuple
 
 from shapely import wkt
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
@@ -37,7 +37,9 @@ class NMOSEPODSiteSource(BaseSiteSource):
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
 
-        url: str = "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
+        url: str = (
+            "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
+        )
 
         params["where"] = (
             "pod_status = 'ACT' AND pod_basin IN ('A','B','C','CC','CD','CL','CP','CR','CT','E','FS','G','GSF','H', 'HA','HC','HS','HU','J','L','LA','LRG','LV','M','MR','NH','P','PL','PN','RA','RG','S','SB','SJ','SS','T','TU','UP','VV')"
