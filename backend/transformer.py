@@ -788,7 +788,9 @@ class ParameterTransformer(BaseTransformer):
 
 
 class WaterLevelTransformer(ParameterTransformer):
-    def _get_record_klass(self) -> type[WaterLevelRecord] | type[WaterLevelSummaryRecord]:
+    def _get_record_klass(
+        self,
+    ) -> type[WaterLevelRecord] | type[WaterLevelSummaryRecord]:
         """
         Returns the WaterLevelRecord class to use for the transformer for
         water level records if config.output_summary is False, otherwise
