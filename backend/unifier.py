@@ -22,7 +22,7 @@ from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersis
 from backend.source import BaseSiteSource
 
 
-def health_check(source: BaseSiteSource) -> bool:
+def health_check(source: BaseSiteSource) -> bool | None:
     """
     Determines if data can be returned from the source (if it is healthy)
 

@@ -19,7 +19,7 @@ import click
 import httpx
 import shapely.wkt
 from shapely import MultiPoint
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Dict
 
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
@@ -289,7 +289,7 @@ class BaseSource(Loggable):
     # Methods That Need to be Implemented For Each Source
     # ==========================================================================
 
-    def get_records(self, *args, **kw) -> dict:
+    def get_records(self, *args, **kw) -> List[Dict]:
         """
         Returns records as a dictionary, where the keys are site ids and
         the values are site or parameter records.
@@ -837,9 +837,6 @@ class BaseParameterSource(BaseSource):
         list
             a list of records for the site
         """
-        if site_record.chunk_size == 1:
-            return records
-
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _extract_site_records"
         )

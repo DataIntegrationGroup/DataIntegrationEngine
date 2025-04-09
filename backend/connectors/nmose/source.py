@@ -39,16 +39,16 @@ class NMOSEPODSiteSource(BaseSiteSource):
 
         url: str = "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
 
-        params["where"]: Tuple = (
+        params["where"] = (
             "pod_status = 'ACT' AND pod_basin IN ('A','B','C','CC','CD','CL','CP','CR','CT','E','FS','G','GSF','H', 'HA','HC','HS','HU','J','L','LA','LRG','LV','M','MR','NH','P','PL','PN','RA','RG','S','SB','SJ','SS','T','TU','UP','VV')"
         )
-        params["outFields"]: Tuple = (
+        params["outFields"] = (
             "OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county,pod_name,pod_nbr,pod_suffix,pod_file"
         )
-        params["outSR"]: int = 4326
-        params["f"]: str = "json"
-        params["resultRecordCount"]: int = self.chunk_size
-        params["resultOffset"]: int = 0
+        params["outSR"] = 4326
+        params["f"] = "json"
+        params["resultRecordCount"] = self.chunk_size
+        params["resultOffset"] = 0
 
         if config.has_bounds():
             wkt = config.bounding_wkt()
