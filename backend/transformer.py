@@ -34,6 +34,7 @@ from backend.constants import (
     EARLIEST,
     LATEST,
 )
+from backend.config import Config
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.logger import Loggable
 from backend.record import (
@@ -132,7 +133,7 @@ def convert_units(
     source_parameter_name: str,
     die_parameter_name: str,
     dt: str | None = None,
-) -> tuple[float, float, str]:
+) -> tuple[float, float | None, str]:
     """
     Converts the following units for any parameter value:
 
@@ -331,7 +332,7 @@ class BaseTransformer(Loggable):
     """
 
     _cached_polygon = None
-    config = None
+    config: Config = None
     check_contained = True
 
     # ==========================================================================
@@ -347,6 +348,7 @@ class BaseTransformer(Loggable):
         | AnalyteSummaryRecord
         | WaterLevelSummaryRecord
         | SummaryRecord
+        | None
     ):
         """
         Transforms a record, site or parameter, into a standardized format.
@@ -667,7 +669,7 @@ class BaseTransformer(Loggable):
 
 
 class SiteTransformer(BaseTransformer):
-    def _get_record_klass(self) -> SiteRecord:
+    def _get_record_klass(self) -> type[SiteRecord]:
         """
         Returns the SiteRecord class to use for the transformer for all site records
 
@@ -786,7 +788,7 @@ class ParameterTransformer(BaseTransformer):
 
 
 class WaterLevelTransformer(ParameterTransformer):
-    def _get_record_klass(self) -> WaterLevelRecord | WaterLevelSummaryRecord:
+    def _get_record_klass(self) -> type[WaterLevelRecord] | type[WaterLevelSummaryRecord]:
         """
         Returns the WaterLevelRecord class to use for the transformer for
         water level records if config.output_summary is False, otherwise
