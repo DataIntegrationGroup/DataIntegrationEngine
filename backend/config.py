@@ -15,7 +15,6 @@
 # ===============================================================================
 import os
 import sys
-import time
 from datetime import datetime, timedelta
 
 import shapely.wkt
@@ -29,15 +28,6 @@ from .connectors.nmbgmr.source import (
     NMBGMRAnalyteSource,
 )
 from .connectors.bor.source import BORSiteSource, BORAnalyteSource
-from .connectors.ckan import (
-    HONDO_RESOURCE_ID,
-    FORT_SUMNER_RESOURCE_ID,
-    ROSWELL_RESOURCE_ID,
-)
-from .connectors.ckan.source import (
-    OSERoswellSiteSource,
-    OSERoswellWaterLevelSource,
-)
 from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
 from .connectors.nmose.source import NMOSEPODSiteSource
 from .constants import (
@@ -67,7 +57,6 @@ from .connectors.isc_seven_rivers.source import (
     ISCSevenRiversAnalyteSource,
 )
 from .connectors.st2.source import (
-    ST2SiteSource,
     PVACDSiteSource,
     PVACDWaterLevelSource,
     EBIDSiteSource,

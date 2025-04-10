@@ -15,19 +15,13 @@
 # ===============================================================================
 from json import JSONDecodeError
 
-import click
 import httpx
 import shapely.wkt
 from shapely import MultiPoint
 from typing import Union, List, Callable, Dict
 
 from backend.constants import (
-    MILLIGRAMS_PER_LITER,
     FEET,
-    METERS,
-    PARTS_PER_MILLION,
-    DTW,
-    DTW_UNITS,
     DT_MEASURED,
     PARAMETER_NAME,
     PARAMETER_UNITS,
@@ -36,7 +30,6 @@ from backend.constants import (
     LATEST,
 )
 from backend.logger import Loggable
-from backend.persister import BasePersister, CSVPersister
 from backend.record import (
     AnalyteRecord,
     AnalyteSummaryRecord,
@@ -106,7 +99,10 @@ def get_terminal_record(records: list, tag: Union[str, Callable], bookend: str) 
         return sorted(records, key=func)[0]
     elif bookend == LATEST:
         return sorted(records, key=func)[-1]
-
+    else:
+        raise ValueError(
+            f"Invalid bookend {bookend}. Must be either {EARLIEST} or {LATEST}"
+            )
 
 def get_analyte_search_param(parameter: str, mapping: dict) -> str:
     """
@@ -178,11 +174,9 @@ class BaseSource(Loggable):
     """
 
     transformer_klass = BaseTransformer
-    config = None
 
-    def __init__(self, config=None):
+    def __init__(self):
         self.transformer = self.transformer_klass()
-        self.set_config(config)
         super().__init__()
 
     @property
@@ -205,7 +199,7 @@ class BaseSource(Loggable):
     # Methods Already Implemented
     # ==========================================================================
 
-    def _execute_text_request(self, url: str, params=None, **kw) -> str:
+    def _execute_text_request(self, url: str, params: dict | None = None, **kw) -> str:
         """
         Executes a get request to the provided url and returns the text response.
 
@@ -235,8 +229,8 @@ class BaseSource(Loggable):
             return ""
 
     def _execute_json_request(
-        self, url: str, params: dict = None, tag: str = None, **kw
-    ) -> dict:
+        self, url: str, params: dict | None = None, tag: str | None = None, **kw
+    ) -> dict | None:
         """
         Executes a get request to the provided url and returns the json response.
 
@@ -268,18 +262,18 @@ class BaseSource(Loggable):
                 return obj
             except JSONDecodeError:
                 self.warn(f"service responded but with no data. \n{resp.text}")
-                return []
+                return None
         else:
             self.warn(f"service responded with status {resp.status_code}")
             self.warn(f"service responded with text {resp.text}")
             self.warn(f"service at url:  {resp.url}")
-            return []
+            return None
 
     # ==========================================================================
     # Methods Implemented in BaseSiteSource and BaseParameterSource
     # ==========================================================================
 
-    def read(self, *args, **kw) -> list:
+    def read(self, *args, **kw) -> list | None:
         """
         Returns the records. Implemented in BaseSiteSource and BaseAnalyteSource
         """
@@ -437,7 +431,7 @@ class BaseSiteSource(BaseSource):
 
         return True
 
-    def read(self, *args, **kw) -> List[SiteRecord]:
+    def read(self, *args, **kw) -> List[SiteRecord] | None:
         """
         Returns a list of transformed site records.
         Calls self.get_records, which needs to be implemented for each source
@@ -454,6 +448,7 @@ class BaseSiteSource(BaseSource):
             return self._transform_sites(records)
         else:
             self.warn("No site records returned")
+            return None
 
     def _transform_sites(self, records: list) -> List[SiteRecord]:
         """
@@ -479,7 +474,7 @@ class BaseSiteSource(BaseSource):
         self.log(f"processed nrecords={len(transformed_records)}")
         return transformed_records
 
-    def chunks(self, records: list, chunk_size: int = None) -> list:
+    def chunks(self, records: list, chunk_size: int | None = None) -> list:
         """
         Returns a list of records split into lists of size chunk_size. If
         chunk_size less than 1 then the records are not split
@@ -613,13 +608,13 @@ class BaseParameterSource(BaseSource):
         return self._extract_terminal_record(records, bookend=LATEST)
 
     def read(
-        self, site_record: SiteRecord, use_summarize: bool, start_ind: int, end_ind: int
+        self, site_record: SiteRecord | list, use_summarize: bool, start_ind: int, end_ind: int
     ) -> List[
         AnalyteRecord
         | AnalyteSummaryRecord
         | WaterLevelRecord
         | WaterLevelSummaryRecord
-    ]:
+    ] | None:
         """
         Returns a list of transformed parameter records. Transformed parameter records
         are standardized so that all of the records have the same format. They are
@@ -772,6 +767,7 @@ class BaseParameterSource(BaseSource):
 
             name = ",".join(names)
             self.warn(f"{name}: No records found")
+            return None
 
     # ==========================================================================
     # Methods Implemented in BaseAnalyteSource and BaseWaterLevelSource
@@ -820,7 +816,7 @@ class BaseParameterSource(BaseSource):
     # Methods That Need to be Implemented For Each Source
     # ==========================================================================
 
-    def _extract_site_records(self, records: dict, site_record: dict) -> list:
+    def _extract_site_records(self, records: list[dict], site_record: dict) -> list:
         """
         Returns all records for a single site as a list of records (which are dictionaries).
 
