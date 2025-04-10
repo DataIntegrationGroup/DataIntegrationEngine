@@ -34,7 +34,6 @@ from backend.constants import (
     EARLIEST,
     LATEST,
 )
-from backend.config import Config
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.logger import Loggable
 from backend.record import (
@@ -332,7 +331,7 @@ class BaseTransformer(Loggable):
     """
 
     _cached_polygon = None
-    config: Config = None
+    config = None
     check_contained = True
 
     # ==========================================================================
@@ -396,6 +395,7 @@ class BaseTransformer(Loggable):
         # _transform needs to be implemented by each SiteTransformer
         # _transform is already implemented in each ParameterTransformer
         record = self._transform(inrecord, *args, **kw)
+        print(type(record))
         if not record:
             return None
 
