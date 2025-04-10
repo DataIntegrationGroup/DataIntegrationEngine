@@ -180,16 +180,16 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         persister.sites.append(site)
 
                 if site_limit:
-                    print(
-                        "sites_with_records_count:",
-                        sites_with_records_count,
-                        "|",
-                        "site_limit:",
-                        site_limit,
-                        "|",
-                        "chunk_size:",
-                        site_source.chunk_size,
-                    )
+                    # print(
+                    #     "sites_with_records_count:",
+                    #     sites_with_records_count,
+                    #     "|",
+                    #     "site_limit:",
+                    #     site_limit,
+                    #     "|",
+                    #     "chunk_size:",
+                    #     site_source.chunk_size,
+                    # )
 
                     if sites_with_records_count >= site_limit:
                         # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
