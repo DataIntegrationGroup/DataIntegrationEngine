@@ -1,7 +1,7 @@
 from logging import shutdown as logger_shutdown
 from pathlib import Path
 import pytest
-from typing import Optional
+from shapely import Geometry
 
 from backend.config import Config, SOURCE_KEYS
 from backend.constants import WATERLEVELS
@@ -28,6 +28,7 @@ class BaseSourceTestClass:
     parameter: str
     units: str
     agency: str
+    bounds: Geometry
 
     # set site_limit for tests
     site_limit: int = 3
@@ -97,10 +98,6 @@ class BaseSourceTestClass:
             headers = f.readline().strip().split(",")
             assert headers == PARAMETER_RECORD_HEADERS
 
-    @pytest.mark.skip(reason="Not implemented yet")
-    def test_bounds(self):
-        pass
-
     def test_health(self):
         # do a health check for the agency
         source = self.config.all_site_sources()[0][0]
@@ -165,22 +162,26 @@ class BaseSourceTestClass:
         for timeseries_file in timeseries_dir.iterdir():
             self._check_timeseries_file(timeseries_dir, timeseries_file.name)
 
-    @pytest.mark.skip(reason="Not implemented yet")
+    @pytest.mark.skip(reason="test_date_range not implemented yet")
     def test_date_range(self):
         pass
 
-    @pytest.mark.skip(reason="Not implemented yet")
+    @pytest.mark.skip(reason="test_bounds not implemented yet")
+    def test_bounds(self):
+        pass
+
+    @pytest.mark.skip(reason="test_wkt not implemented yet")
     def test_wkt(self):
         pass
 
-    @pytest.mark.skip(reason="Not implemented yet")
+    @pytest.mark.skip(reason="test_county not implemented yet")
     def test_county(self):
         pass
 
-    @pytest.mark.skip(reason="Not implemented yet")
+    @pytest.mark.skip(reason="test_huc not implemented yet")
     def test_huc(self):
         pass
 
-    @pytest.mark.skip(reason="Not implemented yet")
+    @pytest.mark.skip(reason="test_bbox not implemented yet")
     def text_bbox(self):
         pass
