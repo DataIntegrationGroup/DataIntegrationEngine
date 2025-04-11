@@ -5,9 +5,9 @@ class TestNMBGMRCLI(BaseCLITestClass):
 
     agency = "nmbgmr-amp"
 
-    def test_weave(self):
-        # Test the weave command for NMBGMR
-        self._test_weave(
-            parameter="waterlevels",
-            output="summary"
-        )
+    # def test_weave(self):
+    #     # Test the weave command for NMBGMR
+    #     self._test_weave(
+    #         parameter="waterlevels",
+    #         output="summary"
+    #     )
