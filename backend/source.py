@@ -816,7 +816,7 @@ class BaseParameterSource(BaseSource):
     # Methods That Need to be Implemented For Each Source
     # ==========================================================================
 
-    def _extract_site_records(self, records: list[dict], site_record: dict) -> list:
+    def _extract_site_records(self, records: list[dict], site_record) -> list:
         """
         Returns all records for a single site as a list of records (which are dictionaries).
 
@@ -833,6 +833,9 @@ class BaseParameterSource(BaseSource):
         list
             a list of records for the site
         """
+        if site_record.chunk_size == 1:
+            return records
+
         raise NotImplementedError(
             f"{self.__class__.__name__} Must implement _extract_site_records"
         )
