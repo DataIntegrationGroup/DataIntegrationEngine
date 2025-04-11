@@ -19,11 +19,12 @@ from backend.constants import (
     SODIUM,
     SULFATE,
     TDS,
-    URANIUM
+    URANIUM,
 )
 from frontend.cli import weave
 
-class BaseCLITestClass():
+
+class BaseCLITestClass:
 
     runner: CliRunner
     agency: str
@@ -41,7 +42,6 @@ class BaseCLITestClass():
             else:
                 source_with_dash = source.replace("_", "-")
                 self.no_agencies.append(f"--no-{source_with_dash}")
-        
 
         # RUN TESTS ------------------------------------------------------------
         yield
@@ -51,11 +51,7 @@ class BaseCLITestClass():
 
     def _test_weave(self, parameter, output):
         # Arrange
-        arguments = [
-            parameter,
-            f"--output {output}",
-            "--dry"
-        ]
+        arguments = [parameter, f"--output {output}", "--dry"]
 
         arguments.extend(self.no_agencies)
 

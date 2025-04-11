@@ -218,7 +218,6 @@ def test_waterlevels_invalid_end():
     _tester(waterlevels, args, fail=True)
 
 
-
 def _tester(source, func, county, bbox, args=None):
     runner = CliRunner()
 

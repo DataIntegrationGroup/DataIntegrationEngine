@@ -412,7 +412,9 @@ class BaseTransformer(Loggable):
 
         # ensure that a site or summary record is contained within the boundaing polygon
         if "longitude" in transformed_record and "latitude" in transformed_record:
-            if not self.contained(transformed_record["longitude"], transformed_record["latitude"]):
+            if not self.contained(
+                transformed_record["longitude"], transformed_record["latitude"]
+            ):
                 self.warn(
                     f"Skipping site {transformed_record['id']}. It is not within the defined geographic bounds"
                 )
@@ -447,7 +449,9 @@ class BaseTransformer(Loggable):
             x = float(klassed_record.longitude)
 
             if x == 0 or y == 0:
-                self.warn(f"Skipping site {klassed_record.id}. Latitude or Longitude is 0")
+                self.warn(
+                    f"Skipping site {klassed_record.id}. Latitude or Longitude is 0"
+                )
                 return None
 
             input_horizontal_datum = klassed_record.horizontal_datum

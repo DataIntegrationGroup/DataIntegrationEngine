@@ -102,7 +102,8 @@ def get_terminal_record(records: list, tag: Union[str, Callable], bookend: str) 
     else:
         raise ValueError(
             f"Invalid bookend {bookend}. Must be either {EARLIEST} or {LATEST}"
-            )
+        )
+
 
 def get_analyte_search_param(parameter: str, mapping: dict) -> str:
     """
@@ -608,13 +609,20 @@ class BaseParameterSource(BaseSource):
         return self._extract_terminal_record(records, bookend=LATEST)
 
     def read(
-        self, site_record: SiteRecord | list, use_summarize: bool, start_ind: int, end_ind: int
-    ) -> List[
-        AnalyteRecord
-        | AnalyteSummaryRecord
-        | WaterLevelRecord
-        | WaterLevelSummaryRecord
-    ] | None:
+        self,
+        site_record: SiteRecord | list,
+        use_summarize: bool,
+        start_ind: int,
+        end_ind: int,
+    ) -> (
+        List[
+            AnalyteRecord
+            | AnalyteSummaryRecord
+            | WaterLevelRecord
+            | WaterLevelSummaryRecord
+        ]
+        | None
+    ):
         """
         Returns a list of transformed parameter records. Transformed parameter records
         are standardized so that all of the records have the same format. They are

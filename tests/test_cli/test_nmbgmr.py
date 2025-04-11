@@ -1,5 +1,6 @@
 from tests.test_cli import BaseCLITestClass
 
+
 class TestNMBGMRCLI(BaseCLITestClass):
     """Test the CLI for the NMBGMR source."""
 
