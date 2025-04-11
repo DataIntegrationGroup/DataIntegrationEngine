@@ -1,5 +1,5 @@
 from backend.constants import WATERLEVELS, CALCIUM, MILLIGRAMS_PER_LITER, FEET
-from tests import BaseSourceTestClass
+from tests.test_sources import BaseSourceTestClass
 
 
 class TestNMBGMRWaterlevels(BaseSourceTestClass):

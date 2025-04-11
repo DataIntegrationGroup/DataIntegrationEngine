@@ -1,5 +1,5 @@
 from backend.constants import WATERLEVELS, FEET
-from tests import BaseSourceTestClass
+from tests.test_sources import BaseSourceTestClass
 
 
 class TestPVACDWaterlevels(BaseSourceTestClass):
