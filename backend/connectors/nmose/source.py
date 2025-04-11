@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Any
 
 from shapely import wkt
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
@@ -25,7 +25,7 @@ class NMOSEPODSiteSource(BaseSiteSource):
 
     def get_records(self, *args, **kw) -> List[Dict]:
         config = self.config
-        params = {}
+        params: Dict[str, Any] = {}
         # if config.has_bounds():
         #     bbox = config.bbox_bounding_points()
         #     params["bBox"] = ",".join([str(b) for b in bbox])
@@ -61,7 +61,10 @@ class NMOSEPODSiteSource(BaseSiteSource):
         i = 1
         while 1:
             rs = self._execute_json_request(url, params, tag="features")
-            records.extend(rs)
+            if rs is None:
+                continue
+            else:
+                records.extend(rs)
             params["resultOffset"] += self.chunk_size
             if len(rs) < self.chunk_size:
                 break

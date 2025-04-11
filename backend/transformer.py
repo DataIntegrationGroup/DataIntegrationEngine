@@ -331,12 +331,24 @@ class BaseTransformer(Loggable):
     """
 
     _cached_polygon = None
-    config = None
+    # config = None
     check_contained = True
 
     # ==========================================================================
     # Methods Already Implemented
     # ==========================================================================
+
+    def set_config(self, config):
+        """
+        Sets the config for the transformer. Called in BaseSource.set_config()
+        to set the config for both the source and the transformer.
+
+        Parameters
+        --------
+        config: Config
+            The config to set for the transformer
+        """
+        self.config = config
 
     def do_transform(
         self, inrecord: dict, *args, **kw

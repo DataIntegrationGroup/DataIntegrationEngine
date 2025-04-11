@@ -185,7 +185,7 @@ class BaseSource(Loggable):
 
     def set_config(self, config):
         self.config = config
-        self.transformer.config = config
+        self.transformer.set_config(config)
 
     def check(self, *args, **kw):
         return True
