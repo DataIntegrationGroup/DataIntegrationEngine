@@ -24,7 +24,7 @@ def recursively_clean_directory(path):
     path.rmdir()
 
 
-class BaseTestClass:
+class BaseSourceTestClass:
     parameter: str
     units: str
     agency: str
@@ -96,6 +96,10 @@ class BaseTestClass:
         with open(timeseries_file, "r") as f:
             headers = f.readline().strip().split(",")
             assert headers == PARAMETER_RECORD_HEADERS
+
+    @pytest.mark.skip(reason="Not implemented yet")
+    def test_bounds(self):
+        pass
 
     def test_health(self):
         # do a health check for the agency

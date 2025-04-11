@@ -1,15 +1,15 @@
 from backend.constants import WATERLEVELS, CALCIUM, MILLIGRAMS_PER_LITER, FEET
-from tests import BaseTestClass
+from tests import BaseSourceTestClass
 
 
-class TestNMBGMRWaterlevels(BaseTestClass):
+class TestNMBGMRWaterlevels(BaseSourceTestClass):
 
     parameter = WATERLEVELS
     units = FEET
     agency = "nmbgmr_amp"
 
 
-class TestNMBGMRAnalyte(BaseTestClass):
+class TestNMBGMRAnalyte(BaseSourceTestClass):
 
     parameter = CALCIUM
     units = MILLIGRAMS_PER_LITER

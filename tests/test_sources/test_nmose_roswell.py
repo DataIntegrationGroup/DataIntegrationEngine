@@ -1,8 +1,8 @@
 from backend.constants import WATERLEVELS, FEET
-from tests import BaseTestClass
+from tests import BaseSourceTestClass
 
 
-class TestNMOSERoswellWaterlevels(BaseTestClass):
+class TestNMOSERoswellWaterlevels(BaseSourceTestClass):
 
     parameter = WATERLEVELS
     units = FEET

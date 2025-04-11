@@ -1,8 +1,8 @@
 from backend.constants import CALCIUM, MILLIGRAMS_PER_LITER
-from tests import BaseTestClass
+from tests import BaseSourceTestClass
 
 
-class TestNMEDDWBAnalyte(BaseTestClass):
+class TestNMEDDWBAnalyte(BaseSourceTestClass):
 
     parameter = CALCIUM
     units = MILLIGRAMS_PER_LITER
