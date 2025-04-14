@@ -8,20 +8,11 @@ from backend.constants import WATERLEVELS
 from backend.logger import setup_logging
 from backend.record import SummaryRecord, SiteRecord, ParameterRecord
 from backend.unifier import unify_analytes, unify_waterlevels
+from tests import recursively_clean_directory
 
 SUMMARY_RECORD_HEADERS = list(SummaryRecord.keys)
 SITE_RECORD_HEADERS = list(SiteRecord.keys)
 PARAMETER_RECORD_HEADERS = list(ParameterRecord.keys)
-
-
-def recursively_clean_directory(path):
-    """Recursively delete all files and directories in the given path."""
-    for item in path.iterdir():
-        if item.is_dir():
-            recursively_clean_directory(item)
-        else:
-            item.unlink()
-    path.rmdir()
 
 
 class BaseSourceTestClass:
