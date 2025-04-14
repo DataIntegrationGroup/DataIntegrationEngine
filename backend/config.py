@@ -109,7 +109,7 @@ class Config(Loggable):
     end_date: str = ""
 
     # spatial
-    bbox: dict  # dict or str
+    bbox: str = "" 
     county: str = ""
     wkt: str = ""
 
@@ -155,7 +155,6 @@ class Config(Loggable):
         # need to initialize logger
         super().__init__()
 
-        self.bbox = {}
         if model:
             if model.wkt:
                 self.wkt = model.wkt
