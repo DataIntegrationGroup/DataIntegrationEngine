@@ -215,7 +215,7 @@ def add_options(options):
 
 @cli.command()
 @click.argument(
-    "weave",
+    "parameter",
     type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
     required=True,
 )
@@ -226,7 +226,7 @@ def add_options(options):
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def weave(
-    weave,
+    parameter,
     output,
     output_dir,
     start_date,
@@ -253,9 +253,8 @@ def weave(
     """
     Get parameter timeseries or summary data
     """
-    parameter = weave
     # instantiate config and set up parameter
-    config = setup_config(f"{parameter}", bbox, wkt, county, site_limit, dry)
+    config = setup_config(parameter, bbox, wkt, county, site_limit, dry)
     config.parameter = parameter
 
     # output type
@@ -416,7 +415,10 @@ def setup_config(tag, bbox, wkt, county, site_limit, dry):
         click.echo(f"Getting {tag} for WKT {wkt}")
         config.wkt = wkt
 
-    config.site_limit = int(site_limit)
+    if site_limit:
+        config.site_limit = int(site_limit)
+    else:
+        config.site_limit = None
     config.dry = dry
 
     return config
