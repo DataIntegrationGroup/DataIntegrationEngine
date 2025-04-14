@@ -415,7 +415,7 @@ def setup_config(tag, bbox, wkt, county, site_limit, dry):
         click.echo(f"Getting {tag} for WKT {wkt}")
         config.wkt = wkt
 
-    config.site_limit = site_limit
+    config.site_limit = int(site_limit)
     config.dry = dry
 
     return config

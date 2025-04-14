@@ -85,7 +85,7 @@ class BaseCLITestClass:
             output,
             "--dry",
             "--site-limit",
-            site_limit,
+            str(site_limit),
             "--start-date",
             start_date,
             "--end-date",
