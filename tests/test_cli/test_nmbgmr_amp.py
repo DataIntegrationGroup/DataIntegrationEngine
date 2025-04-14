@@ -39,6 +39,4 @@ class TestNMBGMRCLI(BaseCLITestClass):
         SULFATE: True,
         TDS: True,
         URANIUM: True,
-    }   
-
-
+    }

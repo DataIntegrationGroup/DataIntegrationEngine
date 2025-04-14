@@ -39,6 +39,4 @@ class TestNMOSEISCSevenRiversCLI(BaseCLITestClass):
         SULFATE: True,
         TDS: True,
         URANIUM: False,
-    }   
-
-
+    }

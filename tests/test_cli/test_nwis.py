@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestNWISCLI(BaseCLITestClass):
 
     agency = "nwis"
@@ -39,5 +40,3 @@ class TestNWISCLI(BaseCLITestClass):
         TDS: False,
         URANIUM: False,
     }
-
-

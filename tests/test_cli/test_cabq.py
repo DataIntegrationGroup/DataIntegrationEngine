@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestCABQCLI(BaseCLITestClass):
 
     agency = "cabq"
@@ -39,5 +40,3 @@ class TestCABQCLI(BaseCLITestClass):
         TDS: False,
         URANIUM: False,
     }
-
-

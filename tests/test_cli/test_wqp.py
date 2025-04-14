@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestWQPCLI(BaseCLITestClass):
 
     agency = "wqp"
@@ -39,5 +40,3 @@ class TestWQPCLI(BaseCLITestClass):
         TDS: True,
         URANIUM: True,
     }
-
-

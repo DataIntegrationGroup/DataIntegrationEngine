@@ -134,7 +134,7 @@ SPATIAL_OPTIONS = [
         "--wkt",
         default="",
         help="Well known text (WKT) representation of a geometry. For example, 'POLYGON((x1 y1, x2 y2, x3 y3, x1 y1))'",
-    )
+    ),
 ]
 DEBUG_OPTIONS = [
     click.option(
@@ -294,7 +294,7 @@ def weave(
     config.finalize()
     # setup logging here so that the path can be set to config.output_path
     setup_logging(path=config.output_path)
-    
+
     config.report()
     if not dry:
         # prompt user to continue
@@ -305,6 +305,7 @@ def weave(
         else:
             unify_analytes(config)
     return config
+
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)

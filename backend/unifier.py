@@ -115,7 +115,7 @@ def _perister_factory(config):
 
 
 def _site_wrapper(site_source, parameter_source, persister, config):
-    
+
     try:
         # TODO: fully develop checks/discoveries below
         # if not site_source.check():

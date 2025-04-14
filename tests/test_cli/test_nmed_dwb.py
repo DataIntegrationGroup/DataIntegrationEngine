@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestNMEDDWBCLI(BaseCLITestClass):
 
     agency = "nmed-dwb"
@@ -39,5 +40,3 @@ class TestNMEDDWBCLI(BaseCLITestClass):
         TDS: True,
         URANIUM: True,
     }
-
-

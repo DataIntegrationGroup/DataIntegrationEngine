@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestBernCoCLI(BaseCLITestClass):
 
     agency = "bernco"
@@ -39,5 +40,3 @@ class TestBernCoCLI(BaseCLITestClass):
         TDS: False,
         URANIUM: False,
     }
-
-

@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestEBIDCLI(BaseCLITestClass):
 
     agency = "ebid"
@@ -39,5 +40,3 @@ class TestEBIDCLI(BaseCLITestClass):
         TDS: False,
         URANIUM: False,
     }
-
-

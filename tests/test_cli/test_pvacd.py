@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestPVACDCLI(BaseCLITestClass):
 
     agency = "pvacd"
@@ -39,5 +40,3 @@ class TestPVACDCLI(BaseCLITestClass):
         TDS: False,
         URANIUM: False,
     }
-
-

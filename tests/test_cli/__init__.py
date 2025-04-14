@@ -47,16 +47,16 @@ class BaseCLITestClass:
         recursively_clean_directory(self.output_dir)
 
     def _test_weave(
-            self,
-            parameter: str,
-            output: str,
-            site_limit: int = 4,
-            start_date: str = "1990-08-10",
-            end_date: str = "1990-08-11",
-            bbox: str | None = None,
-            county: str | None = None,
-            wkt: str | None = None,
-        ):
+        self,
+        parameter: str,
+        output: str,
+        site_limit: int = 4,
+        start_date: str = "1990-08-10",
+        end_date: str = "1990-08-11",
+        bbox: str | None = None,
+        county: str | None = None,
+        wkt: str | None = None,
+    ):
         # Arrange
         # turn off all sources except for the one being tested
         no_agencies = []
@@ -78,7 +78,7 @@ class BaseCLITestClass:
         elif wkt:
             geographic_filter_name = "wkt"
             geographic_filter_value = wkt
-        
+
         arguments = [
             parameter,
             "--output",
@@ -119,14 +119,14 @@ class BaseCLITestClass:
         config = result.return_value
 
         # 0
-        self.output_dir = Path(config.output_path) 
+        self.output_dir = Path(config.output_path)
 
         # 1
         assert getattr(config, "parameter") == parameter
 
         # 2
         agency_with_underscore = self.agency.replace("-", "_")
-        if self.agency_reports_parameter[parameter]:               
+        if self.agency_reports_parameter[parameter]:
             assert getattr(config, f"use_source_{agency_with_underscore}") is True
         else:
             assert getattr(config, f"use_source_{agency_with_underscore}") is False
@@ -134,7 +134,7 @@ class BaseCLITestClass:
         for no_agency in no_agencies:
             no_agency_with_underscore = no_agency.replace("--no-", "").replace("-", "_")
             assert getattr(config, f"use_source_{no_agency_with_underscore}") is False
-        
+
         # 3
         output_types = ["summary", "timeseries_unified", "timeseries_separated"]
         for output_type in output_types:
@@ -159,141 +159,81 @@ class BaseCLITestClass:
         if geographic_filter_name and geographic_filter_value:
             for _geographic_filter_name in ["bbox", "county", "wkt"]:
                 if _geographic_filter_name == geographic_filter_name:
-                    assert getattr(config, _geographic_filter_name) == geographic_filter_value
+                    assert (
+                        getattr(config, _geographic_filter_name)
+                        == geographic_filter_value
+                    )
                 else:
                     assert getattr(config, _geographic_filter_name) == ""
 
     def test_weave_summary(self):
-        self._test_weave(
-            parameter=WATERLEVELS,
-            output="summary"
-        )
+        self._test_weave(parameter=WATERLEVELS, output="summary")
 
     def test_weave_timeseries_unified(self):
-        self._test_weave(
-            parameter=WATERLEVELS,
-            output="timeseries_unified"
-        )
+        self._test_weave(parameter=WATERLEVELS, output="timeseries_unified")
 
     def test_weave_timeseries_separated(self):
-        self._test_weave(
-            parameter=WATERLEVELS,
-            output="timeseries_separated"
-        )
+        self._test_weave(parameter=WATERLEVELS, output="timeseries_separated")
 
     def test_weave_bbox(self):
         self._test_weave(
-            parameter=WATERLEVELS,
-            output="summary",
-            bbox="32.0,-106.0,36.0,-102.0"
+            parameter=WATERLEVELS, output="summary", bbox="32.0,-106.0,36.0,-102.0"
         )
 
     def test_weave_county(self):
-        self._test_weave(
-            parameter=WATERLEVELS,
-            output="summary",
-            county="Bernalillo"
-        )
+        self._test_weave(parameter=WATERLEVELS, output="summary", county="Bernalillo")
 
     def test_weave_wkt(self):
         self._test_weave(
             parameter=WATERLEVELS,
             output="summary",
-            wkt="POLYGON((-106.0 32.0, -102.0 32.0, -102.0 36.0, -106.0 36.0, -106.0 32.0))"
+            wkt="POLYGON((-106.0 32.0, -102.0 32.0, -102.0 36.0, -106.0 36.0, -106.0 32.0))",
         )
 
     def test_weave_waterlevels(self):
-        self._test_weave(
-            parameter=WATERLEVELS,
-            output="summary"
-        )
+        self._test_weave(parameter=WATERLEVELS, output="summary")
 
     def test_weave_arsenic(self):
-        self._test_weave(
-            parameter=ARSENIC,
-            output="summary"
-        )
+        self._test_weave(parameter=ARSENIC, output="summary")
 
     def test_weave_bicarbonate(self):
-        self._test_weave(
-            parameter=BICARBONATE,
-            output="summary"
-        )
+        self._test_weave(parameter=BICARBONATE, output="summary")
 
     def test_weave_calcium(self):
-        self._test_weave(
-            parameter=CALCIUM,
-            output="summary"
-        )
+        self._test_weave(parameter=CALCIUM, output="summary")
 
     def test_weave_carbonate(self):
-        self._test_weave(
-            parameter=CARBONATE,
-            output="summary"
-        )
+        self._test_weave(parameter=CARBONATE, output="summary")
 
     def test_weave_chloride(self):
-        self._test_weave(
-            parameter=CHLORIDE,
-            output="summary"
-        )
+        self._test_weave(parameter=CHLORIDE, output="summary")
 
     def test_weave_fluoride(self):
-        self._test_weave(
-            parameter=FLUORIDE,
-            output="summary"
-        )
+        self._test_weave(parameter=FLUORIDE, output="summary")
 
     def test_weave_magnesium(self):
-        self._test_weave(
-            parameter=MAGNESIUM,
-            output="summary"
-        )
+        self._test_weave(parameter=MAGNESIUM, output="summary")
 
     def test_weave_nitrate(self):
-        self._test_weave(
-            parameter=NITRATE,
-            output="summary"
-        )
+        self._test_weave(parameter=NITRATE, output="summary")
 
     def test_weave_ph(self):
-        self._test_weave(
-            parameter=PH,
-            output="summary"
-        )
+        self._test_weave(parameter=PH, output="summary")
 
     def test_weave_potassium(self):
-        self._test_weave(
-            parameter=POTASSIUM,
-            output="summary"
-        )
+        self._test_weave(parameter=POTASSIUM, output="summary")
 
     def test_weave_silica(self):
-        self._test_weave(
-            parameter=SILICA,
-            output="summary"
-        )
+        self._test_weave(parameter=SILICA, output="summary")
 
     def test_weave_sodium(self):
-        self._test_weave(
-            parameter=SODIUM,
-            output="summary"
-        )
+        self._test_weave(parameter=SODIUM, output="summary")
 
     def test_weave_sulfate(self):
-        self._test_weave(
-            parameter=SULFATE,
-            output="summary"
-        )
+        self._test_weave(parameter=SULFATE, output="summary")
 
     def test_weave_tds(self):
-        self._test_weave(
-            parameter=TDS,
-            output="summary"
-        )
+        self._test_weave(parameter=TDS, output="summary")
 
     def test_weave_uranium(self):
-        self._test_weave(
-            parameter=URANIUM,
-            output="summary"
-        )
+        self._test_weave(parameter=URANIUM, output="summary")

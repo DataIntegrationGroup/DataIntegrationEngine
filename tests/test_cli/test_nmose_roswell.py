@@ -18,6 +18,7 @@ from backend.constants import (
 )
 from tests.test_cli import BaseCLITestClass
 
+
 class TestNMOSERoswellCLI(BaseCLITestClass):
 
     agency = "nmose-roswell"
@@ -39,5 +40,3 @@ class TestNMOSERoswellCLI(BaseCLITestClass):
         TDS: False,
         URANIUM: False,
     }
-
-

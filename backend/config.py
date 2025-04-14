@@ -109,7 +109,7 @@ class Config(Loggable):
     end_date: str = ""
 
     # spatial
-    bbox: str = "" 
+    bbox: str = ""
     county: str = ""
     wkt: str = ""
 
