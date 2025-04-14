@@ -130,6 +130,11 @@ SPATIAL_OPTIONS = [
         default="",
         help="New Mexico county name",
     ),
+    click.option(
+        "--wkt",
+        default="",
+        help="Well known text (WKT) representation of a geometry. For example, 'POLYGON((x1 y1, x2 y2, x3 y3, x1 y1))'",
+    )
 ]
 DEBUG_OPTIONS = [
     click.option(
@@ -227,6 +232,7 @@ def weave(
     start_date,
     end_date,
     bbox,
+    wkt,
     county,
     no_bernco,
     no_bor,
@@ -249,7 +255,7 @@ def weave(
     """
     parameter = weave
     # instantiate config and set up parameter
-    config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
+    config = setup_config(f"{parameter}", bbox, wkt, county, site_limit, dry)
     config.parameter = parameter
 
     # output type
@@ -288,18 +294,17 @@ def weave(
     config.finalize()
     # setup logging here so that the path can be set to config.output_path
     setup_logging(path=config.output_path)
-
+    
+    config.report()
     if not dry:
-        config.report()
         # prompt user to continue
         if not click.confirm("Do you want to continue?", default=True):
             return
-
-    if parameter.lower() == "waterlevels":
-        unify_waterlevels(config)
-    else:
-        unify_analytes(config)
-
+        if parameter.lower() == "waterlevels":
+            unify_waterlevels(config)
+        else:
+            unify_analytes(config)
+    return config
 
 @cli.command()
 @add_options(SPATIAL_OPTIONS)
@@ -308,6 +313,7 @@ def weave(
 @add_options(DEBUG_OPTIONS)
 def wells(
     bbox,
+    wkt,
     county,
     output_dir,
     no_bernco,
@@ -330,7 +336,7 @@ def wells(
     Get locations
     """
 
-    config = setup_config("sites", bbox, county, site_limit, dry)
+    config = setup_config("sites", bbox, wkt, county, site_limit, dry)
     config_agencies = [
         "bernco",
         "bor",
@@ -370,7 +376,7 @@ def wells(
     required=True,
 )
 @add_options(SPATIAL_OPTIONS)
-def sources(sources, bbox, county):
+def sources(sources, bbox, wkt, county):
     """
     List available sources
     """
@@ -381,6 +387,8 @@ def sources(sources, bbox, county):
         config.county = county
     elif bbox:
         config.bbox = bbox
+    elif wkt:
+        config.wkt = wkt
 
     parameter = sources
     config.parameter = parameter
@@ -394,7 +402,7 @@ def sources(sources, bbox, county):
         click.echo(s)
 
 
-def setup_config(tag, bbox, county, site_limit, dry):
+def setup_config(tag, bbox, wkt, county, site_limit, dry):
     config = Config()
     if county:
         click.echo(f"Getting {tag} for county {county}")
@@ -403,6 +411,9 @@ def setup_config(tag, bbox, county, site_limit, dry):
         click.echo(f"Getting {tag} for bounding box {bbox}")
         # bbox = -105.396826 36.219290, -106.024162 35.384307
         config.bbox = bbox
+    elif wkt:
+        click.echo(f"Getting {tag} for WKT {wkt}")
+        config.wkt = wkt
 
     config.site_limit = site_limit
     config.dry = dry
