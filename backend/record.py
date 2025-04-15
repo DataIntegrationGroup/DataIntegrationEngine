@@ -30,10 +30,8 @@ class BaseRecord:
 
     def __init__(self, payload):
         self._payload = payload
-
-    def to_row(self):
-
-        def get(attr):
+    
+    def get(self, attr):
             # v = self._payload.get(attr)
             # if v is None and self.defaults:
             #     v = self.defaults.get(attr)
@@ -64,7 +62,8 @@ class BaseRecord:
                     break
             return v
 
-        return [get(k) for k in self.keys]
+    def to_row(self):
+        return [self.get(k) for k in self.keys]
 
     def update(self, **kw):
         self._payload.update(kw)

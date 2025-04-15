@@ -17,9 +17,12 @@ import csv
 import io
 import os
 import shutil
+from pprint import pprint   
+import json
 
 import pandas as pd
 import geopandas as gpd
+from shapely import Point
 
 from backend.logger import Loggable
 
@@ -34,9 +37,7 @@ class BasePersister(Loggable):
     Class to persist the data to a file or cloud storage.
     If persisting to a file, the output directory is created by config._make_output_path()
     """
-
-    extension: str
-    # output_id: str
+    add_extension: str = "csv"
 
     def __init__(self):
         self.records = []
@@ -75,7 +76,7 @@ class BasePersister(Loggable):
             path = os.path.join(path, "timeseries_unified")
             path = self.add_extension(path)
             self.log(f"dumping unified timeseries to {os.path.abspath(path)}")
-            self._dump_timeseries_unified(path, self.timeseries)
+            self._dump_timeseries(path, self.timeseries)
         else:
             self.log("no timeseries records to dump", fg="red")
 
@@ -85,21 +86,16 @@ class BasePersister(Loggable):
             # the individual site timeseries will be dumped
             timeseries_path = os.path.join(path, "timeseries")
             self._make_output_directory(timeseries_path)
-            for site, records in self.timeseries:
-                path = os.path.join(timeseries_path, str(site.id).replace(" ", "_"))
+            for records in self.timeseries:
+                site_id = records[0].id
+                path = os.path.join(timeseries_path, str(site_id).replace(" ", "_"))
                 path = self.add_extension(path)
-                self.log(f"dumping {site.id} to {os.path.abspath(path)}")
-                self._write(path, records)
+                self.log(f"dumping {site_id} to {os.path.abspath(path)}")
+
+                list_of_records = [records]
+                self._dump_timeseries(path, list_of_records)
         else:
             self.log("no timeseries records to dump", fg="red")
-
-    def save(self, path: str):
-        if self.records:
-            path = self.add_extension(path)
-            self.log(f"saving to {path}")
-            self._write(path, self.records)
-        else:
-            self.log("no records to save", fg="red")
 
     def add_extension(self, path: str):
         if not self.extension:
@@ -111,15 +107,14 @@ class BasePersister(Loggable):
 
     def _write(self, path: str, records):
         raise NotImplementedError
-
-    def _dump_timeseries_unified(self, path: str, timeseries: list):
+    
+    def _dump_timeseries(self, path: str, timeseries: list):
         raise NotImplementedError
 
     def _make_output_directory(self, output_directory: str):
         os.mkdir(output_directory)
 
-
-def write_file(path, func, records):
+def write_csv_file(path, func, records):
     with open(path, "w", newline="") as f:
         func(csv.writer(f), records)
 
@@ -130,10 +125,16 @@ def write_memory(path, func, records):
     return f.getvalue()
 
 
-def dump_timeseries_unified(writer, timeseries):
+def dump_timeseries(writer, timeseries: list[list]):
+    """
+    Dumps timeseries records to a CSV file. The timeseries must be a list of
+    lists, where each inner list contains the records for a single site. In the case
+    of timeseries separated, the inner list will contain the records for a single site
+    and this function will be called multiple times, once for each site.
+    """
     headers_have_not_been_written = True
-    for i, (site, records) in enumerate(timeseries):
-        for j, record in enumerate(records):
+    for i, records in enumerate(timeseries):
+        for record in records:
             if i == 0 and headers_have_not_been_written:
                 writer.writerow(record.keys)
                 headers_have_not_been_written = False
@@ -192,7 +193,7 @@ class CloudStoragePersister(BasePersister):
         self._content.append((path, content))
 
     def _dump_timeseries_unified(self, path: str, timeseries: list):
-        content = write_memory(path, dump_timeseries_unified, timeseries)
+        content = write_memory(path, dump_timeseries, timeseries)
         self._add_content(path, content)
 
 
@@ -200,24 +201,53 @@ class CSVPersister(BasePersister):
     extension = "csv"
 
     def _write(self, path: str, records: list):
-        write_file(path, dump_sites, records)
+        write_csv_file(path, dump_sites, records)
 
-    def _dump_timeseries_unified(self, path: str, timeseries: list):
-        write_file(path, dump_timeseries_unified, timeseries)
+    def _dump_timeseries(self, path: str, timeseries: list):
+        write_csv_file(path, dump_timeseries, timeseries)
 
 
 class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
     def _write(self, path: str, records: list):
-        r0 = records[0]
-        df = pd.DataFrame([r.to_row() for r in records], columns=r0.keys)
+        feature_collection = {
+            "type": "FeatureCollection",
+            "features": [],
+        }
 
-        gdf = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
-        )
-        gdf.to_file(path, driver="GeoJSON")
+        features = [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [record.get("longitude"), record.get("latitude"), record.get("elevation")],
+                },
+                "properties": {k: record.get(k) for k in record.keys if k not in ["latitude", "longitude", "elevation"]},
+            }
+            for record in records
+        ]
+        feature_collection["features"].extend(features)
 
+
+        with open(path, "w") as f:
+            json.dump(feature_collection, f, indent=4)
+
+
+    def _get_gdal_type(self, dtype):
+        """
+        Map pandas dtypes to GDAL-compatible types for the schema.
+        """
+        if pd.api.types.is_integer_dtype(dtype):
+            return "int"
+        elif pd.api.types.is_float_dtype(dtype):
+            return "float"
+        elif pd.api.types.is_string_dtype(dtype):
+            return "str"
+        elif pd.api.types.is_datetime64_any_dtype(dtype):
+            return "datetime"
+        else:
+            return "str"  # Default to string for unsupported types
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

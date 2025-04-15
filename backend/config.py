@@ -142,14 +142,12 @@ class Config(Loggable):
     output_summary: bool = False
     output_timeseries_unified: bool = False
     output_timeseries_separated: bool = False
+    output_site_file_type: str = "csv"
 
     latest_water_level_only: bool = False
 
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
-
-    use_csv: bool = True
-    use_geojson: bool = False
 
     def __init__(self, model=None, payload=None):
         # need to initialize logger
@@ -417,6 +415,7 @@ class Config(Loggable):
                 "output_summary",
                 "output_timeseries_unified",
                 "output_timeseries_separated",
+                "output_site_file_type",
                 "output_horizontal_datum",
                 "output_elevation_units",
             ),

@@ -100,9 +100,9 @@ def _perister_factory(config):
     persister_klass = CSVPersister
     if config.use_cloud_storage:
         persister_klass = CloudStoragePersister
-    elif config.use_csv:
+    elif config.output_site_file_type == "csv":
         persister_klass = CSVPersister
-    elif config.use_geojson:
+    elif config.output_site_file_type == "geojson":
         persister_klass = GeoJSONPersister
 
     return persister_klass()
@@ -114,7 +114,7 @@ def _perister_factory(config):
 #     persister.save(config.output_path)
 
 
-def _site_wrapper(site_source, parameter_source, persister, config):
+def _site_wrapper(site_source, parameter_source, sites_summary_persister, timeseries_persister, config):
 
     try:
         # TODO: fully develop checks/discoveries below
@@ -142,7 +142,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         first_flag = True
 
         if config.sites_only:
-            persister.sites.extend(sites)
+            sites_summary_persister.sites.extend(sites)
         else:
             for site_records in site_source.chunks(sites):
                 if type(site_records) == list:
@@ -159,7 +159,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         site_records, use_summarize, start_ind, end_ind
                     )
                     if summary_records:
-                        persister.records.extend(summary_records)
+                        sites_summary_persister.records.extend(summary_records)
                         sites_with_records_count += len(summary_records)
                     else:
                         continue
@@ -176,8 +176,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         sites_with_records_count += len(results)
 
                     for site, records in results:
-                        persister.timeseries.append((site, records))
-                        persister.sites.append(site)
+                        timeseries_persister.timeseries.append(records)
+                        sites_summary_persister.sites.append(site)
 
                 if site_limit:
                     # print(
@@ -203,15 +203,15 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         # num_sites_to_remove from the length of the list
                         # to remove the last num_sites_to_remove sites
                         if use_summarize:
-                            persister.records = persister.records[
-                                : len(persister.records) - num_sites_to_remove
+                            sites_summary_persister.records = sites_summary_persister.records[
+                                : len(sites_summary_persister.records) - num_sites_to_remove
                             ]
                         else:
-                            persister.timeseries = persister.timeseries[
-                                : len(persister.timeseries) - num_sites_to_remove
+                            timeseries_persister.timeseries = timeseries_persister.timeseries[
+                                : len(timeseries_persister.timeseries) - num_sites_to_remove
                             ]
-                            persister.sites = persister.sites[
-                                : len(persister.sites) - num_sites_to_remove
+                            sites_summary_persister.sites = sites_summary_persister.sites[
+                                : len(sites_summary_persister.sites) - num_sites_to_remove
                             ]
                         break
 
@@ -227,22 +227,24 @@ def _unify_parameter(
     config,
     sources,
 ):
-    persister = _perister_factory(config)
+    sites_summary_persister = _perister_factory(config)
+    timeseries_persister = CSVPersister()
     for site_source, parameter_source in sources:
-        _site_wrapper(site_source, parameter_source, persister, config)
+        _site_wrapper(site_source, parameter_source, sites_summary_persister, timeseries_persister, config)
 
     if config.output_summary:
-        persister.dump_summary(config.output_path)
+        sites_summary_persister.dump_summary(config.output_path)
     elif config.output_timeseries_unified:
-        persister.dump_timeseries_unified(config.output_path)
-        persister.dump_sites(config.output_path)
+        timeseries_persister.dump_timeseries_unified(config.output_path)
+        sites_summary_persister.dump_sites(config.output_path)
     elif config.sites_only:
-        persister.dump_sites(config.output_path)
+        sites_summary_persister.dump_sites(config.output_path)
     else:  # config.output_timeseries_separated
-        persister.dump_timeseries_separated(config.output_path)
-        persister.dump_sites(config.output_path)
+        timeseries_persister.dump_timeseries_separated(config.output_path)
+        sites_summary_persister.dump_sites(config.output_path)
 
-    persister.finalize(config.output_name)
+    timeseries_persister.finalize(config.output_name)
+    sites_summary_persister.finalize(config.output_name)
 
 
 def get_sources_in_polygon(polygon):

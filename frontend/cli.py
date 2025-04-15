@@ -169,24 +169,6 @@ DT_OPTIONS = [
         help="End date in the form 'YYYY', 'YYYY-MM', 'YYYY-MM-DD', 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'",
     ),
 ]
-
-TIMESERIES_OPTIONS = [
-    click.option(
-        "--separated_timeseries",
-        is_flag=True,
-        default=False,
-        show_default=True,
-        help="Output separate timeseries files for every site",
-    ),
-    click.option(
-        "--unified_timeseries",
-        is_flag=True,
-        default=False,
-        show_default=True,
-        help="Output single timeseries file, which includes all sites",
-    ),
-]
-
 OUTPUT_OPTIONS = [
     click.option(
         "--output",
@@ -195,11 +177,21 @@ OUTPUT_OPTIONS = [
         help="Output summary file, single unified timeseries file, or separated timeseries files",
     ),
 ]
+
 PERSISTER_OPTIONS = [
     click.option(
         "--output-dir",
         default=".",
         help="Output root directory. Default is current directory",
+    )
+]
+
+SITE_OUTPUT_TYPE_OPTIONS = [
+    click.option(
+        "--site-output-type",
+        type=click.Choice(["csv", "geojson"]),
+        default="csv",
+        help="Output file format for sites (csv or geoson). Default is csv",
     )
 ]
 
@@ -225,6 +217,7 @@ def add_options(options):
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
+@add_options(SITE_OUTPUT_TYPE_OPTIONS)
 def weave(
     parameter,
     output,
@@ -249,12 +242,13 @@ def weave(
     site_limit,
     dry,
     yes,
+    site_output_type,
 ):
     """
     Get parameter timeseries or summary data
     """
     # instantiate config and set up parameter
-    config = setup_config(parameter, bbox, wkt, county, site_limit, dry)
+    config = setup_config(parameter, bbox, wkt, county, site_limit, dry, site_output_type)
     config.parameter = parameter
 
     # output type
@@ -402,7 +396,7 @@ def sources(sources, bbox, wkt, county):
         click.echo(s)
 
 
-def setup_config(tag, bbox, wkt, county, site_limit, dry):
+def setup_config(tag, bbox, wkt, county, site_limit, dry, site_output_type="csv"):
     config = Config()
     if county:
         click.echo(f"Getting {tag} for county {county}")
@@ -420,6 +414,8 @@ def setup_config(tag, bbox, wkt, county, site_limit, dry):
     else:
         config.site_limit = None
     config.dry = dry
+
+    config.output_site_file_type = site_output_type
 
     return config
 
