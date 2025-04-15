@@ -5,9 +5,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [ "main", "feature/jir", "dev/jab"]
+    branches: [ "pre-production", "feature/jir", "dev/jab"]
   pull_request:
-    branches: [ "main"]
+    branches: [ "pre-production"]
 
 permissions:
   contents: read
