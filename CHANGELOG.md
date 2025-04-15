@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - This naming schema also enables the development of datetime filters as the descriptor will apply to the latest datetime within the provided time frame filter, whereas most recent indicates np filters.
 - removed sites that are not in New Mexico  
 
+### Fixed
+- removed records from USGS where the value is "-999999"
+
 
 ## 0.7.0
 

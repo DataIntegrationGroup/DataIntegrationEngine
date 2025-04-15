@@ -21,7 +21,7 @@ import shutil
 import pandas as pd
 import geopandas as gpd
 
-from backend.logging import Loggable
+from backend.logger import Loggable
 
 try:
     from google.cloud import storage

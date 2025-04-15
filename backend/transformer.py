@@ -131,8 +131,8 @@ def convert_units(
     output_units: str,
     source_parameter_name: str,
     die_parameter_name: str,
-    dt: str = None,
-) -> tuple[float, float, str]:
+    dt: str | None = None,
+) -> tuple[float, float | None, str]:
     """
     Converts the following units for any parameter value:
 
@@ -198,7 +198,7 @@ def convert_units(
     the source_parameter_name (e.g. nitrate as n).
     """
     if die_parameter_name == "ph":
-        conversion_factor = 1
+        conversion_factor = 1.0
     elif output_units == mgl:
         if input_units in ["mg/l caco3", "mg/l caco3**"]:
             if die_parameter_name == "bicarbonate":
@@ -210,7 +210,7 @@ def convert_units(
         elif input_units == "mg/l as n":
             conversion_factor = 4.427
         elif input_units in ["mg/l asno3", "mg/l as no3"]:
-            conversion_factor = 1
+            conversion_factor = 1.0
         elif input_units == "ug/l as n":
             conversion_factor = 0.004427
         elif input_units == "pci/l":
@@ -220,22 +220,22 @@ def convert_units(
         elif input_units == tpaf:
             conversion_factor = 735.47
         elif input_units == ppm:
-            conversion_factor = 1
+            conversion_factor = 1.0
         elif input_units == output_units:
             if source_parameter_name in ["nitrate as n", "nitrate (as n)"]:
                 conversion_factor = 4.427
             else:
-                conversion_factor = 1
+                conversion_factor = 1.0
     elif output_units == ft:
         if input_units in [m, "meters"]:
             conversion_factor = 3.28084
         elif input_units in [ft, "feet"]:
-            conversion_factor = 1
+            conversion_factor = 1.0
     elif output_units == m:
         if input_units in [ft, "feet"]:
             conversion_factor = 0.3048
         elif input_units in [m, "meters"]:
-            conversion_factor = 1
+            conversion_factor = 1.0
 
     if conversion_factor:
         return input_value * conversion_factor, conversion_factor, warning
@@ -331,12 +331,24 @@ class BaseTransformer(Loggable):
     """
 
     _cached_polygon = None
-    config = None
+    # config = None
     check_contained = True
 
     # ==========================================================================
     # Methods Already Implemented
     # ==========================================================================
+
+    def set_config(self, config):
+        """
+        Sets the config for the transformer. Called in BaseSource.set_config()
+        to set the config for both the source and the transformer.
+
+        Parameters
+        --------
+        config: Config
+            The config to set for the transformer
+        """
+        self.config = config
 
     def do_transform(
         self, inrecord: dict, *args, **kw
@@ -347,6 +359,7 @@ class BaseTransformer(Loggable):
         | AnalyteSummaryRecord
         | WaterLevelSummaryRecord
         | SummaryRecord
+        | None
     ):
         """
         Transforms a record, site or parameter, into a standardized format.
@@ -393,55 +406,59 @@ class BaseTransformer(Loggable):
         """
         # _transform needs to be implemented by each SiteTransformer
         # _transform is already implemented in each ParameterTransformer
-        record = self._transform(inrecord, *args, **kw)
-        if not record:
-            return
+        transformed_record = self._transform(inrecord, *args, **kw)
+        if not transformed_record:
+            return None
 
         # ensure that a site or summary record is contained within the boundaing polygon
-        if "longitude" in record and "latitude" in record:
-            if not self.contained(record["longitude"], record["latitude"]):
+        if "longitude" in transformed_record and "latitude" in transformed_record:
+            if not self.contained(
+                transformed_record["longitude"], transformed_record["latitude"]
+            ):
                 self.warn(
-                    f"Skipping site {record['id']}. It is not within the defined geographic bounds"
+                    f"Skipping site {transformed_record['id']}. It is not within the defined geographic bounds"
                 )
-                return
+                return None
 
-        self._post_transform(record, *args, **kw)
+        self._post_transform(transformed_record, *args, **kw)
 
         # standardize datetime
-        dt = record.get(DT_MEASURED)
+        dt = transformed_record.get(DT_MEASURED)
         if dt:
-            d, t = standardize_datetime(dt, record["id"])
-            record["date_measured"] = d
-            record["time_measured"] = t
+            d, t = standardize_datetime(dt, transformed_record["id"])
+            transformed_record["date_measured"] = d
+            transformed_record["time_measured"] = t
         else:
-            mrd = record.get("latest_datetime")
+            mrd = transformed_record.get("latest_datetime")
             if mrd:
-                d, t = standardize_datetime(mrd, record["id"])
-                record["date_measured"] = d
-                record["time_measured"] = t
+                d, t = standardize_datetime(mrd, transformed_record["id"])
+                transformed_record["date_measured"] = d
+                transformed_record["time_measured"] = t
 
         # convert to proper record type
         # a record klass holds the original record's data as a dictionary, and has methods to update the record's data and get the record's data
         klass = self._get_record_klass()
-        record = klass(record)
+        klassed_record = klass(transformed_record)
 
         # update the record's geographic information and well data if it is a SiteRecord or SummaryRecord
         # transforms the horizontal datum and lon/lat coordinates to WGS84
         # transforms the elevation and well depth units to the output unit specified in the config
         # transforms the well depth and well depth units to the output unit specified in the config
-        if isinstance(record, (SiteRecord, SummaryRecord)):
-            y = float(record.latitude)
-            x = float(record.longitude)
+        if isinstance(klassed_record, (SiteRecord, SummaryRecord)):
+            y = float(klassed_record.latitude)
+            x = float(klassed_record.longitude)
 
             if x == 0 or y == 0:
-                self.warn(f"Skipping site {record.id}. Latitude or Longitude is 0")
+                self.warn(
+                    f"Skipping site {klassed_record.id}. Latitude or Longitude is 0"
+                )
                 return None
 
-            input_horizontal_datum = record.horizontal_datum
+            input_horizontal_datum = klassed_record.horizontal_datum
 
             if input_horizontal_datum not in ALLOWED_DATUMS:
                 self.warn(
-                    f"Skipping site {record.id}. Datum {input_horizontal_datum} cannot be processed"
+                    f"Skipping site {klassed_record.id}. Datum {input_horizontal_datum} cannot be processed"
                 )
                 return None
 
@@ -462,43 +479,43 @@ class BaseTransformer(Loggable):
 
             if not self.in_nm(lng, lat):
                 self.warn(
-                    f"Skipping site {record.id}. Coordinates {x}, {y} with datum {input_horizontal_datum} are not within 25km of New Mexico"
+                    f"Skipping site {klassed_record.id}. Coordinates {x}, {y} with datum {input_horizontal_datum} are not within 25km of New Mexico"
                 )
                 return None
 
-            record.update(latitude=lat)
-            record.update(longitude=lng)
-            record.update(horizontal_datum=datum)
+            klassed_record.update(latitude=lat)
+            klassed_record.update(longitude=lng)
+            klassed_record.update(horizontal_datum=datum)
 
             elevation, elevation_unit = transform_length_units(
-                record.elevation,
-                record.elevation_units,
+                klassed_record.elevation,
+                klassed_record.elevation_units,
                 output_elevation_units,
             )
-            record.update(elevation=elevation)
-            record.update(elevation_units=elevation_unit)
+            klassed_record.update(elevation=elevation)
+            klassed_record.update(elevation_units=elevation_unit)
 
             well_depth, well_depth_unit = transform_length_units(
-                record.well_depth,
-                record.well_depth_units,
+                klassed_record.well_depth,
+                klassed_record.well_depth_units,
                 well_depth_units,
             )
-            record.update(well_depth=well_depth)
-            record.update(well_depth_units=well_depth_unit)
+            klassed_record.update(well_depth=well_depth)
+            klassed_record.update(well_depth_units=well_depth_unit)
 
         # update the units to the output unit for analyte records
         # this is done after converting the units to the output unit for the analyte records
         # convert the parameter value to the output unit specified in the config
-        elif isinstance(record, (AnalyteRecord, WaterLevelRecord)):
-            if isinstance(record, AnalyteRecord):
+        elif isinstance(klassed_record, (AnalyteRecord, WaterLevelRecord)):
+            if isinstance(klassed_record, AnalyteRecord):
                 output_units = self.config.analyte_output_units
             else:
                 output_units = self.config.waterlevel_output_units
 
-            source_result = record.parameter_value
-            source_unit = record.source_parameter_units
-            dt = record.date_measured
-            source_name = record.source_parameter_name
+            source_result = klassed_record.parameter_value
+            source_unit = klassed_record.source_parameter_units
+            dt = klassed_record.date_measured
+            source_name = klassed_record.source_parameter_name
             conversion_factor = None  # conversion factor will remain None if record is kept for time series and cannot be converted, such as non-detects
             warning_msg = ""
             try:
@@ -511,24 +528,24 @@ class BaseTransformer(Loggable):
                     dt,
                 )
                 if warning_msg != "":
-                    msg = f"{warning_msg} for {record.id}"
+                    msg = f"{warning_msg} for {klassed_record.id}"
                     self.warn(msg)
             except TypeError:
-                msg = f"Keeping {source_result} for {record.id} on {record.date_measured} for time series data"
+                msg = f"Keeping {source_result} for {klassed_record.id} on {klassed_record.date_measured} for time series data"
                 self.warn(msg)
                 converted_result = source_result
             except ValueError:
-                msg = f"Keeping {source_result} for {record.id} on {record.date_measured} for time series data"
+                msg = f"Keeping {source_result} for {klassed_record.id} on {klassed_record.date_measured} for time series data"
                 self.warn(msg)
                 converted_result = source_result
 
             if warning_msg == "":
-                record.update(conversion_factor=conversion_factor)
-                record.update(parameter_value=converted_result)
+                klassed_record.update(conversion_factor=conversion_factor)
+                klassed_record.update(parameter_value=converted_result)
             else:
-                record = None
+                klassed_record = None
 
-        return record
+        return klassed_record
 
     def in_nm(self, lng: float | int | str, lat: float | int | str) -> bool:
         """
@@ -667,7 +684,7 @@ class BaseTransformer(Loggable):
 
 
 class SiteTransformer(BaseTransformer):
-    def _get_record_klass(self) -> SiteRecord:
+    def _get_record_klass(self) -> type[SiteRecord]:
         """
         Returns the SiteRecord class to use for the transformer for all site records
 
@@ -786,7 +803,9 @@ class ParameterTransformer(BaseTransformer):
 
 
 class WaterLevelTransformer(ParameterTransformer):
-    def _get_record_klass(self) -> WaterLevelRecord | WaterLevelSummaryRecord:
+    def _get_record_klass(
+        self,
+    ) -> type[WaterLevelRecord] | type[WaterLevelSummaryRecord]:
         """
         Returns the WaterLevelRecord class to use for the transformer for
         water level records if config.output_summary is False, otherwise
@@ -815,7 +834,7 @@ class WaterLevelTransformer(ParameterTransformer):
 
 
 class AnalyteTransformer(ParameterTransformer):
-    def _get_record_klass(self) -> AnalyteRecord | AnalyteSummaryRecord:
+    def _get_record_klass(self) -> type[AnalyteRecord] | type[AnalyteSummaryRecord]:
         """
         Returns the AnalyteRecord class to use for the transformer for
         water level records if config.output_summary is False, otherwise
