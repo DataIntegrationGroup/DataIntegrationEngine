@@ -208,8 +208,10 @@ class Config(Loggable):
 
     def finalize(self):
         self._update_output_units()
+        if self.output_format != OutputFormat.GEOSERVER:
+            self.update_output_name()
+
         self.make_output_directory()
-        self.update_output_name()
         self.make_output_path()
 
     def all_site_sources(self):
