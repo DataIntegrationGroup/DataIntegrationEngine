@@ -100,9 +100,9 @@ def _perister_factory(config):
     persister_klass = CSVPersister
     if config.use_cloud_storage:
         persister_klass = CloudStoragePersister
-    elif config.output_site_file_type == "csv":
+    elif config.site_file_type == "csv":
         persister_klass = CSVPersister
-    elif config.output_site_file_type == "geojson":
+    elif config.site_file_type == "geojson":
         persister_klass = GeoJSONPersister
 
     return persister_klass()

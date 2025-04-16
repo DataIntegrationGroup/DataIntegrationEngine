@@ -50,6 +50,7 @@ class BaseCLITestClass:
         self,
         parameter: str,
         output: str,
+        site_output_type: str = "csv",
         site_limit: int = 4,
         start_date: str = "1990-08-10",
         end_date: str = "1990-08-11",
@@ -92,6 +93,13 @@ class BaseCLITestClass:
             end_date,
         ]
 
+        if site_output_type == "csv":
+            arguments.append("--site-file-type")
+            arguments.append(site_output_type)
+        elif site_output_type == "geojson":
+            arguments.append("--site-file-type")
+            arguments.append(site_output_type)
+
         if geographic_filter_name and geographic_filter_value:
             arguments.extend([f"--{geographic_filter_name}", geographic_filter_value])
 
@@ -115,6 +123,7 @@ class BaseCLITestClass:
         6. The start date is set correctly
         7. The end date is set correctly
         8. The geographic filter is set correctly
+        9. The site output type is set correctly
         """
         config = result.return_value
 
@@ -166,6 +175,12 @@ class BaseCLITestClass:
                 else:
                     assert getattr(config, _geographic_filter_name) == ""
 
+        # 9
+        if site_output_type == "csv":
+            assert getattr(config, "site_file_type") == "csv"
+        elif site_output_type == "geojson":
+            assert getattr(config, "site_file_type") == "geojson"
+
     def test_weave_summary(self):
         self._test_weave(parameter=WATERLEVELS, output="summary")
 
@@ -174,6 +189,16 @@ class BaseCLITestClass:
 
     def test_weave_timeseries_separated(self):
         self._test_weave(parameter=WATERLEVELS, output="timeseries_separated")
+
+    def test_weave_csv(self):
+        self._test_weave(
+            parameter=WATERLEVELS, output="summary", site_output_type="csv"
+        )
+
+    def test_weave_geojson(self):
+        self._test_weave(
+            parameter=WATERLEVELS, output="summary", site_output_type="geojson"
+        )
 
     def test_weave_bbox(self):
         self._test_weave(

@@ -188,7 +188,7 @@ PERSISTER_OPTIONS = [
 
 SITE_OUTPUT_TYPE_OPTIONS = [
     click.option(
-        "--site-output-type",
+        "--site-file-type",
         type=click.Choice(["csv", "geojson"]),
         default="csv",
         help="Output file format for sites (csv or geoson). Default is csv",
@@ -242,13 +242,13 @@ def weave(
     site_limit,
     dry,
     yes,
-    site_output_type,
+    site_file_type,
 ):
     """
     Get parameter timeseries or summary data
     """
     # instantiate config and set up parameter
-    config = setup_config(parameter, bbox, wkt, county, site_limit, dry, site_output_type)
+    config = setup_config(parameter, bbox, wkt, county, site_limit, dry, site_file_type)
     config.parameter = parameter
 
     # output type
@@ -396,7 +396,7 @@ def sources(sources, bbox, wkt, county):
         click.echo(s)
 
 
-def setup_config(tag, bbox, wkt, county, site_limit, dry, site_output_type="csv"):
+def setup_config(tag, bbox, wkt, county, site_limit, dry, site_file_type="csv"):
     config = Config()
     if county:
         click.echo(f"Getting {tag} for county {county}")
@@ -415,7 +415,7 @@ def setup_config(tag, bbox, wkt, county, site_limit, dry, site_output_type="csv"
         config.site_limit = None
     config.dry = dry
 
-    config.output_site_file_type = site_output_type
+    config.site_file_type = site_file_type
 
     return config
 

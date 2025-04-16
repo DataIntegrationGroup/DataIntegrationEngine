@@ -142,7 +142,7 @@ class Config(Loggable):
     output_summary: bool = False
     output_timeseries_unified: bool = False
     output_timeseries_separated: bool = False
-    output_site_file_type: str = "csv"
+    site_file_type: str = "csv"
 
     latest_water_level_only: bool = False
 
@@ -415,7 +415,7 @@ class Config(Loggable):
                 "output_summary",
                 "output_timeseries_unified",
                 "output_timeseries_separated",
-                "output_site_file_type",
+                "site_file_type",
                 "output_horizontal_datum",
                 "output_elevation_units",
             ),
