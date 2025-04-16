@@ -38,7 +38,7 @@ class BasePersister(Loggable):
     If persisting to a file, the output directory is created by config._make_output_path()
     """
 
-    add_extension: str = "csv"
+    extension: str = "csv"
 
     def __init__(self):
         self.records = []
@@ -213,11 +213,7 @@ class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
     def _write(self, path: str, records: list):
-        feature_collection = {
-            "type": "FeatureCollection",
-            "features": [],
-        }
-
+        
         features = [
             {
                 "type": "Feature",
@@ -237,7 +233,10 @@ class GeoJSONPersister(BasePersister):
             }
             for record in records
         ]
-        feature_collection["features"].extend(features)
+        feature_collection = {
+            "type": "FeatureCollection",
+            "features": features
+        }
 
         with open(path, "w") as f:
             json.dump(feature_collection, f, indent=4)
