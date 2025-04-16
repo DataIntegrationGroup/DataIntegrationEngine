@@ -161,6 +161,7 @@ class SiteRecord(BaseRecord):
         "formation",
         "aquifer",
         "well_depth",
+        "well_depth_units",
     )
 
     defaults: dict = {
@@ -178,6 +179,7 @@ class SiteRecord(BaseRecord):
         "formation": "",
         "aquifer": "",
         "well_depth": None,
+        "well_depth_units": FEET,
     }
 
 
