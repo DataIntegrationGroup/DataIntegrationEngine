@@ -15,9 +15,9 @@
 # ===============================================================================
 import shapely
 
-from backend.config import Config, get_source
+from backend.config import Config, get_source, OutputFormat
 from backend.logging import setup_logging
-from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
+from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister, GeoServerPersister
 from backend.source import BaseSiteSource
 
 
@@ -95,12 +95,14 @@ def _perister_factory(config):
     persister_klass = CSVPersister
     if config.use_cloud_storage:
         persister_klass = CloudStoragePersister
-    elif config.use_csv:
+    elif config.output_format == OutputFormat.CSV:
         persister_klass = CSVPersister
-    elif config.use_geojson:
+    elif config.output_format == OutputFormat.GEOJSON:
         persister_klass = GeoJSONPersister
+    elif config.output_format == OutputFormat.GEOSERVER:
+        persister_klass = GeoServerPersister
 
-    return persister_klass()
+    return persister_klass(config)
 
 
 # def _unify_wrapper(config, func):

@@ -192,6 +192,14 @@ PERSISTER_OPTIONS = [
     )
 ]
 
+CONFIG_OPTIONS = [
+    click.option(
+        "--config",
+        type=click.Path(exists=True),
+        default=None,
+        help="Path to config file. Default is config.yaml",
+    ),
+]
 
 def add_options(options):
     def _add_options(func):
@@ -208,6 +216,7 @@ def add_options(options):
     type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
     required=True,
 )
+@add_options(CONFIG_OPTIONS)
 @add_options(OUTPUT_OPTIONS)
 @add_options(PERSISTER_OPTIONS)
 @add_options(DT_OPTIONS)
@@ -216,6 +225,7 @@ def add_options(options):
 @add_options(DEBUG_OPTIONS)
 def weave(
         weave,
+        config_path,
         output,
         output_dir,
         start_date,
@@ -241,7 +251,7 @@ def weave(
     """
     parameter = weave
     # instantiate config and set up parameter
-    config = setup_config(f"{parameter}", bbox, county, site_limit, dry)
+    config = setup_config(f"{parameter}", config_path, bbox, county, site_limit, dry)
     config.parameter = parameter
 
     # # make sure config.output_name is properly set
@@ -337,11 +347,13 @@ def weave(
 
 
 @cli.command()
+@add_options(CONFIG_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(PERSISTER_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-def wells(bbox, county,
+def sites(config,
+          bbox, county,
           output_dir,
           no_bernco,
           no_bor,
@@ -361,22 +373,23 @@ def wells(bbox, county,
     Get locations
     """
 
-    config = setup_config("sites", bbox, county, site_limit, dry)
+    config = setup_config("sites", config, bbox, county, site_limit, dry)
     config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
                        "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
-                       "wqp"]
-    lcs = locals()
-    for agency in config_agencies:
-        setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+                       "wqp", "nmose_pod"]
+    if config is None:
+        lcs = locals()
+        for agency in config_agencies:
+            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+        config.output_dir = output_dir
 
     config.sites_only = True
-    config.output_dir = output_dir
     config.finalize()
     # setup logging here so that the path can be set to config.output_path
     setup_logging(path=config.output_path)
 
     config.report()
-    if not yes:
+    if not yes and not config.yes:
         # prompt user to continue
         if not click.confirm("Do you want to continue?", default=True):
             return
@@ -410,8 +423,8 @@ def sources(sources, bbox, county):
         click.echo(s)
 
 
-def setup_config(tag, bbox, county, site_limit, dry):
-    config = Config()
+def setup_config(tag, config_path, bbox, county, site_limit, dry):
+    config = Config(path=config_path)
     if county:
         click.echo(f"Getting {tag} for county {county}")
         config.county = county
