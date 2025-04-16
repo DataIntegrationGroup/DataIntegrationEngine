@@ -114,7 +114,9 @@ def _perister_factory(config):
 #     persister.save(config.output_path)
 
 
-def _site_wrapper(site_source, parameter_source, sites_summary_persister, timeseries_persister, config):
+def _site_wrapper(
+    site_source, parameter_source, sites_summary_persister, timeseries_persister, config
+):
 
     try:
         # TODO: fully develop checks/discoveries below
@@ -203,16 +205,25 @@ def _site_wrapper(site_source, parameter_source, sites_summary_persister, timese
                         # num_sites_to_remove from the length of the list
                         # to remove the last num_sites_to_remove sites
                         if use_summarize:
-                            sites_summary_persister.records = sites_summary_persister.records[
-                                : len(sites_summary_persister.records) - num_sites_to_remove
-                            ]
+                            sites_summary_persister.records = (
+                                sites_summary_persister.records[
+                                    : len(sites_summary_persister.records)
+                                    - num_sites_to_remove
+                                ]
+                            )
                         else:
-                            timeseries_persister.timeseries = timeseries_persister.timeseries[
-                                : len(timeseries_persister.timeseries) - num_sites_to_remove
-                            ]
-                            sites_summary_persister.sites = sites_summary_persister.sites[
-                                : len(sites_summary_persister.sites) - num_sites_to_remove
-                            ]
+                            timeseries_persister.timeseries = (
+                                timeseries_persister.timeseries[
+                                    : len(timeseries_persister.timeseries)
+                                    - num_sites_to_remove
+                                ]
+                            )
+                            sites_summary_persister.sites = (
+                                sites_summary_persister.sites[
+                                    : len(sites_summary_persister.sites)
+                                    - num_sites_to_remove
+                                ]
+                            )
                         break
 
     except BaseException:
@@ -230,7 +241,13 @@ def _unify_parameter(
     sites_summary_persister = _perister_factory(config)
     timeseries_persister = CSVPersister()
     for site_source, parameter_source in sources:
-        _site_wrapper(site_source, parameter_source, sites_summary_persister, timeseries_persister, config)
+        _site_wrapper(
+            site_source,
+            parameter_source,
+            sites_summary_persister,
+            timeseries_persister,
+            config,
+        )
 
     if config.output_summary:
         sites_summary_persister.dump_summary(config.output_path)

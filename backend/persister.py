@@ -17,7 +17,7 @@ import csv
 import io
 import os
 import shutil
-from pprint import pprint   
+from pprint import pprint
 import json
 
 import pandas as pd
@@ -37,6 +37,7 @@ class BasePersister(Loggable):
     Class to persist the data to a file or cloud storage.
     If persisting to a file, the output directory is created by config._make_output_path()
     """
+
     add_extension: str = "csv"
 
     def __init__(self):
@@ -107,12 +108,13 @@ class BasePersister(Loggable):
 
     def _write(self, path: str, records):
         raise NotImplementedError
-    
+
     def _dump_timeseries(self, path: str, timeseries: list):
         raise NotImplementedError
 
     def _make_output_directory(self, output_directory: str):
         os.mkdir(output_directory)
+
 
 def write_csv_file(path, func, records):
     with open(path, "w", newline="") as f:
@@ -221,18 +223,24 @@ class GeoJSONPersister(BasePersister):
                 "type": "Feature",
                 "geometry": {
                     "type": "Point",
-                    "coordinates": [record.get("longitude"), record.get("latitude"), record.get("elevation")],
+                    "coordinates": [
+                        record.get("longitude"),
+                        record.get("latitude"),
+                        record.get("elevation"),
+                    ],
                 },
-                "properties": {k: record.get(k) for k in record.keys if k not in ["latitude", "longitude", "elevation"]},
+                "properties": {
+                    k: record.get(k)
+                    for k in record.keys
+                    if k not in ["latitude", "longitude", "elevation"]
+                },
             }
             for record in records
         ]
         feature_collection["features"].extend(features)
 
-
         with open(path, "w") as f:
             json.dump(feature_collection, f, indent=4)
-
 
     def _get_gdal_type(self, dtype):
         """
@@ -248,6 +256,7 @@ class GeoJSONPersister(BasePersister):
             return "datetime"
         else:
             return "str"  # Default to string for unsupported types
+
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"
