@@ -30,37 +30,37 @@ class BaseRecord:
 
     def __init__(self, payload):
         self._payload = payload
-    
+
     def get(self, attr):
-            # v = self._payload.get(attr)
-            # if v is None and self.defaults:
-            #     v = self.defaults.get(attr)
-            v = self.__getattr__(attr)
+        # v = self._payload.get(attr)
+        # if v is None and self.defaults:
+        #     v = self.defaults.get(attr)
+        v = self.__getattr__(attr)
 
-            field_sigfigs = [
-                ("elevation", 2),
-                ("well_depth", 2),
-                ("latitude", 6),
-                ("longitude", 6),
-                ("min", 2),
-                ("max", 2),
-                ("mean", 2),
-            ]
+        field_sigfigs = [
+            ("elevation", 2),
+            ("well_depth", 2),
+            ("latitude", 6),
+            ("longitude", 6),
+            ("min", 2),
+            ("max", 2),
+            ("mean", 2),
+        ]
 
-            # both analyte and water level tables have the same fields, but the
-            # rounding should only occur for water level tables
-            if isinstance(self, WaterLevelRecord):
-                field_sigfigs.append((PARAMETER_VALUE, 2))
+        # both analyte and water level tables have the same fields, but the
+        # rounding should only occur for water level tables
+        if isinstance(self, WaterLevelRecord):
+            field_sigfigs.append((PARAMETER_VALUE, 2))
 
-            for field, sigfigs in field_sigfigs:
-                if v is not None and field == attr:
-                    try:
-                        v = round(v, sigfigs)
-                    except TypeError as e:
-                        print(field, attr)
-                        raise e
-                    break
-            return v
+        for field, sigfigs in field_sigfigs:
+            if v is not None and field == attr:
+                try:
+                    v = round(v, sigfigs)
+                except TypeError as e:
+                    print(field, attr)
+                    raise e
+                break
+        return v
 
     def to_row(self):
         return [self.get(k) for k in self.keys]

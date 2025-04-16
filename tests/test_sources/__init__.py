@@ -14,10 +14,14 @@ from tests import recursively_clean_directory
 EXCLUDED_GEOJSON_KEYS = ["latitude", "longitude", "elevation"]
 
 SUMMARY_RECORD_CSV_HEADERS = list(SummaryRecord.keys)
-SUMMARY_RECORD_GEOJSON_KEYS = [k for k in SUMMARY_RECORD_CSV_HEADERS if k not in EXCLUDED_GEOJSON_KEYS]
+SUMMARY_RECORD_GEOJSON_KEYS = [
+    k for k in SUMMARY_RECORD_CSV_HEADERS if k not in EXCLUDED_GEOJSON_KEYS
+]
 
 SITE_RECORD_CSV_HEADERS = list(SiteRecord.keys)
-SITE_RECORD_GEOJSON_KEYS = [k for k in SITE_RECORD_CSV_HEADERS if k not in EXCLUDED_GEOJSON_KEYS]
+SITE_RECORD_GEOJSON_KEYS = [
+    k for k in SITE_RECORD_CSV_HEADERS if k not in EXCLUDED_GEOJSON_KEYS
+]
 
 PARAMETER_RECORD_HEADERS = list(ParameterRecord.keys)
 
@@ -96,7 +100,9 @@ class BaseSourceTestClass:
                 for feature in summary["features"]:
                     assert feature["geometry"]["type"] == "Point"
                     assert len(feature["geometry"]["coordinates"]) == 3
-                    assert sorted(feature["properties"].keys()) == sorted(SUMMARY_RECORD_GEOJSON_KEYS)
+                    assert sorted(feature["properties"].keys()) == sorted(
+                        SUMMARY_RECORD_GEOJSON_KEYS
+                    )
                 assert summary["features"][0]["type"] == "Feature"
         else:
             raise ValueError(f"Unsupported file extension: {extension}")
@@ -122,7 +128,9 @@ class BaseSourceTestClass:
                 for feature in sites["features"]:
                     assert feature["geometry"]["type"] == "Point"
                     assert len(feature["geometry"]["coordinates"]) == 3
-                    assert sorted(feature["properties"].keys()) == sorted(SITE_RECORD_GEOJSON_KEYS)
+                    assert sorted(feature["properties"].keys()) == sorted(
+                        SITE_RECORD_GEOJSON_KEYS
+                    )
                 assert sites["features"][0]["type"] == "Feature"
         else:
             raise ValueError(f"Unsupported file extension: {extension}")
@@ -236,7 +244,6 @@ class BaseSourceTestClass:
 
         for timeseries_file in timeseries_dir.iterdir():
             self._check_timeseries_file(timeseries_dir, timeseries_file.name)
-   
 
     @pytest.mark.skip(reason="test_date_range not implemented yet")
     def test_date_range(self):
