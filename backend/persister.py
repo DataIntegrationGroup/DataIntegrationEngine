@@ -213,7 +213,7 @@ class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
     def _write(self, path: str, records: list):
-        
+
         features = [
             {
                 "type": "Feature",
@@ -233,10 +233,7 @@ class GeoJSONPersister(BasePersister):
             }
             for record in records
         ]
-        feature_collection = {
-            "type": "FeatureCollection",
-            "features": features
-        }
+        feature_collection = {"type": "FeatureCollection", "features": features}
 
         with open(path, "w") as f:
             json.dump(feature_collection, f, indent=4)
