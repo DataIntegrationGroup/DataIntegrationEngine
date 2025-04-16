@@ -82,19 +82,21 @@ class NMBGMRSiteSource(BaseSiteSource):
         sites = self._execute_json_request(
             _make_url("locations"), params, tag="features", timeout=30
         )
+        pointids = [site["properties"]["point_id"] for site in sites]
+        wells = self._execute_json_request(
+            _make_url("wells"), params={"pointid": ",".join(pointids)}, tag=""
+        )
         for site in sites:
-            print(f"Obtaining well data for {site['properties']['point_id']}")
-            well_data = self._execute_json_request(
-                _make_url("wells"),
-                params={"pointid": site["properties"]["point_id"]},
-                tag="",
-            )
-            site["properties"]["formation"] = well_data["formation"]
-            site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
-            site["properties"]["well_depth_units"] = FEET
-            # site["properties"]["formation"] = None
-            # site["properties"]["well_depth"] = None
-            # site["properties"]["well_depth_units"] = FEET
+            pointid = site["properties"]["point_id"]
+            well_data = wells.get(pointid)
+            if well_data:
+                site["properties"]["formation"] = well_data["formation"]
+                site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
+                site["properties"]["well_depth_units"] = FEET
+            else:
+                site["properties"]["formation"] = None
+                site["properties"]["well_depth"] = None
+                site["properties"]["well_depth_units"] = None
 
         return sites
 
