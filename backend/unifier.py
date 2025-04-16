@@ -17,7 +17,8 @@ import shapely
 
 from backend.config import Config, get_source, OutputFormat
 from backend.logging import setup_logging
-from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister, GeoServerPersister
+from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
+from backend.persisters.geoserver import GeoServerPersister
 from backend.source import BaseSiteSource
 
 
