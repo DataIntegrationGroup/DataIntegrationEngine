@@ -38,9 +38,9 @@ class NMBGMRSiteTransformer(SiteTransformer):
             "vertical_datum": props["altitude_datum"],
             "usgs_site_id": props["site_id"],
             "alternate_site_id": props["alternate_site_id"],
-            "formation": props["formation"],
-            "well_depth": props["well_depth"],
-            "well_depth_units": props["well_depth_units"],
+            "formation": props.get("formation", ""),
+            "well_depth": props.get("well_depth", ""),
+            "well_depth_units": props.get("well_depth_units", ""),
         }
         return rec
 

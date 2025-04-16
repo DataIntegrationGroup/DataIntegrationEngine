@@ -87,15 +87,15 @@ class WQPSiteSource(BaseSiteSource):
         }
         if config.has_bounds():
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
-
-        if config.parameter.lower() != "waterlevels":
-            params["characteristicName"] = get_analyte_search_param(
-                config.parameter, WQP_ANALYTE_MAPPING
-            )
-        else:
-            # every record with pCode 30210 (depth in m) has a corresponding
-            # record with pCode 72019 (depth in ft) but not vice versa
-            params["pCode"] = "30210"
+        if not config.sites_only:
+            if config.parameter.lower() != "waterlevels":
+                params["characteristicName"] = get_analyte_search_param(
+                    config.parameter, WQP_ANALYTE_MAPPING
+                )
+            else:
+                # every record with pCode 30210 (depth in m) has a corresponding
+                # record with pCode 72019 (depth in ft) but not vice versa
+                params["pCode"] = "30210"
 
         params.update(get_date_range(config))
 
