@@ -23,7 +23,7 @@ import geopandas as gpd
 import psycopg2
 
 from backend import OutputFormat
-from backend.logging import Loggable
+from backend.logger import Loggable
 
 
 try:

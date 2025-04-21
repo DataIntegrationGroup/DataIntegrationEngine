@@ -16,7 +16,7 @@
 import shapely
 
 from backend.config import Config, get_source, OutputFormat
-from backend.logging import setup_logging
+from backend.logger import setup_logging
 from backend.constants import WATERLEVELS
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 from backend.persisters.geoserver import GeoServerPersister
@@ -356,36 +356,6 @@ def waterlevel_unification_test():
     # cfg.site_limit = 10
 
     unify_waterlevels(cfg)
-
-
-def site_unification_test():
-    cfg = Config()
-    # cfg.county = "chaves"
-
-    cfg.output_summary = False
-    cfg.output_name = "sitesonly"
-    cfg.sites_only = True
-    # cfg.output_summary = True
-    # cfg.output_single_timeseries = True
-
-    cfg.use_source_bernco = False
-    cfg.use_source_bor = False
-    cfg.use_source_cabq = False
-    cfg.use_source_ebid = False
-    cfg.use_source_nmbgmr_amp = False
-    cfg.use_source_nmed_dwb = False
-    cfg.use_source_nmose_isc_seven_rivers = False
-    cfg.use_source_nmose_roswell = False
-    cfg.use_source_nwis = False
-    cfg.use_source_pvacd = False
-    cfg.use_source_wqp = False
-    cfg.use_source_nmose_pod = True
-
-    cfg.use_source_nmed_dwb = False
-
-    cfg.finalize()
-
-    unify_sites(cfg)
 
 
 def get_datastream(siteid):
