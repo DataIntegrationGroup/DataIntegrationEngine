@@ -21,7 +21,7 @@ from backend.config import Config
 from backend.constants import PARAMETER_OPTIONS
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
-from backend.logging import setup_logging
+from backend.logger import setup_logging
 
 
 # setup_logging()
@@ -83,6 +83,13 @@ ALL_SOURCE_OPTIONS = [
         help="Exclude NMOSE ISC Seven Rivers data. Default is to include",
     ),
     click.option(
+        "--no-nmose-pod",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Exclude NMOSE POD data. Default is to include",
+    ),
+    click.option(
         "--no-nmose-roswell",
         is_flag=True,
         default=True,
@@ -122,6 +129,11 @@ SPATIAL_OPTIONS = [
         "--county",
         default="",
         help="New Mexico county name",
+    ),
+    click.option(
+        "--wkt",
+        default="",
+        help="Well known text (WKT) representation of a geometry. For example, 'POLYGON((x1 y1, x2 y2, x3 y3, x1 y1))'",
     ),
 ]
 DEBUG_OPTIONS = [
@@ -182,7 +194,6 @@ OUTPUT_OPTIONS = [
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
     ),
-
 ]
 PERSISTER_OPTIONS = [
     click.option(
@@ -212,7 +223,7 @@ def add_options(options):
 
 @cli.command()
 @click.argument(
-    "weave",
+    "parameter",
     type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
     required=True,
 )
@@ -224,7 +235,7 @@ def add_options(options):
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def weave(
-        weave,
+        parameter,
         config_path,
         output,
         output_dir,
@@ -245,21 +256,14 @@ def weave(
         no_wqp,
         site_limit,
         dry,
-        yes
-):
+        yes):
     """
     Get parameter timeseries or summary data
     """
-    parameter = weave
     # instantiate config and set up parameter
-    config = setup_config(f"{parameter}", config_path, bbox, county, site_limit, dry)
+    config = setup_config(parameter, config_path, bbox, county, site_limit, dry)
+    
     config.parameter = parameter
-
-    # # make sure config.output_name is properly set
-    # config.update_output_name()
-    #
-    # # make output_path now so that die.log can be written to it live
-    # config.make_output_path()
 
     # output type
     if output == "summary":
@@ -282,46 +286,10 @@ def weave(
     config.output_timeseries_unified = timeseries_unified
     config.output_timeseries_separated = timeseries_separated
 
-    false_agencies = []
-    config_agencies = []
-    # sources
-    if parameter == "waterlevels":
-        config_agencies = ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                           "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]
+    config_agencies, false_agencies = config.get_config_and_false_agencies()
 
-        false_agencies = ['bor', 'nmed_dwb']
-
-    elif parameter == "carbonate":
-        config_agencies = ['nmbgmr_amp', 'wqp']
-        false_agencies = ['bor', 'bernco', 'cabq', 'ebid', 'nmed_dwb',
-                          'nmose_isc_seven_rivers', 'nmose_roswell', 'nwis', 'pvacd']
-
-    elif parameter in ["arsenic", "uranium"]:
-        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'wqp']
-        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_isc_seven_rivers',
-                          'nmose_roswell', 'nwis', 'pvacd']
-
-
-    elif parameter in [
-        "bicarbonate",
-        "calcium",
-        "chloride",
-        "fluoride",
-        "magnesium",
-        "nitrate",
-        "ph",
-        "potassium",
-        "silica",
-        "sodium",
-        "sulfate",
-        "tds",
-    ]:
-        config_agencies = ['bor', 'nmbgmr_amp', 'nmed_dwb', 'nmose_isc_seven_rivers', 'wqp']
-        false_agencies = ['bernco', 'cabq', 'ebid', 'nmose_roswell', 'nwis', 'pvacd']
-
-    if false_agencies:
-        for agency in false_agencies:
-            setattr(config, f"use_source_{agency}", False)
+    for agency in false_agencies:
+        setattr(config, f"use_source_{agency}", False)
 
     if config_path is None:
         lcs = locals()
@@ -336,8 +304,8 @@ def weave(
     # setup logging here so that the path can be set to config.output_path
     setup_logging(path=config.output_path)
 
+    config.report()
     if not dry:
-        config.report()
         if not yes and not config.yes:
             # prompt user to continue
             if not click.confirm("Do you want to continue?", default=True):
@@ -348,6 +316,7 @@ def weave(
     else:
         unify_analytes(config)
 
+        
 
 @cli.command()
 @add_options(CONFIG_OPTIONS)
@@ -373,7 +342,7 @@ def sites(config_path,
           dry,
           yes):
     """
-    Get locations
+    Get sites
     """
 
     config = setup_config("sites", config_path, bbox, county, site_limit, dry)
@@ -408,7 +377,7 @@ def sites(config_path,
     required=True,
 )
 @add_options(SPATIAL_OPTIONS)
-def sources(sources, bbox, county):
+def sources(sources, bbox, wkt, county):
     """
     List available sources
     """
@@ -419,9 +388,16 @@ def sources(sources, bbox, county):
         config.county = county
     elif bbox:
         config.bbox = bbox
+    elif wkt:
+        config.wkt = wkt
 
     parameter = sources
     config.parameter = parameter
+    config_agencies, false_agencies = config.get_config_and_false_agencies()
+
+    for agency in false_agencies:
+        setattr(config, f"use_source_{agency}", False)
+
     sources = get_sources(config)
     for s in sources:
         click.echo(s)
@@ -429,6 +405,7 @@ def sources(sources, bbox, county):
 
 def setup_config(tag, config_path, bbox, county, site_limit, dry):
     config = Config(path=config_path)
+
     if county:
         click.echo(f"Getting {tag} for county {county}")
         config.county = county
@@ -436,10 +413,17 @@ def setup_config(tag, config_path, bbox, county, site_limit, dry):
         click.echo(f"Getting {tag} for bounding box {bbox}")
         # bbox = -105.396826 36.219290, -106.024162 35.384307
         config.bbox = bbox
+    elif wkt:
+        click.echo(f"Getting {tag} for WKT {wkt}")
+        config.wkt = wkt
 
-    config.site_limit = site_limit
+    if site_limit:
+        config.site_limit = int(site_limit)
+    else:
+        config.site_limit = None
     config.dry = dry
 
     return config
+
 
 # ============= EOF =============================================

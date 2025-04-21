@@ -30,6 +30,8 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`, `water quality`
 - [New Mexico Environment Department Drinking Water Bureau (NMED DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
   - Available data: `water quality`
+- [New Mexico Office of the State Engineer Points of Diversions (NMOSEPODs)](https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/ArcGIS/rest/services/OSE_PODs/FeatureServer/0)
+  - Available data: `None`
 - [New Mexico Office of the State Engineer ISC Seven Rivers (NMOSE ISC Seven Rivers)](https://nmisc-wf.gladata.com/api/getMonitoringPoints.ashx)
   - Available data: `water levels`, `water quality`
 - [New Mexico Office of the State Engineer Roswell District Office (NMOSE Roswell)](https://catalog.newmexicowaterdata.org/dataset/pecos_region_manual_groundwater_levels)
@@ -63,6 +65,7 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 | **nmbgmr-amp**             | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 | **nmed-dwb**               | -           | X       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 | **nmose-isc-seven-rivers** | X           | -       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | -       |
+| **nmose-pod**              | -           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
@@ -98,7 +101,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | :----------- | :---------- | :-------- | :------------- |
 | source | the organization/source for the site | string | Y |
 | id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
-| location | the colloquial name for the site | string | Y |
+| name | the colloquial name for the site | string | Y |
 | usgs_site_id | USGS site id | string | N |
 | alternate_site_id | alternate site id | string | N | 
 | latitude | latitude in decimal degrees | float | Y |
@@ -114,10 +117,14 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | min | the minimum observation | float | Y |
 | max | the maximum observation | float | Y |
 | mean | the mean value of the observations | float | Y |
-| most_recent_date| date of most recent record in YYYY-MM-DD | string | Y |
-| most_recent_time | time of most recent record in HH:MM:SS or HH:MM:SS.mmm | string | N |
-| most_recent_value | value of the most recent record  | float | Y |
-| most_recent_units | units of the most recent record | string | Y |
+| earliest_date| date of the earliest record in YYYY-MM-DD | string | Y |
+| earliest_time | time of the earliest record in HH:MM:SS or HH:MM:SS.mmm | string | N |
+| earliest_value | value of the earliest recent record  | float | Y |
+| earliest_units | units of the earliest record | string | Y |
+| latest_date| date of the latest record in YYYY-MM-DD | string | Y |
+| latest_time | time of the latest record in HH:MM:SS or HH:MM:SS.mmm | string | N |
+| latest_value | value of the latest recent record  | float | Y |
+| latest_units | units of the latest record | string | Y |
 
 <sup>*CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
 
@@ -167,6 +174,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
 - `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
 - `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
+- `--no-nmose-pod` to exclude New Mexico Office of State Engineer (NMOSE) Point of Diversion (POD) data (though none except for well information is currently available)
 - `--no-nmose-roswell` to exclude New Mexico Office of State Engineer (NMOSE) Roswell data
 - `--no-nwis` to exclude USGS NWIS data
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data

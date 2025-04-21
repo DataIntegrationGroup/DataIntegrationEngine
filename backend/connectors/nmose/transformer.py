@@ -13,8 +13,8 @@ class NMOSEPODSiteTransformer(SiteTransformer):
             dict: The transformed record.
         """
 
-        properties = record['attributes']
-        geometry = record['geometry']
+        properties = record["attributes"]
+        geometry = record["geometry"]
 
         # print(properties.keys())
         # print(geometry.keys())

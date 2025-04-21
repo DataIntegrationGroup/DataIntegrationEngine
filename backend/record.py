@@ -117,7 +117,7 @@ class SummaryRecord(BaseRecord):
     keys: tuple = (
         "source",
         "id",
-        "location",
+        "name",
         "usgs_site_id",
         "alternate_site_id",
         "latitude",
@@ -133,10 +133,14 @@ class SummaryRecord(BaseRecord):
         "min",
         "max",
         "mean",
-        "most_recent_date",
-        "most_recent_time",
-        "most_recent_value",
-        "most_recent_units",
+        "earliest_date",
+        "earliest_time",
+        "earliest_value",
+        "earliest_units",
+        "latest_date",
+        "latest_time",
+        "latest_value",
+        "latest_units",
     )
     defaults: dict = {}
 

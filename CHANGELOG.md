@@ -8,11 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 - water level for WQP
+- `earliest_date`, `earliest_time`, `earliest_value`, and `earliest_units` to the summary table
+- `die wells` to get all wells for which the DIE reports observations
+- `die source {parameter}` to list sources that report a particular parameter
+- NM OSE PODs, though its information is only currently available for the invocation of `die wells`
 
 ### Changed
 - NM OSE Roswell data is now pulled from ST2 and not CKAN
+- renamed the column `location` to `name` in the summary table to match the format of the `sites` table when timeseries data are exported
+- renamed the columns `most_recent_date`, `most_recent_time`, `most_recent_value`, and `most_recent_units` to `latest_date`, `latest_time`, `latest_value`, and `latest_units` respectively for succinctness and juxtaposition with the newly added `earliest` columns.
+  - This naming schema also enables the development of datetime filters as the descriptor will apply to the latest datetime within the provided time frame filter, whereas most recent indicates np filters.
+- removed sites that are not in New Mexico  
 
 ### Fixed
+- removed records from USGS where the value is "-999999"
 
 
 ## 0.7.0

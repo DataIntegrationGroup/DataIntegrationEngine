@@ -25,6 +25,7 @@ import psycopg2
 from backend import OutputFormat
 from backend.logging import Loggable
 
+
 try:
     from google.cloud import storage
 except ImportError:

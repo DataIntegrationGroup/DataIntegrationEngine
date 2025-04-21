@@ -17,12 +17,13 @@ import shapely
 
 from backend.config import Config, get_source, OutputFormat
 from backend.logging import setup_logging
+from backend.constants import WATERLEVELS
 from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
 from backend.persisters.geoserver import GeoServerPersister
 from backend.source import BaseSiteSource
 
 
-def health_check(source: BaseSiteSource) -> bool:
+def health_check(source: BaseSiteSource) -> bool | None:
     """
     Determines if data can be returned from the source (if it is healthy)
 
@@ -39,6 +40,8 @@ def health_check(source: BaseSiteSource) -> bool:
     source = get_source(source)
     if source:
         return bool(source.health())
+    else:
+        return None
 
 
 def unify_analytes(config):
@@ -63,6 +66,7 @@ def unify_waterlevels(config):
 
     return True
 
+
 def unify_sites(config):
     print("Unifying sites only\n")
 
@@ -73,6 +77,7 @@ def unify_sites(config):
         _unify_parameter(config, config.all_site_sources())
 
     return True
+
 
 def _perister_factory(config):
     """
@@ -135,19 +140,16 @@ def _site_wrapper(site_source, parameter_source, persister, config):
             return
 
         sites_with_records_count = 0
-        start_ind = 1
+        start_ind = 0
         end_ind = 0
         first_flag = True
 
         if config.sites_only:
             persister.sites.extend(sites)
         else:
-            for sites in site_source.chunks(sites):
-                if site_limit and sites_with_records_count == site_limit:
-                    break
-
-                if type(sites) == list:
-                    n = len(sites)
+            for site_records in site_source.chunks(sites):
+                if type(site_records) == list:
+                    n = len(site_records)
                     if first_flag:
                         first_flag = False
                     else:
@@ -157,25 +159,64 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
                 if use_summarize:
                     summary_records = parameter_source.read(
-                        sites, use_summarize, start_ind, end_ind
+                        site_records, use_summarize, start_ind, end_ind
                     )
                     if summary_records:
                         persister.records.extend(summary_records)
+                        sites_with_records_count += len(summary_records)
+                    else:
+                        continue
                 else:
                     results = parameter_source.read(
-                        sites, use_summarize, start_ind, end_ind
+                        site_records, use_summarize, start_ind, end_ind
                     )
                     # no records are returned if there is no site record for parameter
                     # or if the record isn't clean (doesn't have the correct fields)
                     # don't count these sites to apply to site_limit
                     if results is None or len(results) == 0:
                         continue
+                    else:
+                        sites_with_records_count += len(results)
 
                     for site, records in results:
                         persister.timeseries.append((site, records))
                         persister.sites.append(site)
 
-                sites_with_records_count += 1
+                if site_limit:
+                    # print(
+                    #     "sites_with_records_count:",
+                    #     sites_with_records_count,
+                    #     "|",
+                    #     "site_limit:",
+                    #     site_limit,
+                    #     "|",
+                    #     "chunk_size:",
+                    #     site_source.chunk_size,
+                    # )
+
+                    if sites_with_records_count >= site_limit:
+                        # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
+                        num_sites_to_remove = sites_with_records_count - site_limit
+                        # print(
+                        #     f"removing {num_sites_to_remove} to avoid exceeding the site limit"
+                        # )
+
+                        # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
+                        # and calling list[:0] will retur an empty list, so subtract
+                        # num_sites_to_remove from the length of the list
+                        # to remove the last num_sites_to_remove sites
+                        if use_summarize:
+                            persister.records = persister.records[
+                                : len(persister.records) - num_sites_to_remove
+                            ]
+                        else:
+                            persister.timeseries = persister.timeseries[
+                                : len(persister.timeseries) - num_sites_to_remove
+                            ]
+                            persister.sites = persister.sites[
+                                : len(persister.sites) - num_sites_to_remove
+                            ]
+                        break
 
     except BaseException:
         import traceback
@@ -253,7 +294,7 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.parameter.lower() == "waterlevels":
+    if config.parameter == WATERLEVELS:
         allsources = config.water_level_sources()
     else:
         allsources = config.analyte_sources()
@@ -316,10 +357,10 @@ def waterlevel_unification_test():
 
     unify_waterlevels(cfg)
 
+
 def site_unification_test():
     cfg = Config()
     # cfg.county = "chaves"
-
 
     cfg.output_summary = False
     cfg.output_name = "sitesonly"
@@ -341,8 +382,6 @@ def site_unification_test():
     cfg.use_source_nmose_pod = True
 
     cfg.use_source_nmed_dwb = False
-
-
 
     cfg.finalize()
 

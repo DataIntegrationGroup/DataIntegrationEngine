@@ -15,15 +15,10 @@
 # ===============================================================================
 import os
 import sys
-import time
 from datetime import datetime, timedelta
 from enum import Enum
-
 import shapely.wkt
-
-from backend.logging import Loggable
 from . import OutputFormat
-
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
     NMBGMRSiteSource,
@@ -31,25 +26,35 @@ from .connectors.nmbgmr.source import (
     NMBGMRAnalyteSource,
 )
 from .connectors.bor.source import BORSiteSource, BORAnalyteSource
-from .connectors.ckan import (
-    HONDO_RESOURCE_ID,
-    FORT_SUMNER_RESOURCE_ID,
-    ROSWELL_RESOURCE_ID,
-)
-from .connectors.ckan.source import (
-    OSERoswellSiteSource,
-    OSERoswellWaterLevelSource,
-)
 from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
 from .connectors.nmose.source import NMOSEPODSiteSource
-from .constants import MILLIGRAMS_PER_LITER, WGS84, FEET
+from .constants import (
+    MILLIGRAMS_PER_LITER,
+    WGS84,
+    FEET,
+    WATERLEVELS,
+    ARSENIC,
+    BICARBONATE,
+    CALCIUM,
+    CARBONATE,
+    CHLORIDE,
+    FLUORIDE,
+    MAGNESIUM,
+    NITRATE,
+    PH,
+    POTASSIUM,
+    SILICA,
+    SODIUM,
+    SULFATE,
+    TDS,
+    URANIUM,
+)
 from .connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
     ISCSevenRiversAnalyteSource,
 )
 from .connectors.st2.source import (
-    ST2SiteSource,
     PVACDSiteSource,
     PVACDWaterLevelSource,
     EBIDSiteSource,
@@ -73,14 +78,15 @@ SOURCE_DICT = {
     "nmbgmr_amp": NMBGMRSiteSource,
     "nmed_dwb": DWBSiteSource,
     "nmose_isc_seven_rivers": ISCSevenRiversSiteSource,
+    "nmose_pod": NMOSEPODSiteSource,
     "nmose_roswell": NMOSERoswellSiteSource,
     "nwis": NWISSiteSource,
     "pvacd": PVACDSiteSource,
     "wqp": WQPSiteSource,
-    "nmose_pod": NMOSEPODSiteSource,
 }
 
-SOURCE_KEYS = list(SOURCE_DICT.keys())
+SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
+
 
 def get_source(source):
     try:
@@ -104,7 +110,7 @@ class Config(Loggable):
     end_date: str = ""
 
     # spatial
-    bbox: dict  # dict or str
+    bbox: str = ""
     county: str = ""
     wkt: str = ""
 
@@ -118,11 +124,11 @@ class Config(Loggable):
     use_source_nmbgmr_amp: bool = True
     use_source_nmed_dwb: bool = True
     use_source_nmose_isc_seven_rivers: bool = True
+    use_source_nmose_pod: bool = True
     use_source_nmose_roswell: bool = True
     use_source_nwis: bool = True
     use_source_pvacd: bool = True
     use_source_wqp: bool = True
-    use_source_nmose_pod: bool = True
 
     # parameter
     parameter: str = ""
@@ -159,6 +165,7 @@ class Config(Loggable):
             payload = self._load_from_yaml(path)
 
         self._payload = payload
+
         if model:
             if model.wkt:
                 self.wkt = model.wkt
@@ -206,6 +213,79 @@ class Config(Loggable):
         else:
             self.warn(f"Config file {path} not found")
 
+    def get_config_and_false_agencies(self):
+        if self.parameter == WATERLEVELS:
+            config_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmbgmr_amp",
+                "nmose_isc_seven_rivers",
+                "nmose_pod",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+                "wqp",
+            ]
+            false_agencies = ["bor", "nmose_pod", "nmed_dwb"]
+        elif self.parameter == CARBONATE:
+            config_agencies = ["nmbgmr_amp", "wqp"]
+            false_agencies = [
+                "bor",
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmed_dwb",
+                "nmose_isc_seven_rivers",
+                "nmose_pod",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+            ]
+        elif self.parameter in [ARSENIC, URANIUM]:
+            config_agencies = ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]
+            false_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmose_isc_seven_rivers",
+                "nmose_roswell",
+                "nmose_pod",
+                "nwis",
+                "pvacd",
+            ]
+        elif self.parameter in [
+            BICARBONATE,
+            CALCIUM,
+            CHLORIDE,
+            FLUORIDE,
+            MAGNESIUM,
+            NITRATE,
+            PH,
+            POTASSIUM,
+            SILICA,
+            SODIUM,
+            SULFATE,
+            TDS,
+        ]:
+            config_agencies = [
+                "bor",
+                "nmbgmr_amp",
+                "nmed_dwb",
+                "nmose_isc_seven_rivers",
+                "wqp",
+            ]
+            false_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmose_roswell",
+                "nmose_pod",
+                "nwis",
+                "pvacd",
+            ]
+        return config_agencies, false_agencies
+
     def finalize(self):
         self._update_output_units()
         if self.output_format != OutputFormat.GEOSERVER:
@@ -215,7 +295,7 @@ class Config(Loggable):
         self.make_output_path()
 
     def all_site_sources(self):
-        sources =[]
+        sources = []
         for s in SOURCE_KEYS:
             if getattr(self, f"use_source_{s}"):
                 source = get_source(s)
@@ -426,6 +506,7 @@ class Config(Loggable):
             return bool(get_county_polygon(self.county))
 
         return True
+
     def make_output_directory(self):
         """
         Create the output directory if it doesn't exist.

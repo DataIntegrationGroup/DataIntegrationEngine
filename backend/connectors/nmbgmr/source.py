@@ -33,12 +33,14 @@ from backend.constants import (
     PARAMETER_VALUE,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    EARLIEST,
+    LATEST,
 )
 from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
     make_site_list,
 )
@@ -70,9 +72,6 @@ class NMBGMRSiteSource(BaseSiteSource):
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
 
-        if config.site_limit:
-            params["limit"] = config.site_limit
-
         if not config.sites_only:
 
             if config.parameter.lower() != "waterlevels":
@@ -88,18 +87,18 @@ class NMBGMRSiteSource(BaseSiteSource):
         )
         if not config.sites_only:
             for site in sites:
-                print(f"Obtaining well data for {site['properties']['point_id']}")
-                well_data = self._execute_json_request(
-                    _make_url("wells"),
-                    params={"pointid": site["properties"]["point_id"]},
-                    tag="",
-                )
-                site["properties"]["formation"] = well_data["formation"]
-                site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
-                site["properties"]["well_depth_units"] = FEET
-                # site["properties"]["formation"] = None
-                # site["properties"]["well_depth"] = None
+                # print(f"Obtaining well data for {site['properties']['point_id']}")
+                # well_data = self._execute_json_request(
+                #     _make_url("wells"),
+                #     params={"pointid": site["properties"]["point_id"]},
+                #     tag="",
+                # )
+                # site["properties"]["formation"] = well_data["formation"]
+                # site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
                 # site["properties"]["well_depth_units"] = FEET
+                site["properties"]["formation"] = None
+                site["properties"]["well_depth"] = None
+                site["properties"]["well_depth_units"] = FEET
 
         return sites
 
@@ -134,8 +133,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     def _extract_source_parameter_units(self, records):
         return [r["Units"] for r in records]
 
-    def _extract_most_recent(self, records):
-        record = get_most_recent(records, "info.CollectionDate")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "info.CollectionDate", bookend=bookend)
         return {
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
@@ -182,8 +181,8 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         record[SOURCE_PARAMETER_UNITS] = record["DepthToWaterBGSUnits"]
         return record
 
-    def _extract_most_recent(self, records):
-        record = get_most_recent(records, "DateMeasured")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "DateMeasured", bookend=bookend)
         return {
             "value": record["DepthToWaterBGS"],
             "datetime": (record["DateMeasured"], record["TimeMeasured"]),

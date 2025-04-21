@@ -27,8 +27,9 @@ from backend.constants import (
     DT_MEASURED,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    TDS,
 )
-from backend.source import get_analyte_search_param, get_most_recent
+from backend.source import get_analyte_search_param, get_terminal_record
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
@@ -44,7 +45,7 @@ class DWBSiteSource(STSiteSource):
         return "DWBSiteSource"
 
     def health(self):
-        return self.get_records(top=10, analyte="TDS")
+        return self.get_records(top=10, analyte=TDS)
 
     def get_records(self, *args, **kw):
 
@@ -164,10 +165,10 @@ class DWBAnalyteSource(STAnalyteSource):
     def _extract_source_parameter_names(self, records: list) -> list:
         return [r["datastream"].observed_property.name for r in records]
 
-    def _extract_most_recent(self, records):
+    def _extract_terminal_record(self, records, bookend):
         # this is only used in summary output
-        record = get_most_recent(
-            records, tag=lambda x: x["observation"].phenomenon_time
+        record = get_terminal_record(
+            records, tag=lambda x: x["observation"].phenomenon_time, bookend=bookend
         )
 
         return {
