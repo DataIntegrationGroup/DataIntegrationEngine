@@ -16,11 +16,9 @@
 import os
 import sys
 from datetime import datetime, timedelta
-
+from enum import Enum
 import shapely.wkt
-
-from backend.logger import Loggable
-
+from . import OutputFormat
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
     NMBGMRSiteSource,
@@ -100,6 +98,9 @@ def get_source(source):
         return klass()
 
 
+
+
+
 class Config(Loggable):
     site_limit: int = 0
     dry: bool = False
@@ -148,12 +149,22 @@ class Config(Loggable):
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    use_csv: bool = True
-    use_geojson: bool = False
+    # use_csv: bool = True
+    # use_geojson: bool = False
 
-    def __init__(self, model=None, payload=None):
+    output_format: OutputFormat = OutputFormat.CSV
+
+    yes: bool = True
+
+    def __init__(self, model=None, payload=None, path=None):
         # need to initialize logger
         super().__init__()
+
+        self.bbox = {}
+        if path:
+            payload = self._load_from_yaml(path)
+
+        self._payload = payload
 
         if model:
             if model.wkt:
@@ -168,22 +179,39 @@ class Config(Loggable):
                 for s in SOURCE_KEYS:
                     setattr(self, f"use_source_{s}", s in model.sources)
         elif payload:
-            self.wkt = payload.get("wkt", "")
-            self.county = payload.get("county", "")
-            self.output_summary = payload.get("output_summary", False)
-            self.output_timeseries_unified = payload.get(
-                "output_timeseries_unified", False
-            )
-            self.output_timeseries_separated = payload.get(
-                "output_timeseries_separated", False
-            )
-            self.output_name = payload.get("output_name", "output")
-            self.start_date = payload.get("start_date", "")
-            self.end_date = payload.get("end_date", "")
-            self.parameter = payload.get("parameter", "")
+            sources = payload.get("sources", [])
+            if sources:
+                for sk in SOURCE_KEYS:
+                    value = sources.get(sk)
+                    if value is not None:
+                        setattr(self, f"use_source_{sk}", value)
 
-            for s in SOURCE_KEYS:
-                setattr(self, f"use_source_{s}", s in payload.get("sources", []))
+            for attr in ("wkt", "county", "bbox",
+                         "output_summary",
+                         "output_timeseries_unified",
+                         "output_timeseries_separated",
+                         "start_date",
+                         "end_date",
+                         "parameter",
+                         "output_name",
+                         "dry",
+                         "latest_water_level_only",
+                         "output_format",
+                         "use_cloud_storage",
+                         "yes"):
+                if attr in payload:
+                    setattr(self, attr, payload[attr])
+
+    def _load_from_yaml(self, path):
+        import yaml
+        path = os.path.abspath(path)
+        if os.path.exists(path):
+            self.log(f"Loading config from {path}")
+            with open(path, "r") as f:
+                data = yaml.safe_load(f)
+            return data
+        else:
+            self.warn(f"Config file {path} not found")
 
     def get_config_and_false_agencies(self):
         if self.parameter == WATERLEVELS:
@@ -260,8 +288,10 @@ class Config(Loggable):
 
     def finalize(self):
         self._update_output_units()
+        if self.output_format != OutputFormat.GEOSERVER:
+            self.update_output_name()
+
         self.make_output_directory()
-        self.update_output_name()
         self.make_output_path()
 
     def all_site_sources(self):
@@ -419,6 +449,8 @@ class Config(Loggable):
                 "output_timeseries_separated",
                 "output_horizontal_datum",
                 "output_elevation_units",
+                "use_cloud_storage",
+                "output_format"
             ),
         )
 
@@ -538,5 +570,7 @@ class Config(Loggable):
     def output_path(self):
         return os.path.join(self.output_dir, f"{self.output_name}")
 
-
+    def get(self, attr):
+        if self._payload:
+            return self._payload.get(attr)
 # ============= EOF =============================================

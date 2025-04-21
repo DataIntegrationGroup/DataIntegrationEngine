@@ -20,8 +20,11 @@ import shutil
 
 import pandas as pd
 import geopandas as gpd
+import psycopg2
 
-from backend.logger import Loggable
+from backend import OutputFormat
+from backend.logging import Loggable
+
 
 try:
     from google.cloud import storage
@@ -38,10 +41,11 @@ class BasePersister(Loggable):
     extension: str
     # output_id: str
 
-    def __init__(self):
+    def __init__(self, config=None):
         self.records = []
         self.timeseries = []
         self.sites = []
+        self.config = config
 
         super().__init__()
         # self.keys = record_klass.keys
@@ -105,8 +109,14 @@ class BasePersister(Loggable):
         if not self.extension:
             raise NotImplementedError
 
-        if not path.endswith(self.extension):
-            path = f"{path}.{self.extension}"
+        ext = self.extension
+        if self.config.output_format == OutputFormat.CSV:
+            ext = "csv"
+        elif self.config.output_format == OutputFormat.GEOJSON:
+            ext = "geojson"
+
+        if not path.endswith(ext):
+            path = f"{path}.{ext}"
         return path
 
     def _write(self, path: str, records):
@@ -124,9 +134,9 @@ def write_file(path, func, records):
         func(csv.writer(f), records)
 
 
-def write_memory(path, func, records):
-    f = io.StringIO()
-    func(csv.writer(f), records)
+def write_memory(func, records, output_format=None):
+    f = io.BytesIO()
+    func(f, records, output_format)
     return f.getvalue()
 
 
@@ -140,19 +150,34 @@ def dump_timeseries_unified(writer, timeseries):
             writer.writerow(record.to_row())
 
 
-def dump_sites(writer, records):
-    for i, site in enumerate(records):
-        if i == 0:
-            writer.writerow(site.keys)
-        writer.writerow(site.to_row())
+def dump_sites(filehandle, records, output_format):
+    if output_format == OutputFormat.CSV:
+        writer = csv.writer(filehandle)
+        for i, site in enumerate(records):
+            if i == 0:
+                writer.writerow(site.keys)
+            writer.writerow(site.to_row())
+    else:
+        r0 = records[0]
+        df = pd.DataFrame([r.to_row() for r in records], columns=r0.keys)
+
+        gdf = gpd.GeoDataFrame(
+            df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
+        )
+        gdf.to_file(filehandle, driver="GeoJSON")
+
+
+
+
+
 
 
 class CloudStoragePersister(BasePersister):
     extension = "csv"
     _content: list
 
-    def __init__(self):
-        super(CloudStoragePersister, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(CloudStoragePersister, self).__init__(*args, **kwargs)
         self._content = []
 
     def finalize(self, output_name: str):
@@ -177,22 +202,27 @@ class CloudStoragePersister(BasePersister):
             blob.upload_from_string(zip_buffer.getvalue())
         else:
             path, cnt = self._content[0]
+
+            #this is a hack. need a better way to specify the output path
+            dirname = os.path.basename(os.path.dirname(path))
+            path = os.path.join(dirname, os.path.basename(path))
+
             blob = bucket.blob(path)
-            blob.upload_from_string(cnt)
+            blob.upload_from_string(cnt, content_type="application/json" if self.config.output_format == OutputFormat.GEOJSON else "text/csv")
 
     def _make_output_directory(self, output_directory: str):
         # prevent making root directory, because we are not saving to disk
         pass
 
     def _write(self, path: str, records: list):
-        content = write_memory(path, dump_sites, records)
+        content = write_memory(dump_sites, records, self.config.output_format)
         self._add_content(path, content)
 
     def _add_content(self, path: str, content: str):
         self._content.append((path, content))
 
     def _dump_timeseries_unified(self, path: str, timeseries: list):
-        content = write_memory(path, dump_timeseries_unified, timeseries)
+        content = write_memory(dump_timeseries_unified, timeseries)
         self._add_content(path, content)
 
 

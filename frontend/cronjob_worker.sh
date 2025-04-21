@@ -1,3 +1,3 @@
 
 
-die weave
+die sites --config config.yaml

@@ -41,12 +41,10 @@ class NMOSEPODSiteSource(BaseSiteSource):
             "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
         )
 
-        params["where"] = (
-            "pod_status = 'ACT' AND pod_basin IN ('A','B','C','CC','CD','CL','CP','CR','CT','E','FS','G','GSF','H', 'HA','HC','HS','HU','J','L','LA','LRG','LV','M','MR','NH','P','PL','PN','RA','RG','S','SB','SJ','SS','T','TU','UP','VV')"
-        )
-        params["outFields"] = (
-            "OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county,pod_name,pod_nbr,pod_suffix,pod_file"
-        )
+        params['where'] = "pod_status = 'ACT' AND pod_basin NOT IN ('SP', 'SD', 'LWD')"
+        params["outFields"] = ("OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county"
+                               "pod_name,pod_nbr,pod_suffix,pod_file,depth_well,aquifer,elevation")
+
         params["outSR"] = 4326
         params["f"] = "json"
         params["resultRecordCount"] = self.chunk_size
