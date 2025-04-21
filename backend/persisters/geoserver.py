@@ -72,9 +72,13 @@ class Summary(Base):
     max = Column(Float)
     mean = Column(Float)
 
-    most_recent_value = Column(Float)
-    most_recent_date = Column(Date)
-    most_recent_time = Column(Time)
+    latest_value = Column(Float)
+    latest_date = Column(Date)
+    latest_time = Column(Time)
+
+    earliest_value = Column(Float)
+    earliest_date = Column(Date)
+    earliest_time = Column(Time)
 
 
 class Parameters(Base):
@@ -156,9 +160,12 @@ class GeoServerPersister(BasePersister):
                     "min": record.min,
                     "max": record.max,
                     "mean": record.mean,
-                    "most_recent_value": record.most_recent_value,
-                    "most_recent_date": record.most_recent_date,
-                    "most_recent_time": record.most_recent_time if record.most_recent_time else None,
+                    "latest_value": record.latest_value,
+                    "latest_date": record.latest_date,
+                    "latest_time": record.latest_time if record.latest_time else None,
+                    "earliest_value": record.earliest_value,
+                    "earliest_date": record.earliest_date,
+                    "earliest_time": record.earliest_time if record.earliest_time else None,
                 }
                 for record in chunk
             ]
