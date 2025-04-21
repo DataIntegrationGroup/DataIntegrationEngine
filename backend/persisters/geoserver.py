@@ -158,7 +158,7 @@ class GeoServerPersister(BasePersister):
                     "mean": record.mean,
                     "most_recent_value": record.most_recent_value,
                     "most_recent_date": record.most_recent_date,
-                    "most_recent_time": record.most_recent_time,
+                    "most_recent_time": record.most_recent_time if record.most_recent_time else None,
                 }
                 for record in chunk
             ]
@@ -171,7 +171,7 @@ class GeoServerPersister(BasePersister):
 
         self._chunk_insert(make_stmt, records)
 
-    def _chunk_insert(self, make_stmt, records: list, chunk_size: int = 1000):
+    def _chunk_insert(self, make_stmt, records: list, chunk_size: int = 10):
         for i in range(0, len(records), chunk_size):
             chunk = records[i:i + chunk_size]
             print(f"Writing chunk {i // chunk_size + 1} of {len(records) // chunk_size + 1}")
