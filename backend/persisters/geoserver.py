@@ -16,7 +16,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 from backend.persister import BasePersister
 
-from sqlalchemy import Column, ForeignKey, create_engine, UUID, String, Integer
+from sqlalchemy import Column, ForeignKey, create_engine, UUID, String, Integer, Float, Date, Time
 from geoalchemy2 import Geometry
 
 Base = declarative_base()
@@ -52,6 +52,37 @@ class Location(Base):
     source = relationship("Sources", backref="locations")
 
 
+class Summary(Base):
+    __tablename__ = "tbl_summary"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    data_source_uid = Column(String, index=True)
+
+    properties = Column(JSONB)
+    geometry = Column(Geometry(geometry_type="POINT", srid=4326))
+    source_slug = Column(String, ForeignKey("tbl_sources.name"))
+    parameter_slug = Column(String, ForeignKey("tbl_parameters.name"))
+
+    source = relationship("Sources", backref="summaries")
+
+    value = Column(Float)
+    nrecords = Column(Integer)
+    min = Column(Float)
+    max = Column(Float)
+    mean = Column(Float)
+
+    most_recent_value = Column(Float)
+    most_recent_date = Column(Date)
+    most_recent_time = Column(Time)
+
+
+class Parameters(Base):
+    __tablename__ = "tbl_parameters"
+    name = Column(String, primary_key=True, index=True)
+    units = Column(String)
+
+
 class Sources(Base):
     __tablename__ = "tbl_sources"
     id = Column(Integer)
@@ -69,9 +100,18 @@ class GeoServerPersister(BasePersister):
             db = self.config.get('geoserver').get('db')
             dbname = db.get('db_name')
             self.log(f"dumping sites to {dbname}")
-            self._write_to_db(self.sites)
+            self._write_to_sites(self.sites)
         else:
             self.log("no sites to dump", fg="red")
+
+    def dump_summary(self, path: str):
+        if self.records:
+            db = self.config.get('geoserver').get('db')
+            dbname = db.get('db_name')
+            self.log(f"dumping summary to {dbname}")
+            self._write_to_summary(self.records)
+        else:
+            self.log("no records to dump", fg="red")
 
     def _connect(self):
         """
@@ -80,50 +120,84 @@ class GeoServerPersister(BasePersister):
         sf = session_factory(self.config.get('geoserver').get('db'))
         self._connection = sf()
 
-    def _write_to_db(self, records: list):
-        """
-        Write records to a PostgreSQL database in optimized chunks.
-        """
+    def _write_sources(self, records: list):
         sources = {r.source for r in records}
-        # with self._connection.cursor() as cursor:
-        #     # Upsert sources
-        #     for source in sources:
-        #         sql = """INSERT INTO public.tbl_sources (name) VALUES (%s) ON CONFLICT (name) DO NOTHING"""
-        #         cursor.execute(sql, (source,))
-        #     self._connection.commit()
         with self._connection as conn:
             sql = insert(Sources).values([{"name": source} for source in sources]).on_conflict_do_nothing(
                 index_elements=[Sources.name],)
             conn.execute(sql)
+            conn.commit()
 
-        chunk_size = 1000  # Larger chunk size for fewer commits
+    def _write_parameters(self):
+        with self._connection as conn:
+            sql = insert(Parameters).values([{"name": self.config.parameter,
+                                              "units": self.config.analyte_output_units}]).on_conflict_do_nothing(
+                index_elements=[Parameters.name],)
+            print(sql)
+            conn.execute(sql)
+            conn.commit()
+
+    def _write_to_summary(self, records: list):
+        self._write_sources(records)
+        self._write_parameters()
+        for r in records:
+            print(r, [r.to_dict()])
         keys = ["usgs_site_id", "alternate_site_id", "formation", "aquifer", "well_depth"]
+        def make_stmt(chunk):
+            values = [
+                {
+                    "name": record.location,
+                    "data_source_uid": record.id,
+                    "properties": record.to_dict(keys),
+                    "geometry": f"SRID=4326;POINT({record.longitude} {record.latitude})",
+                    "source_slug": record.source,
+                    "parameter_slug": self.config.parameter,
+                    "nrecords": record.nrecords,
+                    "min": record.min,
+                    "max": record.max,
+                    "mean": record.mean,
+                    "most_recent_value": record.most_recent_value,
+                    "most_recent_date": record.most_recent_date,
+                    "most_recent_time": record.most_recent_time,
+                }
+                for record in chunk
+            ]
 
-        newrecords = []
-        records = sorted(records, key=lambda r: str(r.id))
-        for name, gs in groupby(records, lambda r: str(r.id)):
-            gs = list(gs)
-            n = len(gs)
-            # print(f"Writing {n} records for {name}")
-            if n>1:
-                if n > len({r.source for r in gs}):
-                    print("Duplicate source name found. Skipping...", name, [(r.name, r.source) for r in gs])
-                    continue
-            newrecords.extend(gs)
-                    # break
-                    # pass
-                # print("Duplicate source name found. Skipping...", name, [r.source for r in gs])
-                # break
+            linsert = insert(Summary)
+            return linsert.values(values).on_conflict_do_update(
+                index_elements=[Summary.data_source_uid],
+                set_={"properties": linsert.excluded.properties}
+            )
 
+        self._chunk_insert(make_stmt, records)
 
-        for i in range(0, len(newrecords), chunk_size):
-            chunk = newrecords[i:i + chunk_size]
+    def _chunk_insert(self, make_stmt, records: list, chunk_size: int = 1000):
+        for i in range(0, len(records), chunk_size):
+            chunk = records[i:i + chunk_size]
             print(f"Writing chunk {i // chunk_size + 1} of {len(records) // chunk_size + 1}")
             st = time.time()
 
+            stmt = make_stmt(chunk)
+            with self._connection as conn:
+                conn.execute(stmt)
+                conn.commit()
+
+            print('Chunk write time:', time.time() - st)
+
+    def _write_to_sites(self, records: list):
+        """
+        Write records to a PostgreSQL database in optimized chunks.
+        """
+
+        self._write_sources(records)
+
+        keys = ["usgs_site_id", "alternate_site_id", "formation", "aquifer", "well_depth"]
+        chunk_size = 1000  # Larger chunk size for fewer commits
+
+        def make_stmt(chunk):
             values = [
                 {
-                    "name": record.name,
+                    "name": record.location,
                     "data_source_uid": record.id,
                     "properties": record.to_dict(keys),
                     "geometry": f"SRID=4326;POINT({record.longitude} {record.latitude})",
@@ -131,19 +205,61 @@ class GeoServerPersister(BasePersister):
                 }
                 for record in chunk
             ]
-
-            # stmt = insert(Location).values(values).on_conflict_do_nothing()
             linsert = insert(Location)
             stmt = linsert.values(values).on_conflict_do_update(
                 index_elements=[Location.data_source_uid],
                 set_={"properties": linsert.excluded.properties}
             )
+            return stmt
 
-            with self._connection as conn:
-                conn.execute(stmt)
-                conn.commit()
+        self._chunk_insert(make_stmt, records, chunk_size)
 
-            print('Chunk write time:', time.time() - st)
+        #
+        # newrecords = []
+        # records = sorted(records, key=lambda r: str(r.id))
+        # for name, gs in groupby(records, lambda r: str(r.id)):
+        #     gs = list(gs)
+        #     n = len(gs)
+        #     # print(f"Writing {n} records for {name}")
+        #     if n>1:
+        #         if n > len({r.source for r in gs}):
+        #             print("Duplicate source name found. Skipping...", name, [(r.name, r.source) for r in gs])
+        #             continue
+        #     newrecords.extend(gs)
+        #             # break
+        #             # pass
+        #         # print("Duplicate source name found. Skipping...", name, [r.source for r in gs])
+        #         # break
+        #
+        #
+        # for i in range(0, len(newrecords), chunk_size):
+        #     chunk = newrecords[i:i + chunk_size]
+        #     print(f"Writing chunk {i // chunk_size + 1} of {len(records) // chunk_size + 1}")
+        #     st = time.time()
+        #
+        #     values = [
+        #         {
+        #             "name": record.name,
+        #             "data_source_uid": record.id,
+        #             "properties": record.to_dict(keys),
+        #             "geometry": f"SRID=4326;POINT({record.longitude} {record.latitude})",
+        #             "source_slug": record.source,
+        #         }
+        #         for record in chunk
+        #     ]
+        #
+        #     # stmt = insert(Location).values(values).on_conflict_do_nothing()
+        #     linsert = insert(Location)
+        #     stmt = linsert.values(values).on_conflict_do_update(
+        #         index_elements=[Location.data_source_uid],
+        #         set_={"properties": linsert.excluded.properties}
+        #     )
+        #
+        #     with self._connection as conn:
+        #         conn.execute(stmt)
+        #         conn.commit()
+        #
+        #     print('Chunk write time:', time.time() - st)
 
             # # Pre-serialize properties to reduce processing time
             # values = [

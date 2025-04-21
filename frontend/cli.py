@@ -194,7 +194,7 @@ PERSISTER_OPTIONS = [
 
 CONFIG_OPTIONS = [
     click.option(
-        "--config",
+        "--config-path",
         type=click.Path(exists=True),
         default=None,
         help="Path to config file. Default is config.yaml",
@@ -245,6 +245,7 @@ def weave(
         no_wqp,
         site_limit,
         dry,
+        yes
 ):
     """
     Get parameter timeseries or summary data
@@ -322,10 +323,11 @@ def weave(
         for agency in false_agencies:
             setattr(config, f"use_source_{agency}", False)
 
-    lcs = locals()
-    if config_agencies:
-        for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+    if config_path is None:
+        lcs = locals()
+        if config_agencies:
+            for agency in config_agencies:
+                setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -336,9 +338,10 @@ def weave(
 
     if not dry:
         config.report()
-        # prompt user to continue
-        if not click.confirm("Do you want to continue?", default=True):
-            return
+        if not yes and not config.yes:
+            # prompt user to continue
+            if not click.confirm("Do you want to continue?", default=True):
+                return
 
     if parameter.lower() == "waterlevels":
         unify_waterlevels(config)
@@ -352,7 +355,7 @@ def weave(
 @add_options(PERSISTER_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-def sites(config,
+def sites(config_path,
           bbox, county,
           output_dir,
           no_bernco,
@@ -373,11 +376,12 @@ def sites(config,
     Get locations
     """
 
-    config = setup_config("sites", config, bbox, county, site_limit, dry)
+    config = setup_config("sites", config_path, bbox, county, site_limit, dry)
     config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
                        "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
                        "wqp", "nmose_pod"]
-    if config is None:
+
+    if config_path is None:
         lcs = locals()
         for agency in config_agencies:
             setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
