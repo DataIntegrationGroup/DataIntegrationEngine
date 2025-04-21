@@ -11,6 +11,8 @@ import time
 from itertools import groupby
 
 import psycopg2
+from shapely.geometry.multipoint import MultiPoint
+from shapely.geometry.point import Point
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
@@ -91,6 +93,7 @@ class Sources(Base):
     __tablename__ = "tbl_sources"
     id = Column(Integer)
     name = Column(String, primary_key=True, index=True)
+    convex_hull = Column(Geometry(geometry_type="POLYGON", srid=4326))
 
 
 class GeoServerPersister(BasePersister):
@@ -130,6 +133,32 @@ class GeoServerPersister(BasePersister):
             sql = insert(Sources).values([{"name": source} for source in sources]).on_conflict_do_nothing(
                 index_elements=[Sources.name],)
             conn.execute(sql)
+            conn.commit()
+
+    def _write_sources_with_convex_hull(self, records: list):
+        # sources = {r.source for r in records}
+        with self._connection as conn:
+            def key(r):
+                return str(r.source)
+
+            records = sorted(records, key=key)
+            for source_name, group in groupby(records, key=key):
+                group = list(group)
+                # calculate convex hull for the source from the records
+
+                # Create a MultiPoint object
+                points = MultiPoint([Point(record.longitude, record.latitude) for record in group])
+
+                # Calculate the convex hull
+                sinsert = insert(Sources)
+                print("Writing source", source_name, points.convex_hull)
+                sql = sinsert.values([{"name": source_name,
+                                               "convex_hull": points.convex_hull.wkt}]).on_conflict_do_update(
+                    index_elements=[Sources.name],
+                    set_={"convex_hull": sinsert.excluded.convex_hull})
+                # sql = insert(Sources).values([{"name": source,} for source in sources]).on_conflict_do_nothing(
+                #     index_elements=[Sources.name],)
+                conn.execute(sql)
             conn.commit()
 
     def _write_parameters(self):
@@ -196,7 +225,7 @@ class GeoServerPersister(BasePersister):
         Write records to a PostgreSQL database in optimized chunks.
         """
 
-        self._write_sources(records)
+        self._write_sources_with_convex_hull(records)
 
         keys = ["usgs_site_id", "alternate_site_id", "formation", "aquifer", "well_depth"]
         chunk_size = 1000  # Larger chunk size for fewer commits

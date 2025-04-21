@@ -243,6 +243,7 @@ def weave(
         end_date,
         bbox,
         county,
+        wkt,
         no_bernco,
         no_bor,
         no_cabq,
@@ -250,6 +251,7 @@ def weave(
         no_nmbgmr_amp,
         no_nmed_dwb,
         no_nmose_isc_seven_rivers,
+        no_nmose_pod,
         no_nmose_roswell,
         no_nwis,
         no_pvacd,
@@ -261,7 +263,7 @@ def weave(
     Get parameter timeseries or summary data
     """
     # instantiate config and set up parameter
-    config = setup_config(parameter, config_path, bbox, county, site_limit, dry)
+    config = setup_config(parameter, config_path, bbox, county, wkt, site_limit, dry)
     
     config.parameter = parameter
 
@@ -325,7 +327,7 @@ def weave(
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 def sites(config_path,
-          bbox, county,
+          bbox, county, wkt,
           output_dir,
           no_bernco,
           no_bor,
@@ -334,6 +336,7 @@ def sites(config_path,
           no_nmbgmr_amp,
           no_nmed_dwb,
           no_nmose_isc_seven_rivers,
+          no_nmose_pod,
           no_nmose_roswell,
           no_nwis,
           no_pvacd,
@@ -345,7 +348,7 @@ def sites(config_path,
     Get sites
     """
 
-    config = setup_config("sites", config_path, bbox, county, site_limit, dry)
+    config = setup_config("sites", config_path, bbox, county, wkt,  site_limit, dry)
     config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
                        "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
                        "wqp", "nmose_pod"]
@@ -403,7 +406,7 @@ def sources(sources, bbox, wkt, county):
         click.echo(s)
 
 
-def setup_config(tag, config_path, bbox, county, site_limit, dry):
+def setup_config(tag, config_path, bbox, county, wkt, site_limit, dry):
     config = Config(path=config_path)
 
     if county:
