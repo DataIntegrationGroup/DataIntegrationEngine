@@ -31,7 +31,21 @@ class BaseRecord:
     def __init__(self, payload):
         self._payload = payload
 
-    def get(self, attr):
+    def to_row(self, keys=None):
+        if keys is None:
+            keys = self.keys
+
+        return [self._get_sigfig_formatted_value(k) for k in keys]
+
+    def to_dict(self, keys=None):
+        if keys is None:
+            keys = self.keys
+        return {k: self._get_sigfig_formatted_value(k) for k in keys}
+
+    def update(self, **kw):
+        self._payload.update(kw)
+
+    def _get_sigfig_formatted_value(self, attr):
         # v = self._payload.get(attr)
         # if v is None and self.defaults:
         #     v = self.defaults.get(attr)
@@ -61,12 +75,6 @@ class BaseRecord:
                     raise e
                 break
         return v
-
-    def to_row(self):
-        return [self.get(k) for k in self.keys]
-
-    def update(self, **kw):
-        self._payload.update(kw)
 
     def __getattr__(self, attr):
         v = self._payload.get(attr)

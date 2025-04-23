@@ -24,12 +24,12 @@ class NMOSEPODSiteTransformer(SiteTransformer):
             # "name": record["station_nm"],
             "latitude": geometry["y"],
             "longitude": geometry["x"],
-            # "elevation": elevation,
-            # "elevation_units": "ft",
+            "elevation": properties['elevation'],
+            "elevation_units": "ft",
             # "horizontal_datum": datum,
             # "vertical_datum": record["alt_datum_cd"],
-            # "aquifer": record["nat_aqfr_cd"],
-            # "well_depth": record["well_depth_va"],
-            # "well_depth_units": "ft",
+            "aquifer": properties["aquifer"],
+            "well_depth": properties["depth_well"],
+            "well_depth_units": "ft",
         }
         return rec
