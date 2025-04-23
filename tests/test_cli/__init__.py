@@ -92,14 +92,14 @@ class BaseCLITestClass:
             "--end-date",
             end_date,
             "--sites_output_format",
-            sites_output_format
+            sites_output_format,
         ]
 
         if geographic_filter_name and geographic_filter_value:
             arguments.extend([f"--{geographic_filter_name}", geographic_filter_value])
 
         arguments.extend(no_agencies)
-        
+
         # Act
         result = self.runner.invoke(weave, arguments, standalone_mode=False)
 

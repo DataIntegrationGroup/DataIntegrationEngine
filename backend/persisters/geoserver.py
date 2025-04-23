@@ -16,10 +16,22 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 from backend.persister import BasePersister
 
-from sqlalchemy import Column, ForeignKey, create_engine, UUID, String, Integer, Float, Date, Time
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    create_engine,
+    UUID,
+    String,
+    Integer,
+    Float,
+    Date,
+    Time,
+)
 from geoalchemy2 import Geometry
 
 Base = declarative_base()
+
+
 #         dbname=db.get('dbname'),
 #         user=db.get('user'),
 #         password=db.get('password'),
@@ -101,8 +113,8 @@ class GeoServerPersister(BasePersister):
 
     def dump_sites(self, path: str):
         if self.sites:
-            db = self.config.get('geoserver').get('db')
-            dbname = db.get('db_name')
+            db = self.config.get("geoserver").get("db")
+            dbname = db.get("db_name")
             self.log(f"dumping sites to {dbname}")
             self._write_to_sites(self.sites)
         else:
@@ -110,8 +122,8 @@ class GeoServerPersister(BasePersister):
 
     def dump_summary(self, path: str):
         if self.records:
-            db = self.config.get('geoserver').get('db')
-            dbname = db.get('db_name')
+            db = self.config.get("geoserver").get("db")
+            dbname = db.get("db_name")
             self.log(f"dumping summary to {dbname}")
             self._write_to_summary(self.records)
         else:
@@ -121,22 +133,38 @@ class GeoServerPersister(BasePersister):
         """
         Connect to a PostgreSQL database on Cloud SQL.
         """
-        sf = session_factory(self.config.get('geoserver').get('db'))
+        sf = session_factory(self.config.get("geoserver").get("db"))
         self._connection = sf()
 
     def _write_sources(self, records: list):
         sources = {r.source for r in records}
         with self._connection as conn:
-            sql = insert(Sources).values([{"name": source} for source in sources]).on_conflict_do_nothing(
-                index_elements=[Sources.name],)
+            sql = (
+                insert(Sources)
+                .values([{"name": source} for source in sources])
+                .on_conflict_do_nothing(
+                    index_elements=[Sources.name],
+                )
+            )
             conn.execute(sql)
             conn.commit()
 
     def _write_parameters(self):
         with self._connection as conn:
-            sql = insert(Parameters).values([{"name": self.config.parameter,
-                                              "units": self.config.analyte_output_units}]).on_conflict_do_nothing(
-                index_elements=[Parameters.name],)
+            sql = (
+                insert(Parameters)
+                .values(
+                    [
+                        {
+                            "name": self.config.parameter,
+                            "units": self.config.analyte_output_units,
+                        }
+                    ]
+                )
+                .on_conflict_do_nothing(
+                    index_elements=[Parameters.name],
+                )
+            )
             print(sql)
             conn.execute(sql)
             conn.commit()
@@ -146,7 +174,14 @@ class GeoServerPersister(BasePersister):
         self._write_parameters()
         for r in records:
             print(r, [r.to_dict()])
-        keys = ["usgs_site_id", "alternate_site_id", "formation", "aquifer", "well_depth"]
+        keys = [
+            "usgs_site_id",
+            "alternate_site_id",
+            "formation",
+            "aquifer",
+            "well_depth",
+        ]
+
         def make_stmt(chunk):
             values = [
                 {
@@ -165,7 +200,9 @@ class GeoServerPersister(BasePersister):
                     "latest_time": record.latest_time if record.latest_time else None,
                     "earliest_value": record.earliest_value,
                     "earliest_date": record.earliest_date,
-                    "earliest_time": record.earliest_time if record.earliest_time else None,
+                    "earliest_time": (
+                        record.earliest_time if record.earliest_time else None
+                    ),
                 }
                 for record in chunk
             ]
@@ -173,15 +210,17 @@ class GeoServerPersister(BasePersister):
             linsert = insert(Summary)
             return linsert.values(values).on_conflict_do_update(
                 index_elements=[Summary.data_source_uid],
-                set_={"properties": linsert.excluded.properties}
+                set_={"properties": linsert.excluded.properties},
             )
 
         self._chunk_insert(make_stmt, records)
 
     def _chunk_insert(self, make_stmt, records: list, chunk_size: int = 10):
         for i in range(0, len(records), chunk_size):
-            chunk = records[i:i + chunk_size]
-            print(f"Writing chunk {i // chunk_size + 1} of {len(records) // chunk_size + 1}")
+            chunk = records[i : i + chunk_size]
+            print(
+                f"Writing chunk {i // chunk_size + 1} of {len(records) // chunk_size + 1}"
+            )
             st = time.time()
 
             stmt = make_stmt(chunk)
@@ -189,7 +228,7 @@ class GeoServerPersister(BasePersister):
                 conn.execute(stmt)
                 conn.commit()
 
-            print('Chunk write time:', time.time() - st)
+            print("Chunk write time:", time.time() - st)
 
     def _write_to_sites(self, records: list):
         """
@@ -198,7 +237,13 @@ class GeoServerPersister(BasePersister):
 
         self._write_sources(records)
 
-        keys = ["usgs_site_id", "alternate_site_id", "formation", "aquifer", "well_depth"]
+        keys = [
+            "usgs_site_id",
+            "alternate_site_id",
+            "formation",
+            "aquifer",
+            "well_depth",
+        ]
         chunk_size = 1000  # Larger chunk size for fewer commits
 
         def make_stmt(chunk):
@@ -215,7 +260,7 @@ class GeoServerPersister(BasePersister):
             linsert = insert(Location)
             stmt = linsert.values(values).on_conflict_do_update(
                 index_elements=[Location.data_source_uid],
-                set_={"properties": linsert.excluded.properties}
+                set_={"properties": linsert.excluded.properties},
             )
             return stmt
 
@@ -268,11 +313,11 @@ class GeoServerPersister(BasePersister):
         #
         #     print('Chunk write time:', time.time() - st)
 
-            # # Pre-serialize properties to reduce processing time
-            # values = [
-            #     (record.name, json.dumps(record.to_dict(keys)), record.longitude, record.latitude, record.source)
-            #     for record in chunk
-            # ]
+        # # Pre-serialize properties to reduce processing time
+        # values = [
+        #     (record.name, json.dumps(record.to_dict(keys)), record.longitude, record.latitude, record.source)
+        #     for record in chunk
+        # ]
         #
         #     with self._connection.cursor() as cursor:
         #         sql = """INSERT INTO public.tbl_location (name, properties, geometry, source_slug)
@@ -283,4 +328,6 @@ class GeoServerPersister(BasePersister):
         #     self._connection.commit()  # Commit once per chunk
         #     print('Chunk write time:', time.time() - st)
         #     break
+
+
 # ============= EOF =============================================

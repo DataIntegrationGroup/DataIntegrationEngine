@@ -99,9 +99,6 @@ def get_source(source):
         return klass()
 
 
-
-
-
 class Config(Loggable):
     site_limit: int = 0
     dry: bool = False
@@ -183,24 +180,29 @@ class Config(Loggable):
                     if value is not None:
                         setattr(self, f"use_source_{sk}", value)
 
-            for attr in ("wkt", "county", "bbox",
-                         "output_summary",
-                         "output_timeseries_unified",
-                         "output_timeseries_separated",
-                         "start_date",
-                         "end_date",
-                         "parameter",
-                         "output_name",
-                         "dry",
-                         "latest_water_level_only",
-                         "sites_output_format",
-                         "use_cloud_storage",
-                         "yes"):
+            for attr in (
+                "wkt",
+                "county",
+                "bbox",
+                "output_summary",
+                "output_timeseries_unified",
+                "output_timeseries_separated",
+                "start_date",
+                "end_date",
+                "parameter",
+                "output_name",
+                "dry",
+                "latest_water_level_only",
+                "sites_output_format",
+                "use_cloud_storage",
+                "yes",
+            ):
                 if attr in payload:
                     setattr(self, attr, payload[attr])
 
     def _load_from_yaml(self, path):
         import yaml
+
         path = os.path.abspath(path)
         if os.path.exists(path):
             self.log(f"Loading config from {path}")
@@ -447,7 +449,7 @@ class Config(Loggable):
                 "output_horizontal_datum",
                 "output_elevation_units",
                 "use_cloud_storage",
-                "sites_output_format"
+                "sites_output_format",
             ),
         )
 
@@ -570,4 +572,6 @@ class Config(Loggable):
     def get(self, attr):
         if self._payload:
             return self._payload.get(attr)
+
+
 # ============= EOF =============================================

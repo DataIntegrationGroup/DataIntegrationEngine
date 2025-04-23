@@ -130,30 +130,32 @@ def write_csv_file(path, func, records):
     with open(path, "w", newline="") as f:
         func(csv.writer(f), records)
 
+
 def write_sites_geojson_file(path, records):
     features = [
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [
-                        record.get("longitude"),
-                        record.get("latitude"),
-                        record.get("elevation"),
-                    ],
-                },
-                "properties": {
-                    k: record.get(k)
-                    for k in record.keys
-                    if k not in ["latitude", "longitude", "elevation"]
-                },
-            }
-            for record in records
-        ]
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    record.get("longitude"),
+                    record.get("latitude"),
+                    record.get("elevation"),
+                ],
+            },
+            "properties": {
+                k: record.get(k)
+                for k in record.keys
+                if k not in ["latitude", "longitude", "elevation"]
+            },
+        }
+        for record in records
+    ]
     feature_collection = {"type": "FeatureCollection", "features": features}
 
     with open(path, "w") as f:
         json.dump(feature_collection, f, indent=4)
+
 
 def write_memory(func, records, output_format=None):
     f = io.BytesIO()
@@ -193,6 +195,7 @@ def dump_sites(filehandle, records, output_format):
         )
         gdf.to_file(filehandle, driver="GeoJSON")
 
+
 class CloudStoragePersister(BasePersister):
     extension = "csv"
     _content: list
@@ -224,12 +227,19 @@ class CloudStoragePersister(BasePersister):
         else:
             path, cnt = self._content[0]
 
-            #this is a hack. need a better way to specify the output path
+            # this is a hack. need a better way to specify the output path
             dirname = os.path.basename(os.path.dirname(path))
             path = os.path.join(dirname, os.path.basename(path))
 
             blob = bucket.blob(path)
-            blob.upload_from_string(cnt, content_type="application/json" if self.config.output_format == OutputFormat.GEOJSON else "text/csv")
+            blob.upload_from_string(
+                cnt,
+                content_type=(
+                    "application/json"
+                    if self.config.output_format == OutputFormat.GEOJSON
+                    else "text/csv"
+                ),
+            )
 
     def _make_output_directory(self, output_directory: str):
         # prevent making root directory, because we are not saving to disk

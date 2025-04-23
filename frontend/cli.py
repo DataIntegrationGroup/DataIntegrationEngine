@@ -231,31 +231,32 @@ def add_options(options):
 @add_options(DEBUG_OPTIONS)
 @add_options(SITES_OUTPUT_FORMAT_OPTIONS)
 def weave(
-        parameter,
-        config_path,
-        output,
-        output_dir,
-        start_date,
-        end_date,
-        bbox,
-        county,
-        wkt,
-        no_bernco,
-        no_bor,
-        no_cabq,
-        no_ebid,
-        no_nmbgmr_amp,
-        no_nmed_dwb,
-        no_nmose_isc_seven_rivers,
-        no_nmose_pod,
-        no_nmose_roswell,
-        no_nwis,
-        no_pvacd,
-        no_wqp,
-        site_limit,
-        dry,
-        yes,
-        sites_output_format):
+    parameter,
+    config_path,
+    output,
+    output_dir,
+    start_date,
+    end_date,
+    bbox,
+    county,
+    wkt,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_pod,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
+    sites_output_format,
+):
     """
     Get parameter timeseries or summary data
     """
@@ -268,9 +269,9 @@ def weave(
         wkt=wkt,
         site_limit=site_limit,
         dry=dry,
-        sites_output_format=sites_output_format
-        )
-    
+        sites_output_format=sites_output_format,
+    )
+
     config.parameter = parameter
 
     # output type
@@ -303,7 +304,7 @@ def weave(
         lcs = locals()
         if config_agencies:
             for agency in config_agencies:
-                setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+                setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -325,7 +326,6 @@ def weave(
             unify_analytes(config)
     return config
 
-        
 
 @cli.command()
 @add_options(CONFIG_PATH_OPTIONS)
@@ -355,20 +355,33 @@ def sites(
     site_limit,
     dry,
     yes,
-    sites_output_format
+    sites_output_format,
 ):
     """
     Get sites
     """
-    config = setup_config("sites", config_path, bbox, county, wkt, site_limit, dry, sites_output_format)
-    config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                       "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
-                       "wqp", "nmose_pod"]
+    config = setup_config(
+        "sites", config_path, bbox, county, wkt, site_limit, dry, sites_output_format
+    )
+    config_agencies = [
+        "bernco",
+        "bor",
+        "cabq",
+        "ebid",
+        "nmbgmr_amp",
+        "nmed_dwb",
+        "nmose_isc_seven_rivers",
+        "nmose_roswell",
+        "nwis",
+        "pvacd",
+        "wqp",
+        "nmose_pod",
+    ]
 
     if config_path is None:
         lcs = locals()
         for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+            setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
         config.output_dir = output_dir
 
     config.sites_only = True
@@ -418,7 +431,16 @@ def sources(sources, bbox, wkt, county):
         click.echo(s)
 
 
-def setup_config(tag, config_path, bbox, county, wkt, site_limit, dry, sites_output_format=OutputFormat.CSV):
+def setup_config(
+    tag,
+    config_path,
+    bbox,
+    county,
+    wkt,
+    site_limit,
+    dry,
+    sites_output_format=OutputFormat.CSV,
+):
     config = Config(path=config_path)
 
     if county:
