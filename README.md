@@ -146,6 +146,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | formation | geologic formation in which the well terminates | string | N |
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
+| well_depth_units | units of well depth. Defaults to ft | string | N |
 
 <sup>**CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
 
@@ -214,12 +215,12 @@ die sources {parameter}
 
 to print the sources that report that parameter to the terminal.
 
-### Wells [In Development]
+### Sites
 
 Use
 
 ```
-die wells
+die sites
 ```
 
-to print wells to the terminal.
+to export site information only

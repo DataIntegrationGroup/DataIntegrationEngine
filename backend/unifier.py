@@ -394,14 +394,14 @@ def get_datastreams():
         print(si, si.id, ds["@iot.id"])
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # test_waterlevel_unification()
     # root = logging.getLogger()
     # root.setLevel(logging.DEBUG)
     # shandler = logging.StreamHandler()
     # get_sources(Config())
-    setup_logging()
-    site_unification_test()
+    # setup_logging()
+    # site_unification_test()
     # waterlevel_unification_test()
     # analyte_unification_test()
     # print(health_check("nwis"))

@@ -68,6 +68,7 @@ from .connectors.st2.source import (
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
+from backend.logger import Loggable
 
 
 SOURCE_DICT = {
@@ -143,17 +144,13 @@ class Config(Loggable):
     output_summary: bool = False
     output_timeseries_unified: bool = False
     output_timeseries_separated: bool = False
-    site_file_type: str = "csv"
 
     latest_water_level_only: bool = False
 
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    # use_csv: bool = True
-    # use_geojson: bool = False
-
-    output_format: OutputFormat = OutputFormat.CSV
+    sites_output_format: OutputFormat = OutputFormat.CSV
 
     yes: bool = True
 
@@ -161,7 +158,6 @@ class Config(Loggable):
         # need to initialize logger
         super().__init__()
 
-        self.bbox = {}
         if path:
             payload = self._load_from_yaml(path)
 
@@ -197,7 +193,7 @@ class Config(Loggable):
                          "output_name",
                          "dry",
                          "latest_water_level_only",
-                         "output_format",
+                         "sites_output_format",
                          "use_cloud_storage",
                          "yes"):
                 if attr in payload:
@@ -289,7 +285,7 @@ class Config(Loggable):
 
     def finalize(self):
         self._update_output_units()
-        if self.output_format != OutputFormat.GEOSERVER:
+        if self.sites_output_format != OutputFormat.GEOSERVER:
             self.update_output_name()
 
         self.make_output_directory()
@@ -448,11 +444,10 @@ class Config(Loggable):
                 "output_summary",
                 "output_timeseries_unified",
                 "output_timeseries_separated",
-                "site_file_type",
                 "output_horizontal_datum",
                 "output_elevation_units",
                 "use_cloud_storage",
-                "output_format"
+                "sites_output_format"
             ),
         )
 

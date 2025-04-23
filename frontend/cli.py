@@ -17,6 +17,7 @@ import sys
 
 import click
 
+from backend import OutputFormat
 from backend.config import Config
 from backend.constants import PARAMETER_OPTIONS
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
@@ -178,7 +179,7 @@ OUTPUT_OPTIONS = [
     ),
 ]
 
-PERSISTER_OPTIONS = [
+OUTPUT_DIR_OPTIONS = [
     click.option(
         "--output-dir",
         default=".",
@@ -186,13 +187,23 @@ PERSISTER_OPTIONS = [
     )
 ]
 
-SITE_OUTPUT_TYPE_OPTIONS = [
+SITES_OUTPUT_FORMATS = sorted([value for value in OutputFormat])
+SITES_OUTPUT_FORMAT_OPTIONS = [
     click.option(
-        "--site-file-type",
-        type=click.Choice(["csv", "geojson"]),
+        "--sites_output_format",
+        type=click.Choice(SITES_OUTPUT_FORMATS),
         default="csv",
-        help="Output file format for sites (csv or geoson). Default is csv",
+        help=f"Output file format for sites: {SITES_OUTPUT_FORMATS}. Default is csv",
     )
+]
+
+CONFIG_PATH_OPTIONS = [
+    click.option(
+        "--config-path",
+        type=click.Path(exists=True),
+        default=None,
+        help="Path to config file. Default is config.yaml",
+    ),
 ]
 
 
@@ -211,14 +222,14 @@ def add_options(options):
     type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
     required=True,
 )
-@add_options(CONFIG_OPTIONS)
+@add_options(CONFIG_PATH_OPTIONS)
 @add_options(OUTPUT_OPTIONS)
-@add_options(PERSISTER_OPTIONS)
+@add_options(OUTPUT_DIR_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-@add_options(SITE_OUTPUT_TYPE_OPTIONS)
+@add_options(SITES_OUTPUT_FORMAT_OPTIONS)
 def weave(
         parameter,
         config_path,
@@ -228,6 +239,7 @@ def weave(
         end_date,
         bbox,
         county,
+        wkt,
         no_bernco,
         no_bor,
         no_cabq,
@@ -235,18 +247,29 @@ def weave(
         no_nmbgmr_amp,
         no_nmed_dwb,
         no_nmose_isc_seven_rivers,
+        no_nmose_pod,
         no_nmose_roswell,
         no_nwis,
         no_pvacd,
         no_wqp,
         site_limit,
         dry,
-        yes):
+        yes,
+        sites_output_format):
     """
     Get parameter timeseries or summary data
     """
     # instantiate config and set up parameter
-    config = setup_config(parameter, config_path, bbox, county, site_limit, dry, site_file_type)
+    config = setup_config(
+        tag=parameter,
+        config_path=config_path,
+        bbox=bbox,
+        county=county,
+        wkt=wkt,
+        site_limit=site_limit,
+        dry=dry,
+        sites_output_format=sites_output_format
+        )
     
     config.parameter = parameter
 
@@ -296,41 +319,48 @@ def weave(
             if not click.confirm("Do you want to continue?", default=True):
                 return
 
-    if parameter.lower() == "waterlevels":
-        unify_waterlevels(config)
-    else:
-        unify_analytes(config)
+        if parameter.lower() == "waterlevels":
+            unify_waterlevels(config)
+        else:
+            unify_analytes(config)
+    return config
 
         
 
 @cli.command()
-@add_options(CONFIG_OPTIONS)
+@add_options(CONFIG_PATH_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
-@add_options(PERSISTER_OPTIONS)
+@add_options(OUTPUT_DIR_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-def sites(config_path,
-          bbox, county,
-          output_dir,
-          no_bernco,
-          no_bor,
-          no_cabq,
-          no_ebid,
-          no_nmbgmr_amp,
-          no_nmed_dwb,
-          no_nmose_isc_seven_rivers,
-          no_nmose_roswell,
-          no_nwis,
-          no_pvacd,
-          no_wqp,
-          site_limit,
-          dry,
-          yes):
+@add_options(SITES_OUTPUT_FORMAT_OPTIONS)
+def sites(
+    config_path,
+    bbox,
+    county,
+    wkt,
+    output_dir,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_pod,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
+    sites_output_format
+):
     """
     Get sites
     """
-
-    config = setup_config("sites", config_path, bbox, county, site_limit, dry)
+    config = setup_config("sites", config_path, bbox, county, wkt, site_limit, dry, sites_output_format)
     config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
                        "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
                        "wqp", "nmose_pod"]
@@ -388,7 +418,7 @@ def sources(sources, bbox, wkt, county):
         click.echo(s)
 
 
-def setup_config(tag, config_path, bbox, county, site_limit, dry, site_file_type="csv"):
+def setup_config(tag, config_path, bbox, county, wkt, site_limit, dry, sites_output_format=OutputFormat.CSV):
     config = Config(path=config_path)
 
     if county:
@@ -408,7 +438,7 @@ def setup_config(tag, config_path, bbox, county, site_limit, dry, site_file_type
         config.site_limit = None
     config.dry = dry
 
-    config.site_file_type = site_file_type
+    config.sites_output_format = sites_output_format
 
     return config
 

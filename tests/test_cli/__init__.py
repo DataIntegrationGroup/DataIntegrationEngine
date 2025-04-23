@@ -50,7 +50,7 @@ class BaseCLITestClass:
         self,
         parameter: str,
         output: str,
-        site_output_type: str = "csv",
+        sites_output_format: str = "csv",
         site_limit: int = 4,
         start_date: str = "1990-08-10",
         end_date: str = "1990-08-11",
@@ -91,20 +91,15 @@ class BaseCLITestClass:
             start_date,
             "--end-date",
             end_date,
+            "--sites_output_format",
+            sites_output_format
         ]
-
-        if site_output_type == "csv":
-            arguments.append("--site-file-type")
-            arguments.append(site_output_type)
-        elif site_output_type == "geojson":
-            arguments.append("--site-file-type")
-            arguments.append(site_output_type)
 
         if geographic_filter_name and geographic_filter_value:
             arguments.extend([f"--{geographic_filter_name}", geographic_filter_value])
 
         arguments.extend(no_agencies)
-
+        
         # Act
         result = self.runner.invoke(weave, arguments, standalone_mode=False)
 
@@ -176,10 +171,7 @@ class BaseCLITestClass:
                     assert getattr(config, _geographic_filter_name) == ""
 
         # 9
-        if site_output_type == "csv":
-            assert getattr(config, "site_file_type") == "csv"
-        elif site_output_type == "geojson":
-            assert getattr(config, "site_file_type") == "geojson"
+        assert getattr(config, "sites_output_format") == sites_output_format
 
     def test_weave_summary(self):
         self._test_weave(parameter=WATERLEVELS, output="summary")
@@ -192,12 +184,12 @@ class BaseCLITestClass:
 
     def test_weave_csv(self):
         self._test_weave(
-            parameter=WATERLEVELS, output="summary", site_output_type="csv"
+            parameter=WATERLEVELS, output="summary", sites_output_format="csv"
         )
 
     def test_weave_geojson(self):
         self._test_weave(
-            parameter=WATERLEVELS, output="summary", site_output_type="geojson"
+            parameter=WATERLEVELS, output="summary", sites_output_format="geojson"
         )
 
     def test_weave_bbox(self):

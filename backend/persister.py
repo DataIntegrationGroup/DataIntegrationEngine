@@ -130,6 +130,30 @@ def write_csv_file(path, func, records):
     with open(path, "w", newline="") as f:
         func(csv.writer(f), records)
 
+def write_sites_geojson_file(path, records):
+    features = [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        record.get("longitude"),
+                        record.get("latitude"),
+                        record.get("elevation"),
+                    ],
+                },
+                "properties": {
+                    k: record.get(k)
+                    for k in record.keys
+                    if k not in ["latitude", "longitude", "elevation"]
+                },
+            }
+            for record in records
+        ]
+    feature_collection = {"type": "FeatureCollection", "features": features}
+
+    with open(path, "w") as f:
+        json.dump(feature_collection, f, indent=4)
 
 def write_memory(func, records, output_format=None):
     f = io.BytesIO()
@@ -168,12 +192,6 @@ def dump_sites(filehandle, records, output_format):
             df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
         )
         gdf.to_file(filehandle, driver="GeoJSON")
-
-
-
-
-
-
 
 class CloudStoragePersister(BasePersister):
     extension = "csv"
@@ -243,45 +261,7 @@ class GeoJSONPersister(BasePersister):
     extension = "geojson"
 
     def _write(self, path: str, records: list):
-
-        features = [
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [
-                        record.get("longitude"),
-                        record.get("latitude"),
-                        record.get("elevation"),
-                    ],
-                },
-                "properties": {
-                    k: record.get(k)
-                    for k in record.keys
-                    if k not in ["latitude", "longitude", "elevation"]
-                },
-            }
-            for record in records
-        ]
-        feature_collection = {"type": "FeatureCollection", "features": features}
-
-        with open(path, "w") as f:
-            json.dump(feature_collection, f, indent=4)
-
-    def _get_gdal_type(self, dtype):
-        """
-        Map pandas dtypes to GDAL-compatible types for the schema.
-        """
-        if pd.api.types.is_integer_dtype(dtype):
-            return "int"
-        elif pd.api.types.is_float_dtype(dtype):
-            return "float"
-        elif pd.api.types.is_string_dtype(dtype):
-            return "str"
-        elif pd.api.types.is_datetime64_any_dtype(dtype):
-            return "datetime"
-        else:
-            return "str"  # Default to string for unsupported types
+        write_sites_geojson_file(path, records)
 
 
 # class ST2Persister(BasePersister):

@@ -162,7 +162,7 @@ class BaseSourceTestClass:
     def test_summary_geojson(self):
         # Arrange --------------------------------------------------------------
         self.config.output_summary = True
-        self.config.site_file_type = "geojson"
+        self.config.sites_output_format = "geojson"
         self.config.report()
 
         # Act ------------------------------------------------------------------
@@ -191,7 +191,7 @@ class BaseSourceTestClass:
     def test_timeseries_unified_geojson(self):
         # Arrange --------------------------------------------------------------
         self.config.output_timeseries_unified = True
-        self.config.site_file_type = "geojson"
+        self.config.sites_output_format = "geojson"
         self.config.report()
 
         # Act ------------------------------------------------------------------
@@ -228,7 +228,7 @@ class BaseSourceTestClass:
     def test_timeseries_separated_geojson(self):
         # Arrange --------------------------------------------------------------
         self.config.output_timeseries_separated = True
-        self.config.site_file_type = "geojson"
+        self.config.sites_output_format = "geojson"
         self.config.report()
 
         # Act ------------------------------------------------------------------
