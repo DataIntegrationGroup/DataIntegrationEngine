@@ -117,9 +117,7 @@ def unify_sites(config):
 #     persister.save(config.output_path)
 
 
-def _site_wrapper(
-    site_source, parameter_source, persister, config
-):
+def _site_wrapper(site_source, parameter_source, persister, config):
 
     try:
         # TODO: fully develop checks/discoveries below
@@ -194,25 +192,16 @@ def _site_wrapper(
                         # num_sites_to_remove from the length of the list
                         # to remove the last num_sites_to_remove sites
                         if use_summarize:
-                            persister.records = (
-                                persister.records[
-                                    : len(persister.records)
-                                    - num_sites_to_remove
-                                ]
-                            )
+                            persister.records = persister.records[
+                                : len(persister.records) - num_sites_to_remove
+                            ]
                         else:
-                            persister.timeseries = (
-                                persister.timeseries[
-                                    : len(persister.timeseries)
-                                    - num_sites_to_remove
-                                ]
-                            )
-                            persister.sites = (
-                                persister.sites[
-                                    : len(persister.sites)
-                                    - num_sites_to_remove
-                                ]
-                            )
+                            persister.timeseries = persister.timeseries[
+                                : len(persister.timeseries) - num_sites_to_remove
+                            ]
+                            persister.sites = persister.sites[
+                                : len(persister.sites) - num_sites_to_remove
+                            ]
                         break
 
     except BaseException:
@@ -227,7 +216,7 @@ def _unify_parameter(
     config,
     sources,
 ):
-    
+
     if config.output_format == OutputFormat.GEOSERVER:
         persister = GeoServerPersister(config)
     else:

@@ -32,7 +32,7 @@ from backend.logger import Loggable
 try:
     from google.cloud import storage
 except ImportError:
-    print("google cloud storage not available")    
+    print("google cloud storage not available")
 
 
 def write_memory(func, records, output_format=None):
@@ -98,6 +98,7 @@ class BasePersister(Loggable):
     Class to persist the data to a file or cloud storage.
     If persisting to a file, the output directory is created by config._make_output_path()
     """
+
     def __init__(self, config=None):
         self.records = []
         self.timeseries = []
@@ -167,7 +168,9 @@ class BasePersister(Loggable):
             path = f"{path}.{ext}"
         return path
 
-    def _dump_sites_summary(self, path: str, records: list, output_format: OutputFormat):
+    def _dump_sites_summary(
+        self, path: str, records: list, output_format: OutputFormat
+    ):
         dump_sites_summary(path, records, output_format)
 
     def _dump_timeseries(self, path: str, timeseries: list):
@@ -232,11 +235,11 @@ class CloudStoragePersister(BasePersister):
     def _dump_sites_summary(self, path: str, records: list):
         content = write_memory(dump_sites_summary, records, self.config.output_format)
         self._add_content(path, content)
-    
 
     def _dump_timeseries_unified(self, path: str, timeseries: list):
         content = write_memory(path, dump_timeseries, timeseries)
         self._add_content(path, content)
+
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

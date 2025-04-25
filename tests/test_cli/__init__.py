@@ -199,7 +199,9 @@ class BaseCLITestClass:
         )
 
     def test_weave_county(self):
-        self._test_weave(parameter=WATERLEVELS, output_type="summary", county="Bernalillo")
+        self._test_weave(
+            parameter=WATERLEVELS, output_type="summary", county="Bernalillo"
+        )
 
     def test_weave_wkt(self):
         self._test_weave(
