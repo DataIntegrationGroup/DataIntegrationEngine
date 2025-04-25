@@ -87,18 +87,18 @@ class NMBGMRSiteSource(BaseSiteSource):
         )
         if not config.sites_only:
             for site in sites:
-                # print(f"Obtaining well data for {site['properties']['point_id']}")
-                # well_data = self._execute_json_request(
-                #     _make_url("wells"),
-                #     params={"pointid": site["properties"]["point_id"]},
-                #     tag="",
-                # )
-                # site["properties"]["formation"] = well_data["formation"]
-                # site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
-                # site["properties"]["well_depth_units"] = FEET
-                site["properties"]["formation"] = None
-                site["properties"]["well_depth"] = None
+                print(f"Obtaining well data for {site['properties']['point_id']}")
+                well_data = self._execute_json_request(
+                    _make_url("wells"),
+                    params={"pointid": site["properties"]["point_id"]},
+                    tag="",
+                )
+                site["properties"]["formation"] = well_data["formation"]
+                site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
                 site["properties"]["well_depth_units"] = FEET
+                # site["properties"]["formation"] = None
+                # site["properties"]["well_depth"] = None
+                # site["properties"]["well_depth_units"] = FEET
 
         return sites
 
