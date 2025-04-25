@@ -4,7 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased: 0.8.0
+## Unreleased: 0.9.0
+
+### Added
+- `--sites-only` flag to only retrieve site data
+- `--output-format` flag to write out sites/summary tables as csv or geojson.
+  - options are `csv` or `geojson`
+- NM OSE POD data for sites.
+  - can be removed from output with `--no-nmose-pod`
+- `--output-dir` to change the output directory to a location other than `.` (the current working directory)
+
+### Changed
+- `output` to `output-type` for CLI
+
+### Fixed
+- a bug with `--site-limit`. it now exports the number of sets requested by the 
+
+## 0.8.0
 
 ### Added
 - water level for WQP
