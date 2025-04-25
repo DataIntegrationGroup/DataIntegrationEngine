@@ -68,7 +68,7 @@ from .connectors.st2.source import (
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
-
+from .logger import Loggable
 
 SOURCE_DICT = {
     "bernco": BernCoSiteSource,
