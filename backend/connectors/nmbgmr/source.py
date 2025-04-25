@@ -46,8 +46,10 @@ from backend.source import (
 
 def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
-        return f"http://localhost:8000/latest/{endpoint}"
-    return f"https://waterdata.nmt.edu//latest/{endpoint}"
+        url = f"http://localhost:8000/latest/{endpoint}"
+    else:
+        url = f"https://waterdata.nmt.edu/latest/{endpoint}"
+    return url
 
 
 class NMBGMRSiteSource(BaseSiteSource):
