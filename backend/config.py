@@ -18,6 +18,8 @@ import sys
 from datetime import datetime, timedelta
 from enum import Enum
 import shapely.wkt
+import yaml
+
 from . import OutputFormat
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
@@ -201,8 +203,6 @@ class Config(Loggable):
                     setattr(self, attr, payload[attr])
 
     def _load_from_yaml(self, path):
-        import yaml
-
         path = os.path.abspath(path)
         if os.path.exists(path):
             self.log(f"Loading config from {path}")

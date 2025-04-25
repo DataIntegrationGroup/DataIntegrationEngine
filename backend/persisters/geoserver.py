@@ -9,10 +9,11 @@ import json
 import os
 import time
 from itertools import groupby
-
+from typing import Type
 import psycopg2
 from sqlalchemy.dialects.postgresql import JSONB, insert
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Mapped
+
 
 from backend.persister import BasePersister
 
@@ -31,12 +32,6 @@ from geoalchemy2 import Geometry
 
 Base = declarative_base()
 
-
-#         dbname=db.get('dbname'),
-#         user=db.get('user'),
-#         password=db.get('password'),
-#         host=db.get('host'),
-#         port=db.get('port'),
 def session_factory(connection: dict):
     user = connection.get("user", "postgres")
     password = connection.get("password", "")
@@ -61,7 +56,7 @@ class Location(Base):
     geometry = Column(Geometry(geometry_type="POINT", srid=4326))
     source_slug = Column(String, ForeignKey("tbl_sources.name"))
 
-    source = relationship("Sources", backref="locations")
+    source: Mapped["Sources"] = relationship("Sources", backref="locations", uselist=False)
 
 
 class Summary(Base):
@@ -76,7 +71,7 @@ class Summary(Base):
     source_slug = Column(String, ForeignKey("tbl_sources.name"))
     parameter_slug = Column(String, ForeignKey("tbl_parameters.name"))
 
-    source = relationship("Sources", backref="summaries")
+    source: Mapped["Sources"] = relationship("Sources", backref="summaries", uselist=False)
 
     value = Column(Float)
     nrecords = Column(Integer)

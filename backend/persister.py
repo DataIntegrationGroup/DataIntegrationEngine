@@ -232,8 +232,8 @@ class CloudStoragePersister(BasePersister):
     def _add_content(self, path: str, content: str):
         self._content.append((path, content))
 
-    def _dump_sites_summary(self, path: str, records: list):
-        content = write_memory(dump_sites_summary, records, self.config.output_format)
+    def _dump_sites_summary(self, path: str, records: list, output_format: OutputFormat):
+        content = write_memory(dump_sites_summary, records, output_format)
         self._add_content(path, content)
 
     def _dump_timeseries_unified(self, path: str, timeseries: list):
