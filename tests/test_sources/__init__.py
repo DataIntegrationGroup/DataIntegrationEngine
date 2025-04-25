@@ -66,7 +66,7 @@ class BaseSourceTestClass:
         # 2: delete newly created dirs and files
         path_to_clean = Path(self.config.output_path)
         print(f"Cleaning and removing {path_to_clean}")
-        # recursively_clean_directory(path_to_clean)
+        recursively_clean_directory(path_to_clean)
 
         # reset test attributes
         self.dirs_to_delete = []
