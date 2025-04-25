@@ -6,6 +6,7 @@ from tests.test_sources import BaseSourceTestClass
 
 os.environ["IS_TESTING_ENV"] = "True"
 
+
 @pytest.fixture(autouse=True)
 def setup():
     # SETUP CODE -----------------------------------------------------------
@@ -16,6 +17,7 @@ def setup():
 
     # TEARDOWN CODE ---------------------------------------------------------
     os.environ["IS_TESTING_ENV"] = "False"
+
 
 class TestNMBGMRWaterlevels(BaseSourceTestClass):
 

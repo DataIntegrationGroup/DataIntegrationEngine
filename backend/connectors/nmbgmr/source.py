@@ -89,7 +89,9 @@ class NMBGMRSiteSource(BaseSiteSource):
         if not config.sites_only:
             for site in sites:
                 if get_bool_env_variable("IS_TESTING_ENV"):
-                    print(f"Skipping well data for {site['properties']['point_id']} for testing (until well data can be retrieved in batches)")
+                    print(
+                        f"Skipping well data for {site['properties']['point_id']} for testing (until well data can be retrieved in batches)"
+                    )
                     site["properties"]["formation"] = None
                     site["properties"]["well_depth"] = None
                     site["properties"]["well_depth_units"] = FEET
@@ -103,7 +105,7 @@ class NMBGMRSiteSource(BaseSiteSource):
                     site["properties"]["formation"] = well_data["formation"]
                     site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
                     site["properties"]["well_depth_units"] = FEET
-                
+
         return sites
 
 

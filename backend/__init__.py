@@ -1,5 +1,7 @@
 from enum import Enum
 from os import environ
+
+
 class OutputFormat(str, Enum):
     GEOJSON = "geojson"
     CSV = "csv"
