@@ -232,7 +232,9 @@ class CloudStoragePersister(BasePersister):
     def _add_content(self, path: str, content: str):
         self._content.append((path, content))
 
-    def _dump_sites_summary(self, path: str, records: list, output_format: OutputFormat):
+    def _dump_sites_summary(
+        self, path: str, records: list, output_format: OutputFormat
+    ):
         content = write_memory(dump_sites_summary, records, output_format)
         self._add_content(path, content)
 

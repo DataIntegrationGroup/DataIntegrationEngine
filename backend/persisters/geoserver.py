@@ -34,6 +34,7 @@ from geoalchemy2 import Geometry
 
 Base = declarative_base()
 
+
 def session_factory(connection: dict):
     user = connection.get("user", "postgres")
     password = connection.get("password", "")
@@ -58,7 +59,9 @@ class Location(Base):
     geometry = Column(Geometry(geometry_type="POINT", srid=4326))
     source_slug = Column(String, ForeignKey("tbl_sources.name"))
 
-    source: Mapped["Sources"] = relationship("Sources", backref="locations", uselist=False)
+    source: Mapped["Sources"] = relationship(
+        "Sources", backref="locations", uselist=False
+    )
 
 
 class Summary(Base):
@@ -73,7 +76,9 @@ class Summary(Base):
     source_slug = Column(String, ForeignKey("tbl_sources.name"))
     parameter_slug = Column(String, ForeignKey("tbl_parameters.name"))
 
-    source: Mapped["Sources"] = relationship("Sources", backref="summaries", uselist=False)
+    source: Mapped["Sources"] = relationship(
+        "Sources", backref="summaries", uselist=False
+    )
 
     value = Column(Float)
     nrecords = Column(Integer)
@@ -150,6 +155,7 @@ class GeoServerPersister(BasePersister):
     def _write_sources_with_convex_hull(self, records: list):
         # sources = {r.source for r in records}
         with self._connection as conn:
+
             def key(r):
                 return str(r.source)
 
@@ -159,15 +165,19 @@ class GeoServerPersister(BasePersister):
                 # calculate convex hull for the source from the records
 
                 # Create a MultiPoint object
-                points = MultiPoint([Point(record.longitude, record.latitude) for record in group])
+                points = MultiPoint(
+                    [Point(record.longitude, record.latitude) for record in group]
+                )
 
                 # Calculate the convex hull
                 sinsert = insert(Sources)
                 print("Writing source", source_name, points.convex_hull)
-                sql = sinsert.values([{"name": source_name,
-                                               "convex_hull": points.convex_hull.wkt}]).on_conflict_do_update(
+                sql = sinsert.values(
+                    [{"name": source_name, "convex_hull": points.convex_hull.wkt}]
+                ).on_conflict_do_update(
                     index_elements=[Sources.name],
-                    set_={"convex_hull": sinsert.excluded.convex_hull})
+                    set_={"convex_hull": sinsert.excluded.convex_hull},
+                )
                 # sql = insert(Sources).values([{"name": source,} for source in sources]).on_conflict_do_nothing(
                 #     index_elements=[Sources.name],)
                 conn.execute(sql)
