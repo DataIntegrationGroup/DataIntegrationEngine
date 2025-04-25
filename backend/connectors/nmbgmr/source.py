@@ -15,6 +15,7 @@
 # ===============================================================================
 import os
 
+from backend import get_bool_env_variable
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.nmbgmr.transformer import (
     NMBGMRSiteTransformer,
@@ -87,19 +88,22 @@ class NMBGMRSiteSource(BaseSiteSource):
         )
         if not config.sites_only:
             for site in sites:
-                print(f"Obtaining well data for {site['properties']['point_id']}")
-                well_data = self._execute_json_request(
-                    _make_url("wells"),
-                    params={"pointid": site["properties"]["point_id"]},
-                    tag="",
-                )
-                site["properties"]["formation"] = well_data["formation"]
-                site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
-                site["properties"]["well_depth_units"] = FEET
-                # site["properties"]["formation"] = None
-                # site["properties"]["well_depth"] = None
-                # site["properties"]["well_depth_units"] = FEET
-
+                if get_bool_env_variable("IS_TESTING_ENV"):
+                    print(f"Skipping well data for {site['properties']['point_id']} for testing (until well data can be retrieved in batches)")
+                    site["properties"]["formation"] = None
+                    site["properties"]["well_depth"] = None
+                    site["properties"]["well_depth_units"] = FEET
+                else:
+                    print(f"Obtaining well data for {site['properties']['point_id']}")
+                    well_data = self._execute_json_request(
+                        _make_url("wells"),
+                        params={"pointid": site["properties"]["point_id"]},
+                        tag="",
+                    )
+                    site["properties"]["formation"] = well_data["formation"]
+                    site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
+                    site["properties"]["well_depth_units"] = FEET
+                
         return sites
 
 
