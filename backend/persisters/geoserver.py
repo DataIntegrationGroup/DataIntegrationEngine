@@ -166,7 +166,10 @@ class GeoServerPersister(BasePersister):
 
                 # Create a MultiPoint object
                 points = MultiPoint(
-                    [Point(record.longitude, record.latitude) for record in source_records]
+                    [
+                        Point(record.longitude, record.latitude)
+                        for record in source_records
+                    ]
                 )
 
                 # Calculate the convex hull
