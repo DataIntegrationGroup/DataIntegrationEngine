@@ -161,12 +161,12 @@ class GeoServerPersister(BasePersister):
 
             records = sorted(records, key=key)
             for source_name, group in groupby(records, key=key):
-                listed_group = list(group)
+                source_records = list(group)
                 # calculate convex hull for the source from the records
 
                 # Create a MultiPoint object
                 points = MultiPoint(
-                    [Point(record.longitude, record.latitude) for record in listed_group]
+                    [Point(record.longitude, record.latitude) for record in source_records]
                 )
 
                 # Calculate the convex hull
