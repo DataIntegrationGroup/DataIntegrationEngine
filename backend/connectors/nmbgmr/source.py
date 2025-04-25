@@ -170,7 +170,11 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
 
     def _clean_records(self, records):
         # remove records with no depth to water value
-        return [r for r in records if r["DepthToWaterBGS"] is not None and r["DateMeasured"] is not None]
+        return [
+            r
+            for r in records
+            if r["DepthToWaterBGS"] is not None and r["DateMeasured"] is not None
+        ]
 
     def _extract_parameter_record(self, record, *args, **kw):
         record[PARAMETER_NAME] = DTW
