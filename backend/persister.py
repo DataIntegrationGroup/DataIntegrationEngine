@@ -32,7 +32,65 @@ from backend.logger import Loggable
 try:
     from google.cloud import storage
 except ImportError:
-    print("google cloud storage not available")
+    print("google cloud storage not available")    
+
+
+def write_memory(func, records, output_format=None):
+    f = io.BytesIO()
+    func(f, records, output_format)
+    return f.getvalue()
+
+
+def dump_timeseries(path, timeseries: list[list]):
+    """
+    Dumps timeseries records to a CSV file. The timeseries must be a list of
+    lists, where each inner list contains the records for a single site. In the case
+    of timeseries separated, the inner list will contain the records for a single site
+    and this function will be called multiple times, once for each site.
+    """
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        headers_have_not_been_written = True
+        for i, records in enumerate(timeseries):
+            for record in records:
+                if i == 0 and headers_have_not_been_written:
+                    writer.writerow(record.keys)
+                    headers_have_not_been_written = False
+                writer.writerow(record.to_row())
+
+
+def dump_sites_summary(path, records, output_format: OutputFormat):
+    if output_format == OutputFormat.CSV:
+        with open(path, "w", newline="") as f:
+            writer = csv.writer(f)
+            for i, site in enumerate(records):
+                if i == 0:
+                    writer.writerow(site.keys)
+                writer.writerow(site.to_row())
+    else:
+        features = [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        getattr(record, "longitude"),
+                        getattr(record, "latitude"),
+                        getattr(record, "elevation"),
+                    ],
+                },
+                "properties": {
+                    k: getattr(record, k)
+                    for k in record.keys
+                    if k not in ["latitude", "longitude", "elevation"]
+                },
+            }
+            for record in records
+        ]
+        feature_collection = {"type": "FeatureCollection", "features": features}
+
+        with open(path, "w") as f:
+            json.dump(feature_collection, f, indent=4)
 
 
 class BasePersister(Loggable):
@@ -40,9 +98,6 @@ class BasePersister(Loggable):
     Class to persist the data to a file or cloud storage.
     If persisting to a file, the output directory is created by config._make_output_path()
     """
-
-    extension: str = "csv"
-
     def __init__(self, config=None):
         self.records = []
         self.timeseries = []
@@ -61,25 +116,25 @@ class BasePersister(Loggable):
     def dump_sites(self, path: str):
         if self.sites:
             path = os.path.join(path, "sites")
-            path = self.add_extension(path)
+            path = self.add_extension(path, self.config.output_format)
             self.log(f"dumping sites to {os.path.abspath(path)}")
-            self._write(path, self.sites)
+            self._dump_sites_summary(path, self.sites, self.config.output_format)
         else:
             self.log("no sites to dump", fg="red")
 
     def dump_summary(self, path: str):
         if self.records:
             path = os.path.join(path, "summary")
-            path = self.add_extension(path)
+            path = self.add_extension(path, self.config.output_format)
             self.log(f"dumping summary to {os.path.abspath(path)}")
-            self._write(path, self.records)
+            self._dump_sites_summary(path, self.records, self.config.output_format)
         else:
             self.log("no records to dump", fg="red")
 
     def dump_timeseries_unified(self, path: str):
         if self.timeseries:
             path = os.path.join(path, "timeseries_unified")
-            path = self.add_extension(path)
+            path = self.add_extension(path, OutputFormat.CSV)
             self.log(f"dumping unified timeseries to {os.path.abspath(path)}")
             self._dump_timeseries(path, self.timeseries)
         else:
@@ -94,7 +149,7 @@ class BasePersister(Loggable):
             for records in self.timeseries:
                 site_id = records[0].id
                 path = os.path.join(timeseries_path, str(site_id).replace(" ", "_"))
-                path = self.add_extension(path)
+                path = self.add_extension(path, OutputFormat.CSV)
                 self.log(f"dumping {site_id} to {os.path.abspath(path)}")
 
                 list_of_records = [records]
@@ -102,98 +157,24 @@ class BasePersister(Loggable):
         else:
             self.log("no timeseries records to dump", fg="red")
 
-    def add_extension(self, path: str):
-        if not self.extension:
+    def add_extension(self, path: str, extension: OutputFormat):
+        if not extension:
             raise NotImplementedError
-
-        ext = self.extension
-        if self.config.output_format == OutputFormat.CSV:
-            ext = "csv"
-        elif self.config.output_format == OutputFormat.GEOJSON:
-            ext = "geojson"
+        else:
+            ext = extension
 
         if not path.endswith(ext):
             path = f"{path}.{ext}"
         return path
 
-    def _write(self, path: str, records):
-        raise NotImplementedError
+    def _dump_sites_summary(self, path: str, records: list, output_format: OutputFormat):
+        dump_sites_summary(path, records, output_format)
 
     def _dump_timeseries(self, path: str, timeseries: list):
-        raise NotImplementedError
+        dump_timeseries(path, timeseries)
 
     def _make_output_directory(self, output_directory: str):
         os.mkdir(output_directory)
-
-
-def write_csv_file(path, func, records):
-    with open(path, "w", newline="") as f:
-        func(csv.writer(f), records)
-
-
-def write_sites_geojson_file(path, records):
-    features = [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    record.get("longitude"),
-                    record.get("latitude"),
-                    record.get("elevation"),
-                ],
-            },
-            "properties": {
-                k: record.get(k)
-                for k in record.keys
-                if k not in ["latitude", "longitude", "elevation"]
-            },
-        }
-        for record in records
-    ]
-    feature_collection = {"type": "FeatureCollection", "features": features}
-
-    with open(path, "w") as f:
-        json.dump(feature_collection, f, indent=4)
-
-
-def write_memory(func, records, output_format=None):
-    f = io.BytesIO()
-    func(f, records, output_format)
-    return f.getvalue()
-
-
-def dump_timeseries(writer, timeseries: list[list]):
-    """
-    Dumps timeseries records to a CSV file. The timeseries must be a list of
-    lists, where each inner list contains the records for a single site. In the case
-    of timeseries separated, the inner list will contain the records for a single site
-    and this function will be called multiple times, once for each site.
-    """
-    headers_have_not_been_written = True
-    for i, records in enumerate(timeseries):
-        for record in records:
-            if i == 0 and headers_have_not_been_written:
-                writer.writerow(record.keys)
-                headers_have_not_been_written = False
-            writer.writerow(record.to_row())
-
-
-def dump_sites(filehandle, records, output_format):
-    if output_format == OutputFormat.CSV:
-        writer = csv.writer(filehandle)
-        for i, site in enumerate(records):
-            if i == 0:
-                writer.writerow(site.keys)
-            writer.writerow(site.to_row())
-    else:
-        r0 = records[0]
-        df = pd.DataFrame([r.to_row() for r in records], columns=r0.keys)
-
-        gdf = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326"
-        )
-        gdf.to_file(filehandle, driver="GeoJSON")
 
 
 class CloudStoragePersister(BasePersister):
@@ -245,34 +226,17 @@ class CloudStoragePersister(BasePersister):
         # prevent making root directory, because we are not saving to disk
         pass
 
-    def _write(self, path: str, records: list):
-        content = write_memory(dump_sites, records, self.config.output_format)
-        self._add_content(path, content)
-
     def _add_content(self, path: str, content: str):
         self._content.append((path, content))
+
+    def _dump_sites_summary(self, path: str, records: list):
+        content = write_memory(dump_sites_summary, records, self.config.output_format)
+        self._add_content(path, content)
+    
 
     def _dump_timeseries_unified(self, path: str, timeseries: list):
         content = write_memory(path, dump_timeseries, timeseries)
         self._add_content(path, content)
-
-
-class CSVPersister(BasePersister):
-    extension = "csv"
-
-    def _write(self, path: str, records: list):
-        write_csv_file(path, dump_sites, records)
-
-    def _dump_timeseries(self, path: str, timeseries: list):
-        write_csv_file(path, dump_timeseries, timeseries)
-
-
-class GeoJSONPersister(BasePersister):
-    extension = "geojson"
-
-    def _write(self, path: str, records: list):
-        write_sites_geojson_file(path, records)
-
 
 # class ST2Persister(BasePersister):
 #     extension = "st2"

@@ -66,7 +66,7 @@ class BaseSourceTestClass:
         # 2: delete newly created dirs and files
         path_to_clean = Path(self.config.output_path)
         print(f"Cleaning and removing {path_to_clean}")
-        recursively_clean_directory(path_to_clean)
+        # recursively_clean_directory(path_to_clean)
 
         # reset test attributes
         self.dirs_to_delete = []
@@ -162,7 +162,7 @@ class BaseSourceTestClass:
     def test_summary_geojson(self):
         # Arrange --------------------------------------------------------------
         self.config.output_summary = True
-        self.config.sites_output_format = "geojson"
+        self.config.output_format = "geojson"
         self.config.report()
 
         # Act ------------------------------------------------------------------
@@ -191,7 +191,7 @@ class BaseSourceTestClass:
     def test_timeseries_unified_geojson(self):
         # Arrange --------------------------------------------------------------
         self.config.output_timeseries_unified = True
-        self.config.sites_output_format = "geojson"
+        self.config.output_format = "geojson"
         self.config.report()
 
         # Act ------------------------------------------------------------------
@@ -228,7 +228,7 @@ class BaseSourceTestClass:
     def test_timeseries_separated_geojson(self):
         # Arrange --------------------------------------------------------------
         self.config.output_timeseries_separated = True
-        self.config.sites_output_format = "geojson"
+        self.config.output_format = "geojson"
         self.config.report()
 
         # Act ------------------------------------------------------------------

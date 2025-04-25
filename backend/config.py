@@ -147,7 +147,7 @@ class Config(Loggable):
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    sites_output_format: OutputFormat = OutputFormat.CSV
+    output_format: str = OutputFormat.CSV
 
     yes: bool = True
 
@@ -193,7 +193,7 @@ class Config(Loggable):
                 "output_name",
                 "dry",
                 "latest_water_level_only",
-                "sites_output_format",
+                "output_format",
                 "use_cloud_storage",
                 "yes",
             ):
@@ -287,7 +287,7 @@ class Config(Loggable):
 
     def finalize(self):
         self._update_output_units()
-        if self.sites_output_format != OutputFormat.GEOSERVER:
+        if self.output_format != OutputFormat.GEOSERVER:
             self.update_output_name()
 
         self.make_output_directory()
@@ -449,7 +449,7 @@ class Config(Loggable):
                 "output_horizontal_datum",
                 "output_elevation_units",
                 "use_cloud_storage",
-                "sites_output_format",
+                "output_format",
             ),
         )
 

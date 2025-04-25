@@ -170,9 +170,9 @@ DT_OPTIONS = [
         help="End date in the form 'YYYY', 'YYYY-MM', 'YYYY-MM-DD', 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'",
     ),
 ]
-OUTPUT_OPTIONS = [
+OUTPUT_TYPE_OPTIONS = [
     click.option(
-        "--output",
+        "--output-type",
         type=click.Choice(["summary", "timeseries_unified", "timeseries_separated"]),
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
@@ -187,13 +187,13 @@ OUTPUT_DIR_OPTIONS = [
     )
 ]
 
-SITES_OUTPUT_FORMATS = sorted([value for value in OutputFormat])
-SITES_OUTPUT_FORMAT_OPTIONS = [
+OUTPUT_FORMATS = sorted([value for value in OutputFormat])
+OUTPUT_FORMAT_OPTIONS = [
     click.option(
-        "--sites_output_format",
-        type=click.Choice(SITES_OUTPUT_FORMATS),
+        "--output-format",
+        type=click.Choice(OUTPUT_FORMATS),
         default="csv",
-        help=f"Output file format for sites: {SITES_OUTPUT_FORMATS}. Default is csv",
+        help=f"Output file format for sites: {OUTPUT_FORMATS}. Default is csv",
     )
 ]
 
@@ -223,17 +223,17 @@ def add_options(options):
     required=True,
 )
 @add_options(CONFIG_PATH_OPTIONS)
-@add_options(OUTPUT_OPTIONS)
+@add_options(OUTPUT_TYPE_OPTIONS)
 @add_options(OUTPUT_DIR_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-@add_options(SITES_OUTPUT_FORMAT_OPTIONS)
+@add_options(OUTPUT_FORMAT_OPTIONS)
 def weave(
     parameter,
     config_path,
-    output,
+    output_type,
     output_dir,
     start_date,
     end_date,
@@ -255,7 +255,7 @@ def weave(
     site_limit,
     dry,
     yes,
-    sites_output_format,
+    output_format,
 ):
     """
     Get parameter timeseries or summary data
@@ -269,26 +269,26 @@ def weave(
         wkt=wkt,
         site_limit=site_limit,
         dry=dry,
-        sites_output_format=sites_output_format,
+        output_format=output_format,
     )
 
     config.parameter = parameter
 
     # output type
-    if output == "summary":
+    if output_type == "summary":
         summary = True
         timeseries_unified = False
         timeseries_separated = False
-    elif output == "timeseries_unified":
+    elif output_type == "timeseries_unified":
         summary = False
         timeseries_unified = True
         timeseries_separated = False
-    elif output == "timeseries_separated":
+    elif output_type == "timeseries_separated":
         summary = False
         timeseries_unified = False
         timeseries_separated = True
     else:
-        click.echo(f"Invalid output type: {output}")
+        click.echo(f"Invalid output type: {output_type}")
         return
 
     config.output_summary = summary
@@ -333,7 +333,7 @@ def weave(
 @add_options(OUTPUT_DIR_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-@add_options(SITES_OUTPUT_FORMAT_OPTIONS)
+@add_options(OUTPUT_FORMAT_OPTIONS)
 def sites(
     config_path,
     bbox,
@@ -355,13 +355,13 @@ def sites(
     site_limit,
     dry,
     yes,
-    sites_output_format,
+    output_format,
 ):
     """
     Get sites
     """
     config = setup_config(
-        "sites", config_path, bbox, county, wkt, site_limit, dry, sites_output_format
+        "sites", config_path, bbox, county, wkt, site_limit, dry, output_format
     )
     config_agencies = [
         "bernco",
@@ -439,7 +439,7 @@ def setup_config(
     wkt,
     site_limit,
     dry,
-    sites_output_format=OutputFormat.CSV,
+    output_format=OutputFormat.CSV,
 ):
     config = Config(path=config_path)
 
@@ -460,7 +460,7 @@ def setup_config(
         config.site_limit = None
     config.dry = dry
 
-    config.sites_output_format = sites_output_format
+    config.output_format = output_format.value
 
     return config
 

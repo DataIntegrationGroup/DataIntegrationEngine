@@ -49,8 +49,8 @@ class BaseCLITestClass:
     def _test_weave(
         self,
         parameter: str,
-        output: str,
-        sites_output_format: str = "csv",
+        output_type: str,
+        output_format: str = "csv",
         site_limit: int = 4,
         start_date: str = "1990-08-10",
         end_date: str = "1990-08-11",
@@ -82,8 +82,8 @@ class BaseCLITestClass:
 
         arguments = [
             parameter,
-            "--output",
-            output,
+            "--output-type",
+            output_type,
             "--dry",
             "--site-limit",
             str(site_limit),
@@ -91,8 +91,8 @@ class BaseCLITestClass:
             start_date,
             "--end-date",
             end_date,
-            "--sites_output_format",
-            sites_output_format,
+            "--output-format",
+            output_format,
         ]
 
         if geographic_filter_name and geographic_filter_value:
@@ -102,6 +102,7 @@ class BaseCLITestClass:
 
         # Act
         result = self.runner.invoke(weave, arguments, standalone_mode=False)
+        print(result)
 
         # Assert
         assert result.exit_code == 0
@@ -141,11 +142,11 @@ class BaseCLITestClass:
 
         # 3
         output_types = ["summary", "timeseries_unified", "timeseries_separated"]
-        for output_type in output_types:
-            if output_type == output:
-                assert getattr(config, f"output_{output_type}") is True
+        for ot in output_types:
+            if ot == output_type:
+                assert getattr(config, f"output_{ot}") is True
             else:
-                assert getattr(config, f"output_{output_type}") is False
+                assert getattr(config, f"output_{ot}") is False
 
         # 4
         assert getattr(config, "site_limit") == 4
@@ -171,86 +172,86 @@ class BaseCLITestClass:
                     assert getattr(config, _geographic_filter_name) == ""
 
         # 9
-        assert getattr(config, "sites_output_format") == sites_output_format
+        assert getattr(config, "output_format") == output_format
 
     def test_weave_summary(self):
-        self._test_weave(parameter=WATERLEVELS, output="summary")
+        self._test_weave(parameter=WATERLEVELS, output_type="summary")
 
     def test_weave_timeseries_unified(self):
-        self._test_weave(parameter=WATERLEVELS, output="timeseries_unified")
+        self._test_weave(parameter=WATERLEVELS, output_type="timeseries_unified")
 
     def test_weave_timeseries_separated(self):
-        self._test_weave(parameter=WATERLEVELS, output="timeseries_separated")
+        self._test_weave(parameter=WATERLEVELS, output_type="timeseries_separated")
 
     def test_weave_csv(self):
         self._test_weave(
-            parameter=WATERLEVELS, output="summary", sites_output_format="csv"
+            parameter=WATERLEVELS, output_type="summary", output_format="csv"
         )
 
     def test_weave_geojson(self):
         self._test_weave(
-            parameter=WATERLEVELS, output="summary", sites_output_format="geojson"
+            parameter=WATERLEVELS, output_type="summary", output_format="geojson"
         )
 
     def test_weave_bbox(self):
         self._test_weave(
-            parameter=WATERLEVELS, output="summary", bbox="32.0,-106.0,36.0,-102.0"
+            parameter=WATERLEVELS, output_type="summary", bbox="32.0,-106.0,36.0,-102.0"
         )
 
     def test_weave_county(self):
-        self._test_weave(parameter=WATERLEVELS, output="summary", county="Bernalillo")
+        self._test_weave(parameter=WATERLEVELS, output_type="summary", county="Bernalillo")
 
     def test_weave_wkt(self):
         self._test_weave(
             parameter=WATERLEVELS,
-            output="summary",
+            output_type="summary",
             wkt="POLYGON((-106.0 32.0, -102.0 32.0, -102.0 36.0, -106.0 36.0, -106.0 32.0))",
         )
 
     def test_weave_waterlevels(self):
-        self._test_weave(parameter=WATERLEVELS, output="summary")
+        self._test_weave(parameter=WATERLEVELS, output_type="summary")
 
     def test_weave_arsenic(self):
-        self._test_weave(parameter=ARSENIC, output="summary")
+        self._test_weave(parameter=ARSENIC, output_type="summary")
 
     def test_weave_bicarbonate(self):
-        self._test_weave(parameter=BICARBONATE, output="summary")
+        self._test_weave(parameter=BICARBONATE, output_type="summary")
 
     def test_weave_calcium(self):
-        self._test_weave(parameter=CALCIUM, output="summary")
+        self._test_weave(parameter=CALCIUM, output_type="summary")
 
     def test_weave_carbonate(self):
-        self._test_weave(parameter=CARBONATE, output="summary")
+        self._test_weave(parameter=CARBONATE, output_type="summary")
 
     def test_weave_chloride(self):
-        self._test_weave(parameter=CHLORIDE, output="summary")
+        self._test_weave(parameter=CHLORIDE, output_type="summary")
 
     def test_weave_fluoride(self):
-        self._test_weave(parameter=FLUORIDE, output="summary")
+        self._test_weave(parameter=FLUORIDE, output_type="summary")
 
     def test_weave_magnesium(self):
-        self._test_weave(parameter=MAGNESIUM, output="summary")
+        self._test_weave(parameter=MAGNESIUM, output_type="summary")
 
     def test_weave_nitrate(self):
-        self._test_weave(parameter=NITRATE, output="summary")
+        self._test_weave(parameter=NITRATE, output_type="summary")
 
     def test_weave_ph(self):
-        self._test_weave(parameter=PH, output="summary")
+        self._test_weave(parameter=PH, output_type="summary")
 
     def test_weave_potassium(self):
-        self._test_weave(parameter=POTASSIUM, output="summary")
+        self._test_weave(parameter=POTASSIUM, output_type="summary")
 
     def test_weave_silica(self):
-        self._test_weave(parameter=SILICA, output="summary")
+        self._test_weave(parameter=SILICA, output_type="summary")
 
     def test_weave_sodium(self):
-        self._test_weave(parameter=SODIUM, output="summary")
+        self._test_weave(parameter=SODIUM, output_type="summary")
 
     def test_weave_sulfate(self):
-        self._test_weave(parameter=SULFATE, output="summary")
+        self._test_weave(parameter=SULFATE, output_type="summary")
 
     def test_weave_tds(self):
-        self._test_weave(parameter=TDS, output="summary")
+        self._test_weave(parameter=TDS, output_type="summary")
 
     def test_weave_uranium(self):
-        self._test_weave(parameter=URANIUM, output="summary")
+        self._test_weave(parameter=URANIUM, output_type="summary")
