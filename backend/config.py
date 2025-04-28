@@ -151,7 +151,7 @@ class Config(Loggable):
 
     output_format: str = OutputFormat.CSV
 
-    yes: bool = True
+    yes: bool = False
 
     def __init__(self, model=None, payload=None, path=None):
         # need to initialize logger
