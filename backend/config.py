@@ -220,7 +220,6 @@ class Config(Loggable):
                 "ebid",
                 "nmbgmr_amp",
                 "nmose_isc_seven_rivers",
-                "nmose_pod",
                 "nmose_roswell",
                 "nwis",
                 "pvacd",
