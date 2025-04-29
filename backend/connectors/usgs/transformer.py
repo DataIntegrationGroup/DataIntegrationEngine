@@ -32,9 +32,13 @@ class NWISSiteTransformer(SiteTransformer):
         # if not self.contained(lng, lat):
         #     return
 
+        agency = record["agency_cd"]
+        site_no = record["site_no"]
+        site_id = f"{agency}-{site_no}"
+
         rec = {
             "source": "USGS-NWIS",
-            "id": record["site_no"],
+            "id": site_id,
             "name": record["station_nm"],
             "latitude": lat,
             "longitude": lng,

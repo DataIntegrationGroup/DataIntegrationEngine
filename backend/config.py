@@ -18,6 +18,8 @@ import sys
 from datetime import datetime, timedelta
 from enum import Enum
 import shapely.wkt
+import yaml
+
 from . import OutputFormat
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
@@ -68,7 +70,8 @@ from .connectors.st2.source import (
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
-from .logger import Loggable
+from backend.logger import Loggable
+
 
 SOURCE_DICT = {
     "bernco": BernCoSiteSource,
@@ -96,9 +99,6 @@ def get_source(source):
 
     if klass:
         return klass()
-
-
-
 
 
 class Config(Loggable):
@@ -149,18 +149,14 @@ class Config(Loggable):
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    # use_csv: bool = True
-    # use_geojson: bool = False
+    output_format: str = OutputFormat.CSV
 
-    output_format: OutputFormat = OutputFormat.CSV
-
-    yes: bool = True
+    yes: bool = False
 
     def __init__(self, model=None, payload=None, path=None):
         # need to initialize logger
         super().__init__()
 
-        self.bbox = {}
         if path:
             payload = self._load_from_yaml(path)
 
@@ -186,24 +182,27 @@ class Config(Loggable):
                     if value is not None:
                         setattr(self, f"use_source_{sk}", value)
 
-            for attr in ("wkt", "county", "bbox",
-                         "output_summary",
-                         "output_timeseries_unified",
-                         "output_timeseries_separated",
-                         "start_date",
-                         "end_date",
-                         "parameter",
-                         "output_name",
-                         "dry",
-                         "latest_water_level_only",
-                         "output_format",
-                         "use_cloud_storage",
-                         "yes"):
+            for attr in (
+                "wkt",
+                "county",
+                "bbox",
+                "output_summary",
+                "output_timeseries_unified",
+                "output_timeseries_separated",
+                "start_date",
+                "end_date",
+                "parameter",
+                "output_name",
+                "dry",
+                "latest_water_level_only",
+                "output_format",
+                "use_cloud_storage",
+                "yes",
+            ):
                 if attr in payload:
                     setattr(self, attr, payload[attr])
 
     def _load_from_yaml(self, path):
-        import yaml
         path = os.path.abspath(path)
         if os.path.exists(path):
             self.log(f"Loading config from {path}")
@@ -221,7 +220,6 @@ class Config(Loggable):
                 "ebid",
                 "nmbgmr_amp",
                 "nmose_isc_seven_rivers",
-                "nmose_pod",
                 "nmose_roswell",
                 "nwis",
                 "pvacd",
@@ -450,7 +448,7 @@ class Config(Loggable):
                 "output_horizontal_datum",
                 "output_elevation_units",
                 "use_cloud_storage",
-                "output_format"
+                "output_format",
             ),
         )
 
@@ -573,4 +571,6 @@ class Config(Loggable):
     def get(self, attr):
         if self._payload:
             return self._payload.get(attr)
+
+
 # ============= EOF =============================================

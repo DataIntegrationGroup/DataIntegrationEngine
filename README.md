@@ -2,7 +2,7 @@
 [![Format code](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/format_code.yml/badge.svg?branch=main)](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/format_code.yml)
 [![Publish Python 🐍 distributions 📦 to PyPI and TestPyPI](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/publish-to-pypi.yml)
 [![CI/CD](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/cicd.yml/badge.svg)](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/cicd.yml)
-
+[![Dependabot Updates](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/dependabot/dependabot-updates)
 
 ![NMWDI](https://newmexicowaterdata.org/wp-content/uploads/2023/11/newmexicowaterdatalogoNov2023.png)
 ![NMBGMR](https://waterdata.nmt.edu/static/nmbgmr_logo_resized.png)
@@ -71,22 +71,22 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 | **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 
-### Output
-The `--output` option is required and used to set the output type:
+### Output Type
+The `--output-type` option is required and used to set the output type:
 
 ```
---output summary
+--output-type summary
 ```
 - A summary table consisting of location information as well as summary statistics for the parameter of interest for every location that has observations.
 
 ```
---output timeseries_unified
+--output-type timeseries_unified
 ```
 - A single table consisting of time series data for all locations for the parameter of interest.
 - A single table of site data that contains information such as latitude, longitude, and elevation
 
 ```
---output timeseries_separated
+--output-type timeseries_separated
 ```
 - Separate time series tables for all locations for the parameter of interest.
 - A single table of site data that contains information such as latitude, longitude, and elevation
@@ -146,6 +146,7 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | formation | geologic formation in which the well terminates | string | N |
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
+| well_depth_units | units of well depth. Defaults to ft | string | N |
 
 <sup>**CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
 
@@ -180,7 +181,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
 - `--no-wqp` to exclude Water Quality Portal (WQP) data
 
-### Geographic Filters
+### Geographic Filters [In Development]
 
 The following flags can be used to geographically filter data:
 
@@ -192,7 +193,11 @@ The following flags can be used to geographically filter data:
 -- bbox 'x1 y1, x2 y2'
 ```
 
-### Date Filters
+```
+-- wkt {wkt polygon or multipolygon}
+```
+
+### Date Filters [In Development]
 
 The following flags can be used to filter by dates:
 
@@ -214,12 +219,12 @@ die sources {parameter}
 
 to print the sources that report that parameter to the terminal.
 
-### Wells [In Development]
+### Sites
 
 Use
 
 ```
-die wells
+die sites
 ```
 
-to print wells to the terminal.
+to export site information only

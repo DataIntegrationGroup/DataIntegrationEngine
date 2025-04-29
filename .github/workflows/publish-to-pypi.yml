@@ -3,10 +3,12 @@ name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 # pushes only occur on successful pull request merges
 # this makes it so that the main branch gets published to PyPi, not the
 # target branch from the pull request (pre-production)
+
+# pushing tags should be the only way to trigger this workflow
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*'
 
 jobs:
   build-and-publish-if-merged:
@@ -20,7 +22,7 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.9
-          cache: 'pip'
+
       - name: Install pypa/build
         run: >-
             python -m

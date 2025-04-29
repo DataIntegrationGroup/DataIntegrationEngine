@@ -76,11 +76,12 @@ def parse_json(data):
 
     for location in data["timeSeries"]:
         site_code = location["sourceInfo"]["siteCode"][0]["value"]
+        agency = location["sourceInfo"]["siteCode"][0]["agencyCode"]
         source_parameter_name = location["variable"]["variableName"]
         source_parameter_units = location["variable"]["unit"]["unitCode"]
         for value in location["values"][0]["value"]:
             record = {
-                "site_code": site_code,
+                "site_id": f"{agency}-{site_code}",
                 "source_parameter_name": source_parameter_name,
                 "value": value["value"],
                 "datetime_measured": value["dateTime"],
@@ -150,12 +151,16 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
+        # query sites with the agency, which need to be in the form of "{agency}:{site number}"
+        sites = make_site_list(site_record)
+        sites_with_colons = [s.replace("-", ":") for s in sites]
+
         params = {
             "format": "json",
             "siteType": "GW",
             "siteStatus": "all",
             "parameterCd": "72019",
-            "sites": ",".join(make_site_list(site_record)),
+            "sites": ",".join(sites_with_colons),
         }
 
         config = self.config
@@ -178,7 +183,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             return records
 
     def _extract_site_records(self, records, site_record):
-        return [ri for ri in records if ri["site_code"] == site_record.id]
+        return [ri for ri in records if ri["site_id"] == site_record.id]
 
     def _clean_records(self, records):
         return [

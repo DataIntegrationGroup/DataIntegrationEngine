@@ -17,6 +17,7 @@ import sys
 
 import click
 
+from backend import OutputFormat
 from backend.config import Config
 from backend.constants import PARAMETER_OPTIONS
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
@@ -169,33 +170,16 @@ DT_OPTIONS = [
         help="End date in the form 'YYYY', 'YYYY-MM', 'YYYY-MM-DD', 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'",
     ),
 ]
-
-TIMESERIES_OPTIONS = [
+OUTPUT_TYPE_OPTIONS = [
     click.option(
-        "--separated_timeseries",
-        is_flag=True,
-        default=False,
-        show_default=True,
-        help="Output separate timeseries files for every site",
-    ),
-    click.option(
-        "--unified_timeseries",
-        is_flag=True,
-        default=False,
-        show_default=True,
-        help="Output single timeseries file, which includes all sites",
-    ),
-]
-
-OUTPUT_OPTIONS = [
-    click.option(
-        "--output",
+        "--output-type",
         type=click.Choice(["summary", "timeseries_unified", "timeseries_separated"]),
         required=True,
         help="Output summary file, single unified timeseries file, or separated timeseries files",
     ),
 ]
-PERSISTER_OPTIONS = [
+
+OUTPUT_DIR_OPTIONS = [
     click.option(
         "--output-dir",
         default=".",
@@ -203,7 +187,17 @@ PERSISTER_OPTIONS = [
     )
 ]
 
-CONFIG_OPTIONS = [
+OUTPUT_FORMATS = sorted([value for value in OutputFormat])
+OUTPUT_FORMAT_OPTIONS = [
+    click.option(
+        "--output-format",
+        type=click.Choice(OUTPUT_FORMATS),
+        default="csv",
+        help=f"Output file format for sites: {OUTPUT_FORMATS}. Default is csv",
+    )
+]
+
+CONFIG_PATH_OPTIONS = [
     click.option(
         "--config-path",
         type=click.Path(exists=True),
@@ -211,6 +205,7 @@ CONFIG_OPTIONS = [
         help="Path to config file. Default is config.yaml",
     ),
 ]
+
 
 def add_options(options):
     def _add_options(func):
@@ -227,61 +222,73 @@ def add_options(options):
     type=click.Choice(PARAMETER_OPTIONS, case_sensitive=False),
     required=True,
 )
-@add_options(CONFIG_OPTIONS)
-@add_options(OUTPUT_OPTIONS)
-@add_options(PERSISTER_OPTIONS)
+@add_options(CONFIG_PATH_OPTIONS)
+@add_options(OUTPUT_TYPE_OPTIONS)
+@add_options(OUTPUT_DIR_OPTIONS)
 @add_options(DT_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
+@add_options(OUTPUT_FORMAT_OPTIONS)
 def weave(
-        parameter,
-        config_path,
-        output,
-        output_dir,
-        start_date,
-        end_date,
-        bbox,
-        county,
-        wkt,
-        no_bernco,
-        no_bor,
-        no_cabq,
-        no_ebid,
-        no_nmbgmr_amp,
-        no_nmed_dwb,
-        no_nmose_isc_seven_rivers,
-        no_nmose_pod,
-        no_nmose_roswell,
-        no_nwis,
-        no_pvacd,
-        no_wqp,
-        site_limit,
-        dry,
-        yes):
+    parameter,
+    config_path,
+    output_type,
+    output_dir,
+    start_date,
+    end_date,
+    bbox,
+    county,
+    wkt,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_pod,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
+    output_format,
+):
     """
     Get parameter timeseries or summary data
     """
     # instantiate config and set up parameter
-    config = setup_config(parameter, config_path, bbox, county, wkt, site_limit, dry)
-    
+    config = setup_config(
+        tag=parameter,
+        config_path=config_path,
+        bbox=bbox,
+        county=county,
+        wkt=wkt,
+        site_limit=site_limit,
+        dry=dry,
+        output_format=output_format,
+    )
+
     config.parameter = parameter
 
     # output type
-    if output == "summary":
+    if output_type == "summary":
         summary = True
         timeseries_unified = False
         timeseries_separated = False
-    elif output == "timeseries_unified":
+    elif output_type == "timeseries_unified":
         summary = False
         timeseries_unified = True
         timeseries_separated = False
-    elif output == "timeseries_separated":
+    elif output_type == "timeseries_separated":
         summary = False
         timeseries_unified = False
         timeseries_separated = True
     else:
-        click.echo(f"Invalid output type: {output}")
+        click.echo(f"Invalid output type: {output_type}")
         return
 
     config.output_summary = summary
@@ -297,7 +304,7 @@ def weave(
         lcs = locals()
         if config_agencies:
             for agency in config_agencies:
-                setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+                setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -313,50 +320,68 @@ def weave(
             if not click.confirm("Do you want to continue?", default=True):
                 return
 
-    if parameter.lower() == "waterlevels":
-        unify_waterlevels(config)
-    else:
-        unify_analytes(config)
+        if parameter.lower() == "waterlevels":
+            unify_waterlevels(config)
+        else:
+            unify_analytes(config)
+    return config
 
-        
 
 @cli.command()
-@add_options(CONFIG_OPTIONS)
+@add_options(CONFIG_PATH_OPTIONS)
 @add_options(SPATIAL_OPTIONS)
-@add_options(PERSISTER_OPTIONS)
+@add_options(OUTPUT_DIR_OPTIONS)
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
-def sites(config_path,
-          bbox, county, wkt,
-          output_dir,
-          no_bernco,
-          no_bor,
-          no_cabq,
-          no_ebid,
-          no_nmbgmr_amp,
-          no_nmed_dwb,
-          no_nmose_isc_seven_rivers,
-          no_nmose_pod,
-          no_nmose_roswell,
-          no_nwis,
-          no_pvacd,
-          no_wqp,
-          site_limit,
-          dry,
-          yes):
+@add_options(OUTPUT_FORMAT_OPTIONS)
+def sites(
+    config_path,
+    bbox,
+    county,
+    wkt,
+    output_dir,
+    no_bernco,
+    no_bor,
+    no_cabq,
+    no_ebid,
+    no_nmbgmr_amp,
+    no_nmed_dwb,
+    no_nmose_isc_seven_rivers,
+    no_nmose_pod,
+    no_nmose_roswell,
+    no_nwis,
+    no_pvacd,
+    no_wqp,
+    site_limit,
+    dry,
+    yes,
+    output_format,
+):
     """
     Get sites
     """
-
-    config = setup_config("sites", config_path, bbox, county, wkt,  site_limit, dry)
-    config_agencies = ["bernco", "bor", "cabq", "ebid", "nmbgmr_amp", "nmed_dwb",
-                       "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd",
-                       "wqp", "nmose_pod"]
+    config = setup_config(
+        "sites", config_path, bbox, county, wkt, site_limit, dry, output_format
+    )
+    config_agencies = [
+        "bernco",
+        "bor",
+        "cabq",
+        "ebid",
+        "nmbgmr_amp",
+        "nmed_dwb",
+        "nmose_isc_seven_rivers",
+        "nmose_roswell",
+        "nwis",
+        "pvacd",
+        "wqp",
+        "nmose_pod",
+    ]
 
     if config_path is None:
         lcs = locals()
         for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", lcs.get(f'no_{agency}', False))
+            setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
         config.output_dir = output_dir
 
     config.sites_only = True
@@ -406,7 +431,16 @@ def sources(sources, bbox, wkt, county):
         click.echo(s)
 
 
-def setup_config(tag, config_path, bbox, county, wkt, site_limit, dry):
+def setup_config(
+    tag,
+    config_path,
+    bbox,
+    county,
+    wkt,
+    site_limit,
+    dry,
+    output_format=OutputFormat.CSV,
+):
     config = Config(path=config_path)
 
     if county:
@@ -425,6 +459,8 @@ def setup_config(tag, config_path, bbox, county, wkt, site_limit, dry):
     else:
         config.site_limit = None
     config.dry = dry
+
+    config.output_format = output_format.value
 
     return config
 

@@ -24,7 +24,7 @@ class NMOSEPODSiteTransformer(SiteTransformer):
             # "name": record["station_nm"],
             "latitude": geometry["y"],
             "longitude": geometry["x"],
-            "elevation": properties['elevation'],
+            "elevation": properties["elevation"],
             "elevation_units": "ft",
             # "horizontal_datum": datum,
             # "vertical_datum": record["alt_datum_cd"],

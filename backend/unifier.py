@@ -18,7 +18,7 @@ import shapely
 from backend.config import Config, get_source, OutputFormat
 from backend.logger import setup_logging
 from backend.constants import WATERLEVELS
-from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
+from backend.persister import BasePersister
 from backend.persisters.geoserver import GeoServerPersister
 from backend.source import BaseSiteSource
 
@@ -79,36 +79,36 @@ def unify_sites(config):
     return True
 
 
-def _perister_factory(config):
-    """
-    Determines the type of persister to use based on the configuration. The
-    persister types are:
+# def _perister_factory(config):
+#     """
+#     Determines the type of persister to use based on the configuration. The
+#     persister types are:
 
-    - CSVPersister
-    - CloudStoragePersister
-    - GeoJSONPersister
+#     - CSVPersister
+#     - CloudStoragePersister
+#     - GeoJSONPersister
 
-    Parameters
-    -------
-    config: Config
-        The configuration object
+#     Parameters
+#     -------
+#     config: Config
+#         The configuration object
 
-    Returns
-    -------
-    Persister
-        The persister object to use
-    """
-    persister_klass = CSVPersister
-    if config.use_cloud_storage:
-        persister_klass = CloudStoragePersister
-    elif config.output_format == OutputFormat.CSV:
-        persister_klass = CSVPersister
-    elif config.output_format == OutputFormat.GEOJSON:
-        persister_klass = GeoJSONPersister
-    elif config.output_format == OutputFormat.GEOSERVER:
-        persister_klass = GeoServerPersister
+#     Returns
+#     -------
+#     Persister
+#         The persister object to use
+#     """
+#     persister_klass = CSVPersister
+#     if config.use_cloud_storage:
+#         persister_klass = CloudStoragePersister
+#     elif config.output_format == OutputFormat.CSV:
+#         persister_klass = CSVPersister
+#     elif config.output_format == OutputFormat.GEOJSON:
+#         persister_klass = GeoJSONPersister
+#     elif config.output_format == OutputFormat.GEOSERVER:
+#         persister_klass = GeoServerPersister
 
-    return persister_klass(config)
+#     return persister_klass(config)
 
 
 # def _unify_wrapper(config, func):
@@ -179,27 +179,13 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         sites_with_records_count += len(results)
 
                     for site, records in results:
-                        persister.timeseries.append((site, records))
+                        persister.timeseries.append(records)
                         persister.sites.append(site)
 
                 if site_limit:
-                    # print(
-                    #     "sites_with_records_count:",
-                    #     sites_with_records_count,
-                    #     "|",
-                    #     "site_limit:",
-                    #     site_limit,
-                    #     "|",
-                    #     "chunk_size:",
-                    #     site_source.chunk_size,
-                    # )
-
                     if sites_with_records_count >= site_limit:
                         # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
                         num_sites_to_remove = sites_with_records_count - site_limit
-                        # print(
-                        #     f"removing {num_sites_to_remove} to avoid exceeding the site limit"
-                        # )
 
                         # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
                         # and calling list[:0] will retur an empty list, so subtract
@@ -230,9 +216,19 @@ def _unify_parameter(
     config,
     sources,
 ):
-    persister = _perister_factory(config)
+
+    if config.output_format == OutputFormat.GEOSERVER:
+        persister = GeoServerPersister(config)
+    else:
+        persister = BasePersister(config)
+
     for site_source, parameter_source in sources:
-        _site_wrapper(site_source, parameter_source, persister, config)
+        _site_wrapper(
+            site_source,
+            parameter_source,
+            persister,
+            config,
+        )
 
     if config.output_summary:
         persister.dump_summary(config.output_path)
@@ -375,17 +371,17 @@ def get_datastreams():
         print(si, si.id, ds["@iot.id"])
 
 
-if __name__ == "__main__":
-    # test_waterlevel_unification()
-    # root = logging.getLogger()
-    # root.setLevel(logging.DEBUG)
-    # shandler = logging.StreamHandler()
-    # get_sources(Config())
-    setup_logging()
-    site_unification_test()
-    # waterlevel_unification_test()
-    # analyte_unification_test()
-    # print(health_check("nwis"))
-    # generate_site_bounds()
+# if __name__ == "__main__":
+# test_waterlevel_unification()
+# root = logging.getLogger()
+# root.setLevel(logging.DEBUG)
+# shandler = logging.StreamHandler()
+# get_sources(Config())
+# setup_logging()
+# site_unification_test()
+# waterlevel_unification_test()
+# analyte_unification_test()
+# print(health_check("nwis"))
+# generate_site_bounds()
 
 # ============= EOF =============================================

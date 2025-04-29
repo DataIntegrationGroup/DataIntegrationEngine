@@ -1,3 +1,4 @@
+import json
 from logging import shutdown as logger_shutdown
 from pathlib import Path
 import pytest
@@ -10,8 +11,18 @@ from backend.record import SummaryRecord, SiteRecord, ParameterRecord
 from backend.unifier import unify_analytes, unify_waterlevels
 from tests import recursively_clean_directory
 
-SUMMARY_RECORD_HEADERS = list(SummaryRecord.keys)
-SITE_RECORD_HEADERS = list(SiteRecord.keys)
+EXCLUDED_GEOJSON_KEYS = ["latitude", "longitude", "elevation"]
+
+SUMMARY_RECORD_CSV_HEADERS = list(SummaryRecord.keys)
+SUMMARY_RECORD_GEOJSON_KEYS = [
+    k for k in SUMMARY_RECORD_CSV_HEADERS if k not in EXCLUDED_GEOJSON_KEYS
+]
+
+SITE_RECORD_CSV_HEADERS = list(SiteRecord.keys)
+SITE_RECORD_GEOJSON_KEYS = [
+    k for k in SITE_RECORD_CSV_HEADERS if k not in EXCLUDED_GEOJSON_KEYS
+]
+
 PARAMETER_RECORD_HEADERS = list(ParameterRecord.keys)
 
 
@@ -68,18 +79,61 @@ class BaseSourceTestClass:
         else:
             unify_analytes(self.config)
 
-    def _check_sites_file(self):
-        sites_file = Path(self.config.output_path) / "sites.csv"
+    def _check_summary_file(self, extension: str):
+        summary_file = Path(self.config.output_path) / f"summary.{extension}"
+        assert summary_file.exists()
+
+        if extension == "csv":
+            with open(summary_file, "r") as f:
+                headers = f.readline().strip().split(",")
+                assert headers == SUMMARY_RECORD_CSV_HEADERS
+
+            # +1 for the header
+            with open(summary_file, "r") as f:
+                lines = f.readlines()
+                assert len(lines) == self.site_limit + 1
+        elif extension == "geojson":
+            with open(summary_file, "r") as f:
+                summary = json.load(f)
+                assert len(summary["features"]) == self.site_limit
+                assert summary["type"] == "FeatureCollection"
+                for feature in summary["features"]:
+                    assert feature["geometry"]["type"] == "Point"
+                    assert len(feature["geometry"]["coordinates"]) == 3
+                    assert sorted(feature["properties"].keys()) == sorted(
+                        SUMMARY_RECORD_GEOJSON_KEYS
+                    )
+                assert summary["features"][0]["type"] == "Feature"
+        else:
+            raise ValueError(f"Unsupported file extension: {extension}")
+
+    def _check_sites_file(self, extension: str):
+        sites_file = Path(self.config.output_path) / f"sites.{extension}"
         assert sites_file.exists()
 
-        with open(sites_file, "r") as f:
-            headers = f.readline().strip().split(",")
-            assert headers == SITE_RECORD_HEADERS
+        if extension == "csv":
+            with open(sites_file, "r") as f:
+                headers = f.readline().strip().split(",")
+                assert headers == SITE_RECORD_CSV_HEADERS
 
-        # +1 for the header
-        with open(sites_file, "r") as f:
-            lines = f.readlines()
-            assert len(lines) == self.site_limit + 1
+            # +1 for the header
+            with open(sites_file, "r") as f:
+                lines = f.readlines()
+                assert len(lines) == self.site_limit + 1
+        elif extension == "geojson":
+            with open(sites_file, "r") as f:
+                sites = json.load(f)
+                assert len(sites["features"]) == self.site_limit
+                assert sites["type"] == "FeatureCollection"
+                for feature in sites["features"]:
+                    assert feature["geometry"]["type"] == "Point"
+                    assert len(feature["geometry"]["coordinates"]) == 3
+                    assert sorted(feature["properties"].keys()) == sorted(
+                        SITE_RECORD_GEOJSON_KEYS
+                    )
+                assert sites["features"][0]["type"] == "Feature"
+        else:
+            raise ValueError(f"Unsupported file extension: {extension}")
 
     def _check_timeseries_file(self, timeseries_dir, timeseries_file_name):
         timeseries_file = Path(timeseries_dir) / timeseries_file_name
@@ -94,7 +148,7 @@ class BaseSourceTestClass:
         source = self.config.all_site_sources()[0][0]
         assert source.health()
 
-    def test_summary(self):
+    def test_summary_csv(self):
         # Arrange --------------------------------------------------------------
         self.config.output_summary = True
         self.config.report()
@@ -103,21 +157,21 @@ class BaseSourceTestClass:
         self._run_unifier()
 
         # Assert ---------------------------------------------------------------
-        # Check the summary file
-        summary_file = Path(self.config.output_path) / "summary.csv"
-        assert summary_file.exists()
+        self._check_summary_file("csv")
 
-        # Check the column headers
-        with open(summary_file, "r") as f:
-            headers = f.readline().strip().split(",")
-            assert headers == SUMMARY_RECORD_HEADERS
+    def test_summary_geojson(self):
+        # Arrange --------------------------------------------------------------
+        self.config.output_summary = True
+        self.config.output_format = "geojson"
+        self.config.report()
 
-        # +1 for the header
-        with open(summary_file, "r") as f:
-            lines = f.readlines()
-            assert len(lines) == self.site_limit + 1
+        # Act ------------------------------------------------------------------
+        self._run_unifier()
 
-    def test_timeseries_unified(self):
+        # Assert ---------------------------------------------------------------
+        self._check_summary_file("geojson")
+
+    def test_timeseries_unified_csv(self):
         # Arrange --------------------------------------------------------------
         self.config.output_timeseries_unified = True
         self.config.report()
@@ -127,14 +181,32 @@ class BaseSourceTestClass:
 
         # Assert ---------------------------------------------------------------
         # Check the sites file
-        self._check_sites_file()
+        self._check_sites_file("csv")
 
         # Check the timeseries file
         timeseries_dir = Path(self.config.output_path)
         timeseries_file_name = "timeseries_unified.csv"
         self._check_timeseries_file(timeseries_dir, timeseries_file_name)
 
-    def test_timeseries_separated(self):
+    def test_timeseries_unified_geojson(self):
+        # Arrange --------------------------------------------------------------
+        self.config.output_timeseries_unified = True
+        self.config.output_format = "geojson"
+        self.config.report()
+
+        # Act ------------------------------------------------------------------
+        self._run_unifier()
+
+        # Assert ---------------------------------------------------------------
+        # Check the sites file
+        self._check_sites_file("geojson")
+
+        # Check the timeseries file
+        timeseries_dir = Path(self.config.output_path)
+        timeseries_file_name = "timeseries_unified.csv"
+        self._check_timeseries_file(timeseries_dir, timeseries_file_name)
+
+    def test_timeseries_separated_csv(self):
         # Arrange --------------------------------------------------------------
         self.config.output_timeseries_separated = True
         self.config.report()
@@ -144,7 +216,27 @@ class BaseSourceTestClass:
 
         # Assert ---------------------------------------------------------------
         # Check the sites file
-        self._check_sites_file()
+        self._check_sites_file("csv")
+
+        # Check the timeseries files
+        timeseries_dir = Path(self.config.output_path) / "timeseries"
+        assert len([f for f in timeseries_dir.iterdir()]) == self.site_limit
+
+        for timeseries_file in timeseries_dir.iterdir():
+            self._check_timeseries_file(timeseries_dir, timeseries_file.name)
+
+    def test_timeseries_separated_geojson(self):
+        # Arrange --------------------------------------------------------------
+        self.config.output_timeseries_separated = True
+        self.config.output_format = "geojson"
+        self.config.report()
+
+        # Act ------------------------------------------------------------------
+        self._run_unifier()
+
+        # Assert ---------------------------------------------------------------
+        # Check the sites file
+        self._check_sites_file("geojson")
 
         # Check the timeseries files
         timeseries_dir = Path(self.config.output_path) / "timeseries"
