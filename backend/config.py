@@ -15,13 +15,12 @@
 # ===============================================================================
 import os
 import sys
-import time
 from datetime import datetime, timedelta
-
+from enum import Enum
 import shapely.wkt
+import yaml
 
-from backend.logging import Loggable
-
+from . import OutputFormat
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
     NMBGMRSiteSource,
@@ -29,24 +28,35 @@ from .connectors.nmbgmr.source import (
     NMBGMRAnalyteSource,
 )
 from .connectors.bor.source import BORSiteSource, BORAnalyteSource
-from .connectors.ckan import (
-    HONDO_RESOURCE_ID,
-    FORT_SUMNER_RESOURCE_ID,
-    ROSWELL_RESOURCE_ID,
-)
-from .connectors.ckan.source import (
-    OSERoswellSiteSource,
-    OSERoswellWaterLevelSource,
-)
 from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
-from .constants import MILLIGRAMS_PER_LITER, WGS84, FEET
+from .connectors.nmose.source import NMOSEPODSiteSource
+from .constants import (
+    MILLIGRAMS_PER_LITER,
+    WGS84,
+    FEET,
+    WATERLEVELS,
+    ARSENIC,
+    BICARBONATE,
+    CALCIUM,
+    CARBONATE,
+    CHLORIDE,
+    FLUORIDE,
+    MAGNESIUM,
+    NITRATE,
+    PH,
+    POTASSIUM,
+    SILICA,
+    SODIUM,
+    SULFATE,
+    TDS,
+    URANIUM,
+)
 from .connectors.isc_seven_rivers.source import (
     ISCSevenRiversSiteSource,
     ISCSevenRiversWaterLevelSource,
     ISCSevenRiversAnalyteSource,
 )
 from .connectors.st2.source import (
-    ST2SiteSource,
     PVACDSiteSource,
     PVACDWaterLevelSource,
     EBIDSiteSource,
@@ -60,47 +70,35 @@ from .connectors.st2.source import (
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
+from backend.logger import Loggable
 
-SOURCE_KEYS = (
-    "bernco",
-    "bor",
-    "cabq",
-    "ebid",
-    "nmbgmr_amp",
-    "nmed_dwb",
-    "nmose_isc_seven_rivers",
-    "nmose_roswell",
-    "nwis",
-    "pvacd",
-    "wqp",
-)
+
+SOURCE_DICT = {
+    "bernco": BernCoSiteSource,
+    "bor": BORSiteSource,
+    "cabq": CABQSiteSource,
+    "ebid": EBIDSiteSource,
+    "nmbgmr_amp": NMBGMRSiteSource,
+    "nmed_dwb": DWBSiteSource,
+    "nmose_isc_seven_rivers": ISCSevenRiversSiteSource,
+    "nmose_pod": NMOSEPODSiteSource,
+    "nmose_roswell": NMOSERoswellSiteSource,
+    "nwis": NWISSiteSource,
+    "pvacd": PVACDSiteSource,
+    "wqp": WQPSiteSource,
+}
+
+SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
 
 
 def get_source(source):
-    if source == "bernco":
-        return BernCoSiteSource()
-    elif source == "bor":
-        return BORSiteSource()
-    elif source == "cabq":
-        return CABQSiteSource()
-    elif source == "ebid":
-        return EBIDSiteSource()
-    elif source == "nmbgmr_amp":
-        return NMBGMRSiteSource()
-    elif source == "nmed_dwb":
-        return DWBSiteSource()
-    elif source == "nmose_isc_seven_rivers":
-        return ISCSevenRiversSiteSource()
-    elif source == "nmose_roswell":
-        return NMOSERoswellSiteSource()
-    elif source == "nwis":
-        return NWISSiteSource()
-    elif source == "pvacd":
-        return PVACDSiteSource()
-    elif source == "wqp":
-        return WQPSiteSource()
+    try:
+        klass = SOURCE_DICT[source]
+    except KeyError:
+        raise ValueError(f"Unknown source {source}")
 
-    return None
+    if klass:
+        return klass()
 
 
 class Config(Loggable):
@@ -112,9 +110,11 @@ class Config(Loggable):
     end_date: str = ""
 
     # spatial
-    bbox: dict  # dict or str
+    bbox: str = ""
     county: str = ""
     wkt: str = ""
+
+    sites_only = False
 
     # sources
     use_source_bernco: bool = True
@@ -124,6 +124,7 @@ class Config(Loggable):
     use_source_nmbgmr_amp: bool = True
     use_source_nmed_dwb: bool = True
     use_source_nmose_isc_seven_rivers: bool = True
+    use_source_nmose_pod: bool = True
     use_source_nmose_roswell: bool = True
     use_source_nwis: bool = True
     use_source_pvacd: bool = True
@@ -148,14 +149,19 @@ class Config(Loggable):
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    use_csv: bool = True
-    use_geojson: bool = False
+    output_format: str = OutputFormat.CSV
 
-    def __init__(self, model=None, payload=None):
+    yes: bool = False
+
+    def __init__(self, model=None, payload=None, path=None):
         # need to initialize logger
         super().__init__()
 
-        self.bbox = {}
+        if path:
+            payload = self._load_from_yaml(path)
+
+        self._payload = payload
+
         if model:
             if model.wkt:
                 self.wkt = model.wkt
@@ -169,22 +175,135 @@ class Config(Loggable):
                 for s in SOURCE_KEYS:
                     setattr(self, f"use_source_{s}", s in model.sources)
         elif payload:
-            self.wkt = payload.get("wkt", "")
-            self.county = payload.get("county", "")
-            self.output_summary = payload.get("output_summary", False)
-            self.output_timeseries_unified = payload.get(
-                "output_timeseries_unified", False
-            )
-            self.output_timeseries_separated = payload.get(
-                "output_timeseries_separated", False
-            )
-            self.output_name = payload.get("output_name", "output")
-            self.start_date = payload.get("start_date", "")
-            self.end_date = payload.get("end_date", "")
-            self.parameter = payload.get("parameter", "")
+            sources = payload.get("sources", [])
+            if sources:
+                for sk in SOURCE_KEYS:
+                    value = sources.get(sk)
+                    if value is not None:
+                        setattr(self, f"use_source_{sk}", value)
 
-            for s in SOURCE_KEYS:
-                setattr(self, f"use_source_{s}", s in payload.get("sources", []))
+            for attr in (
+                "wkt",
+                "county",
+                "bbox",
+                "output_summary",
+                "output_timeseries_unified",
+                "output_timeseries_separated",
+                "start_date",
+                "end_date",
+                "parameter",
+                "output_name",
+                "dry",
+                "latest_water_level_only",
+                "output_format",
+                "use_cloud_storage",
+                "yes",
+            ):
+                if attr in payload:
+                    setattr(self, attr, payload[attr])
+
+    def _load_from_yaml(self, path):
+        path = os.path.abspath(path)
+        if os.path.exists(path):
+            self.log(f"Loading config from {path}")
+            with open(path, "r") as f:
+                data = yaml.safe_load(f)
+            return data
+        else:
+            self.warn(f"Config file {path} not found")
+
+    def get_config_and_false_agencies(self):
+        if self.parameter == WATERLEVELS:
+            config_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmbgmr_amp",
+                "nmose_isc_seven_rivers",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+                "wqp",
+            ]
+            false_agencies = ["bor", "nmose_pod", "nmed_dwb"]
+        elif self.parameter == CARBONATE:
+            config_agencies = ["nmbgmr_amp", "wqp"]
+            false_agencies = [
+                "bor",
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmed_dwb",
+                "nmose_isc_seven_rivers",
+                "nmose_pod",
+                "nmose_roswell",
+                "nwis",
+                "pvacd",
+            ]
+        elif self.parameter in [ARSENIC, URANIUM]:
+            config_agencies = ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]
+            false_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmose_isc_seven_rivers",
+                "nmose_roswell",
+                "nmose_pod",
+                "nwis",
+                "pvacd",
+            ]
+        elif self.parameter in [
+            BICARBONATE,
+            CALCIUM,
+            CHLORIDE,
+            FLUORIDE,
+            MAGNESIUM,
+            NITRATE,
+            PH,
+            POTASSIUM,
+            SILICA,
+            SODIUM,
+            SULFATE,
+            TDS,
+        ]:
+            config_agencies = [
+                "bor",
+                "nmbgmr_amp",
+                "nmed_dwb",
+                "nmose_isc_seven_rivers",
+                "wqp",
+            ]
+            false_agencies = [
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmose_roswell",
+                "nmose_pod",
+                "nwis",
+                "pvacd",
+            ]
+        return config_agencies, false_agencies
+
+    def finalize(self):
+        self._update_output_units()
+        if self.output_format != OutputFormat.GEOSERVER:
+            self.update_output_name()
+
+        self.make_output_directory()
+        self.make_output_path()
+
+    def all_site_sources(self):
+        sources = []
+        for s in SOURCE_KEYS:
+            if getattr(self, f"use_source_{s}"):
+                source = get_source(s)
+                source.set_config(self)
+                sources.append((source, None))
+
+        # pods = NMOSEPODSiteSource()
+        # pods.set_config(self)
+        # sources.append((pods, None))
+        return sources
 
     def analyte_sources(self):
         sources = []
@@ -328,6 +447,8 @@ class Config(Loggable):
                 "output_timeseries_separated",
                 "output_horizontal_datum",
                 "output_elevation_units",
+                "use_cloud_storage",
+                "output_format",
             ),
         )
 
@@ -384,7 +505,14 @@ class Config(Loggable):
 
         return True
 
-    def _update_output_name(self):
+    def make_output_directory(self):
+        """
+        Create the output directory if it doesn't exist.
+        """
+        if not os.path.exists(self.output_dir):
+            os.mkdir(self.output_dir)
+
+    def update_output_name(self):
         """
         Generate a unique output name based on existing directories in the output directory.
 
@@ -419,7 +547,7 @@ class Config(Loggable):
 
         self.output_name = output_name
 
-    def _make_output_path(self):
+    def make_output_path(self):
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 
@@ -439,6 +567,10 @@ class Config(Loggable):
     @property
     def output_path(self):
         return os.path.join(self.output_dir, f"{self.output_name}")
+
+    def get(self, attr):
+        if self._payload:
+            return self._payload.get(attr)
 
 
 # ============= EOF =============================================

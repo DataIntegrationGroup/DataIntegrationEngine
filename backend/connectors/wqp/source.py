@@ -26,6 +26,8 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
+    EARLIEST,
+    LATEST,
 )
 from backend.connectors.wqp.transformer import (
     WQPSiteTransformer,
@@ -38,7 +40,7 @@ from backend.source import (
     BaseWaterLevelSource,
     BaseParameterSource,
     make_site_list,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
 )
 
@@ -87,15 +89,15 @@ class WQPSiteSource(BaseSiteSource):
         }
         if config.has_bounds():
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
-
-        if config.parameter.lower() != "waterlevels":
-            params["characteristicName"] = get_analyte_search_param(
-                config.parameter, WQP_ANALYTE_MAPPING
-            )
-        else:
-            # every record with pCode 30210 (depth in m) has a corresponding
-            # record with pCode 72019 (depth in ft) but not vice versa
-            params["pCode"] = "30210"
+        if not config.sites_only:
+            if config.parameter.lower() != "waterlevels":
+                params["characteristicName"] = get_analyte_search_param(
+                    config.parameter, WQP_ANALYTE_MAPPING
+                )
+            else:
+                # every record with pCode 30210 (depth in m) has a corresponding
+                # record with pCode 72019 (depth in ft) but not vice versa
+                params["pCode"] = "30210"
 
         params.update(get_date_range(config))
 
@@ -139,13 +141,13 @@ class WQPParameterSource(BaseParameterSource):
     def _extract_source_parameter_names(self, records):
         return [ri["CharacteristicName"] for ri in records]
 
-    def _extract_most_recent(self, records):
-        ri = get_most_recent(records, "ActivityStartDate")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "ActivityStartDate", bookend=bookend)
         return {
-            "value": ri["ResultMeasureValue"],
-            "datetime": ri["ActivityStartDate"],
-            "source_parameter_units": ri["ResultMeasure/MeasureUnitCode"],
-            "source_parameter_name": ri["CharacteristicName"],
+            "value": record["ResultMeasureValue"],
+            "datetime": record["ActivityStartDate"],
+            "source_parameter_units": record["ResultMeasure/MeasureUnitCode"],
+            "source_parameter_name": record["CharacteristicName"],
         }
 
     def get_records(self, site_record):

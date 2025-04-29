@@ -15,13 +15,15 @@
 # ===============================================================================
 import shapely
 
-from backend.config import Config, get_source
-from backend.logging import setup_logging
-from backend.persister import CSVPersister, GeoJSONPersister, CloudStoragePersister
+from backend.config import Config, get_source, OutputFormat
+from backend.logger import setup_logging
+from backend.constants import WATERLEVELS
+from backend.persister import BasePersister
+from backend.persisters.geoserver import GeoServerPersister
 from backend.source import BaseSiteSource
 
 
-def health_check(source: BaseSiteSource) -> bool:
+def health_check(source: BaseSiteSource) -> bool | None:
     """
     Determines if data can be returned from the source (if it is healthy)
 
@@ -38,17 +40,8 @@ def health_check(source: BaseSiteSource) -> bool:
     source = get_source(source)
     if source:
         return bool(source.health())
-
-
-def unify_sites(config):
-    print("Unifying sites\n")
-
-    # def func(config, persister):
-    #     for source in config.site_sources():
-    #         s = source()
-    #         persister.load(s.read(config))
-
-    # _unify_wrapper(config, func)
+    else:
+        return None
 
 
 def unify_analytes(config):
@@ -74,34 +67,48 @@ def unify_waterlevels(config):
     return True
 
 
-def _perister_factory(config):
-    """
-    Determines the type of persister to use based on the configuration. The
-    persister types are:
+def unify_sites(config):
+    print("Unifying sites only\n")
 
-    - CSVPersister
-    - CloudStoragePersister
-    - GeoJSONPersister
+    # config.report() -- report is done in cli.py, no need to do it twice
+    config.validate()
 
-    Parameters
-    -------
-    config: Config
-        The configuration object
+    if not config.dry:
+        _unify_parameter(config, config.all_site_sources())
 
-    Returns
-    -------
-    Persister
-        The persister object to use
-    """
-    persister_klass = CSVPersister
-    if config.use_cloud_storage:
-        persister_klass = CloudStoragePersister
-    elif config.use_csv:
-        persister_klass = CSVPersister
-    elif config.use_geojson:
-        persister_klass = GeoJSONPersister
+    return True
 
-    return persister_klass()
+
+# def _perister_factory(config):
+#     """
+#     Determines the type of persister to use based on the configuration. The
+#     persister types are:
+
+#     - CSVPersister
+#     - CloudStoragePersister
+#     - GeoJSONPersister
+
+#     Parameters
+#     -------
+#     config: Config
+#         The configuration object
+
+#     Returns
+#     -------
+#     Persister
+#         The persister object to use
+#     """
+#     persister_klass = CSVPersister
+#     if config.use_cloud_storage:
+#         persister_klass = CloudStoragePersister
+#     elif config.output_format == OutputFormat.CSV:
+#         persister_klass = CSVPersister
+#     elif config.output_format == OutputFormat.GEOJSON:
+#         persister_klass = GeoJSONPersister
+#     elif config.output_format == OutputFormat.GEOSERVER:
+#         persister_klass = GeoServerPersister
+
+#     return persister_klass(config)
 
 
 # def _unify_wrapper(config, func):
@@ -133,42 +140,69 @@ def _site_wrapper(site_source, parameter_source, persister, config):
             return
 
         sites_with_records_count = 0
-        start_ind = 1
+        start_ind = 0
         end_ind = 0
         first_flag = True
-        for sites in site_source.chunks(sites):
-            if site_limit and sites_with_records_count == site_limit:
-                break
 
-            if type(sites) == list:
-                if first_flag:
-                    end_ind += len(sites)
-                    first_flag = False
+        if config.sites_only:
+            persister.sites.extend(sites)
+        else:
+            for site_records in site_source.chunks(sites):
+                if type(site_records) == list:
+                    n = len(site_records)
+                    if first_flag:
+                        first_flag = False
+                    else:
+                        start_ind = end_ind + 1
+
+                    end_ind += n
+
+                if use_summarize:
+                    summary_records = parameter_source.read(
+                        site_records, use_summarize, start_ind, end_ind
+                    )
+                    if summary_records:
+                        persister.records.extend(summary_records)
+                        sites_with_records_count += len(summary_records)
+                    else:
+                        continue
                 else:
-                    start_ind = end_ind + 1
-                    end_ind += len(sites)
+                    results = parameter_source.read(
+                        site_records, use_summarize, start_ind, end_ind
+                    )
+                    # no records are returned if there is no site record for parameter
+                    # or if the record isn't clean (doesn't have the correct fields)
+                    # don't count these sites to apply to site_limit
+                    if results is None or len(results) == 0:
+                        continue
+                    else:
+                        sites_with_records_count += len(results)
 
-            if use_summarize:
-                summary_records = parameter_source.read(
-                    sites, use_summarize, start_ind, end_ind
-                )
-                if summary_records:
-                    persister.records.extend(summary_records)
-            else:
-                results = parameter_source.read(
-                    sites, use_summarize, start_ind, end_ind
-                )
-                # no records are returned if there is no site record for parameter
-                # or if the record isn't clean (doesn't have the correct fields)
-                # don't count these sites to apply to site_limit
-                if results is None or len(results) == 0:
-                    continue
+                    for site, records in results:
+                        persister.timeseries.append(records)
+                        persister.sites.append(site)
 
-                for site, records in results:
-                    persister.timeseries.append((site, records))
-                    persister.sites.append(site)
+                if site_limit:
+                    if sites_with_records_count >= site_limit:
+                        # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
+                        num_sites_to_remove = sites_with_records_count - site_limit
 
-            sites_with_records_count += 1
+                        # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
+                        # and calling list[:0] will retur an empty list, so subtract
+                        # num_sites_to_remove from the length of the list
+                        # to remove the last num_sites_to_remove sites
+                        if use_summarize:
+                            persister.records = persister.records[
+                                : len(persister.records) - num_sites_to_remove
+                            ]
+                        else:
+                            persister.timeseries = persister.timeseries[
+                                : len(persister.timeseries) - num_sites_to_remove
+                            ]
+                            persister.sites = persister.sites[
+                                : len(persister.sites) - num_sites_to_remove
+                            ]
+                        break
 
     except BaseException:
         import traceback
@@ -182,14 +216,26 @@ def _unify_parameter(
     config,
     sources,
 ):
-    persister = _perister_factory(config)
+
+    if config.output_format == OutputFormat.GEOSERVER:
+        persister = GeoServerPersister(config)
+    else:
+        persister = BasePersister(config)
+
     for site_source, parameter_source in sources:
-        _site_wrapper(site_source, parameter_source, persister, config)
+        _site_wrapper(
+            site_source,
+            parameter_source,
+            persister,
+            config,
+        )
 
     if config.output_summary:
         persister.dump_summary(config.output_path)
     elif config.output_timeseries_unified:
         persister.dump_timeseries_unified(config.output_path)
+        persister.dump_sites(config.output_path)
+    elif config.sites_only:
         persister.dump_sites(config.output_path)
     else:  # config.output_timeseries_separated
         persister.dump_timeseries_separated(config.output_path)
@@ -244,7 +290,7 @@ def get_sources(config=None):
         config = Config()
 
     sources = []
-    if config.parameter.lower() == "waterlevels":
+    if config.parameter == WATERLEVELS:
         allsources = config.water_level_sources()
     else:
         allsources = config.analyte_sources()
@@ -297,9 +343,12 @@ def waterlevel_unification_test():
     cfg.use_source_nwis = False
     cfg.use_source_nmbgmr = False
     cfg.use_source_iscsevenrivers = False
-    # cfg.use_source_pvacd = False
-    cfg.use_source_oseroswell = False
+    cfg.use_source_pvacd = False
+    # cfg.use_source_oseroswell = False
     cfg.use_source_bernco = False
+    cfg.use_source_iscsevenrivers = False
+    cfg.use_source_nmose_isc_seven_rivers = False
+    cfg.use_source_ebid = False
     # cfg.site_limit = 10
 
     unify_waterlevels(cfg)
@@ -322,16 +371,17 @@ def get_datastreams():
         print(si, si.id, ds["@iot.id"])
 
 
-if __name__ == "__main__":
-    # test_waterlevel_unification()
-    # root = logging.getLogger()
-    # root.setLevel(logging.DEBUG)
-    # shandler = logging.StreamHandler()
-    # get_sources(Config())
-    setup_logging()
-    waterlevel_unification_test()
-    # analyte_unification_test()
-    # print(health_check("nwis"))
-    # generate_site_bounds()
+# if __name__ == "__main__":
+# test_waterlevel_unification()
+# root = logging.getLogger()
+# root.setLevel(logging.DEBUG)
+# shandler = logging.StreamHandler()
+# get_sources(Config())
+# setup_logging()
+# site_unification_test()
+# waterlevel_unification_test()
+# analyte_unification_test()
+# print(health_check("nwis"))
+# generate_site_bounds()
 
 # ============= EOF =============================================

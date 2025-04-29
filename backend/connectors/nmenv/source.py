@@ -27,8 +27,9 @@ from backend.constants import (
     DT_MEASURED,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    TDS,
 )
-from backend.source import get_analyte_search_param, get_most_recent
+from backend.source import get_analyte_search_param, get_terminal_record
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
@@ -44,32 +45,46 @@ class DWBSiteSource(STSiteSource):
         return "DWBSiteSource"
 
     def health(self):
-        return self.get_records(top=10, analyte="TDS")
+        return self.get_records(top=10, analyte=TDS)
 
     def get_records(self, *args, **kw):
+
         analyte = None
         if "analyte" in kw:
             analyte = kw["analyte"]
         elif self.config:
             analyte = self.config.parameter
 
-        analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
-        if analyte is None:
-            return []
-
         service = self.get_service()
-        ds = service.datastreams()
-        q = ds.query()
-        fs = [f"ObservedProperty/id eq {analyte}"]
-        if self.config:
+        if self.config.sites_only:
+            ds = service.things()
+            q = ds.query()
+            fs = []
             if self.config.has_bounds():
                 fs.append(
-                    f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
+                    f"st_within(Locations/location, geography'{self.config.bounding_wkt()}')"
                 )
+            q = q.expand("Locations")
+            if fs:
+                q = q.filter(" and ".join(fs))
+            return [thing.locations.entities[0] for thing in q.list()]
+        else:
+            analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
+            if analyte is None:
+                return []
 
-        q = q.filter(" and ".join(fs))
-        q = q.expand("Thing/Locations")
-        return [ds.thing.locations.entities[0] for ds in q.list()]
+            ds = service.datastreams()
+            q = ds.query()
+            fs = [f"ObservedProperty/id eq {analyte}"]
+            if self.config:
+                if self.config.has_bounds():
+                    fs.append(
+                        f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
+                    )
+
+            q = q.filter(" and ".join(fs))
+            q = q.expand("Thing/Locations")
+            return [di.thing.locations.entities[0] for di in q.list()]
 
 
 class DWBAnalyteSource(STAnalyteSource):
@@ -150,10 +165,10 @@ class DWBAnalyteSource(STAnalyteSource):
     def _extract_source_parameter_names(self, records: list) -> list:
         return [r["datastream"].observed_property.name for r in records]
 
-    def _extract_most_recent(self, records):
+    def _extract_terminal_record(self, records, bookend):
         # this is only used in summary output
-        record = get_most_recent(
-            records, tag=lambda x: x["observation"].phenomenon_time
+        record = get_terminal_record(
+            records, tag=lambda x: x["observation"].phenomenon_time, bookend=bookend
         )
 
         return {

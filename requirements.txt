@@ -1,9 +1,14 @@
 flask
+frost_sta_client
+Geoalchemy2
+geopandas
+google-cloud-storage
 gunicorn
 httpx
+mypy
 pandas
-geopandas
-frost_sta_client
-google-cloud-storage
+psycopg2
 pytest
+pyyaml
+types-pyyaml
 urllib3>=2.2.0,<3.0.0

@@ -15,8 +15,7 @@
 # ===============================================================================
 import os
 
-import httpx
-
+from backend import get_bool_env_variable
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.nmbgmr.transformer import (
     NMBGMRSiteTransformer,
@@ -33,12 +32,14 @@ from backend.constants import (
     PARAMETER_VALUE,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    EARLIEST,
+    LATEST,
 )
 from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
     make_site_list,
 )
@@ -46,13 +47,15 @@ from backend.source import (
 
 def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
-        return f"http://localhost:8000/latest/{endpoint}"
-    return f"https://waterdata.nmt.edu/latest/{endpoint}"
+        url = f"http://localhost:8000/latest/{endpoint}"
+    else:
+        url = f"https://waterdata.nmt.edu/latest/{endpoint}"
+    return url
 
 
 class NMBGMRSiteSource(BaseSiteSource):
     transformer_klass = NMBGMRSiteTransformer
-    chunk_size = 10
+    chunk_size = 100
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def __repr__(self):
@@ -70,33 +73,38 @@ class NMBGMRSiteSource(BaseSiteSource):
         if config.has_bounds():
             params["wkt"] = config.bounding_wkt()
 
-        if config.site_limit:
-            params["limit"] = config.site_limit
+        if not config.sites_only:
 
-        if config.parameter.lower() != "waterlevels":
-            params["parameter"] = get_analyte_search_param(
-                config.parameter, NMBGMR_ANALYTE_MAPPING
-            )
-        else:
-            params["parameter"] = "Manual groundwater levels"
+            if config.parameter.lower() != "waterlevels":
+                params["parameter"] = get_analyte_search_param(
+                    config.parameter, NMBGMR_ANALYTE_MAPPING
+                )
+            else:
+                params["parameter"] = "Manual groundwater levels"
 
         # tags="features" because the response object is a GeoJSON
         sites = self._execute_json_request(
             _make_url("locations"), params, tag="features", timeout=30
         )
-        for site in sites:
-            print(f"Obtaining well data for {site['properties']['point_id']}")
-            well_data = self._execute_json_request(
-                _make_url("wells"),
-                params={"pointid": site["properties"]["point_id"]},
-                tag="",
-            )
-            site["properties"]["formation"] = well_data["formation"]
-            site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
-            site["properties"]["well_depth_units"] = FEET
-            # site["properties"]["formation"] = None
-            # site["properties"]["well_depth"] = None
-            # site["properties"]["well_depth_units"] = FEET
+        if not config.sites_only:
+            for site in sites:
+                if get_bool_env_variable("IS_TESTING_ENV"):
+                    print(
+                        f"Skipping well data for {site['properties']['point_id']} for testing (until well data can be retrieved in batches)"
+                    )
+                    site["properties"]["formation"] = None
+                    site["properties"]["well_depth"] = None
+                    site["properties"]["well_depth_units"] = FEET
+                else:
+                    print(f"Obtaining well data for {site['properties']['point_id']}")
+                    well_data = self._execute_json_request(
+                        _make_url("wells"),
+                        params={"pointid": site["properties"]["point_id"]},
+                        tag="",
+                    )
+                    site["properties"]["formation"] = well_data["formation"]
+                    site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
+                    site["properties"]["well_depth_units"] = FEET
 
         return sites
 
@@ -131,8 +139,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     def _extract_source_parameter_units(self, records):
         return [r["Units"] for r in records]
 
-    def _extract_most_recent(self, records):
-        record = get_most_recent(records, "info.CollectionDate")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "info.CollectionDate", bookend=bookend)
         return {
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
@@ -168,7 +176,11 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
 
     def _clean_records(self, records):
         # remove records with no depth to water value
-        return [r for r in records if r["DepthToWaterBGS"] is not None]
+        return [
+            r
+            for r in records
+            if r["DepthToWaterBGS"] is not None and r["DateMeasured"] is not None
+        ]
 
     def _extract_parameter_record(self, record, *args, **kw):
         record[PARAMETER_NAME] = DTW
@@ -179,8 +191,8 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         record[SOURCE_PARAMETER_UNITS] = record["DepthToWaterBGSUnits"]
         return record
 
-    def _extract_most_recent(self, records):
-        record = get_most_recent(records, "DateMeasured")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "DateMeasured", bookend=bookend)
         return {
             "value": record["DepthToWaterBGS"],
             "datetime": (record["DateMeasured"], record["TimeMeasured"]),
@@ -195,7 +207,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         return [r["DepthToWaterBGS"] for r in records]
 
     def _extract_site_records(self, records, site_record):
-        return [ri for ri in records if ri["Well"]["PointID"] == site_record.id]
+        return [ri for ri in records if ri["PointID"] == site_record.id]
 
     def _extract_source_parameter_names(self, records):
         return ["DepthToWaterBGS" for r in records]
@@ -212,7 +224,19 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 
-        return self._execute_json_request(url, params)
+        paginated_records = self._execute_json_request(url, params, tag="")
+        items = paginated_records["items"]
+        page = paginated_records["page"]
+        pages = paginated_records["pages"]
+
+        while page < pages:
+            page += 1
+            params["page"] = page
+            new_records = self._execute_json_request(url, params, tag="")
+            items.extend(new_records["items"])
+            pages = new_records["pages"]
+
+        return items
 
 
 # ============= EOF =============================================

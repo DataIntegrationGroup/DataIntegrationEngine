@@ -19,9 +19,13 @@ from setuptools import setup, find_packages
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+# Read dependencies from requirements.txt
+with open("requirements.txt", "r", encoding="utf-8") as req_file:
+    requirements = req_file.read().splitlines()
+
 setup(
     name="nmuwd",
-    version="0.7.1",
+    version="0.9.3",
     author="Jake Ross",
     description="New Mexico Water Data Integration Engine",
     long_description=long_description,
@@ -31,7 +35,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    install_requires=["click", "httpx", "geopandas", "frost_sta_client"],
+    install_requires=requirements,
     entry_points={
         "console_scripts": [
             "die = frontend.cli:cli",

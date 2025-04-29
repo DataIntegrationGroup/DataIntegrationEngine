@@ -27,6 +27,8 @@ from backend.constants import (
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    EARLIEST,
+    LATEST,
 )
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
@@ -37,7 +39,7 @@ from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
     make_site_list,
-    get_most_recent,
+    get_terminal_record,
 )
 
 
@@ -74,11 +76,12 @@ def parse_json(data):
 
     for location in data["timeSeries"]:
         site_code = location["sourceInfo"]["siteCode"][0]["value"]
+        agency = location["sourceInfo"]["siteCode"][0]["agencyCode"]
         source_parameter_name = location["variable"]["variableName"]
         source_parameter_units = location["variable"]["unit"]["unitCode"]
         for value in location["values"][0]["value"]:
             record = {
-                "site_code": site_code,
+                "site_id": f"{agency}-{site_code}",
                 "source_parameter_name": source_parameter_name,
                 "value": value["value"],
                 "datetime_measured": value["dateTime"],
@@ -148,12 +151,16 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
+        # query sites with the agency, which need to be in the form of "{agency}:{site number}"
+        sites = make_site_list(site_record)
+        sites_with_colons = [s.replace("-", ":") for s in sites]
+
         params = {
             "format": "json",
             "siteType": "GW",
             "siteStatus": "all",
             "parameterCd": "72019",
-            "sites": ",".join(make_site_list(site_record)),
+            "sites": ",".join(sites_with_colons),
         }
 
         config = self.config
@@ -176,10 +183,14 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             return records
 
     def _extract_site_records(self, records, site_record):
-        return [ri for ri in records if ri["site_code"] == site_record.id]
+        return [ri for ri in records if ri["site_id"] == site_record.id]
 
     def _clean_records(self, records):
-        return [r for r in records if r["value"] is not None and r["value"].strip()]
+        return [
+            r
+            for r in records
+            if r["value"] is not None and r["value"].strip() and r["value"] != "-999999"
+        ]
 
     def _extract_source_parameter_results(self, records):
         return [float(r["value"]) for r in records]
@@ -193,8 +204,8 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
     def _extract_source_parameter_units(self, records):
         return [r["source_parameter_units"] for r in records]
 
-    def _extract_most_recent(self, records):
-        record = get_most_recent(records, "datetime_measured")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "datetime_measured", bookend=bookend)
         return {
             "value": float(record["value"]),
             # "datetime": (record["date_measured"], record["time_measured"]),

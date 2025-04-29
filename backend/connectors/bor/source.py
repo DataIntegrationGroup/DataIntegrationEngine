@@ -27,13 +27,15 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
+    EARLIEST,
+    LATEST,
 )
 
 from backend.source import (
     BaseSource,
     BaseSiteSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
 )
 
@@ -93,9 +95,8 @@ class BORAnalyteSource(BaseAnalyteSource):
     def _extract_source_parameter_names(self, records):
         return [self._source_parameter_name for ri in records]
 
-    def _extract_most_recent(self, rs):
-
-        record = get_most_recent(rs, "attributes.dateTime")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "attributes.dateTime", bookend=bookend)
         return {
             "value": record["attributes"]["result"],
             "datetime": parse_dt(record["attributes"]["dateTime"]),

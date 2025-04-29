@@ -31,43 +31,50 @@ class BaseRecord:
     def __init__(self, payload):
         self._payload = payload
 
-    def to_row(self):
+    def to_row(self, keys=None):
+        if keys is None:
+            keys = self.keys
 
-        def get(attr):
-            # v = self._payload.get(attr)
-            # if v is None and self.defaults:
-            #     v = self.defaults.get(attr)
-            v = self.__getattr__(attr)
+        return [self._get_sigfig_formatted_value(k) for k in keys]
 
-            field_sigfigs = [
-                ("elevation", 2),
-                ("well_depth", 2),
-                ("latitude", 6),
-                ("longitude", 6),
-                ("min", 2),
-                ("max", 2),
-                ("mean", 2),
-            ]
-
-            # both analyte and water level tables have the same fields, but the
-            # rounding should only occur for water level tables
-            if isinstance(self, WaterLevelRecord):
-                field_sigfigs.append((PARAMETER_VALUE, 2))
-
-            for field, sigfigs in field_sigfigs:
-                if v is not None and field == attr:
-                    try:
-                        v = round(v, sigfigs)
-                    except TypeError as e:
-                        print(field, attr)
-                        raise e
-                    break
-            return v
-
-        return [get(k) for k in self.keys]
+    def to_dict(self, keys=None):
+        if keys is None:
+            keys = self.keys
+        return {k: self._get_sigfig_formatted_value(k) for k in keys}
 
     def update(self, **kw):
         self._payload.update(kw)
+
+    def _get_sigfig_formatted_value(self, attr):
+        # v = self._payload.get(attr)
+        # if v is None and self.defaults:
+        #     v = self.defaults.get(attr)
+        v = self.__getattr__(attr)
+
+        field_sigfigs = [
+            ("elevation", 2),
+            ("well_depth", 2),
+            ("latitude", 6),
+            ("longitude", 6),
+            ("min", 2),
+            ("max", 2),
+            ("mean", 2),
+        ]
+
+        # both analyte and water level tables have the same fields, but the
+        # rounding should only occur for water level tables
+        if isinstance(self, WaterLevelRecord):
+            field_sigfigs.append((PARAMETER_VALUE, 2))
+
+        for field, sigfigs in field_sigfigs:
+            if v is not None and field == attr:
+                try:
+                    v = round(v, sigfigs)
+                except TypeError as e:
+                    print(field, attr)
+                    raise e
+                break
+        return v
 
     def __getattr__(self, attr):
         v = self._payload.get(attr)
@@ -110,7 +117,7 @@ class SummaryRecord(BaseRecord):
     keys: tuple = (
         "source",
         "id",
-        "location",
+        "name",
         "usgs_site_id",
         "alternate_site_id",
         "latitude",
@@ -126,10 +133,14 @@ class SummaryRecord(BaseRecord):
         "min",
         "max",
         "mean",
-        "most_recent_date",
-        "most_recent_time",
-        "most_recent_value",
-        "most_recent_units",
+        "earliest_date",
+        "earliest_time",
+        "earliest_value",
+        "earliest_units",
+        "latest_date",
+        "latest_time",
+        "latest_value",
+        "latest_units",
     )
     defaults: dict = {}
 
@@ -158,6 +169,7 @@ class SiteRecord(BaseRecord):
         "formation",
         "aquifer",
         "well_depth",
+        "well_depth_units",
     )
 
     defaults: dict = {
@@ -175,6 +187,7 @@ class SiteRecord(BaseRecord):
         "formation": "",
         "aquifer": "",
         "well_depth": None,
+        "well_depth_units": FEET,
     }
 
 

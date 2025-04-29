@@ -15,11 +15,14 @@
 # ===============================================================================
 import json
 import os
+from pprint import pprint
 
 import click
 import httpx
 from shapely import Polygon, box
 from shapely.geometry import shape
+
+from backend.geo_utils import transform_srid, SRID_WGS84, SRID_UTM_ZONE_13N
 
 
 # polygon retrivial functions
@@ -159,7 +162,7 @@ def get_county_polygon(name, as_wkt=True):
         _warning(f"Invalid state. {state}")
 
 
-def get_state_polygon(state):
+def get_state_polygon(state: str, buffer: int | None = None):
     statefp = _statelookup(state)
     if statefp:
         obj = _get_cached_object(
@@ -167,13 +170,20 @@ def get_state_polygon(state):
             f"{state} state",
             f"https://reference.geoconnex.us/collections/states/items/{statefp}?&f=json",
         )
+        geom_gcs = shape(obj["features"][0]["geometry"])
 
-        return shape(obj["geometry"])
+        if buffer:
+            geom_utm = transform_srid(geom_gcs, SRID_WGS84, SRID_UTM_ZONE_13N)
+            geom_utm = geom_utm.buffer(buffer)
+            geom_gcs = transform_srid(geom_utm, SRID_UTM_ZONE_13N, SRID_WGS84)
+
+        return geom_gcs
 
 
 # private helpers ============================
 def _make_shape(obj, as_wkt):
     poly = shape(obj["geometry"])
+    poly = poly.simplify(0.1)
     if as_wkt:
         return poly.wkt
     return poly
@@ -231,8 +241,9 @@ def _get_cached_object(name, msg, url):
     return obj
 
 
+NM_BOUNDARY_BUFFERED = get_state_polygon("NM", 25000)
+
+
 if __name__ == "__main__":
-    # w = get_huc_polygon('0101000201')
-    # print(w)
-    print(get_state_hucs_boundaries(state="CO", level=4))
+    print(get_state_polygon("NM"))
 # ============= EOF =============================================

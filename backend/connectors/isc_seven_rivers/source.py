@@ -28,6 +28,8 @@ from backend.constants import (
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    EARLIEST,
+    LATEST,
 )
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
@@ -39,7 +41,7 @@ from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
     BaseAnalyteSource,
-    get_most_recent,
+    get_terminal_record,
     get_analyte_search_param,
 )
 
@@ -120,8 +122,8 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
         return record
 
-    def _extract_most_recent(self, records):
-        record = get_most_recent(records, "dateTime")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "dateTime", bookend=bookend)
 
         return {
             "value": record["result"],
@@ -185,7 +187,11 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         )
 
     def _clean_records(self, records):
-        return [r for r in records if r["depthToWaterFeet"] is not None]
+        return [
+            r
+            for r in records
+            if r["depthToWaterFeet"] is not None and not r["invalid"] and not r["dry"]
+        ]
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = DTW
@@ -197,9 +203,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return record
 
     def _extract_source_parameter_results(self, records):
-        return [
-            r["depthToWaterFeet"] for r in records if not r["invalid"] and not r["dry"]
-        ]
+        return [r["depthToWaterFeet"] for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
         return [get_datetime(r) for r in records]
@@ -210,14 +214,14 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     def _extract_source_parameter_units(self, records):
         return [self._source_parameter_units for r in records]
 
-    def _extract_most_recent(self, records):
-        record = get_most_recent(records, "dateTime")
+    def _extract_terminal_record(self, records, bookend):
+        record = get_terminal_record(records, "dateTime", bookend=bookend)
         t = get_datetime(record)
         return {
             "value": record["depthToWaterFeet"],
             "datetime": t,
             "source_parameter_units": self._source_parameter_units,
-            "source_parameter_name": DTW,
+            "source_parameter_name": self._source_parameter_name,
         }
 
 
