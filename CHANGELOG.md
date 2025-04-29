@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `output` to `output-type` for CLI
 
 ### Fixed
-- a bug with `--site-limit`. it now exports the number of sets requested by the 
+- a bug with `--site-limit`. it now exports the number of sets requested by the user
 
 ## 0.8.0
 

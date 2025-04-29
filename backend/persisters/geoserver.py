@@ -10,7 +10,6 @@ import os
 import time
 from itertools import groupby
 from typing import Type
-import psycopg2
 from shapely.geometry.multipoint import MultiPoint
 from shapely.geometry.point import Point
 from sqlalchemy.dialects.postgresql import JSONB, insert
