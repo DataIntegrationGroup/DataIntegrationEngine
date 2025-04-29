@@ -16,14 +16,8 @@
 import csv
 import io
 import os
-import shutil
 from pprint import pprint
 import json
-
-import pandas as pd
-import geopandas as gpd
-import psycopg2
-from shapely import Point
 
 from backend import OutputFormat
 from backend.logger import Loggable
