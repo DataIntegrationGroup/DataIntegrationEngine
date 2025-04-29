@@ -20,7 +20,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 # Read dependencies from requirements.txt
-with open("requirements.txt", "r", encoding="utf-8") as req_file:
+with open("./requirements.txt", "r", encoding="utf-8") as req_file:
     requirements = req_file.read().splitlines()
 
 setup(
