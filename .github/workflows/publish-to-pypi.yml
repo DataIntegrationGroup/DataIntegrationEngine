@@ -7,8 +7,6 @@ name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 # pushing tags should be the only way to trigger this workflow
 on:
   push:
-    branches:
-      - main
     tags:
       - '*'
 
