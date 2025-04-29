@@ -1,7 +1,7 @@
 # New Mexico Unified Water Data: Data Integration Engine
-[![Format code](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/format_code.yml/badge.svg?branch=main)](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/format_code.yml)
-[![Publish Python 🐍 distributions 📦 to PyPI and TestPyPI](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/publish-to-pypi.yml)
-[![CI/CD](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/cicd.yml/badge.svg)](https://github.com/DataIntegrationGroup/PyWeaver/actions/workflows/cicd.yml)
+[![Format code](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/format_code.yml/badge.svg?branch=main)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/format_code.yml)
+[![Publish Python 🐍 distributions 📦 to PyPI and TestPyPI](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/publish-to-pypi.yml)
+[![CI/CD](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/cicd.yml/badge.svg)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/cicd.yml)
 [![Dependabot Updates](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/dependabot/dependabot-updates)
 
 ![NMWDI](https://newmexicowaterdata.org/wp-content/uploads/2023/11/newmexicowaterdatalogoNov2023.png)
