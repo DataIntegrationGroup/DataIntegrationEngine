@@ -4,12 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased: 0.9.0
+## 0.9.2
 
 ### Added
 - `--sites-only` flag to only retrieve site data
 - `--output-format` flag to write out sites/summary tables as csv or geojson.
   - options are `csv` or `geojson`
+  - timeseries data is always written to a csv
 - NM OSE POD data for sites.
   - can be removed from output with `--no-nmose-pod`
 - `--output-dir` to change the output directory to a location other than `.` (the current working directory)

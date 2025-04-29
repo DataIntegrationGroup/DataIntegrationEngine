@@ -71,22 +71,22 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 | **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
 
-### Output
-The `--output` option is required and used to set the output type:
+### Output Type
+The `--output-type` option is required and used to set the output type:
 
 ```
---output summary
+--output-type summary
 ```
 - A summary table consisting of location information as well as summary statistics for the parameter of interest for every location that has observations.
 
 ```
---output timeseries_unified
+--output-type timeseries_unified
 ```
 - A single table consisting of time series data for all locations for the parameter of interest.
 - A single table of site data that contains information such as latitude, longitude, and elevation
 
 ```
---output timeseries_separated
+--output-type timeseries_separated
 ```
 - Separate time series tables for all locations for the parameter of interest.
 - A single table of site data that contains information such as latitude, longitude, and elevation
@@ -181,7 +181,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
 - `--no-wqp` to exclude Water Quality Portal (WQP) data
 
-### Geographic Filters
+### Geographic Filters [In Development]
 
 The following flags can be used to geographically filter data:
 
@@ -193,7 +193,11 @@ The following flags can be used to geographically filter data:
 -- bbox 'x1 y1, x2 y2'
 ```
 
-### Date Filters
+```
+-- wkt {wkt polygon or multipolygon}
+```
+
+### Date Filters [In Development]
 
 The following flags can be used to filter by dates:
 
