@@ -84,7 +84,24 @@ class DWBSiteSource(STSiteSource):
 
             q = q.filter(" and ".join(fs))
             q = q.expand("Thing/Locations")
-            return [di.thing.locations.entities[0] for di in q.list()]
+
+            # NM ENV has multiple datastreams per parameter per location (e.g. id 8 and arsenic)
+            # because of this duplicative site information is retrieved (we operated under the assumption one datastream per location per parameter)
+            # so we need to filter out duplicates, otherwise there will be multiple site records and duplicative parameter records
+            all_sites = [di.thing.locations.entities[0] for di in q.list()]
+
+            # can't do list(set(all_sites)) because the Location entities are not hashable
+            site_dictionary = {}
+            for site in all_sites:
+                site_id = site.id
+                if site_id not in site_dictionary.keys():
+                    site_dictionary[site_id] = site
+
+            distinct_sites = list(site_dictionary.values())
+            # print(
+            #     f"Found {len(all_sites)} datastreams for {analyte} and {len(distinct_sites)} distinct sites."
+            # )
+            return distinct_sites
 
 
 class DWBAnalyteSource(STAnalyteSource):
@@ -120,16 +137,20 @@ class DWBAnalyteSource(STAnalyteSource):
             f"Thing/Locations/id eq {site.id} and ObservedProperty/id eq {analyte}"
         )
 
-        ds = q.list().entities[0]
+        # NMED DWB has multiple datastreams per parameter per location (e.g. id 8 and arsenic)
+        # print(
+        #     f"Found {len(q.list().entities)} datastreams for {site.id} and {analyte}."
+        # )
         rs = []
-        for obs in ds.get_observations().query().list():
-            rs.append(
-                {
-                    "location": site,
-                    "datastream": ds,
-                    "observation": obs,
-                }
-            )
+        for datastream in q.list().entities:
+            for obs in datastream.get_observations().query().list():
+                rs.append(
+                    {
+                        "location": site,
+                        "datastream": datastream,
+                        "observation": obs,
+                    }
+                )
 
         return rs
 
