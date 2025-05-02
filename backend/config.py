@@ -557,6 +557,8 @@ class Config(Loggable):
         parameter = self.parameter.lower()
         if parameter == "ph":
             self.analyte_output_units = ""
+        elif parameter == "waterlevels":
+            self.analyte_output_units = "dtwbgs (ft)"
 
     @property
     def start_dt(self):

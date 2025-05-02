@@ -1,0 +1,24 @@
+yes: True
+output_format: geoserver
+output_summary: True
+geoserver:
+  db:
+    host: localhost
+    port: 5432
+    dbname:
+    user:
+    password:
+
+sources:
+  bernco: True
+  bor: True
+  cabq: True
+  ebid: False
+  nmbgmr_amp: False
+  nmed_dwb: False
+  nmose_isc_seven_rivers: True
+  nmose_roswell: False
+  nwis: False
+  pvacd: True
+  wqp: False
+  nmose_pod: False

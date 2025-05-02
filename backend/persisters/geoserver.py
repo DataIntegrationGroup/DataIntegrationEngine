@@ -36,6 +36,7 @@ def session_factory(connection: dict):
 
     url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
     engine = create_engine(url)
+
     SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     return SessionFactory
 
@@ -102,7 +103,7 @@ class GeoServerPersister(BasePersister):
         self._connection = None
         self._connect()
 
-    def dump_sites(self, path: str):
+    def dump_sites(self, path: str = None):
         if self.sites:
             db = self.config.get('geoserver').get('db')
             dbname = db.get('db_name')
@@ -111,7 +112,7 @@ class GeoServerPersister(BasePersister):
         else:
             self.log("no sites to dump", fg="red")
 
-    def dump_summary(self, path: str):
+    def dump_summary(self, path: str = None):
         if self.records:
             db = self.config.get('geoserver').get('db')
             dbname = db.get('db_name')

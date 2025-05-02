@@ -267,26 +267,27 @@ def weave(
     
     config.parameter = parameter
 
-    # output type
-    if output == "summary":
-        summary = True
-        timeseries_unified = False
-        timeseries_separated = False
-    elif output == "timeseries_unified":
-        summary = False
-        timeseries_unified = True
-        timeseries_separated = False
-    elif output == "timeseries_separated":
-        summary = False
-        timeseries_unified = False
-        timeseries_separated = True
-    else:
-        click.echo(f"Invalid output type: {output}")
-        return
+    if config_path is None:
+        # output type
+        if output == "summary":
+            summary = True
+            timeseries_unified = False
+            timeseries_separated = False
+        elif output == "timeseries_unified":
+            summary = False
+            timeseries_unified = True
+            timeseries_separated = False
+        elif output == "timeseries_separated":
+            summary = False
+            timeseries_unified = False
+            timeseries_separated = True
+        else:
+            click.echo(f"Invalid output type: {output}")
+            return
 
-    config.output_summary = summary
-    config.output_timeseries_unified = timeseries_unified
-    config.output_timeseries_separated = timeseries_separated
+    # config.output_summary = summary
+    # config.output_timeseries_unified = timeseries_unified
+    # config.output_timeseries_separated = timeseries_separated
 
     config_agencies, false_agencies = config.get_config_and_false_agencies()
 
