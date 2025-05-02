@@ -530,11 +530,7 @@ class BaseTransformer(Loggable):
                 if warning_msg != "":
                     msg = f"{warning_msg} for {klassed_record.id}"
                     self.warn(msg)
-            except TypeError:
-                msg = f"Keeping {source_result} for {klassed_record.id} on {klassed_record.date_measured} for time series data"
-                self.warn(msg)
-                converted_result = source_result
-            except ValueError:
+            except (TypeError, ValueError):
                 msg = f"Keeping {source_result} for {klassed_record.id} on {klassed_record.date_measured} for time series data"
                 self.warn(msg)
                 converted_result = source_result
