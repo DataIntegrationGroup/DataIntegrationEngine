@@ -9,6 +9,7 @@ frontend/output_timeseries
 backend/test00112233.csv
 frontend/api/cache
 dagsterio/config/*.dev.yaml
+dagsterio/dagster_home
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

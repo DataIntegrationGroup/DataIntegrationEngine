@@ -6,4 +6,6 @@ geopandas
 frost_sta_client
 google-cloud-storage
 pytest
-urllib3>=2.2.0,<3.0.0
+urllib3>=2.2.2,<3.0.0
+cloud-sql-python-connector[pg8000]
+pg8000
