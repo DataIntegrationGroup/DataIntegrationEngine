@@ -28,6 +28,8 @@ from backend.constants import (
     DT_MEASURED,
     EARLIEST,
     LATEST,
+    TDS,
+    WATERLEVELS
 )
 from backend.connectors.wqp.transformer import (
     WQPSiteTransformer,
@@ -160,7 +162,7 @@ class WQPParameterSource(BaseParameterSource):
         }
         params.update(get_date_range(self.config))
 
-        if config.parameter.lower() != "waterlevels":
+        if config.parameter.lower() != WATERLEVELS:
             params["characteristicName"] = get_analyte_search_param(
                 config.parameter, WQP_ANALYTE_MAPPING
             )
@@ -181,6 +183,37 @@ class WQPParameterSource(BaseParameterSource):
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _parameter_units_hook"
         )
+    
+    def _clean_records(self, records) -> list:
+        """
+        Remove duplicate TDS records. This is called on a site-by-site basis so does not need to account for 
+        different sites having observations on the same date.
+        """
+        if self.config.parameter == TDS:
+            site_id = records[0]["MonitoringLocationIdentifier"]
+            return_records = []
+            dates = [record["ActivityStartDate"] for record in records]
+            dates = list(set(dates))
+            for date in dates:
+                # get all records for this date
+                date_records = {
+                    record["USGSPCode"]: record for record in records if record["ActivityStartDate"] == date
+                }
+                if len(date_records.items()) > 1:
+                    if "70301" in date_records.keys():
+                        kept_record = date_records["70301"]
+                    elif "70303" in date_records.keys():
+                        kept_record = date_records["70303"]
+                    else:
+                        raise ValueError(
+                            f"Multiple TDS records found for {site_id} on date {date} but no 70301 or 70303 pcodes found."
+                        )
+                else:
+                    kept_record = list(date_records.values())[0]
+                return_records.append(kept_record)
+            return return_records
+        else:
+            return super()._clean_records(records)
 
 
 class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
