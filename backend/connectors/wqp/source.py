@@ -29,7 +29,7 @@ from backend.constants import (
     EARLIEST,
     LATEST,
     TDS,
-    WATERLEVELS
+    WATERLEVELS,
 )
 from backend.connectors.wqp.transformer import (
     WQPSiteTransformer,
