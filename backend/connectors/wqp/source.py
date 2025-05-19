@@ -29,7 +29,7 @@ from backend.constants import (
     EARLIEST,
     LATEST,
     TDS,
-    WATERLEVELS
+    WATERLEVELS,
 )
 from backend.connectors.wqp.transformer import (
     WQPSiteTransformer,
@@ -183,10 +183,10 @@ class WQPParameterSource(BaseParameterSource):
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _parameter_units_hook"
         )
-    
+
     def _clean_records(self, records) -> list:
         """
-        Remove duplicate TDS records. This is called on a site-by-site basis so does not need to account for 
+        Remove duplicate TDS records. This is called on a site-by-site basis so does not need to account for
         different sites having observations on the same date.
         """
         if self.config.parameter == TDS:
@@ -197,7 +197,9 @@ class WQPParameterSource(BaseParameterSource):
             for date in dates:
                 # get all records for this date
                 date_records = {
-                    record["USGSPCode"]: record for record in records if record["ActivityStartDate"] == date
+                    record["USGSPCode"]: record
+                    for record in records
+                    if record["ActivityStartDate"] == date
                 }
                 if len(date_records.items()) > 1:
                     if "70301" in date_records.keys():
