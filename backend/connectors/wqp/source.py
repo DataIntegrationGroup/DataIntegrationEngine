@@ -142,7 +142,9 @@ class WQPParameterSource(BaseParameterSource):
             for date in dates:
                 # get all records for this date
                 date_records = {
-                    record["USGSPCode"]: record for record in records if record["ActivityStartDate"] == date
+                    record["USGSPCode"]: record
+                    for record in records
+                    if record["ActivityStartDate"] == date
                 }
                 if len(date_records.items()) > 1:
                     if "70301" in date_records.keys():
@@ -155,14 +157,15 @@ class WQPParameterSource(BaseParameterSource):
                         raise ValueError(
                             f"Multiple TDS records found for {site_id} on date {date} but no 70301 or 70303 pcodes found."
                         )
-                    self.log(f"Removing duplicates for {site_id} on date {date}. Keeping record with pcode {pcode}.")
+                    self.log(
+                        f"Removing duplicates for {site_id} on date {date}. Keeping record with pcode {pcode}."
+                    )
                 else:
                     kept_record = list(date_records.values())[0]
                 return_records.append(kept_record)
             return return_records
         else:
             return records_with_values
-
 
     def _extract_source_parameter_units(self, records):
         return [ri["ResultMeasure/MeasureUnitCode"] for ri in records]
