@@ -147,12 +147,15 @@ class WQPParameterSource(BaseParameterSource):
                 if len(date_records.items()) > 1:
                     if "70301" in date_records.keys():
                         kept_record = date_records["70301"]
+                        pcode = "70301"
                     elif "70303" in date_records.keys():
                         kept_record = date_records["70303"]
+                        pcode = "70303"
                     else:
                         raise ValueError(
                             f"Multiple TDS records found for {site_id} on date {date} but no 70301 or 70303 pcodes found."
                         )
+                    self.log(f"Removing duplicates for {site_id} on date {date}. Keeping record with pcode {pcode}.")
                 else:
                     kept_record = list(date_records.values())[0]
                 return_records.append(kept_record)
