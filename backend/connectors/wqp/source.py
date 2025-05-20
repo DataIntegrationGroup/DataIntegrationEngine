@@ -30,6 +30,10 @@ from backend.constants import (
     LATEST,
     TDS,
     WATERLEVELS,
+    USGS_PCODE_30210,
+    USGS_PCODE_70300,
+    USGS_PCODE_70301,
+    USGS_PCODE_70303,
 )
 from backend.connectors.wqp.transformer import (
     WQPSiteTransformer,
@@ -99,7 +103,7 @@ class WQPSiteSource(BaseSiteSource):
             else:
                 # every record with pCode 30210 (depth in m) has a corresponding
                 # record with pCode 72019 (depth in ft) but not vice versa
-                params["pCode"] = "30210"
+                params["pCode"] = USGS_PCODE_30210
 
         params.update(get_date_range(config))
 
@@ -132,40 +136,43 @@ class WQPParameterSource(BaseParameterSource):
         return [ri["ResultMeasureValue"] for ri in records]
 
     def _clean_records(self, records):
-        records_with_values = [r for r in records if r["ResultMeasureValue"]]
+        clean_records = [r for r in records if r["ResultMeasureValue"]]
 
-        if self.config.parameter == TDS and len(records_with_values) > 1:
-            site_id = records_with_values[0]["MonitoringLocationIdentifier"]
+        if self.config.parameter == TDS and len(clean_records) > 1:
+            site_id = clean_records[0]["MonitoringLocationIdentifier"]
             return_records = []
-            dates = [record["ActivityStartDate"] for record in records]
-            dates = list(set(dates))
-            for date in dates:
-                # get all records for this date
-                date_records = {
+            activity_identifiers = [record["ActivityIdentifier"] for record in records]
+            activity_identifiers = list(set(activity_identifiers))
+            for activity_identifier in activity_identifiers:
+                # get all records for this activity identifier
+                ai_records = {
                     record["USGSPCode"]: record
                     for record in records
-                    if record["ActivityStartDate"] == date
+                    if record["ActivityIdentifier"] == activity_identifier
                 }
-                if len(date_records.items()) > 1:
-                    if "70301" in date_records.keys():
-                        kept_record = date_records["70301"]
-                        pcode = "70301"
-                    elif "70303" in date_records.keys():
-                        kept_record = date_records["70303"]
-                        pcode = "70303"
+                if len(ai_records.items()) > 1:
+                    if USGS_PCODE_70300 in ai_records.keys():
+                        kept_record = ai_records[USGS_PCODE_70300]
+                        pcode = USGS_PCODE_70300
+                    elif USGS_PCODE_70301 in ai_records.keys():
+                        kept_record = ai_records[USGS_PCODE_70301]
+                        pcode = USGS_PCODE_70301
+                    elif USGS_PCODE_70303 in ai_records.keys():
+                        kept_record = ai_records[USGS_PCODE_70303]
+                        pcode = USGS_PCODE_70303
                     else:
                         raise ValueError(
-                            f"Multiple TDS records found for {site_id} on date {date} but no 70301 or 70303 pcodes found."
+                            f"Multiple TDS records found for {site_id} with ActivityIdentifier {activity_identifier} but no 70300, 70301, or 70303 pcodes found."
                         )
                     self.log(
-                        f"Removing duplicates for {site_id} on date {date}. Keeping record with pcode {pcode}."
+                        f"Removing duplicates for {site_id} with ActivityIdentifier {activity_identifier}. Keeping record with pcode {pcode}."
                     )
                 else:
-                    kept_record = list(date_records.values())[0]
+                    kept_record = list(ai_records.values())[0]
                 return_records.append(kept_record)
             return return_records
         else:
-            return records_with_values
+            return clean_records
 
     def _extract_source_parameter_units(self, records):
         return [ri["ResultMeasure/MeasureUnitCode"] for ri in records]

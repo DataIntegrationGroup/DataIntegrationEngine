@@ -57,6 +57,11 @@ SOURCE_PARAMETER_NAME = "source_parameter_name"
 SOURCE_PARAMETER_UNITS = "source_parameter_units"
 CONVERSION_FACTOR = "conversion_factor"
 
+USGS_PCODE_30210 = "30210"
+USGS_PCODE_70300 = "70300"
+USGS_PCODE_70301 = "70301"
+USGS_PCODE_70303 = "70303"
+
 ANALYTE_OPTIONS = sorted(
     [
         ARSENIC,
