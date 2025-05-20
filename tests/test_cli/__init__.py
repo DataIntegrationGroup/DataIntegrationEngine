@@ -106,7 +106,6 @@ class BaseCLITestClass:
         # Assert
         try:
             assert result.exit_code == 0
-            
 
             """
             For the config, check that
@@ -138,8 +137,12 @@ class BaseCLITestClass:
                 assert getattr(config, f"use_source_{agency_with_underscore}") is False
 
             for no_agency in no_agencies:
-                no_agency_with_underscore = no_agency.replace("--no-", "").replace("-", "_")
-                assert getattr(config, f"use_source_{no_agency_with_underscore}") is False
+                no_agency_with_underscore = no_agency.replace("--no-", "").replace(
+                    "-", "_"
+                )
+                assert (
+                    getattr(config, f"use_source_{no_agency_with_underscore}") is False
+                )
 
             # 3
             output_types = ["summary", "timeseries_unified", "timeseries_separated"]
