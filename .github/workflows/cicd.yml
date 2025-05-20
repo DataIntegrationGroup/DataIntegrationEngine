@@ -53,4 +53,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest -sx tests/test_cli
+        pytest -sx tests
