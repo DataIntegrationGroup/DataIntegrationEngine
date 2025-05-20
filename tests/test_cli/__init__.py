@@ -102,8 +102,13 @@ class BaseCLITestClass:
 
         # Act
         result = self.runner.invoke(weave, arguments, standalone_mode=False)
+        print(result)
         print(result.output)
         print(result.__dir__)
+        print(result.__dict__)
+        print(result.stdout)
+        print(result.stderr)
+        
 
         # Assert
         assert result.exit_code == 0
