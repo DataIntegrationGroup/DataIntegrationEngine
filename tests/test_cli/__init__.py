@@ -108,7 +108,6 @@ class BaseCLITestClass:
         print(result.__dict__)
         print(result.stdout)
         print(result.stderr)
-        
 
         # Assert
         assert result.exit_code == 0
