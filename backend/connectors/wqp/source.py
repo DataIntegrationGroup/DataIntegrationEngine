@@ -164,8 +164,9 @@ class WQPParameterSource(BaseParameterSource):
                         raise ValueError(
                             f"Multiple TDS records found for {site_id} with ActivityIdentifier {activity_identifier} but no 70300, 70301, or 70303 pcodes found."
                         )
+                    record_date = kept_record["ActivityStartDate"]
                     self.log(
-                        f"Removing duplicates for {site_id} with ActivityIdentifier {activity_identifier}. Keeping record with pcode {pcode}."
+                        f"Removing duplicates for {site_id} on {record_date} with ActivityIdentifier {activity_identifier}. Keeping record with pcode {pcode}."
                     )
                 else:
                     kept_record = list(ai_records.values())[0]
