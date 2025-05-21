@@ -187,11 +187,11 @@ OUTPUT_DIR_OPTIONS = [
     )
 ]
 
-OUTPUT_FORMATS = sorted([value for value in OutputFormat])
+OUTPUT_FORMATS = sorted([of for of in OutputFormat])
 OUTPUT_FORMAT_OPTIONS = [
     click.option(
         "--output-format",
-        type=click.Choice(OUTPUT_FORMATS),
+        type=click.Choice(OUTPUT_FORMATS, case_sensitive=False),
         default="csv",
         help=f"Output file format for sites: {OUTPUT_FORMATS}. Default is csv",
     )

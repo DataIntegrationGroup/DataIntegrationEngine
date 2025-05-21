@@ -104,74 +104,82 @@ class BaseCLITestClass:
         result = self.runner.invoke(weave, arguments, standalone_mode=False)
 
         # Assert
-        assert result.exit_code == 0
+        try:
+            assert result.exit_code == 0
 
-        """
-        For the config, check that
+            """
+            For the config, check that
 
-        0. (set output dir to clean up tests results even in event of failure)
-        1. The parameter is set correctly
-        2. The agencies are set correctly
-        3. The output types are set correctly
-        4. The site limit is set correctly
-        5. The dry is set correctly
-        6. The start date is set correctly
-        7. The end date is set correctly
-        8. The geographic filter is set correctly
-        9. The site output type is set correctly
-        """
-        config = result.return_value
+            0. (set output dir to clean up tests results even in event of failure)
+            1. The parameter is set correctly
+            2. The agencies are set correctly
+            3. The output types are set correctly
+            4. The site limit is set correctly
+            5. The dry is set correctly
+            6. The start date is set correctly
+            7. The end date is set correctly
+            8. The geographic filter is set correctly
+            9. The site output type is set correctly
+            """
+            config = result.return_value
 
-        # 0
-        self.output_dir = Path(config.output_path)
+            # 0
+            self.output_dir = Path(config.output_path)
 
-        # 1
-        assert getattr(config, "parameter") == parameter
+            # 1
+            assert getattr(config, "parameter") == parameter
 
-        # 2
-        agency_with_underscore = self.agency.replace("-", "_")
-        if self.agency_reports_parameter[parameter]:
-            assert getattr(config, f"use_source_{agency_with_underscore}") is True
-        else:
-            assert getattr(config, f"use_source_{agency_with_underscore}") is False
-
-        for no_agency in no_agencies:
-            no_agency_with_underscore = no_agency.replace("--no-", "").replace("-", "_")
-            assert getattr(config, f"use_source_{no_agency_with_underscore}") is False
-
-        # 3
-        output_types = ["summary", "timeseries_unified", "timeseries_separated"]
-        for ot in output_types:
-            if ot == output_type:
-                assert getattr(config, f"output_{ot}") is True
+            # 2
+            agency_with_underscore = self.agency.replace("-", "_")
+            if self.agency_reports_parameter[parameter]:
+                assert getattr(config, f"use_source_{agency_with_underscore}") is True
             else:
-                assert getattr(config, f"output_{ot}") is False
+                assert getattr(config, f"use_source_{agency_with_underscore}") is False
 
-        # 4
-        assert getattr(config, "site_limit") == 4
+            for no_agency in no_agencies:
+                no_agency_with_underscore = no_agency.replace("--no-", "").replace(
+                    "-", "_"
+                )
+                assert (
+                    getattr(config, f"use_source_{no_agency_with_underscore}") is False
+                )
 
-        # 5
-        assert getattr(config, "dry") is True
-
-        # 6
-        assert getattr(config, "start_date") == start_date
-
-        # 7
-        assert getattr(config, "end_date") == end_date
-
-        # 8
-        if geographic_filter_name and geographic_filter_value:
-            for _geographic_filter_name in ["bbox", "county", "wkt"]:
-                if _geographic_filter_name == geographic_filter_name:
-                    assert (
-                        getattr(config, _geographic_filter_name)
-                        == geographic_filter_value
-                    )
+            # 3
+            output_types = ["summary", "timeseries_unified", "timeseries_separated"]
+            for ot in output_types:
+                if ot == output_type:
+                    assert getattr(config, f"output_{ot}") is True
                 else:
-                    assert getattr(config, _geographic_filter_name) == ""
+                    assert getattr(config, f"output_{ot}") is False
 
-        # 9
-        assert getattr(config, "output_format") == output_format
+            # 4
+            assert getattr(config, "site_limit") == 4
+
+            # 5
+            assert getattr(config, "dry") is True
+
+            # 6
+            assert getattr(config, "start_date") == start_date
+
+            # 7
+            assert getattr(config, "end_date") == end_date
+
+            # 8
+            if geographic_filter_name and geographic_filter_value:
+                for _geographic_filter_name in ["bbox", "county", "wkt"]:
+                    if _geographic_filter_name == geographic_filter_name:
+                        assert (
+                            getattr(config, _geographic_filter_name)
+                            == geographic_filter_value
+                        )
+                    else:
+                        assert getattr(config, _geographic_filter_name) == ""
+
+            # 9
+            assert getattr(config, "output_format") == output_format
+        except Exception as e:
+            print(result)
+            assert False
 
     def test_weave_summary(self):
         self._test_weave(parameter=WATERLEVELS, output_type="summary")
