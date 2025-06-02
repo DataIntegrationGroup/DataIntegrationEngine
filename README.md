@@ -167,6 +167,10 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | source_parameter_units | the unit of measurement from the source | string | Y |
 | conversion_factor | the factor applied to the result to convert the measurement to standardized units | float or int | Y |
 
+### Output Format
+
+The `--output-format` option is used to determine the file format for the summary and sites tables. The available options are `csv` and `geojson`. If not specified, it defaults to `csv`.
+
 ### Source Inclusion & Exclusion
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
 
