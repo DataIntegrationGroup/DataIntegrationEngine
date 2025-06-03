@@ -69,7 +69,9 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 | **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
 | **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
+| **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X*  | X       |
+
+<sup>*TDS data from WQP may contain duplicates. Duplicates are identified when they have the same ActivityIdentifier. If duplicates are identified, only one is kept as identified by its USGS pCode. The order of preference for the pCodes is: [70300](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70300&fmt=html), [70301](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70301&fmt=html), [70303](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70303&fmt=html).
 
 ### Output Type
 The `--output-type` option is required and used to set the output type:
@@ -164,6 +166,10 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | source_parameter_name | the name of the parameter from the source | string | Y |
 | source_parameter_units | the unit of measurement from the source | string | Y |
 | conversion_factor | the factor applied to the result to convert the measurement to standardized units | float or int | Y |
+
+### Output Format
+
+The `--output-format` option is used to determine the file format for the summary and sites tables. The available options are `csv` and `geojson`. If not specified, it defaults to `csv`.
 
 ### Source Inclusion & Exclusion
 The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
