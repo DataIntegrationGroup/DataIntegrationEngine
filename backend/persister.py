@@ -129,7 +129,7 @@ class BasePersister(Loggable):
     def dump_timeseries_unified(self, path: str):
         if self.timeseries:
             path = os.path.join(path, "timeseries_unified")
-            path = self.add_extension(path, OutputFormat.CSV)
+            path = self.add_extension(path, OutputFormat.CSV.value)
             self.log(f"dumping unified timeseries to {os.path.abspath(path)}")
             self._dump_timeseries(path, self.timeseries)
         else:
@@ -144,7 +144,7 @@ class BasePersister(Loggable):
             for records in self.timeseries:
                 site_id = records[0].id
                 path = os.path.join(timeseries_path, str(site_id).replace(" ", "_"))
-                path = self.add_extension(path, OutputFormat.CSV)
+                path = self.add_extension(path, OutputFormat.CSV.value)
                 self.log(f"dumping {site_id} to {os.path.abspath(path)}")
 
                 list_of_records = [records]
