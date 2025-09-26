@@ -49,7 +49,7 @@ def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
         url = f"http://localhost:8000/latest/{endpoint}"
     else:
-        url = f"https://waterdata.nmt.edu/latest/{endpoint}"
+        url = f"https://ampapidev-dot-waterdatainitiative-271000.appspot.com/latest/{endpoint}"
     return url
 
 

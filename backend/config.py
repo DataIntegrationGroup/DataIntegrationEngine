@@ -149,7 +149,7 @@ class Config(Loggable):
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    output_format: str = OutputFormat.CSV
+    output_format: str = OutputFormat.CSV.value
 
     yes: bool = False
 
