@@ -22,7 +22,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="nmuwd",
-    version="0.9.8",
+    version="0.9.9",
     author="Jake Ross",
     description="New Mexico Water Data Integration Engine",
     long_description=long_description,
@@ -33,6 +33,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
+        "click==8.2.1",
         "flask",
         "frost_sta_client",
         "Geoalchemy2",
