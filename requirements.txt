@@ -1,3 +1,4 @@
+click==8.2.1
 flask
 frost_sta_client
 Geoalchemy2
