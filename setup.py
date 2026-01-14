@@ -22,7 +22,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="nmuwd",
-    version="0.9.9",
+    version="0.9.10",
     author="Jake Ross",
     description="New Mexico Water Data Integration Engine",
     long_description=long_description,
