@@ -43,7 +43,7 @@ setup(
         "httpx",
         "mypy",
         "pandas",
-        "psycopg2",
+        "psycopg2-binary",
         "pytest",
         "pyyaml",
         "types-pyyaml",
