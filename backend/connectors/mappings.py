@@ -46,7 +46,7 @@ DWB_ANALYTE_MAPPING: dict = {
     POTASSIUM: 33,
     SILICA: 37,
     SODIUM: 38,
-    SPECIFIC_CONDUCTANCE: 49,
+    SPECIFIC_CONDUCTANCE: 49,   # name = "CONDUCTIVITY @ 25 C UMHOS/CM"
     SULFATE: 41,
     TDS: 90,
     # "Uranium-238": 386,
@@ -56,7 +56,7 @@ DWB_ANALYTE_MAPPING: dict = {
 # ISC Seven Rivers ===============================================================================
 """
 pH
-Specific Conductance
+Specific Conductance    <-- field parameter
 Temperature
 Potassium
 Magnesium
@@ -68,7 +68,7 @@ Total recoverable metals, Iron
 Turbidity
 Iron
 Manganese
-Electrical Conductance
+Electrical Conductance  <-- lab parameter with EPA method 120.1, which specifies "Measurement of Electrical Conductivity at 25 degrees C." It is assumed that the records with method "UNKNOWN" still used EPA 120.1
 Ion Balance
 SiO2
 Chloride
@@ -102,7 +102,7 @@ ISC_SEVEN_RIVERS_ANALYTE_MAPPING: dict = {
     POTASSIUM: "Potassium",
     SILICA: "SiO2",
     SODIUM: "Sodium",
-    SPECIFIC_CONDUCTANCE: "Specific Conductance",
+    SPECIFIC_CONDUCTANCE: "Electrical Conductance",
     SULFATE: "Sulfate",
     TDS: "TDS calc",
     URANIUM: None,
@@ -189,7 +189,7 @@ ALK
 P ALK
 pH
 Color
-Cond
+Cond    <-- "Electrical Conductactivity" specifies "Measurement of Electrical conductivity at 25 degrees C." This will therefore be used for "conductivity" but not "Specific Conductance" 
 Br
 Cl
 CN
@@ -245,7 +245,7 @@ BOR_ANALYTE_MAPPING: dict = {
     POTASSIUM: "K",
     SILICA: "SiO2",
     SODIUM: "Na",
-    SPECIFIC_CONDUCTANCE: "Cond",
+    SPECIFIC_CONDUCTANCE: None,
     SULFATE: "SO4",
     TDS: "TDS",
     URANIUM: "U",

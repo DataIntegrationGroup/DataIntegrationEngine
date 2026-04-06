@@ -254,6 +254,18 @@ class Config(Loggable):
                 "nwis",
                 "pvacd",
             ]
+        elif self.parameter in [SPECIFIC_CONDUCTANCE]:
+            config_agencies = ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]
+            false_agencies = [
+                "bor",
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmose_roswell",
+                "nmose_pod",
+                "nwis",
+                "pvacd",
+            ]
         elif self.parameter in [
             BICARBONATE,
             CALCIUM,
@@ -265,7 +277,6 @@ class Config(Loggable):
             POTASSIUM,
             SILICA,
             SODIUM,
-            SPECIFIC_CONDUCTANCE,
             SULFATE,
             TDS,
         ]:
