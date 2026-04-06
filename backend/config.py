@@ -32,6 +32,7 @@ from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
 from .connectors.nmose.source import NMOSEPODSiteSource
 from .constants import (
     MILLIGRAMS_PER_LITER,
+    MICROSIEMENS_PER_CENTIMETER,
     WGS84,
     FEET,
     WATERLEVELS,
@@ -47,6 +48,7 @@ from .constants import (
     POTASSIUM,
     SILICA,
     SODIUM,
+    SPECIFIC_CONDUCTANCE,
     SULFATE,
     TDS,
     URANIUM,
@@ -263,6 +265,7 @@ class Config(Loggable):
             POTASSIUM,
             SILICA,
             SODIUM,
+            SPECIFIC_CONDUCTANCE,
             SULFATE,
             TDS,
         ]:
@@ -555,6 +558,8 @@ class Config(Loggable):
         parameter = self.parameter.lower()
         if parameter == "ph":
             self.analyte_output_units = ""
+        elif parameter == SPECIFIC_CONDUCTANCE:
+            self.analyte_output_units = MICROSIEMENS_PER_CENTIMETER
 
     @property
     def start_dt(self):

@@ -56,20 +56,20 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 
 
 #### Available Parameters
-|                            | waterlevels | arsenic | bicarbonate | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | sulfate | tds | uranium |
-| -------------------------- | ----------- | ------- | ----------- | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | ------- | --- | ------- |
-| **bernco**                 | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **bor**                    | -           | X       | -           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
-| **cabq**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **ebid**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **nmbgmr-amp**             | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
-| **nmed-dwb**               | -           | X       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
-| **nmose-isc-seven-rivers** | X           | -       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | -       |
-| **nmose-pod**              | -           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X*  | X       |
+|                            | waterlevels | arsenic | bicarbonate | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | specific conductance | sulfate | tds | uranium |
+| -------------------------- | ----------- | ------- | ----------- | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | -------------------- |-------- | --- | ------- |
+| **bernco**                 | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **bor**                    | -           | X       | -           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X   | X       |
+| **cabq**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **ebid**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **nmbgmr-amp**             | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X   | X       |
+| **nmed-dwb**               | -           | X       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X   | X       |
+| **nmose-isc-seven-rivers** | X           | -       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X   | -       |
+| **nmose-pod**              | -           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X*  | X       |
 
 <sup>*TDS data from WQP may contain duplicates. Duplicates are identified when they have the same ActivityIdentifier. If duplicates are identified, only one is kept as identified by its USGS pCode. The order of preference for the pCodes is: [70300](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70300&fmt=html), [70301](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70301&fmt=html), [70303](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70303&fmt=html).
 

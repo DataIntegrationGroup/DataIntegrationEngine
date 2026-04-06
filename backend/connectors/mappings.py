@@ -29,6 +29,7 @@ from backend.constants import (
     CARBONATE,
     PH,
     BICARBONATE,
+    SPECIFIC_CONDUCTANCE
 )
 
 # DWB ===============================================================================
@@ -45,6 +46,7 @@ DWB_ANALYTE_MAPPING: dict = {
     POTASSIUM: 33,
     SILICA: 37,
     SODIUM: 38,
+    SPECIFIC_CONDUCTANCE: 49,
     SULFATE: 41,
     TDS: 90,
     # "Uranium-238": 386,
@@ -100,6 +102,7 @@ ISC_SEVEN_RIVERS_ANALYTE_MAPPING: dict = {
     POTASSIUM: "Potassium",
     SILICA: "SiO2",
     SODIUM: "Sodium",
+    SPECIFIC_CONDUCTANCE: "Specific Conductance",
     SULFATE: "Sulfate",
     TDS: "TDS calc",
     URANIUM: None,
@@ -137,6 +140,7 @@ NMBGMR_ANALYTE_MAPPING: dict = {
     CALCIUM: "Calcium",
     CARBONATE: "Carbonate",
     CHLORIDE: "Chloride",
+    SPECIFIC_CONDUCTANCE: "Conductivity, laboratory",
     FLUORIDE: "Fluoride",
     MAGNESIUM: "Magnesium",
     NITRATE: "Nitrate (as N)",
@@ -161,6 +165,7 @@ WQP_ANALYTE_MAPPING: dict = {
     NITRATE: ["Nitrate", "Nitrate-N", "Nitrate as N"],
     POTASSIUM: ["Potassium"],
     SILICA: ["Silica"],
+    SPECIFIC_CONDUCTANCE: ["Specific conductance"],
     SODIUM: ["Sodium"],
     SULFATE: [
         "Sulfate",
@@ -240,6 +245,7 @@ BOR_ANALYTE_MAPPING: dict = {
     POTASSIUM: "K",
     SILICA: "SiO2",
     SODIUM: "Na",
+    SPECIFIC_CONDUCTANCE: "Cond",
     SULFATE: "SO4",
     TDS: "TDS",
     URANIUM: "U",
