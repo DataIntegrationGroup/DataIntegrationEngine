@@ -30,6 +30,7 @@ from backend.constants import (
     LATEST,
     TDS,
     WATERLEVELS,
+    SPECIFIC_CONDUCTANCE,
     USGS_PCODE_30210,
     USGS_PCODE_70300,
     USGS_PCODE_70301,
@@ -171,6 +172,16 @@ class WQPParameterSource(BaseParameterSource):
                 else:
                     kept_record = list(ai_records.values())[0]
                 return_records.append(kept_record)
+            return return_records
+        elif self.config.parameter == SPECIFIC_CONDUCTANCE and len(clean_records) > 0:
+            return_records = []
+            dirty_records = []
+            for record in clean_records:
+                if record["ResultTemperatureBasisText"].strip() in ["25 deg C", "25 Deg C"]: 
+                    return_records.append(record)
+                else:
+                    # nothing is being done these at the moment, but they are being logged in case they need to be inspected at a later date
+                    dirty_records.append((record["MonitoringLocationIdentifier"], record["ActivityStartDate"], record["ResultTemperatureBasisText"]))
             return return_records
         else:
             return clean_records
