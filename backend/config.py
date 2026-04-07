@@ -41,6 +41,7 @@ from .constants import (
     CALCIUM,
     CARBONATE,
     CHLORIDE,
+    CONDUCTIVITY,
     FLUORIDE,
     MAGNESIUM,
     NITRATE,
@@ -261,6 +262,20 @@ class Config(Loggable):
                 "bernco",
                 "cabq",
                 "ebid",
+                "nmose_roswell",
+                "nmose_pod",
+                "nwis",
+                "pvacd",
+            ]
+        elif self.parameter in [CONDUCTIVITY]:
+            config_agencies = ["bor", "nmose_isc_seven_rivers", "wqp"]
+            false_agencies = [
+                "bor",
+                "bernco",
+                "cabq",
+                "ebid",
+                "nmbgmr_amp",
+                "nmed_dwb",
                 "nmose_roswell",
                 "nmose_pod",
                 "nwis",

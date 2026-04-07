@@ -29,7 +29,8 @@ from backend.constants import (
     CARBONATE,
     PH,
     BICARBONATE,
-    SPECIFIC_CONDUCTANCE
+    SPECIFIC_CONDUCTANCE,
+    CONDUCTIVITY
 )
 
 # DWB ===============================================================================
@@ -40,6 +41,7 @@ DWB_ANALYTE_MAPPING: dict = {
     CALCIUM: 11,
     CARBONATE: None,
     CHLORIDE: 15,
+    CONDUCTIVITY: None,
     FLUORIDE: 19,
     MAGNESIUM: 23,
     NITRATE: 35,
@@ -96,6 +98,7 @@ ISC_SEVEN_RIVERS_ANALYTE_MAPPING: dict = {
     CHLORIDE: "Chloride",
     CALCIUM: "Calcium",
     CARBONATE: "Carbonate (CO3)",
+    CONDUCTIVITY: "Specific Conductance",
     FLUORIDE: "Fluoride",
     MAGNESIUM: "Magnesium",
     NITRATE: "Nitrate",
@@ -140,6 +143,7 @@ NMBGMR_ANALYTE_MAPPING: dict = {
     CALCIUM: "Calcium",
     CARBONATE: "Carbonate",
     CHLORIDE: "Chloride",
+    CONDUCTIVITY: None,
     SPECIFIC_CONDUCTANCE: "Conductivity, laboratory",
     FLUORIDE: "Fluoride",
     MAGNESIUM: "Magnesium",
@@ -160,6 +164,7 @@ WQP_ANALYTE_MAPPING: dict = {
     CALCIUM: ["Calcium"],
     CARBONATE: ["Carbonate"],
     CHLORIDE: ["Chloride"],
+    CONDUCTIVITY: ["Specific conductance"],
     FLUORIDE: ["Fluoride"],
     MAGNESIUM: ["Magnesium"],
     NITRATE: ["Nitrate", "Nitrate-N", "Nitrate as N"],
@@ -239,6 +244,7 @@ BOR_ANALYTE_MAPPING: dict = {
     CALCIUM: "Ca",
     CARBONATE: None,
     CHLORIDE: "Cl",
+    CONDUCTIVITY: "Cond",
     FLUORIDE: "F",
     MAGNESIUM: "Mg",
     NITRATE: "NO3",
