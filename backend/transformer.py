@@ -199,7 +199,7 @@ def convert_units(
     """
     if die_parameter_name == "ph":
         conversion_factor = 1.0
-    elif die_parameter_name == "specific_conductance":
+    elif die_parameter_name in ["conductivity","specific_conductance"]:
         # mg/l is assumed to be a mistake. the name of the source parameter is "CONDUCTIVITY @ 25 C UMHOS/CM"
         if input_units in ["�mhos/cm", "umho/cm", "cm-1", "micromhos per centimeter", "mg/l", "su", "us/cm", "us/cm @25c", "µs/cm", "\u03bcs/cm",]:
             conversion_factor = 1.0
