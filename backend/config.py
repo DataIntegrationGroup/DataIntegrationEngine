@@ -584,7 +584,7 @@ class Config(Loggable):
         parameter = self.parameter.lower()
         if parameter == "ph":
             self.analyte_output_units = ""
-        elif parameter == SPECIFIC_CONDUCTANCE:
+        elif parameter in [CONDUCTIVITY, SPECIFIC_CONDUCTANCE]:
             self.analyte_output_units = MICROSIEMENS_PER_CENTIMETER
 
     @property
