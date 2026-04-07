@@ -72,6 +72,7 @@ ANALYTE_OPTIONS = sorted(
         CALCIUM,
         CARBONATE,
         CHLORIDE,
+        CONDUCTIVITY,
         FLUORIDE,
         MAGNESIUM,
         NITRATE,
