@@ -252,9 +252,7 @@ class BaseSource(Loggable):
             the json response
         """
         resp = httpx.get(url, params=params, **kw)
-        if tag is None:
-            tag = "data"
-
+            
         if resp.status_code == 200:
             try:
                 obj = resp.json()

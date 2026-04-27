@@ -57,7 +57,7 @@ class BORSiteSource(BaseSiteSource):
         # locationTypeId 10 is for wells
         url = "https://data.usbr.gov/rise/api/location"
         params = {"stateId": "NM", "locationTypeId": 10}
-        return self._execute_json_request(url, params)
+        return self._execute_json_request(url, params, tag="data")
 
 
 def parse_dt(dt):
@@ -119,13 +119,14 @@ class BORAnalyteSource(BaseAnalyteSource):
         code = get_analyte_search_param(self.config.parameter, BOR_ANALYTE_MAPPING)
 
         catalog_record_data = self._execute_json_request(
-            f"https://data.usbr.gov{site_record.catalogRecords[0]['id']}"
+            f"https://data.usbr.gov{site_record.catalogRecords[0]['id']}",
+            tag="data"
         )
         catalog_items = catalog_record_data["relationships"]["catalogItems"]["data"]
 
         for i, item in enumerate(self._reorder_catalog_items(catalog_items)):
 
-            data = self._execute_json_request(f'https://data.usbr.gov{item["id"]}')
+            data = self._execute_json_request(f'https://data.usbr.gov{item["id"]}', tag="data")
             if not data:
                 continue
 
@@ -142,6 +143,7 @@ class BORAnalyteSource(BaseAnalyteSource):
                 return self._execute_json_request(
                     "https://data.usbr.gov/rise/api/result",
                     params={"itemId": data["attributes"]["_id"]},
+                    tag="data"
                 )
 
 
