@@ -19,35 +19,27 @@ from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTran
 
 class NWISSiteTransformer(SiteTransformer):
     def _transform(self, record):
-        elevation = record["alt_va"]
+        elevation = record["properties"]["altitude"]
         try:
             elevation = float(elevation)
         except (ValueError, TypeError):
             elevation = None
 
-        lng = record["dec_long_va"]
-        lat = record["dec_lat_va"]
-        datum = record["coord_datum_cd"]
-
-        # if not self.contained(lng, lat):
-        #     return
-
-        agency = record["agency_cd"]
-        site_no = record["site_no"]
-        site_id = f"{agency}-{site_no}"
+        # this data comes from OGC API, which requires the use of WGS84 for the horizontal datum
+        datum = "WGS84"
 
         rec = {
-            "source": "USGS-NWIS",
-            "id": site_id,
-            "name": record["station_nm"],
-            "latitude": lat,
-            "longitude": lng,
+            "source": "USGS",
+            "id": record["properties"]["id"],
+            "name": record["properties"]["monitoring_location_name"],
+            "latitude": record["geometry"]["coordinates"][1],
+            "longitude": record["geometry"]["coordinates"][0],
             "elevation": elevation,
             "elevation_units": "ft",
-            "horizontal_datum": datum,
-            "vertical_datum": record["alt_datum_cd"],
-            "aquifer": record["nat_aqfr_cd"],
-            "well_depth": record["well_depth_va"],
+            "horizontal_datum": "WGS84",
+            "vertical_datum": record["properties"]["vertical_datum"],
+            "aquifer": record["properties"]["national_aquifer_code"],
+            "well_depth": record["properties"]["well_constructed_depth"],
             "well_depth_units": "ft",
         }
         return rec

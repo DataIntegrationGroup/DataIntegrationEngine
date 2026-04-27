@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from datetime import datetime
 import httpx
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
@@ -42,55 +41,28 @@ from backend.source import (
     get_terminal_record,
 )
 
+"""
+-- sites --
+https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?
+state_code=35
+site_type_code=GW
 
-def parse_rdb(text):
-    """'
-    Parses rdb tab-delimited responses for NWIS Site Services
+-- water levels --
+https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items?
+monitoring_location_id=<>&monitoring_location_id=<>...
+
+parameter_code=72019
+"""
+
+KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
+
+def parse_waterlevels_json(data):
     """
-
-    def line_generator():
-        header = None
-        for line in text.split("\n"):
-            if line.startswith("#"):
-                continue
-            elif line.startswith("agency_cd"):
-                header = [h.strip() for h in line.split("\t")]
-                continue
-            elif line.startswith("5s"):
-                continue
-            elif line == "":
-                continue
-
-            vals = [v.strip() for v in line.split("\t")]
-            if header and any(vals):
-                yield dict(zip(header, vals))
-
-    return list(line_generator())
-
-
-def parse_json(data):
-    """
-    Parses JSON responses for NWIS Groundwater Level Services
+    Parses JSON responses for USGS field measurements (water levels) into a list of records with standardized keys.
     """
     records = []
 
-    for location in data["timeSeries"]:
-        site_code = location["sourceInfo"]["siteCode"][0]["value"]
-        agency = location["sourceInfo"]["siteCode"][0]["agencyCode"]
-        source_parameter_name = location["variable"]["variableName"]
-        source_parameter_units = location["variable"]["unit"]["unitCode"]
-        for value in location["values"][0]["value"]:
-            record = {
-                "site_id": f"{agency}-{site_code}",
-                "source_parameter_name": source_parameter_name,
-                "value": value["value"],
-                "datetime_measured": value["dateTime"],
-                # "date_measured": value["dateTime"].split("T")[0],
-                # "time_measured": value["dateTime"].split("T")[1],
-                "source_parameter_units": source_parameter_units,
-            }
-            records.append(record)
-    return records
+    
 
 
 class NWISSiteSource(BaseSiteSource):
@@ -107,80 +79,147 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            self._execute_text_request(
-                "https://waterservices.usgs.gov/nwis/site/",
-                {
-                    "format": "rdb",
-                    "siteOutput": "expanded",
-                    "siteType": "GW",
-                    "site": "325754103461301",
-                },
+            params = {
+                "state_code": "35",
+                "site_type_code": "GW"
+            }
+            self._execute_json_request(
+                url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items",
+                params=params
             )
             return True
         except httpx.HTTPStatusError:
             pass
 
     def get_records(self):
-        params = {"format": "rdb", "siteOutput": "expanded", "siteType": "GW"}
+        params = {
+            "site_type_code": "GW",
+            "limit": self.chunk_size,
+        }
         config = self.config
 
         if config.has_bounds():
             bbox = config.bbox_bounding_points()
-            params["bBox"] = ",".join([str(b) for b in bbox])
+            params["bbox"] = ",".join([str(b) for b in bbox])
         else:
-            params["stateCd"] = "NM"
+            params["state_code"] = "35"
 
-        if config.start_date:
-            params["startDt"] = config.start_dt.date().isoformat()
-        if config.end_date:
-            params["endDt"] = config.end_dt.date().isoformat()
+        # if config.start_date:
+        #     params["startDt"] = config.start_dt.date().isoformat()
+        # if config.end_date:
+        #     params["endDt"] = config.end_dt.date().isoformat()
 
-        text = self._execute_text_request(
-            "https://waterservices.usgs.gov/nwis/site/", params
-        )
-        if text:
-            records = parse_rdb(text)
-            self.log(f"Retrieved {len(records)} records")
-            return records
+        reached_end: bool = False
+        records: list = []
+        sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items"
 
+        """
+        TODO
+
+        update the site transformer to transform into standardized format
+        """
+
+        while not reached_end:
+            response = self._execute_json_request(
+                url=sites_url,
+                params=params,
+                headers={"X-API-Key": KEY}
+            )
+
+            records.extend(response.get("features", []))
+
+            found_next_link: bool = False
+            for link in response["links"]:
+                if link["rel"] == "next":
+                    sites_url = link["href"]
+                    params = None  # next link already has params encoded
+                    found_next_link = True
+                    break
+            
+            if not found_next_link  :
+                reached_end = True
+           
+
+        return records
+
+
+# TODO: IMPLEMENT! and transform as necessary. keep in mind "next" links for pagination
 
 class NWISWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NWISWaterLevelTransformer
+    # chunk_size=5 to avoid URI length and httpx read timed out issue
+    chunk_size = 5
 
     def __repr__(self):
         return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
-        # query sites with the agency, which need to be in the form of "{agency}:{site number}"
-        sites = make_site_list(site_record)
-        sites_with_colons = [s.replace("-", ":") for s in sites]
+        records: list = []
 
-        params = {
-            "format": "json",
-            "siteType": "GW",
-            "siteStatus": "all",
-            "parameterCd": "72019",
-            "sites": ",".join(sites_with_colons),
-        }
+        # if more than 5 sites are provided the URI is too long
+        sites: list = make_site_list(site_record)
 
-        config = self.config
-        if config.start_date:
-            params["startDt"] = config.start_dt.date().isoformat()
-        else:
-            params["startDt"] = "1900-01-01"
+        # chunk the sites into groups of 5 to avoid URI length issues
+        chunks_of_sites: list = []
+        for i in range(0, len(sites), self.chunk_size):
+            chunks_of_sites.append(sites[i:i + self.chunk_size]) 
 
-        if config.end_date:
-            params["endDt"] = config.end_dt.date().isoformat()
 
-        data = self._execute_json_request(
-            url="https://waterservices.usgs.gov/nwis/gwlevels/",
-            params=params,
-            tag="value",
-        )
-        if data:
-            records = parse_json(data)
-            self.log(f"Retrieved {len(records)} records")
-            return records
+        for chunked_sites in chunks_of_sites:
+            delineated_sites: str = ",".join(chunked_sites)
+        
+            obs_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items"
+
+            reached_end: bool = False
+
+            params: dict = {
+                "parameter_code": "72019",
+                "monitoring_location_id": delineated_sites,
+                "limit": 500,
+            }
+
+            config = self.config
+            # if config.start_date:
+            #     params["startDt"] = config.start_dt.date().isoformat()
+            # else:
+            #     params["startDt"] = "1900-01-01"
+
+            # if config.end_date:
+            #     params["endDt"] = config.end_dt.date().isoformat()
+
+            while not reached_end:
+                response = self._execute_json_request(
+                    url=obs_url,
+                    params=params,
+                    headers={"X-API-Key": KEY}
+                )
+
+                data: list[dict] = response.get("features", [])
+                if data:
+                    for feature in data:
+                        record = {
+                            "site_id": feature["properties"]["monitoring_location_id"],
+                            "source_parameter_name": "Water level, depth LSD",
+                            "value": feature["properties"]["value"],
+                            "datetime_measured": feature["properties"]["time"],
+                            "source_parameter_units": feature["properties"]["unit_of_measure"]
+                        }
+                        records.append(record)
+
+                found_next_link: bool = False
+                for link in response["links"]:
+                    if link["rel"] == "next":
+                        obs_url = link["href"]
+                        params = None  # next link already has params encoded
+                        found_next_link = True
+                        break
+                
+                if not found_next_link  :
+                    reached_end = True
+        self.log(f"Retrieved {len(records)} records")
+
+
+        return records
 
     def _extract_site_records(self, records, site_record):
         return [ri for ri in records if ri["site_id"] == site_record.id]
