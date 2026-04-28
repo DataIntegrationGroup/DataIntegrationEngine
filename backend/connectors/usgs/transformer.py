@@ -30,7 +30,7 @@ class NWISSiteTransformer(SiteTransformer):
 
         rec = {
             "source": "USGS",
-            "id": record["properties"]["id"],
+            "id": record["properties"]["monitoring_location_id"],
             "name": record["properties"]["monitoring_location_name"],
             "latitude": record["geometry"]["coordinates"][1],
             "longitude": record["geometry"]["coordinates"][0],
