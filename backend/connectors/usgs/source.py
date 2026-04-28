@@ -43,9 +43,10 @@ from backend.source import (
 
 """
 -- sites --
-https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?
+https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items?
 state_code=35
 site_type_code=GW
+parameter_code=72019
 
 -- water levels --
 https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items?
@@ -56,19 +57,117 @@ parameter_code=72019
 
 KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
 
-def parse_waterlevels_json(data):
-    """
-    Parses JSON responses for USGS field measurements (water levels) into a list of records with standardized keys.
-    """
-    records = []
+def transform_usgs_waterlevels_record(record: dict) -> dict:
+    return {
+        "site_id": record["properties"]["monitoring_location_id"],
+        "source_parameter_name": "Water level, depth LSD",
+        "value": record["properties"]["value"],
+        "datetime_measured": record["properties"]["time"],
+        "source_parameter_units": record["properties"]["unit_of_measure"]
+    }
 
+def retrieve_usgs_data(
+    url: str,
+    json_data: dict,
+    headers: dict = None,
+    params: dict = None,
+    timeout: int = None,
+    transformation_hook=None
+) -> list:
+    """
+    Start with a POST request to retrieve the initial batch of data using complex queries, then
+    follow the "next" links in the response to retrieve all paginated data with GET requests.
+
+    The transformation_hook can be used to transform each batch of records as they are retrieved
+    """
+    records: list = []
+
+    response = httpx.post(
+        url=url,
+        json=json_data,
+        headers=headers,
+        params=params,
+        timeout=timeout,
+    )
+    data: dict = response.json()
+    features: list[dict] = data.get("features", [])
+
+    if transformation_hook:
+        transformed_features = [transformation_hook(feature) for feature in features]
+        records.extend(transformed_features)
+    else:
+        records.extend(features)
     
+    # print(f"Retrieved {len(records)} records")
+
+    found_next_link: bool = False
+    links: list = data.get("links", [])
+    for link in links:
+        if link["rel"] == "next":
+            next_link_url = link["href"]
+            found_next_link = True
+            break
+
+    # use GET requests for the paginated responses after the initial POST to avoid issues with httpx and long URLs with many site ids
+    # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
+    while found_next_link:
+        # print(f"Following next link: {next_link_url}")
+        response = httpx.get(
+            url=next_link_url,
+            headers=headers,
+            timeout=timeout,
+        )
+        data: dict = response.json()
+        features = data.get("features", [])
+        if transformation_hook:
+            transformed_features = [transformation_hook(feature) for feature in features]
+            records.extend(transformed_features)
+        else:
+            records.extend(features)
+        
+        # print(f"Retrieved {len(records)} records")
+
+        found_next_link: bool = False
+        links: list = data.get("links", [])
+        for link in links:
+            if link["rel"] == "next":
+                next_link_url = link["href"]
+                found_next_link = True
+                break
+
+    return records
 
 
 class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
     chunk_size = 500
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+    json_data: dict = {
+        "op": "and",
+        "args": [
+            {
+                "op": "in",
+                "args": [
+                    {"property": "state_code"},
+                    ["35"]
+                ]
+            },
+            {
+                "op": "in",
+                "args": [
+                    {"property": "site_type_code"},
+                    ["GW"]
+                ]
+            },
+            {
+                "op": "in",
+                "args": [
+                    {"property": "parameter_code"},
+                    ["72019"]
+                ]
+            }
+        ]
+    }
 
     def __repr__(self):
         return "NWISSiteSource"
@@ -79,145 +178,94 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            params = {
-                "state_code": "35",
-                "site_type_code": "GW"
-            }
-            self._execute_json_request(
-                url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items",
-                params=params
+            httpx.post(
+                url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items",
+                data=self.json_data,
+                headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                timeout=None
             )
             return True
         except httpx.HTTPStatusError:
             pass
 
     def get_records(self):
-        params = {
-            "site_type_code": "GW",
-            "limit": self.chunk_size,
-        }
-        config = self.config
+        # TODO: handle date filters
+        # config = self.config
 
-        if config.has_bounds():
-            bbox = config.bbox_bounding_points()
-            params["bbox"] = ",".join([str(b) for b in bbox])
-        else:
-            params["state_code"] = "35"
+        # if config.has_bounds():
+        #     bbox = config.bbox_bounding_points()
+        #     params["bbox"] = ",".join([str(b) for b in bbox])
+        # else:
+        #     params["state_code"] = "35"
 
         # if config.start_date:
         #     params["startDt"] = config.start_dt.date().isoformat()
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
+        sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items"
 
-        reached_end: bool = False
-        records: list = []
-        sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items"
+        data = self._execute_json_request(
+            url=sites_url,
+            params={"limit": 50000, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+            timeout=None,
+            headers={"X-API-Key": KEY},
+        )
 
-        """
-        TODO
-
-        update the site transformer to transform into standardized format
-        """
-
-        while not reached_end:
-            response = self._execute_json_request(
-                url=sites_url,
-                params=params,
-                headers={"X-API-Key": KEY}
-            )
-
-            records.extend(response.get("features", []))
-
-            found_next_link: bool = False
-            for link in response["links"]:
-                if link["rel"] == "next":
-                    sites_url = link["href"]
-                    params = None  # next link already has params encoded
-                    found_next_link = True
-                    break
-            
-            if not found_next_link  :
-                reached_end = True
-           
+        records: list = data.get("features", [])
 
         return records
 
 
-# TODO: IMPLEMENT! and transform as necessary. keep in mind "next" links for pagination
-
 class NWISWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NWISWaterLevelTransformer
-    # chunk_size=5 to avoid URI length and httpx read timed out issue
-    chunk_size = 5
+    # USGS complex queries allow up to 250 sites to be queried at once
+    # https://api.waterdata.usgs.gov/docs/ogcapi/complex-queries
+    num_sites = 250
 
     def __repr__(self):
         return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
-        records: list = []
+        # TODO: handle date filters
+        # config = self.config
+        # if config.start_date:
+        #     params["startDt"] = config.start_dt.date().isoformat()
+        # else:
+        #     params["startDt"] = "1900-01-01"
 
-        # if more than 5 sites are provided the URI is too long
+        # if config.end_date:
+        #     params["endDt"] = config.end_dt.date().isoformat()
+
+        records: list = []
         sites: list = make_site_list(site_record)
 
-        # chunk the sites into groups of 5 to avoid URI length issues
-        chunks_of_sites: list = []
-        for i in range(0, len(sites), self.chunk_size):
-            chunks_of_sites.append(sites[i:i + self.chunk_size]) 
+        # group sites into batches of num_sites to pass to the API
+        # since USGS APIs allow up to 250 sites to be queried at once with complex queries
+        list_of_lists_of_sites: list = []
+        for i in range(0, len(sites), self.num_sites):
+            list_of_lists_of_sites.append(sites[i:i + self.num_sites]) 
 
 
-        for chunked_sites in chunks_of_sites:
-            delineated_sites: str = ",".join(chunked_sites)
-        
-            obs_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items"
-
-            reached_end: bool = False
-
-            params: dict = {
-                "parameter_code": "72019",
-                "monitoring_location_id": delineated_sites,
-                "limit": 500,
+        for list_of_sites in list_of_lists_of_sites:
+            json_data: dict = {
+                "op": "in",
+                "args": [
+                    {"property": "monitoring_location_id"},
+                    list_of_sites
+                ]
             }
 
-            config = self.config
-            # if config.start_date:
-            #     params["startDt"] = config.start_dt.date().isoformat()
-            # else:
-            #     params["startDt"] = "1900-01-01"
+            records_batch: list = retrieve_usgs_data(
+                url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
+                json_data=json_data,
+                headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                params={"limit": 50000, "parameter_code": "72019"},
+                timeout=None,
+                transformation_hook=transform_usgs_waterlevels_record
+            )
+            records.extend(records_batch)
 
-            # if config.end_date:
-            #     params["endDt"] = config.end_dt.date().isoformat()
-
-            while not reached_end:
-                response = self._execute_json_request(
-                    url=obs_url,
-                    params=params,
-                    headers={"X-API-Key": KEY}
-                )
-
-                data: list[dict] = response.get("features", [])
-                if data:
-                    for feature in data:
-                        record = {
-                            "site_id": feature["properties"]["monitoring_location_id"],
-                            "source_parameter_name": "Water level, depth LSD",
-                            "value": feature["properties"]["value"],
-                            "datetime_measured": feature["properties"]["time"],
-                            "source_parameter_units": feature["properties"]["unit_of_measure"]
-                        }
-                        records.append(record)
-
-                found_next_link: bool = False
-                for link in response["links"]:
-                    if link["rel"] == "next":
-                        obs_url = link["href"]
-                        params = None  # next link already has params encoded
-                        found_next_link = True
-                        break
-                
-                if not found_next_link  :
-                    reached_end = True
         self.log(f"Retrieved {len(records)} records")
-
 
         return records
 
