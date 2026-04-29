@@ -248,7 +248,6 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         #     url = _make_url("waterlevels/latest")
         # else:
         params = {"pointid": ",".join(make_site_list(site_record))}
-        print(make_site_list(site_record))
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 
