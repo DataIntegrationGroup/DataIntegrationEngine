@@ -85,6 +85,7 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
     def get_records(self):
         return self._execute_json_request(
             _make_url("getMonitoringPoints.ashx"),
+            tag="data",
         )
 
 
@@ -100,7 +101,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         """ """
         if self._analyte_ids is None:
 
-            resp = self._execute_json_request(_make_url("getAnalytes.ashx"))
+            resp = self._execute_json_request(_make_url("getAnalytes.ashx"), tag="data")
             if resp:
                 self._analyte_ids = {r["name"]: r["id"] for r in resp}
 
@@ -164,7 +165,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
                 self._source_parameter_name = analyte_id_and_name["name"]
 
             return self._execute_json_request(
-                _make_url("getReadings.ashx"), params=params
+                _make_url("getReadings.ashx"), params=params, tag="data"
             )
 
 
@@ -184,6 +185,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return self._execute_json_request(
             _make_url("getWaterLevels.ashx"),
             params=params,
+            tag="data",
         )
 
     def _clean_records(self, records):

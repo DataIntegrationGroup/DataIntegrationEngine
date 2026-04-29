@@ -13,29 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from datetime import datetime
 import httpx
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
-    FEET,
     DTW,
-    DTW_UNITS,
     DT_MEASURED,
     PARAMETER_NAME,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
-    EARLIEST,
-    LATEST,
 )
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
     NWISWaterLevelTransformer,
 )
 from backend.source import (
-    BaseSource,
     BaseWaterLevelSource,
     BaseSiteSource,
     make_site_list,
@@ -43,60 +37,15 @@ from backend.source import (
 )
 
 
-def parse_rdb(text):
-    """'
-    Parses rdb tab-delimited responses for NWIS Site Services
-    """
-
-    def line_generator():
-        header = None
-        for line in text.split("\n"):
-            if line.startswith("#"):
-                continue
-            elif line.startswith("agency_cd"):
-                header = [h.strip() for h in line.split("\t")]
-                continue
-            elif line.startswith("5s"):
-                continue
-            elif line == "":
-                continue
-
-            vals = [v.strip() for v in line.split("\t")]
-            if header and any(vals):
-                yield dict(zip(header, vals))
-
-    return list(line_generator())
-
-
-def parse_json(data):
-    """
-    Parses JSON responses for NWIS Groundwater Level Services
-    """
-    records = []
-
-    for location in data["timeSeries"]:
-        site_code = location["sourceInfo"]["siteCode"][0]["value"]
-        agency = location["sourceInfo"]["siteCode"][0]["agencyCode"]
-        source_parameter_name = location["variable"]["variableName"]
-        source_parameter_units = location["variable"]["unit"]["unitCode"]
-        for value in location["values"][0]["value"]:
-            record = {
-                "site_id": f"{agency}-{site_code}",
-                "source_parameter_name": source_parameter_name,
-                "value": value["value"],
-                "datetime_measured": value["dateTime"],
-                # "date_measured": value["dateTime"].split("T")[0],
-                # "time_measured": value["dateTime"].split("T")[1],
-                "source_parameter_units": source_parameter_units,
-            }
-            records.append(record)
-    return records
-
+KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
+LIMIT = 50000    
+TIMEOUT=1800
 
 class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
     chunk_size = 500
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+    sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items"
 
     def __repr__(self):
         return "NWISSiteSource"
@@ -107,80 +56,172 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            self._execute_text_request(
-                "https://waterservices.usgs.gov/nwis/site/",
-                {
-                    "format": "rdb",
-                    "siteOutput": "expanded",
-                    "siteType": "GW",
-                    "site": "325754103461301",
-                },
+            self._execute_json_request(
+                url=self.sites_url,
+                params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+                timeout=TIMEOUT,
+                headers={"X-API-Key": KEY},
             )
             return True
         except httpx.HTTPStatusError:
-            pass
+            return False
 
     def get_records(self):
-        params = {"format": "rdb", "siteOutput": "expanded", "siteType": "GW"}
-        config = self.config
+        # TODO: handle date filters
+        # config = self.config
 
-        if config.has_bounds():
-            bbox = config.bbox_bounding_points()
-            params["bBox"] = ",".join([str(b) for b in bbox])
-        else:
-            params["stateCd"] = "NM"
+        # if config.has_bounds():
+        #     bbox = config.bbox_bounding_points()
+        #     params["bbox"] = ",".join([str(b) for b in bbox])
+        # else:
+        #     params["state_code"] = "35"
 
-        if config.start_date:
-            params["startDt"] = config.start_dt.date().isoformat()
-        if config.end_date:
-            params["endDt"] = config.end_dt.date().isoformat()
+        # if config.start_date:
+        #     params["startDt"] = config.start_dt.date().isoformat()
+        # if config.end_date:
+        #     params["endDt"] = config.end_dt.date().isoformat()
 
-        text = self._execute_text_request(
-            "https://waterservices.usgs.gov/nwis/site/", params
-        )
-        if text:
-            records = parse_rdb(text)
-            self.log(f"Retrieved {len(records)} records")
-            return records
+        finished_request: bool = False
+        while not finished_request:
+            try:
+                data = self._execute_json_request(
+                    url=self.sites_url,
+                    params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+                    timeout=TIMEOUT,
+                    headers={"X-API-Key": KEY},
+                )
+                # _execute_json_request returns None for non-200 responses, so we need to check for that as well
+                if data is None:
+                    self.warn("Retrying...")
+                else:
+                    finished_request = True
+            except Exception as e:
+                self.warn(f"Error retrieving site records: {e}. Retrying...")
+
+        records: list = data.get("features", [])
+
+        return records
 
 
 class NWISWaterLevelSource(BaseWaterLevelSource):
     transformer_klass = NWISWaterLevelTransformer
+    # USGS complex queries allow up to 250 sites to be queried at once
+    # https://api.waterdata.usgs.gov/docs/ogcapi/complex-queries
+    num_sites = 250
 
     def __repr__(self):
         return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
-        # query sites with the agency, which need to be in the form of "{agency}:{site number}"
-        sites = make_site_list(site_record)
-        sites_with_colons = [s.replace("-", ":") for s in sites]
+        # TODO: handle date filters
+        # config = self.config
+        # if config.start_date:
+        #     params["startDt"] = config.start_dt.date().isoformat()
+        # else:
+        #     params["startDt"] = "1900-01-01"
 
-        params = {
-            "format": "json",
-            "siteType": "GW",
-            "siteStatus": "all",
-            "parameterCd": "72019",
-            "sites": ",".join(sites_with_colons),
+        # if config.end_date:
+        #     params["endDt"] = config.end_dt.date().isoformat()
+
+        records: list = []
+        sites: list = make_site_list(site_record)
+
+        # group sites into batches of num_sites to pass to the API
+        # USGS APIs allow up to 250 sites to be queried at once with complex queries
+        list_of_lists_of_sites: list = []
+        for i in range(0, len(sites), self.num_sites):
+            list_of_lists_of_sites.append(sites[i:i + self.num_sites]) 
+
+
+        for list_of_sites in list_of_lists_of_sites:
+            json_data: dict = {
+                "op": "in",
+                "args": [
+                    {"property": "monitoring_location_id"},
+                    list_of_sites
+                ]
+            }
+            finished_request: bool = False
+            while not finished_request:
+                try:
+                    response = httpx.post(
+                        url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
+                        json=json_data,
+                        headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                        params={"limit": LIMIT, "parameter_code": "72019"},
+                        timeout=TIMEOUT,
+                    )
+                    if response.status_code != 200:
+                        self.warn(f"Received status code {response.status_code}. Retrying...")
+                    else:
+                        finished_request = True
+                except Exception as e:
+                    self.warn(f"Error retrieving water level records: {e}. Retrying...")
+
+            data: dict = response.json()
+            features: list[dict] = data.get("features", [])
+
+            standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
+            records.extend(standard_features)
+            
+            """
+            The following commented-out code handles pagination for cases where there are more than LIMIT records for a given batch of sites.
+            However, in testing, I have not encountered any cases where this is necessary. Furthermore, cursor-based pagination is broken as
+            of 4/29/26 when the limit query parameter is used, and it can't be used in combination with other parameters via complex queries.
+            If we do encounter cases where there are more than LIMIT records, we can use the following code to handle pagination (when it is fixed).
+            
+            found_next_link: bool = False
+            links: list[dict] = data.get("links", [])
+            for link in links:
+                if link["rel"] == "next":
+                    next_link_url = link["href"]
+                    found_next_link = True
+                    break
+
+            # use GET requests for the paginated responses after the initial POST to avoid issues with httpx and long URLs with many site ids
+            # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
+            while found_next_link:
+                finished_request: bool = False
+                while not finished_request:
+                    try:
+                        response = httpx.get(
+                                url=next_link_url,
+                                headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                                timeout=TIMEOUT,
+                            )
+                        if response.status_code != 200:
+                            self.warn(f"Received status code {response.status_code} for paginated request. Retrying...")
+                        else:
+                            finished_request = True
+                    except Exception as e:
+                        self.warn(f"Error retrieving paginated water level records: {e}. Retrying...
+                        
+                data: dict = response.json()
+                features: list[dict] = data.get("features", [])
+                standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
+                records.extend(standard_features)
+                
+                found_next_link: bool = False
+                links: list = data.get("links", [])
+                for link in links:
+                    if link["rel"] == "next":
+                        next_link_url = link["href"]
+                        found_next_link = True
+                        break
+            """
+
+        self.log(f"Retrieved {len(records)} records")
+
+        return records
+    
+    def _standardize_record(self, record: dict) -> dict:
+        return {
+            "site_id": record["properties"]["monitoring_location_id"],
+            "source_parameter_name": "Water level, depth LSD",
+            "value": record["properties"]["value"],
+            "datetime_measured": record["properties"]["time"],
+            "source_parameter_units": record["properties"]["unit_of_measure"]
         }
-
-        config = self.config
-        if config.start_date:
-            params["startDt"] = config.start_dt.date().isoformat()
-        else:
-            params["startDt"] = "1900-01-01"
-
-        if config.end_date:
-            params["endDt"] = config.end_dt.date().isoformat()
-
-        data = self._execute_json_request(
-            url="https://waterservices.usgs.gov/nwis/gwlevels/",
-            params=params,
-            tag="value",
-        )
-        if data:
-            records = parse_json(data)
-            self.log(f"Retrieved {len(records)} records")
-            return records
 
     def _extract_site_records(self, records, site_record):
         return [ri for ri in records if ri["site_id"] == site_record.id]

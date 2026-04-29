@@ -259,6 +259,7 @@ def standardize_datetime(dt, record_id):
             "%Y-%m-%dT%H:%M:%S",
             "%Y-%m-%dT%H:%M:%S.%fZ",
             "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S+00:00",
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%d %H:%M:%S+00:00",
             "%Y-%m-%d %H:%M",
