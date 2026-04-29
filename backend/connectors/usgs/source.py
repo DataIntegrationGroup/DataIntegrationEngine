@@ -69,7 +69,7 @@ class NWISSiteSource(BaseSiteSource):
         )
             return True
         except httpx.HTTPStatusError:
-            pass
+            return False
 
     def get_records(self):
         # TODO: handle date filters
