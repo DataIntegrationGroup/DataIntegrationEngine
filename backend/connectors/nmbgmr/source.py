@@ -44,6 +44,11 @@ from backend.source import (
     make_site_list,
 )
 
+"""
+Set timeout to 30 minutes for analyte and water level requests since some sites have a large number of records and the NMBGMR API can be slow to respond.
+Don't use timeout=None since that can cause the request to hang indefinitely if there are issues with the API. Instead, catch timeout exceptions and retry the request until it succeeds or a different exception is raised.
+"""
+TIMEOUT=1800
 
 def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
@@ -83,9 +88,16 @@ class NMBGMRSiteSource(BaseSiteSource):
                 params["parameter"] = "Manual groundwater levels"
 
         # tags="features" because the response object is a GeoJSON
-        sites = self._execute_json_request(
-            _make_url("locations"), params, tag="features", timeout=30
-        )
+        request_finished: bool = False
+        while not request_finished:
+            try:
+                sites = self._execute_json_request(
+                    _make_url("locations"), params, tag="features", timeout=TIMEOUT
+                )
+                request_finished = True
+            except Exception as e:
+                self.warning(f"Error retrieving site data: {e}. Retrying...")
+
         if not config.sites_only:
             for site in sites:
                 if get_bool_env_variable("IS_TESTING_ENV"):
@@ -119,14 +131,23 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         analyte = get_analyte_search_param(
             self.config.parameter, NMBGMR_ANALYTE_MAPPING
         )
-        records = self._execute_json_request(
-            _make_url("waterchemistry"),
-            params={
-                "pointid": ",".join(make_site_list(site_record)),
-                "analyte": analyte,
-            },
-            tag="",
-        )
+
+        request_finished: bool = False
+
+        while not request_finished:
+            try:
+                records = self._execute_json_request(
+                    _make_url("waterchemistry"),
+                    params={
+                        "pointid": ",".join(make_site_list(site_record)),
+                        "analyte": analyte,
+                    },
+                    tag="",
+                    timeout=TIMEOUT
+                )
+                request_finished = True
+            except Exception as e:
+                self.warning(f"Error retrieving analyte data: {e}. Retrying...")
         records_sorted_by_pointid = {}
         for pointid in records.keys():
             records_sorted_by_pointid[pointid] = records[pointid][analyte]
@@ -221,10 +242,17 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         #     url = _make_url("waterlevels/latest")
         # else:
         params = {"pointid": ",".join(make_site_list(site_record))}
+        print(make_site_list(site_record))
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 
-        paginated_records = self._execute_json_request(url, params, tag="")
+        request_finished: bool = False
+        while not request_finished:
+             try:
+                paginated_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
+                request_finished = True
+             except Exception as e:
+                self.warning(f"Error retrieving water level data: {e}. Retrying...")
         items = paginated_records["items"]
         page = paginated_records["page"]
         pages = paginated_records["pages"]
@@ -232,7 +260,19 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         while page < pages:
             page += 1
             params["page"] = page
-            new_records = self._execute_json_request(url, params, tag="")
+
+            request_finished: bool = False
+            while not request_finished:
+                try:
+                    new_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
+                    # status_code != 200 makes _execute_json_request return None, so check for that and retry if it happens
+                    if new_records is None:
+                        self.warning("Retrying...")
+                        continue
+                    request_finished = True
+                except Exception as e:
+                    self.warning(f"Error retrieving page {page} of water level data: {e}. Retrying...")
+            
             items.extend(new_records["items"])
             pages = new_records["pages"]
 
