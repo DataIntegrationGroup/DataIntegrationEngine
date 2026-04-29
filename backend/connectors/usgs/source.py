@@ -41,133 +41,14 @@ from backend.source import (
     get_terminal_record,
 )
 
-"""
--- sites --
-https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items?
-state_code=35
-site_type_code=GW
-parameter_code=72019
-
--- water levels --
-https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items?
-monitoring_location_id=<>&monitoring_location_id=<>...
-
-parameter_code=72019
-"""
 
 KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
-
-def transform_usgs_waterlevels_record(record: dict) -> dict:
-    return {
-        "site_id": record["properties"]["monitoring_location_id"],
-        "source_parameter_name": "Water level, depth LSD",
-        "value": record["properties"]["value"],
-        "datetime_measured": record["properties"]["time"],
-        "source_parameter_units": record["properties"]["unit_of_measure"]
-    }
-
-def retrieve_usgs_data(
-    url: str,
-    json_data: dict,
-    headers: dict = None,
-    params: dict = None,
-    timeout: int = None,
-    transformation_hook=None
-) -> list:
-    """
-    Start with a POST request to retrieve the initial batch of data using complex queries, then
-    follow the "next" links in the response to retrieve all paginated data with GET requests.
-
-    The transformation_hook can be used to transform each batch of records as they are retrieved
-    """
-    records: list = []
-
-    response = httpx.post(
-        url=url,
-        json=json_data,
-        headers=headers,
-        params=params,
-        timeout=timeout,
-    )
-    data: dict = response.json()
-    features: list[dict] = data.get("features", [])
-
-    if transformation_hook:
-        transformed_features = [transformation_hook(feature) for feature in features]
-        records.extend(transformed_features)
-    else:
-        records.extend(features)
-    
-    # print(f"Retrieved {len(records)} records")
-
-    found_next_link: bool = False
-    links: list = data.get("links", [])
-    for link in links:
-        if link["rel"] == "next":
-            next_link_url = link["href"]
-            found_next_link = True
-            break
-
-    # use GET requests for the paginated responses after the initial POST to avoid issues with httpx and long URLs with many site ids
-    # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
-    while found_next_link:
-        # print(f"Following next link: {next_link_url}")
-        response = httpx.get(
-            url=next_link_url,
-            headers=headers,
-            timeout=timeout,
-        )
-        data: dict = response.json()
-        features = data.get("features", [])
-        if transformation_hook:
-            transformed_features = [transformation_hook(feature) for feature in features]
-            records.extend(transformed_features)
-        else:
-            records.extend(features)
-        
-        # print(f"Retrieved {len(records)} records")
-
-        found_next_link: bool = False
-        links: list = data.get("links", [])
-        for link in links:
-            if link["rel"] == "next":
-                next_link_url = link["href"]
-                found_next_link = True
-                break
-
-    return records
-
+LIMIT = 50000    
 
 class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
     chunk_size = 500
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
-    json_data: dict = {
-        "op": "and",
-        "args": [
-            {
-                "op": "in",
-                "args": [
-                    {"property": "state_code"},
-                    ["35"]
-                ]
-            },
-            {
-                "op": "in",
-                "args": [
-                    {"property": "site_type_code"},
-                    ["GW"]
-                ]
-            },
-            {
-                "op": "in",
-                "args": [
-                    {"property": "parameter_code"},
-                    ["72019"]
-                ]
-            }
-        ]
-    }
 
     def __repr__(self):
         return "NWISSiteSource"
@@ -206,7 +87,7 @@ class NWISSiteSource(BaseSiteSource):
 
         data = self._execute_json_request(
             url=sites_url,
-            params={"limit": 50000, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+            params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
             timeout=None,
             headers={"X-API-Key": KEY},
         )
@@ -240,7 +121,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         sites: list = make_site_list(site_record)
 
         # group sites into batches of num_sites to pass to the API
-        # since USGS APIs allow up to 250 sites to be queried at once with complex queries
+        # USGS APIs allow up to 250 sites to be queried at once with complex queries
         list_of_lists_of_sites: list = []
         for i in range(0, len(sites), self.num_sites):
             list_of_lists_of_sites.append(sites[i:i + self.num_sites]) 
@@ -255,19 +136,67 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                 ]
             }
 
-            records_batch: list = retrieve_usgs_data(
+            response = httpx.post(
                 url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
-                json_data=json_data,
+                json=json_data,
                 headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
-                params={"limit": 50000, "parameter_code": "72019"},
+                params={"limit": LIMIT, "parameter_code": "72019"},
                 timeout=None,
-                transformation_hook=transform_usgs_waterlevels_record
             )
-            records.extend(records_batch)
+            data: dict = response.json()
+            features: list[dict] = data.get("features", [])
+
+            standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
+            records.extend(standard_features)
+            
+            """
+            The following commented-out code handles pagination for cases where there are more than LIMIT records for a given batch of sites.
+            However, in testing, I have not encountered any cases where this is necessary. Furthermore, cursor-based pagination is broken as
+            of 4/29/26 when the limit query parameter is used, and it can't be used in combination with other parameters via complex queries.
+            If we do encounter cases where there are more than LIMIT records, we can use the following code to handle pagination (when it is fixed).
+            
+            found_next_link: bool = False
+            links: list[dict] = data.get("links", [])
+            for link in links:
+                if link["rel"] == "next":
+                    next_link_url = link["href"]
+                    found_next_link = True
+                    break
+
+            # use GET requests for the paginated responses after the initial POST to avoid issues with httpx and long URLs with many site ids
+            # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
+            while found_next_link:
+                response = httpx.get(
+                    url=next_link_url,
+                    headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                    timeout=None,
+                )
+                data: dict = response.json()
+                features: list[dict] = data.get("features", [])
+                standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
+                records.extend(standard_features)
+                
+                found_next_link: bool = False
+                links: list = data.get("links", [])
+                for link in links:
+                    if link["rel"] == "next":
+                        next_link_url = link["href"]
+                        found_next_link = True
+                        break
+            """
 
         self.log(f"Retrieved {len(records)} records")
 
         return records
+    
+    def _standardize_record(self, record: dict) -> dict:
+        return {
+            "site_id": record["properties"]["monitoring_location_id"],
+            "source_parameter_name": "Water level, depth LSD",
+            "value": record["properties"]["value"],
+            "datetime_measured": record["properties"]["time"],
+            "source_parameter_units": record["properties"]["unit_of_measure"]
+        }
 
     def _extract_site_records(self, records, site_record):
         return [ri for ri in records if ri["site_id"] == site_record.id]
