@@ -154,7 +154,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         json=json_data,
                         headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
                         params={"limit": LIMIT, "parameter_code": "72019"},
-                        timeout=None,
+                        timeout=TIMEOUT,
                     )
                     if response.status_code != 200:
                         self.warning(f"Received status code {response.status_code} for sites {list_of_sites}. Retrying...")
@@ -186,11 +186,21 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             # use GET requests for the paginated responses after the initial POST to avoid issues with httpx and long URLs with many site ids
             # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
             while found_next_link:
-                response = httpx.get(
-                    url=next_link_url,
-                    headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
-                    timeout=None,
-                )
+                finished_request: bool = False
+                while not finished_request:
+                    try:
+                        response = httpx.get(
+                                url=next_link_url,
+                                headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                                timeout=TIMEOUT,
+                            )
+                        if response.status_code != 200:
+                            self.warning(f"Received status code {response.status_code} for paginated request. Retrying...")
+                        else:
+                            finished_request = True
+                    except Exception as e:
+                        self.warning(f"Error retrieving paginated water level records: {e}. Retrying...
+                        
                 data: dict = response.json()
                 features: list[dict] = data.get("features", [])
                 standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
