@@ -49,7 +49,7 @@ from backend.source import (
 # Don't use timeout=None since that can cause the request to hang indefinitely if there are issues with the API.
 # Instead, catch timeout exceptions and retry the request until it succeeds or a different exception is raised.
 
-TIMEOUT=1800
+TIMEOUT=15*60
 
 def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
