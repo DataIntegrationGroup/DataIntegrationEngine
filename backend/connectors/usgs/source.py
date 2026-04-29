@@ -157,7 +157,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         timeout=TIMEOUT,
                     )
                     if response.status_code != 200:
-                        self.warning(f"Received status code {response.status_code} for sites {list_of_sites}. Retrying...")
+                        self.warning(f"Received status code {response.status_code}. Retrying...")
                     else:
                         finished_request = True
                 except Exception as e:
