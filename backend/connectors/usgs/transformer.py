@@ -36,7 +36,7 @@ class NWISSiteTransformer(SiteTransformer):
             "longitude": record["geometry"]["coordinates"][0],
             "elevation": elevation,
             "elevation_units": "ft",
-            "horizontal_datum": "WGS84",
+            "horizontal_datum": datum,
             "vertical_datum": record["properties"]["vertical_datum"],
             "aquifer": record["properties"]["national_aquifer_code"],
             "well_depth": record["properties"]["well_constructed_depth"],
