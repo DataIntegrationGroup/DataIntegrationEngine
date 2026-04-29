@@ -61,12 +61,12 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            data = self._execute_json_request(
-            url=self.sites_url,
-            params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
-            timeout=None,
-            headers={"X-API-Key": KEY},
-        )
+            self._execute_json_request(
+                url=self.sites_url,
+                params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+                timeout=TIMEOUT,
+                headers={"X-API-Key": KEY},
+            )
             return True
         except httpx.HTTPStatusError:
             return False
