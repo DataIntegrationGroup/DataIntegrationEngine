@@ -92,11 +92,11 @@ class NWISSiteSource(BaseSiteSource):
                 )
                 # _execute_json_request returns None for non-200 responses, so we need to check for that as well
                 if data is None:
-                    self.warning("Retrying...")
+                    self.warn("Retrying...")
                 else:
                     finished_request = True
             except Exception as e:
-                self.warning(f"Error retrieving site records: {e}. Retrying...")
+                self.warn(f"Error retrieving site records: {e}. Retrying...")
 
         records: list = data.get("features", [])
 
@@ -152,11 +152,11 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         timeout=TIMEOUT,
                     )
                     if response.status_code != 200:
-                        self.warning(f"Received status code {response.status_code}. Retrying...")
+                        self.warn(f"Received status code {response.status_code}. Retrying...")
                     else:
                         finished_request = True
                 except Exception as e:
-                    self.warning(f"Error retrieving water level records: {e}. Retrying...")
+                    self.warn(f"Error retrieving water level records: {e}. Retrying...")
 
             data: dict = response.json()
             features: list[dict] = data.get("features", [])
@@ -190,11 +190,11 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                                 timeout=TIMEOUT,
                             )
                         if response.status_code != 200:
-                            self.warning(f"Received status code {response.status_code} for paginated request. Retrying...")
+                            self.warn(f"Received status code {response.status_code} for paginated request. Retrying...")
                         else:
                             finished_request = True
                     except Exception as e:
-                        self.warning(f"Error retrieving paginated water level records: {e}. Retrying...
+                        self.warn(f"Error retrieving paginated water level records: {e}. Retrying...
                         
                 data: dict = response.json()
                 features: list[dict] = data.get("features", [])
