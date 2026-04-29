@@ -44,6 +44,7 @@ from backend.source import (
 
 KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
 LIMIT = 50000    
+TIMEOUT=1800
 
 class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
@@ -85,12 +86,22 @@ class NWISSiteSource(BaseSiteSource):
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
 
-        data = self._execute_json_request(
-            url=self.sites_url,
-            params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
-            timeout=None,
-            headers={"X-API-Key": KEY},
-        )
+        finished_request: bool = False
+        while not finished_request:
+            try:
+                data = self._execute_json_request(
+                    url=self.sites_url,
+                    params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+                    timeout=TIMEOUT,
+                    headers={"X-API-Key": KEY},
+                )
+                # _execute_json_request returns None for non-200 responses, so we need to check for that as well
+                if data is None:
+                    self.warning("Retrying...")
+                else:
+                    finished_request = True
+            except Exception as e:
+                self.warning(f"Error retrieving site records: {e}. Retrying...")
 
         records: list = data.get("features", [])
 
@@ -135,14 +146,23 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     list_of_sites
                 ]
             }
+            finished_request: bool = False
+            while not finished_request:
+                try:
+                    response = httpx.post(
+                        url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
+                        json=json_data,
+                        headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                        params={"limit": LIMIT, "parameter_code": "72019"},
+                        timeout=None,
+                    )
+                    if response.status_code != 200:
+                        self.warning(f"Received status code {response.status_code} for sites {list_of_sites}. Retrying...")
+                    else:
+                        finished_request = True
+                except Exception as e:
+                    self.warning(f"Error retrieving water level records: {e}. Retrying...")
 
-            response = httpx.post(
-                url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
-                json=json_data,
-                headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
-                params={"limit": LIMIT, "parameter_code": "72019"},
-                timeout=None,
-            )
             data: dict = response.json()
             features: list[dict] = data.get("features", [])
 
