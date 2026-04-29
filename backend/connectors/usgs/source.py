@@ -17,24 +17,19 @@ import httpx
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
-    FEET,
     DTW,
-    DTW_UNITS,
     DT_MEASURED,
     PARAMETER_NAME,
     PARAMETER_VALUE,
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
-    EARLIEST,
-    LATEST,
 )
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
     NWISWaterLevelTransformer,
 )
 from backend.source import (
-    BaseSource,
     BaseWaterLevelSource,
     BaseSiteSource,
     make_site_list,
