@@ -294,7 +294,6 @@ class Config(Loggable):
                 "pvacd",
             ]
         elif self.parameter in [
-            BICARBONATE,
             CALCIUM,
             CHLORIDE,
             FLUORIDE,
