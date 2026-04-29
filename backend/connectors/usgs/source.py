@@ -49,6 +49,7 @@ class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
     chunk_size = 500
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+    sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items"
 
     def __repr__(self):
         return "NWISSiteSource"
@@ -59,12 +60,12 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            httpx.post(
-                url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items",
-                data=self.json_data,
-                headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
-                timeout=None
-            )
+            data = self._execute_json_request(
+            url=self.sites_url,
+            params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+            timeout=None,
+            headers={"X-API-Key": KEY},
+        )
             return True
         except httpx.HTTPStatusError:
             pass
@@ -83,10 +84,9 @@ class NWISSiteSource(BaseSiteSource):
         #     params["startDt"] = config.start_dt.date().isoformat()
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
-        sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items"
 
         data = self._execute_json_request(
-            url=sites_url,
+            url=self.sites_url,
             params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
             timeout=None,
             headers={"X-API-Key": KEY},
