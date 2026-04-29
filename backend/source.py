@@ -19,6 +19,7 @@ import httpx
 import shapely.wkt
 from shapely import MultiPoint
 from typing import Union, List, Callable, Dict
+import time
 
 from backend.constants import (
     FEET,
@@ -200,7 +201,7 @@ class BaseSource(Loggable):
     # Methods Already Implemented
     # ==========================================================================
 
-    def _execute_text_request(self, url: str, params: dict | None = None, **kw) -> str:
+    def _execute_text_request(self, url: str, params: dict | None = None, max_tries: int = 7, **kw) -> str:
         """
         Executes a get request to the provided url and returns the text response.
 
@@ -212,6 +213,9 @@ class BaseSource(Loggable):
         params : dict
             key-value query parameters to pass to the get request
 
+        max_tries : int
+            the maximum number of times to retry the request if it fails
+
         Returns
         -------
         str
@@ -220,17 +224,32 @@ class BaseSource(Loggable):
         if "timeout" not in kw:
             kw["timeout"] = 10
 
-        resp = httpx.get(url, params=params, **kw)
-        if resp.status_code == 200:
-            return resp.text
-        else:
-            self.warn(f"service url {resp.url}")
-            self.warn(f"service responded with status {resp.status_code}")
-            self.warn(f"service responded with text {resp.text}")
+        tries: int = 0
+
+        while tries < max_tries:
+            try:
+                resp = httpx.get(url, params=params, **kw)
+                if resp.status_code == 200:
+                    return resp.text
+                else:
+                    self.warn(f"service responded with status {resp.status_code}")
+                    self.warn(f"service responded with text {resp.text}")
+                    self.warn(f"Retrying... {tries+1}/{max_tries}")
+            except Exception as e:
+                self.warn(f"Error during request: {e}")
+                self.warn(f"Retrying... {tries+1}/{max_tries}")
+            tries += 1
+            time.sleep(tries)
+
             return ""
 
     def _execute_json_request(
-        self, url: str, params: dict | None = None, tag: str | None = None, **kw
+        self,
+        url: str,
+        params: dict | None = None,
+        tag: str | None = None,
+        max_retries: int = 7,
+        **kw
     ) -> dict | None:
         """
         Executes a get request to the provided url and returns the json response.
@@ -245,30 +264,41 @@ class BaseSource(Loggable):
 
         tag : str
             the key to extract from the json response if required
+        
+        max_retries : int
+            the maximum number of times to retry the request if it fails
 
         Returns
         -------
         dict
             the json response
         """
-        resp = httpx.get(url, params=params, **kw)
-        if tag is None:
-            tag = "data"
-
-        if resp.status_code == 200:
+        tries: int = 0
+        while tries < max_retries:
             try:
-                obj = resp.json()
-                if tag and isinstance(obj, dict):
-                    return obj[tag]
-                return obj
-            except JSONDecodeError:
-                self.warn(f"service responded but with no data. \n{resp.text}")
-                return None
-        else:
-            self.warn(f"service responded with status {resp.status_code}")
-            self.warn(f"service responded with text {resp.text}")
-            self.warn(f"service at url:  {resp.url}")
-            return None
+                resp = httpx.get(url, params=params, **kw)
+                if tag is None:
+                    tag = "data"
+
+                if resp.status_code == 200:
+                    try:
+                        obj = resp.json()
+                        if tag and isinstance(obj, dict):
+                            return obj[tag]
+                        return obj
+                    except JSONDecodeError:
+                        self.warn(f"service responded but with no data. \n{resp.text}")
+                        return None
+                else:
+                    self.warn(f"service responded with status {resp.status_code}")
+                    self.warn(f"service responded with text {resp.text}")
+                    self.warn(f"Retrying... {tries+1}/{max_retries}")
+            except Exception as e:
+                self.warn(f"Error during request: {e}")
+                self.warn(f"Retrying... {tries+1}/{max_retries}")
+            tries += 1
+            time.sleep(tries)
+        return None
 
     # ==========================================================================
     # Methods Implemented in BaseSiteSource and BaseParameterSource

@@ -88,19 +88,9 @@ class NMBGMRSiteSource(BaseSiteSource):
             else:
                 params["parameter"] = "Manual groundwater levels"
 
-        # tags="features" because the response object is a GeoJSON
-        request_finished: bool = False
-        while not request_finished:
-            try:
-                sites = self._execute_json_request(
-                    _make_url("locations"), params, tag="features", timeout=TIMEOUT
-                )
-                if sites is None:
-                    self.warn("Retrying...")
-                    continue
-                request_finished = True
-            except Exception as e:
-                self.warn(f"Error retrieving site data: {e}. Retrying...")
+        sites = self._execute_json_request(
+            _make_url("locations"), params, tag="features", timeout=TIMEOUT
+        )
 
         if not config.sites_only:
             for site in sites:
@@ -136,25 +126,16 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
             self.config.parameter, NMBGMR_ANALYTE_MAPPING
         )
 
-        request_finished: bool = False
+        records = self._execute_json_request(
+            _make_url("waterchemistry"),
+            params={
+                "pointid": ",".join(make_site_list(site_record)),
+                "analyte": analyte,
+            },
+            tag="",
+            timeout=TIMEOUT
+        )
 
-        while not request_finished:
-            try:
-                records = self._execute_json_request(
-                    _make_url("waterchemistry"),
-                    params={
-                        "pointid": ",".join(make_site_list(site_record)),
-                        "analyte": analyte,
-                    },
-                    tag="",
-                    timeout=TIMEOUT
-                )
-                if records is None:
-                    self.warn("Retrying...")
-                    continue
-                request_finished = True
-            except Exception as e:
-                self.warn(f"Error retrieving analyte data: {e}. Retrying...")
         records_sorted_by_pointid = {}
         for pointid in records.keys():
             records_sorted_by_pointid[pointid] = records[pointid][analyte]
@@ -252,16 +233,8 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 
-        request_finished: bool = False
-        while not request_finished:
-             try:
-                paginated_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
-                if paginated_records is None:
-                    self.warn("Retrying...")
-                    continue
-                request_finished = True
-             except Exception as e:
-                self.warn(f"Error retrieving water level data: {e}. Retrying...")
+        paginated_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
+
         items = paginated_records["items"]
         page = paginated_records["page"]
         pages = paginated_records["pages"]
@@ -270,17 +243,7 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
             page += 1
             params["page"] = page
 
-            request_finished: bool = False
-            while not request_finished:
-                try:
-                    new_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
-                    # status_code != 200 makes _execute_json_request return None, so check for that and retry if it happens
-                    if new_records is None:
-                        self.warn("Retrying...")
-                        continue
-                    request_finished = True
-                except Exception as e:
-                    self.warn(f"Error retrieving page {page} of water level data: {e}. Retrying...")
+            new_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
             
             items.extend(new_records["items"])
             pages = new_records["pages"]
