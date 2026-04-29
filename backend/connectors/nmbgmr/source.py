@@ -95,11 +95,11 @@ class NMBGMRSiteSource(BaseSiteSource):
                     _make_url("locations"), params, tag="features", timeout=TIMEOUT
                 )
                 if sites is None:
-                    self.warning("Retrying...")
+                    self.warn("Retrying...")
                     continue
                 request_finished = True
             except Exception as e:
-                self.warning(f"Error retrieving site data: {e}. Retrying...")
+                self.warn(f"Error retrieving site data: {e}. Retrying...")
 
         if not config.sites_only:
             for site in sites:
@@ -149,11 +149,11 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
                     timeout=TIMEOUT
                 )
                 if records is None:
-                    self.warning("Retrying...")
+                    self.warn("Retrying...")
                     continue
                 request_finished = True
             except Exception as e:
-                self.warning(f"Error retrieving analyte data: {e}. Retrying...")
+                self.warn(f"Error retrieving analyte data: {e}. Retrying...")
         records_sorted_by_pointid = {}
         for pointid in records.keys():
             records_sorted_by_pointid[pointid] = records[pointid][analyte]
@@ -256,11 +256,11 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
              try:
                 paginated_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
                 if paginated_records is None:
-                    self.warning("Retrying...")
+                    self.warn("Retrying...")
                     continue
                 request_finished = True
              except Exception as e:
-                self.warning(f"Error retrieving water level data: {e}. Retrying...")
+                self.warn(f"Error retrieving water level data: {e}. Retrying...")
         items = paginated_records["items"]
         page = paginated_records["page"]
         pages = paginated_records["pages"]
@@ -275,11 +275,11 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
                     new_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
                     # status_code != 200 makes _execute_json_request return None, so check for that and retry if it happens
                     if new_records is None:
-                        self.warning("Retrying...")
+                        self.warn("Retrying...")
                         continue
                     request_finished = True
                 except Exception as e:
-                    self.warning(f"Error retrieving page {page} of water level data: {e}. Retrying...")
+                    self.warn(f"Error retrieving page {page} of water level data: {e}. Retrying...")
             
             items.extend(new_records["items"])
             pages = new_records["pages"]
