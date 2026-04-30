@@ -135,6 +135,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         # used to revert back to initial state if a rate limit error is hit, so there aren't partial records
         initial_sites_len = len(persister.sites)
         initial_timeseries_len = len(persister.timeseries)
+        initial_records_len = len(persister.records)
 
         use_summarize = config.output_summary
         site_limit = config.site_limit
@@ -174,6 +175,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         # if a rate limit error is hit we want to remove USGS sites so there aren't partial records
                         persister.sites = persister.sites[:initial_sites_len]
                         persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        persister.records = persister.records[:initial_records_len]
                         break
                     if summary_records:
                         persister.records.extend(summary_records)
