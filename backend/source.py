@@ -241,7 +241,7 @@ class BaseSource(Loggable):
             tries += 1
             time.sleep(tries)
 
-            return ""
+        return ""
 
     def _execute_json_request(
         self,
