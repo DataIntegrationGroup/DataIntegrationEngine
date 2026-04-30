@@ -59,7 +59,7 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            if os.environ.get("USGS_API_KEY") is not None:
+            if os.environ.get("USGS_API_KEY"):
                 headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
             else:
                 headers = {}
@@ -103,7 +103,7 @@ class NWISSiteSource(BaseSiteSource):
 
         while tries < MAX_RETRIES:
             try:
-                if os.environ.get("USGS_API_KEY") is not None:
+                if os.environ.get("USGS_API_KEY"):
                     headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
                 else:
                     headers = {}
@@ -198,7 +198,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
 
             while tries < MAX_RETRIES:
                 try:
-                    if os.environ.get("USGS_API_KEY") is not None:
+                    if os.environ.get("USGS_API_KEY"):
                         headers = {"X-API-Key": os.environ["USGS_API_KEY"], "Content-Type": "application/query-cql-json"}
                     else:
                         headers = {"Content-Type": "application/query-cql-json"}
