@@ -38,8 +38,9 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`
 - [Pecos Valley Artesian Conservancy District (PVACD)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27PVACD%27)
   - Available data: `water levels`
-- [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
+- [USGS (NWIS)](https://api.waterdata.usgs.gov/docs/)
   - Available data: `water levels`
+  - **IMPORTANT** The USGS now uses API keys. To prevent yourself from hitting the rate limit please acquire an API key and provide it via the `--usgs-api-key` flag when gathering water level data from the USGS.
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
   - Available data: `water levels`, `water quality`
 
@@ -188,6 +189,14 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-nwis` to exclude USGS NWIS data
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
 - `--no-wqp` to exclude Water Quality Portal (WQP) data
+
+### USGS API Keys
+
+The USGS now uses [API keys](https://api.waterdata.usgs.gov/signup/) to increase the query rate limit to their APIs. If you intend to include USGS water level data in your output please acquire an API key, save it somewhere, and provide it via the `--usgs-api-key` flag. For example:
+
+```
+die weave waterlevels --output-type timeseries_unified --usgs-api-key FAKE_API_KEY
+```
 
 ### Geographic Filters [In Development]
 

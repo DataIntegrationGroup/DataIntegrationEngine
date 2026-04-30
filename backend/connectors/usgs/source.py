@@ -14,6 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 import httpx
+import os
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
@@ -36,8 +37,6 @@ from backend.source import (
     get_terminal_record,
 )
 
-
-# KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
 LIMIT = 50000    
 TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
 
@@ -56,10 +55,15 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
+            if os.environ.get("USGS_API_KEY") is not None:
+                headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
+            else:
+                headers = {}
             self._execute_json_request(
                 url=self.sites_url,
                 params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                 timeout=TIMEOUT,
+                headers=headers
             )
             return True
         except httpx.HTTPStatusError:
@@ -83,10 +87,15 @@ class NWISSiteSource(BaseSiteSource):
         finished_request: bool = False
         while not finished_request:
             try:
+                if os.environ.get("USGS_API_KEY") is not None:
+                    headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
+                else:
+                    headers = {}
                 data = self._execute_json_request(
                     url=self.sites_url,
                     params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                     timeout=TIMEOUT,
+                    headers=headers
                 )
                 # _execute_json_request returns None for non-200 responses, so we need to check for that as well
                 if data is None:
@@ -142,10 +151,14 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             finished_request: bool = False
             while not finished_request:
                 try:
+                    if os.environ.get("USGS_API_KEY") is not None:
+                        headers = {"X-API-Key": os.environ["USGS_API_KEY"], "Content-Type": "application/query-cql-json"}
+                    else:
+                        headers = {"Content-Type": "application/query-cql-json"}
                     response = httpx.post(
                         url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
                         json=json_data,
-                        headers={"Content-Type": "application/query-cql-json"},
+                        headers=headers,
                         params={"limit": LIMIT, "parameter_code": "72019"},
                         timeout=TIMEOUT,
                     )
@@ -184,7 +197,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     try:
                         response = httpx.get(
                                 url=next_link_url,
-                                headers={"Content-Type": "application/query-cql-json"},
+                                headers=headers,
                                 timeout=TIMEOUT,
                             )
                         if response.status_code != 200:

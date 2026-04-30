@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import sys
+import os
 
 import click
 
@@ -206,6 +206,13 @@ CONFIG_PATH_OPTIONS = [
     ),
 ]
 
+USGS_API_KEY_OPTION = [
+    click.option(
+        "--usgs-api-key",
+        default=None,
+        help="USGS API key. Can also be set via USGS_API_KEY environment variable",
+    )
+]
 
 def add_options(options):
     def _add_options(func):
@@ -230,6 +237,7 @@ def add_options(options):
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 @add_options(OUTPUT_FORMAT_OPTIONS)
+@add_options(USGS_API_KEY_OPTION)
 def weave(
     parameter,
     config_path,
@@ -256,10 +264,15 @@ def weave(
     dry,
     yes,
     output_format,
+    usgs_api_key,
 ):
     """
     Get parameter timeseries or summary data
     """
+    # set USGS_API_KEY environment variable if usgs_api_key is provided
+    if usgs_api_key is not None:
+        os.environ["USGS_API_KEY"] = usgs_api_key
+
     # instantiate config and set up parameter
     config = setup_config(
         tag=parameter,
@@ -334,6 +347,7 @@ def weave(
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 @add_options(OUTPUT_FORMAT_OPTIONS)
+@add_options(USGS_API_KEY_OPTION)
 def sites(
     config_path,
     bbox,
@@ -356,10 +370,15 @@ def sites(
     dry,
     yes,
     output_format,
+    usgs_api_key,
 ):
     """
     Get sites
     """
+    # set USGS_API_KEY environment variable if usgs_api_key is provided
+    if usgs_api_key is not None:
+        os.environ["USGS_API_KEY"] = usgs_api_key
+
     config = setup_config(
         "sites", config_path, bbox, county, wkt, site_limit, dry, output_format
     )
