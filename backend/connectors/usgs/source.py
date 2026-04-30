@@ -63,13 +63,16 @@ class NWISSiteSource(BaseSiteSource):
                 headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
             else:
                 headers = {}
-            self._execute_json_request(
+            response = httpx.get(
                 url=self.sites_url,
                 params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                 timeout=TIMEOUT,
                 headers=headers
             )
-            return True
+            if response.status_code == 200:
+                return True
+            else:
+                return False
         except httpx.HTTPStatusError:
             return False
 
