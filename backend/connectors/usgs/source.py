@@ -15,6 +15,7 @@
 # ===============================================================================
 import httpx
 import os
+import sys
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
@@ -91,13 +92,21 @@ class NWISSiteSource(BaseSiteSource):
                     headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
                 else:
                     headers = {}
-                data = self._execute_json_request(
+                response = httpx.get(
                     url=self.sites_url,
                     params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                     timeout=TIMEOUT,
                     headers=headers
                 )
-                # _execute_json_request returns None for non-200 responses, so we need to check for that as well
+
+                if response.status_code == 429:
+                    self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
+                    sys.exit(1)
+                elif response.status_code != 200:
+                    self.warn(f"Received status code {response.status_code}. Retrying...")
+                    continue
+                else:
+                    data = response.json()
                 if data is None:
                     self.warn("Retrying...")
                 else:
@@ -162,7 +171,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         params={"limit": LIMIT, "parameter_code": "72019"},
                         timeout=TIMEOUT,
                     )
-                    if response.status_code != 200:
+                    if response.status_code == 429:
+                        self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
+                        sys.exit(1)
+                    elif response.status_code != 200:
                         self.warn(f"Received status code {response.status_code}. Retrying...")
                     else:
                         finished_request = True
