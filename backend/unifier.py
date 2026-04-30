@@ -142,7 +142,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
         try:
             sites = site_source.read()
-        except USGSRateLimitError:
+        except (USGSRateLimitError, PartialOrNoDataError):
             sites = []
 
         if not sites:
