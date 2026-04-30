@@ -21,6 +21,7 @@ from backend.constants import WATERLEVELS
 from backend.persister import BasePersister
 from backend.persisters.geoserver import GeoServerPersister
 from backend.source import BaseSiteSource
+from backend.connectors.usgs.source import USGSRateLimitError
 
 
 def health_check(source: BaseSiteSource) -> bool | None:
@@ -131,10 +132,17 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         # in the future make discover required
         # return
 
+        # used to revert back to initial state if a rate limit error is hit, so there aren't partial records
+        initial_sites_len = len(persister.sites)
+        initial_timeseries_len = len(persister.timeseries)
+
         use_summarize = config.output_summary
         site_limit = config.site_limit
 
-        sites = site_source.read()
+        try:
+            sites = site_source.read()
+        except USGSRateLimitError:
+            sites = []
 
         if not sites:
             return
@@ -158,18 +166,30 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                     end_ind += n
 
                 if use_summarize:
-                    summary_records = parameter_source.read(
-                        site_records, use_summarize, start_ind, end_ind
-                    )
+                    try:
+                        summary_records = parameter_source.read(
+                            site_records, use_summarize, start_ind, end_ind
+                        )
+                    except USGSRateLimitError:
+                        # if a rate limit error is hit we want to remove USGS sites so there aren't partial records
+                        persister.sites = persister.sites[:initial_sites_len]
+                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        break
                     if summary_records:
                         persister.records.extend(summary_records)
                         sites_with_records_count += len(summary_records)
                     else:
                         continue
                 else:
-                    results = parameter_source.read(
-                        site_records, use_summarize, start_ind, end_ind
-                    )
+                    try:
+                        results = parameter_source.read(
+                            site_records, use_summarize, start_ind, end_ind
+                        )
+                    except USGSRateLimitError:
+                        # if a rate limit error is hit we want to remove USGS sites so there aren't partial records
+                        persister.sites = persister.sites[:initial_sites_len]
+                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        break
                     # no records are returned if there is no site record for parameter
                     # or if the record isn't clean (doesn't have the correct fields)
                     # don't count these sites to apply to site_limit

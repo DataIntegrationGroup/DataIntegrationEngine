@@ -15,7 +15,6 @@
 # ===============================================================================
 import httpx
 import os
-import sys
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
@@ -40,6 +39,10 @@ from backend.source import (
 
 LIMIT = 50000    
 TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
+
+
+class USGSRateLimitError(Exception):
+    pass
 
 class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
@@ -100,8 +103,7 @@ class NWISSiteSource(BaseSiteSource):
                 )
 
                 if response.status_code == 429:
-                    self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
-                    sys.exit(1)
+                    raise USGSRateLimitError()
                 elif response.status_code != 200:
                     self.warn(f"Received status code {response.status_code}. Retrying...")
                     continue
@@ -111,6 +113,9 @@ class NWISSiteSource(BaseSiteSource):
                     self.warn("Retrying...")
                 else:
                     finished_request = True
+            except USGSRateLimitError:
+                self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
+                raise USGSRateLimitError("Rate limit exceeded")
             except Exception as e:
                 self.warn(f"Error retrieving site records: {e}. Retrying...")
 
@@ -172,12 +177,14 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         timeout=TIMEOUT,
                     )
                     if response.status_code == 429:
-                        self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
-                        sys.exit(1)
+                        raise USGSRateLimitError("Rate limit exceeded")
                     elif response.status_code != 200:
                         self.warn(f"Received status code {response.status_code}. Retrying...")
                     else:
                         finished_request = True
+                except USGSRateLimitError:
+                    self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
+                    raise USGSRateLimitError("Rate limit exceeded")
                 except Exception as e:
                     self.warn(f"Error retrieving water level records: {e}. Retrying...")
 
