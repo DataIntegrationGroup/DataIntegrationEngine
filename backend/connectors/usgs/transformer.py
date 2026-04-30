@@ -29,7 +29,7 @@ class NWISSiteTransformer(SiteTransformer):
         datum = "WGS84"
 
         rec = {
-            "source": "USGS",
+            "source": "USGS-NWIS",
             "id": record["properties"]["monitoring_location_id"],
             "name": record["properties"]["monitoring_location_name"],
             "latitude": record["geometry"]["coordinates"][1],
