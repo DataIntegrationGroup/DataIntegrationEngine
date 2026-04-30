@@ -77,14 +77,14 @@ class NWISSiteSource(BaseSiteSource):
             return False
 
     def get_records(self):
-        params = {
+        params: dict = {
             "limit": LIMIT,
             "parameter_code": "72019",
             "site_type_code": "GW",
         }
 
         if self.config.has_bounds():
-            bbox = self.config.bbox_bounding_points()
+            bbox: tuple = self.config.bbox_bounding_points()
             params["bbox"] = ",".join([str(b) for b in bbox])
         else:
             params["state_code"] = "35"
@@ -152,7 +152,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
-        params = {
+        params: dict = {
             "limit": LIMIT,
             "parameter_code": "72019",
         }
@@ -161,10 +161,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         end: str = ""
 
         if self.config.start_date:
-            begin: str = self.config.start_dt.date().isoformat()
+            begin = self.config.start_dt.date().isoformat()
             begin = f"{begin}T00:00:00Z"
         if self.config.end_date:
-            end: str = self.config.end_dt.date().isoformat()
+            end = self.config.end_dt.date().isoformat()
             end = f"{end}T23:59:59Z"
 
         if begin and end:
