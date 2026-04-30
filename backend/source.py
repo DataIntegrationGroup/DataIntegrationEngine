@@ -234,6 +234,7 @@ class BaseSource(Loggable):
                 else:
                     self.warn(f"service responded with status {resp.status_code}")
                     self.warn(f"service responded with text {resp.text}")
+                    self.warn(f"URL: {url}")
                     self.warn(f"Retrying... {tries+1}/{max_tries}")
             except Exception as e:
                 self.warn(f"Error during request: {e}")
@@ -288,10 +289,12 @@ class BaseSource(Loggable):
                         return obj
                     except JSONDecodeError:
                         self.warn(f"service responded but with no data. \n{resp.text}")
+                        self.warn(f"URL: {url}")
                         return None
                 else:
                     self.warn(f"service responded with status {resp.status_code}")
-                    self.warn(f"service responded with text {resp.text}")
+                    self.warn(f"service responded with text {resp.text} for url {resp.url}")
+                    self.warn(f"URL: {url}")
                     self.warn(f"Retrying... {tries+1}/{max_retries}")
             except Exception as e:
                 self.warn(f"Error during request: {e}")
