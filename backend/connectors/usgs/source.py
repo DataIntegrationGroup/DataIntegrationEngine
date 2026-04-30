@@ -37,9 +37,9 @@ from backend.source import (
 )
 
 
-KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
+# KEY = "55MILtQrayXw1NgufxcqRfkkRrg4Rg6KNCyJZ004"
 LIMIT = 50000    
-TIMEOUT=1800
+TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
 
 class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
@@ -60,7 +60,6 @@ class NWISSiteSource(BaseSiteSource):
                 url=self.sites_url,
                 params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                 timeout=TIMEOUT,
-                headers={"X-API-Key": KEY},
             )
             return True
         except httpx.HTTPStatusError:
@@ -88,7 +87,6 @@ class NWISSiteSource(BaseSiteSource):
                     url=self.sites_url,
                     params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                     timeout=TIMEOUT,
-                    headers={"X-API-Key": KEY},
                 )
                 # _execute_json_request returns None for non-200 responses, so we need to check for that as well
                 if data is None:
@@ -147,7 +145,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     response = httpx.post(
                         url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
                         json=json_data,
-                        headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                        headers={"Content-Type": "application/query-cql-json"},
                         params={"limit": LIMIT, "parameter_code": "72019"},
                         timeout=TIMEOUT,
                     )
@@ -186,7 +184,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     try:
                         response = httpx.get(
                                 url=next_link_url,
-                                headers={"X-API-Key": KEY, "Content-Type": "application/query-cql-json"},
+                                headers={"Content-Type": "application/query-cql-json"},
                                 timeout=TIMEOUT,
                             )
                         if response.status_code != 200:
