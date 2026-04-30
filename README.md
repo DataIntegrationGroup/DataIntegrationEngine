@@ -40,7 +40,7 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`
 - [USGS (NWIS)](https://api.waterdata.usgs.gov/docs/)
   - Available data: `water levels`
-  - **IMPORTANT** The USGS now uses API keys. To prevent yourself from hitting the rate limit please acquire an API key, save it, and provide it via the `--usgs-api-key` flag when gathering water level data from the USGS.
+  - **IMPORTANT:** The USGS now uses API keys. To prevent yourself from hitting the rate limit please acquire an API key, save it, and provide it via the `--usgs-api-key` flag when gathering water level data from the USGS.
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
   - Available data: `water levels`, `water quality`
 
