@@ -16,6 +16,7 @@
 import httpx
 import os
 import time
+import json
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
@@ -103,6 +104,7 @@ class NWISSiteSource(BaseSiteSource):
                 )
 
                 if response.status_code == 200:
+                    data: dict = response.json()
                     break
                 elif response.status_code == 429:
                     raise USGSRateLimitError()
@@ -112,13 +114,14 @@ class NWISSiteSource(BaseSiteSource):
             except USGSRateLimitError:
                 self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
                 raise USGSRateLimitError("Rate limit exceeded")
+            except json.JSONDecodeError as e:
+                self.warn(f"Failed to decode JSON response: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
             except Exception as e:
                 self.warn(f"Error retrieving site records: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
             
             tries += 1
             time.sleep(tries)
 
-        data: dict = response.json()
         records: list = data.get("features", [])
 
         return records
@@ -178,6 +181,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         timeout=TIMEOUT,
                     )
                     if response.status_code == 200:
+                        data: dict = response.json()
                         break
                     elif response.status_code == 429:
                         raise USGSRateLimitError()
@@ -187,13 +191,14 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                 except USGSRateLimitError:
                     self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
                     raise USGSRateLimitError("Rate limit exceeded")
+                except json.JSONDecodeError as e:
+                    self.warn(f"Failed to decode JSON response: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
                 except Exception as e:
                     self.warn(f"Error retrieving water level records: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
                 
                 tries += 1
                 time.sleep(tries)
 
-            data: dict = response.json()
             features: list[dict] = data.get("features", [])
 
             standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
@@ -225,6 +230,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                                 timeout=TIMEOUT,
                             )
                         if response.status_code == 200:
+                            data: dict = response.json()
                             break
                         elif response.status_code == 429:
                             raise USGSRateLimitError()
@@ -233,13 +239,14 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     except USGSRateLimitError:
                         self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
                         raise USGSRateLimitError("Rate limit exceeded")
+                    except json.JSONDecodeError as e:
+                        self.warn(f"Failed to decode JSON response: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
                     except Exception as e:
                         self.warn(f"Error retrieving paginated water level records: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
                     
                     tries += 1
                     time.sleep(tries)
                 
-                data: dict = response.json()
                 features: list[dict] = data.get("features", [])
                 standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
                 records.extend(standard_features)
