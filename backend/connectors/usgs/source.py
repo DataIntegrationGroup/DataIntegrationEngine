@@ -69,10 +69,8 @@ class NWISSiteSource(BaseSiteSource):
                 timeout=TIMEOUT,
                 headers=headers
             )
-            if response.status_code == 200:
-                return True
-            else:
-                return False
+            response.raise_for_status()
+            return True
         except httpx.HTTPStatusError:
             return False
 
