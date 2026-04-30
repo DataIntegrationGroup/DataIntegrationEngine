@@ -77,19 +77,26 @@ class NWISSiteSource(BaseSiteSource):
             return False
 
     def get_records(self):
-        # TODO: handle date filters
-        # config = self.config
+        params = {
+            "limit": LIMIT,
+            "parameter_code": "72019",
+            "site_type_code": "GW",
+        }
 
-        # if config.has_bounds():
-        #     bbox = config.bbox_bounding_points()
-        #     params["bbox"] = ",".join([str(b) for b in bbox])
-        # else:
-        #     params["state_code"] = "35"
+        if self.config.has_bounds():
+            bbox = self.config.bbox_bounding_points()
+            params["bbox"] = ",".join([str(b) for b in bbox])
+        else:
+            params["state_code"] = "35"
 
-        # if config.start_date:
-        #     params["startDt"] = config.start_dt.date().isoformat()
-        # if config.end_date:
-        #     params["endDt"] = config.end_dt.date().isoformat()
+        if self.config.start_date:
+            begin: str = self.config.start_dt.date().isoformat()
+            begin = f"{begin}T00:00:00Z"
+            params["begin"] = begin
+        if self.config.end_date:
+            end: str = self.config.end_dt.date().isoformat()
+            end = f"{end}T23:59:59Z"
+            params["end"] = end
 
         data: dict = {}
         tries: int = 0
@@ -102,7 +109,7 @@ class NWISSiteSource(BaseSiteSource):
                     headers = {}
                 response = httpx.get(
                     url=self.sites_url,
-                    params={"limit": LIMIT, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
+                    params=params,
                     timeout=TIMEOUT,
                     headers=headers
                 )
@@ -145,15 +152,27 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return "NWISWaterLevelSource"
 
     def get_records(self, site_record):
-        # TODO: handle date filters
-        # config = self.config
-        # if config.start_date:
-        #     params["startDt"] = config.start_dt.date().isoformat()
-        # else:
-        #     params["startDt"] = "1900-01-01"
+        params = {
+            "limit": LIMIT,
+            "parameter_code": "72019",
+        }
 
-        # if config.end_date:
-        #     params["endDt"] = config.end_dt.date().isoformat()
+        begin: str = ""
+        end: str = ""
+
+        if self.config.start_date:
+            begin: str = self.config.start_dt.date().isoformat()
+            begin = f"{begin}T00:00:00Z"
+        if self.config.end_date:
+            end: str = self.config.end_dt.date().isoformat()
+            end = f"{end}T23:59:59Z"
+
+        if begin and end:
+            params["datetime"] = f"{begin}/{end}"
+        elif begin:
+            params["datetime"] = f"{begin}/.."
+        elif end:
+            params["datetime"] = f"../{end}"
 
         records: list = []
         sites: list = make_site_list(site_record)
@@ -187,7 +206,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
                         json=json_data,
                         headers=headers,
-                        params={"limit": LIMIT, "parameter_code": "72019"},
+                        params=params,
                         timeout=TIMEOUT,
                     )
                     if response.status_code == 200:
@@ -264,7 +283,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                 
                 if data == {}:
                     self.warn("Failed to retrieve paginated water level records after multiple attempts.")
-                    raise PartialOrNoDataError("Failed to retrieve paginated water level records after multiple attempts
+                    raise PartialOrNoDataError("Failed to retrieve paginated water level records after multiple attempts")
 
                 features: list[dict] = data.get("features", [])
                 standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
