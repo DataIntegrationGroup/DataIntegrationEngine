@@ -3,6 +3,7 @@ from logging import shutdown as logger_shutdown
 from pathlib import Path
 import pytest
 from typing import List
+import os
 
 from backend.config import SOURCE_KEYS
 from backend.constants import (
@@ -57,6 +58,7 @@ class BaseCLITestClass:
         bbox: str | None = None,
         county: str | None = None,
         wkt: str | None = None,
+        usgs_api_key: str | None = None,
     ):
         # Arrange
         # turn off all sources except for the one being tested
@@ -99,6 +101,9 @@ class BaseCLITestClass:
             arguments.extend([f"--{geographic_filter_name}", geographic_filter_value])
 
         arguments.extend(no_agencies)
+
+        if usgs_api_key:
+            arguments.extend(["--usgs-api-key", usgs_api_key])
 
         # Act
         result = self.runner.invoke(weave, arguments, standalone_mode=False)
@@ -177,6 +182,10 @@ class BaseCLITestClass:
 
             # 9
             assert getattr(config, "output_format") == output_format
+
+            # 10
+            if usgs_api_key:
+                assert os.getenv("USGS_API_KEY") == usgs_api_key
         except Exception as e:
             print(result)
             assert False
@@ -215,6 +224,13 @@ class BaseCLITestClass:
             parameter=WATERLEVELS,
             output_type="summary",
             wkt="POLYGON((-106.0 32.0, -102.0 32.0, -102.0 36.0, -106.0 36.0, -106.0 32.0))",
+        )
+
+    def test_weave_usgs_api_key(self):
+        self._test_weave(
+            parameter=WATERLEVELS,
+            output_type="summary",
+            usgs_api_key="TEST_API_KEY",
         )
 
     def test_weave_waterlevels(self):
