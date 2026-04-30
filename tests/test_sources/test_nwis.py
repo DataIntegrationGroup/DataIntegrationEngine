@@ -8,7 +8,7 @@ from tests.test_sources import BaseSourceTestClass
 @pytest.fixture(autouse=True)
 def setup_nwis():
     # SETUP CODE -----------------------------------------------------------
-    load_dotenv()
+    load_dotenv(override=True)
 
     # RUN TESTS ------------------------------------------------------------
     yield
