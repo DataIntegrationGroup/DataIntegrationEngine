@@ -21,7 +21,7 @@ from backend.constants import WATERLEVELS
 from backend.persister import BasePersister
 from backend.persisters.geoserver import GeoServerPersister
 from backend.source import BaseSiteSource
-from backend.connectors.usgs.source import USGSRateLimitError
+from backend.exceptions import USGSRateLimitError
 
 
 def health_check(source: BaseSiteSource) -> bool | None:

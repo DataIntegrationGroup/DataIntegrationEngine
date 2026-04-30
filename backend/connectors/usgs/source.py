@@ -31,6 +31,7 @@ from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
     NWISWaterLevelTransformer,
 )
+from backend.exceptions import USGSRateLimitError
 from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
@@ -41,9 +42,6 @@ from backend.source import (
 LIMIT = 50000    
 TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
 MAX_RETRIES = 7
-
-class USGSRateLimitError(Exception):
-    pass
 
 class NWISSiteSource(BaseSiteSource):
     transformer_klass = NWISSiteTransformer
