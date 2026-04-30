@@ -15,6 +15,7 @@
 # ===============================================================================
 import httpx
 import os
+import time
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
@@ -39,7 +40,7 @@ from backend.source import (
 
 LIMIT = 50000    
 TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
-
+MAX_RETRIES = 7
 
 class USGSRateLimitError(Exception):
     pass
@@ -88,8 +89,9 @@ class NWISSiteSource(BaseSiteSource):
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
 
-        finished_request: bool = False
-        while not finished_request:
+        tries: int = 0
+
+        while tries < MAX_RETRIES:
             try:
                 if os.environ.get("USGS_API_KEY") is not None:
                     headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
@@ -102,23 +104,23 @@ class NWISSiteSource(BaseSiteSource):
                     headers=headers
                 )
 
-                if response.status_code == 429:
+                if response.status_code == 200:
+                    break
+                elif response.status_code == 429:
                     raise USGSRateLimitError()
-                elif response.status_code != 200:
-                    self.warn(f"Received status code {response.status_code}. Retrying...")
-                    continue
                 else:
-                    data = response.json()
-                if data is None:
-                    self.warn("Retrying...")
-                else:
-                    finished_request = True
+                    self.warn(f"Received status code {response.status_code}. Retrying... {tries + 1}/{MAX_RETRIES}")
+
             except USGSRateLimitError:
                 self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
                 raise USGSRateLimitError("Rate limit exceeded")
             except Exception as e:
-                self.warn(f"Error retrieving site records: {e}. Retrying...")
+                self.warn(f"Error retrieving site records: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
+            
+            tries += 1
+            time.sleep(tries)
 
+        data: dict = response.json()
         records: list = data.get("features", [])
 
         return records
@@ -162,8 +164,9 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     list_of_sites
                 ]
             }
-            finished_request: bool = False
-            while not finished_request:
+            tries: int = 0
+
+            while tries < MAX_RETRIES:
                 try:
                     if os.environ.get("USGS_API_KEY") is not None:
                         headers = {"X-API-Key": os.environ["USGS_API_KEY"], "Content-Type": "application/query-cql-json"}
@@ -176,17 +179,21 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         params={"limit": LIMIT, "parameter_code": "72019"},
                         timeout=TIMEOUT,
                     )
-                    if response.status_code == 429:
-                        raise USGSRateLimitError("Rate limit exceeded")
-                    elif response.status_code != 200:
-                        self.warn(f"Received status code {response.status_code}. Retrying...")
+                    if response.status_code == 200:
+                        break
+                    elif response.status_code == 429:
+                        raise USGSRateLimitError()
                     else:
-                        finished_request = True
+                        self.warn(f"Received status code {response.status_code}. Retrying... {tries + 1}/{MAX_RETRIES}")
+
                 except USGSRateLimitError:
                     self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
                     raise USGSRateLimitError("Rate limit exceeded")
                 except Exception as e:
-                    self.warn(f"Error retrieving water level records: {e}. Retrying...")
+                    self.warn(f"Error retrieving water level records: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
+                
+                tries += 1
+                time.sleep(tries)
 
             data: dict = response.json()
             features: list[dict] = data.get("features", [])
@@ -211,21 +218,29 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             # use GET requests for the paginated responses after the initial POST to avoid issues with httpx and long URLs with many site ids
             # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
             while found_next_link:
-                finished_request: bool = False
-                while not finished_request:
+                tries: int = 0
+                while tries < MAX_RETRIES:
                     try:
                         response = httpx.get(
                                 url=next_link_url,
                                 headers=headers,
                                 timeout=TIMEOUT,
                             )
-                        if response.status_code != 200:
-                            self.warn(f"Received status code {response.status_code} for paginated request. Retrying...")
+                        if response.status_code == 200:
+                            break
+                        elif response.status_code == 429:
+                            raise USGSRateLimitError()
                         else:
-                            finished_request = True
+                            self.warn(f"Received status code {response.status_code} for paginated request. Retrying... {tries + 1}/{MAX_RETRIES}")
+                    except USGSRateLimitError:
+                        self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
+                        raise USGSRateLimitError("Rate limit exceeded")
                     except Exception as e:
-                        self.warn(f"Error retrieving paginated water level records: {e}. Retrying...
-                        
+                        self.warn(f"Error retrieving paginated water level records: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
+                    
+                    tries += 1
+                    time.sleep(tries)
+                
                 data: dict = response.json()
                 features: list[dict] = data.get("features", [])
                 standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
