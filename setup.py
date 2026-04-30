@@ -34,7 +34,7 @@ setup(
     ],
     install_requires=[
         "click==8.2.1",
-        "dotenv",
+        "python-dotenv",
         "flask",
         "frost_sta_client",
         "Geoalchemy2",
