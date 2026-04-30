@@ -191,6 +191,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         # remove partial records to prevent incomplete data from being saved
                         persister.sites = persister.sites[:initial_sites_len]
                         persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        persister.records = persister.records[:initial_records_len]
                         break
                     # no records are returned if there is no site record for parameter
                     # or if the record isn't clean (doesn't have the correct fields)
