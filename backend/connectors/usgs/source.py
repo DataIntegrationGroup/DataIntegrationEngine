@@ -32,7 +32,7 @@ from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
     NWISWaterLevelTransformer,
 )
-from backend.exceptions import USGSRateLimitError
+from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
 from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
@@ -91,6 +91,7 @@ class NWISSiteSource(BaseSiteSource):
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
 
+        data: dict = {}
         tries: int = 0
 
         while tries < MAX_RETRIES:
@@ -107,7 +108,7 @@ class NWISSiteSource(BaseSiteSource):
                 )
 
                 if response.status_code == 200:
-                    data: dict = response.json()
+                    data = response.json()
                     break
                 elif response.status_code == 429:
                     raise USGSRateLimitError()
@@ -124,6 +125,10 @@ class NWISSiteSource(BaseSiteSource):
             
             tries += 1
             time.sleep(tries)
+
+        if data == {}:
+            self.warn("Failed to retrieve site records after multiple attempts.")
+            raise PartialOrNoDataError("Failed to retrieve site records after multiple attempts.")
 
         records: list = data.get("features", [])
 
@@ -168,6 +173,8 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     list_of_sites
                 ]
             }
+
+            data: dict = {}
             tries: int = 0
 
             while tries < MAX_RETRIES:
@@ -184,7 +191,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                         timeout=TIMEOUT,
                     )
                     if response.status_code == 200:
-                        data: dict = response.json()
+                        data = response.json()
                         break
                     elif response.status_code == 429:
                         raise USGSRateLimitError()
@@ -201,6 +208,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                 
                 tries += 1
                 time.sleep(tries)
+
+            if data == {}:
+                self.warn("Failed to retrieve water level records after multiple attempts.")
+                raise PartialOrNoDataError("Failed to retrieve water level records after multiple attempts.")
 
             features: list[dict] = data.get("features", [])
 
@@ -225,6 +236,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
             while found_next_link:
                 tries: int = 0
+                data: dict = {}
                 while tries < MAX_RETRIES:
                     try:
                         response = httpx.get(
@@ -233,7 +245,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                                 timeout=TIMEOUT,
                             )
                         if response.status_code == 200:
-                            data: dict = response.json()
+                            data = response.json()
                             break
                         elif response.status_code == 429:
                             raise USGSRateLimitError()
@@ -250,6 +262,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                     tries += 1
                     time.sleep(tries)
                 
+                if data == {}:
+                    self.warn("Failed to retrieve paginated water level records after multiple attempts.")
+                    raise PartialOrNoDataError("Failed to retrieve paginated water level records after multiple attempts
+
                 features: list[dict] = data.get("features", [])
                 standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
                 records.extend(standard_features)

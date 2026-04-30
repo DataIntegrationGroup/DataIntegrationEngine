@@ -21,7 +21,7 @@ from backend.constants import WATERLEVELS
 from backend.persister import BasePersister
 from backend.persisters.geoserver import GeoServerPersister
 from backend.source import BaseSiteSource
-from backend.exceptions import USGSRateLimitError
+from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
 
 
 def health_check(source: BaseSiteSource) -> bool | None:
@@ -171,8 +171,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         summary_records = parameter_source.read(
                             site_records, use_summarize, start_ind, end_ind
                         )
-                    except USGSRateLimitError:
-                        # if a rate limit error is hit we want to remove USGS sites so there aren't partial records
+                    except (USGSRateLimitError, PartialOrNoDataError):
+                        # remove partial records to prevent incomplete data from being saved
                         persister.sites = persister.sites[:initial_sites_len]
                         persister.timeseries = persister.timeseries[:initial_timeseries_len]
                         persister.records = persister.records[:initial_records_len]
@@ -187,8 +187,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         results = parameter_source.read(
                             site_records, use_summarize, start_ind, end_ind
                         )
-                    except USGSRateLimitError:
-                        # if a rate limit error is hit we want to remove USGS sites so there aren't partial records
+                    except (USGSRateLimitError, PartialOrNoDataError):
+                        # remove partial records to prevent incomplete data from being saved
                         persister.sites = persister.sites[:initial_sites_len]
                         persister.timeseries = persister.timeseries[:initial_timeseries_len]
                         break
