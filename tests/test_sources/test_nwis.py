@@ -6,7 +6,7 @@ from backend.constants import WATERLEVELS, FEET
 from tests.test_sources import BaseSourceTestClass
 
 @pytest.fixture(autouse=True)
-def setup():
+def setup_nwis():
     # SETUP CODE -----------------------------------------------------------
     load_dotenv()
 

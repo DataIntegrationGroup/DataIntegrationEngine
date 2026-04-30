@@ -8,7 +8,7 @@ os.environ["IS_TESTING_ENV"] = "True"
 
 
 @pytest.fixture(autouse=True)
-def setup():
+def setup_nmbgmr_amp():
     # SETUP CODE -----------------------------------------------------------
     os.environ["IS_TESTING_ENV"] = "True"
 
