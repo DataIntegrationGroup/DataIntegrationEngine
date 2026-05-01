@@ -102,6 +102,8 @@ class BaseCLITestClass:
 
         arguments.extend(no_agencies)
 
+        # save original USGS_API_KEY to reset after test, and set to test value if provided
+        original_usgs_api_key = os.getenv("USGS_API_KEY", None)
         if usgs_api_key:
             arguments.extend(["--usgs-api-key", usgs_api_key])
 
@@ -186,6 +188,11 @@ class BaseCLITestClass:
             # 10
             if usgs_api_key:
                 assert os.getenv("USGS_API_KEY") == usgs_api_key
+
+                if original_usgs_api_key is not None:
+                    os.environ["USGS_API_KEY"] = original_usgs_api_key
+                else:
+                    del os.environ["USGS_API_KEY"]
         except Exception as e:
             print(result)
             assert False
