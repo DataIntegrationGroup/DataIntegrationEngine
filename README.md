@@ -192,7 +192,7 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 
 ### USGS API Keys
 
-The USGS now uses [API keys](https://api.waterdata.usgs.gov/signup/) to increase the query rate limit to their APIs. If you intend to include USGS water level data in your output please acquire an API key, save it somewhere, and provide it via the `--usgs-api-key` flag. For example:
+The USGS now uses [API keys](https://api.waterdata.usgs.gov/signup/) to increase the query rate limit for their APIs. If you intend to include USGS water level data in your output please acquire an API key, save it somewhere, and provide it via the `--usgs-api-key` flag. For example:
 
 ```
 die weave waterlevels --output-type timeseries_unified --usgs-api-key FAKE_API_KEY
