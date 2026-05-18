@@ -141,10 +141,10 @@ class NWISSiteSource(BaseSiteSource):
         has_next_link: bool = any(link.get("rel") == "next" for link in links)
         if has_next_link:
             self.warn(
-                "USGS water-level response indicates additional pages of data are available, but pagination is not currently supported for this query. Refusing to return a silently truncated dataset."
+                "USGS site response indicates additional pages of data are available, but pagination is not currently supported for this query. Refusing to return a silently truncated dataset."
             )
             raise PartialOrNoDataError(
-                "USGS water-level response was truncated; additional pages are available."
+                "USGS site response was truncated; additional pages are available."
             )
 
         return records
