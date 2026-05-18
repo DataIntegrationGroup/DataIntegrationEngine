@@ -325,7 +325,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return {
             "site_id": record["properties"]["monitoring_location_id"],
             "source_parameter_name": "Water level, depth LSD",
-            "value": record["properties"]["value"],
+            "value": None if record["properties"]["value"] is None else str(record["properties"]["value"]),
             "datetime_measured": record["properties"]["time"],
             "source_parameter_units": record["properties"]["unit_of_measure"]
         }
