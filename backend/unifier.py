@@ -176,6 +176,7 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         persister.sites = persister.sites[:initial_sites_len]
                         persister.timeseries = persister.timeseries[:initial_timeseries_len]
                         persister.records = persister.records[:initial_records_len]
+                        config.warn(f"Failed to retrieve complete records after multiple attempts for {site_source}. No records will be saved for this source.")
                         break
                     if summary_records:
                         persister.records.extend(summary_records)
@@ -192,11 +193,13 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                         persister.sites = persister.sites[:initial_sites_len]
                         persister.timeseries = persister.timeseries[:initial_timeseries_len]
                         persister.records = persister.records[:initial_records_len]
+                        config.warn(f"Failed to retrieve complete records after multiple attempts for {site_source}. No records will be saved for this source.")
                         break
                     # no records are returned if there is no site record for parameter
                     # or if the record isn't clean (doesn't have the correct fields)
                     # don't count these sites to apply to site_limit
                     if results is None or len(results) == 0:
+                        config.warn(f"No valid records retrieved for {site_source}. No records will be saved for this source.")
                         continue
                     else:
                         sites_with_records_count += len(results)
