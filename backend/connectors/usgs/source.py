@@ -77,7 +77,6 @@ class NWISSiteSource(BaseSiteSource):
     def get_records(self):
         params: dict = {
             "limit": LIMIT,
-            "parameter_code": "72019",
             "site_type_code": "GW",
         }
 
@@ -95,6 +94,9 @@ class NWISSiteSource(BaseSiteSource):
             end: str = self.config.end_dt.date().isoformat()
             end = f"{end}T23:59:59Z"
             params["end"] = end
+
+        if not self.config.sites_only:
+            params["parameter_code"] = "72019"
 
         data: dict = {}
         tries: int = 0
