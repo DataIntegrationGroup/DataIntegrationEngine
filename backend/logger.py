@@ -50,6 +50,11 @@ def setup_logging(level=None, log_format=None, path=None):
     root = logging.getLogger()
     root.setLevel(level)
 
+    # Remove any existing handlers to prevent file descriptor leaks
+    for handler in root.handlers[:]:
+        root.removeHandler(handler)
+        handler.close()
+
     if path is None:
         path = "die.log"
     else:
