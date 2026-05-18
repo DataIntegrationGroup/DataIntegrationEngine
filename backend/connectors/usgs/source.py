@@ -66,7 +66,7 @@ class NWISSiteSource(BaseSiteSource):
             response = httpx.get(
                 url=self.sites_url,
                 params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
-                timeout=TIMEOUT,
+                timeout=30,
                 headers=headers
             )
             response.raise_for_status()
