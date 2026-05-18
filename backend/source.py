@@ -254,7 +254,7 @@ class BaseSource(Loggable):
         tag: str | None = None,
         max_retries: int = 7,
         **kw
-    ) -> dict | None:
+    ) -> dict:
         """
         Executes a get request to the provided url and returns the json response.
 
