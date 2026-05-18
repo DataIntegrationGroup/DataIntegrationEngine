@@ -46,9 +46,7 @@ class DWBSiteSource(STSiteSource):
 
     def health(self):
         try:
-            # Health checks may run before config is initialized; probe the service directly.
-            service = self.get_service()
-            resp = list(service.locations().query().top(1).list())
+            resp = self.get_records(top=10, analyte=TDS)
             return bool(resp)
         except Exception:
             return False
