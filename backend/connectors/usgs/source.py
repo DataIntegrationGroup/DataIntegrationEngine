@@ -259,67 +259,6 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
 
             standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
             records.extend(standard_features)
-            
-            """
-            The following commented-out code handles pagination for cases where there are more than LIMIT records for a given batch of sites.
-            However, in testing, I have not encountered any cases where this is necessary. Furthermore, cursor-based pagination is broken as
-            of 4/29/26 when the limit query parameter is used, and it can't be used in combination with other parameters via complex queries.
-            If we do encounter cases where there are more than LIMIT records, we can use the following code to handle pagination (when it is fixed).
-            
-            found_next_link: bool = False
-            links: list[dict] = data.get("links", [])
-            for link in links:
-                if link["rel"] == "next":
-                    next_link_url = link["href"]
-                    found_next_link = True
-                    break
-
-            # use GET requests for the paginated responses after the initial POST to avoid issues with httpx and long URLs with many site ids
-            # USGS APIs use cursor pagination, so we can just follow the "next" links until there are no more
-            while found_next_link:
-                tries: int = 0
-                data: dict = {}
-                while tries < MAX_RETRIES:
-                    try:
-                        response = httpx.get(
-                                url=next_link_url,
-                                headers=headers,
-                                timeout=TIMEOUT,
-                            )
-                        if response.status_code == 200:
-                            data = response.json()
-                            break
-                        elif response.status_code == 429:
-                            raise USGSRateLimitError()
-                        else:
-                            self.warn(f"Received status code {response.status_code} for paginated request. Retrying... {tries + 1}/{MAX_RETRIES}")
-                    except USGSRateLimitError:
-                        self.warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
-                        raise USGSRateLimitError("Rate limit exceeded")
-                    except json.JSONDecodeError as e:
-                        self.warn(f"Failed to decode JSON response: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
-                    except Exception as e:
-                        self.warn(f"Error retrieving paginated water level records: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
-                    
-                    tries += 1
-                    time.sleep(tries)
-                
-                if data == {}:
-                    self.warn("Failed to retrieve paginated water level records after multiple attempts.")
-                    raise PartialOrNoDataError("Failed to retrieve paginated water level records after multiple attempts")
-
-                features: list[dict] = data.get("features", [])
-                standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
-                records.extend(standard_features)
-                
-                found_next_link: bool = False
-                links: list = data.get("links", [])
-                for link in links:
-                    if link["rel"] == "next":
-                        next_link_url = link["href"]
-                        found_next_link = True
-                        break
-            """
 
         self.log(f"Retrieved {len(records)} records")
 
