@@ -71,7 +71,7 @@ class NWISSiteSource(BaseSiteSource):
             )
             response.raise_for_status()
             return True
-        except httpx.HTTPStatusError:
+        except httpx.HTTPError:
             return False
 
     def get_records(self):
