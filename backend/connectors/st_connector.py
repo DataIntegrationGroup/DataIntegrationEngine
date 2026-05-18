@@ -91,7 +91,9 @@ def make_dt_filter(tag, start, end):
 class STSiteSource(BaseSiteSource, STSource):
     def health(self):
         try:
-            resp = self.get_records(top=10)
+            # Health checks may run before config is initialized; probe the service directly.
+            service = self.get_service()
+            resp = list(service.locations().query().top(1).list())
             return bool(resp)
         except Exception:
             return False
