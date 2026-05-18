@@ -91,8 +91,8 @@ def make_dt_filter(tag, start, end):
 class STSiteSource(BaseSiteSource, STSource):
     def health(self):
         try:
-            self.get_records(top=10)
-            return True
+            resp = self.get_records(top=10)
+            return bool(resp)
         except Exception:
             return False
             

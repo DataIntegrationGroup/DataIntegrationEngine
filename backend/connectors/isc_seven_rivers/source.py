@@ -76,8 +76,8 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            self.get_records()
-            return True
+            resp = self.get_records()
+            return bool(resp)
         except Exception as e:
             print("Failed to get records", e)
             return False
