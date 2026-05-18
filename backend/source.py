@@ -239,6 +239,7 @@ class BaseSource(Loggable):
                     self.warn(f"Retrying... {tries+1}/{max_tries}")
             except Exception as e:
                 self.warn(f"Error during request: {e}")
+                self.warn(f"URL: {url}")
                 self.warn(f"Retrying... {tries+1}/{max_tries}")
             tries += 1
             time.sleep(tries)
@@ -297,6 +298,7 @@ class BaseSource(Loggable):
                     self.warn(f"Retrying... {tries+1}/{max_retries}")
             except Exception as e:
                 self.warn(f"Error during request: {e}")
+                self.warn(f"URL: {url}")
                 self.warn(f"Retrying... {tries+1}/{max_retries}")
             tries += 1
             time.sleep(tries)
