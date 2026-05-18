@@ -187,7 +187,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         records: list = []
         sites: list = make_site_list(site_record)
 
-        # if make_site_list returns a site site id as a string, convert to list for consistency with the batch processing logic below
+        # if make_site_list returns a site id as a string, convert to list for consistency with the batch processing logic below
         if isinstance(sites, str):
             sites = [sites]
 
