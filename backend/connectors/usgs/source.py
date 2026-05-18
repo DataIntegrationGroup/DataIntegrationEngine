@@ -187,6 +187,10 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         records: list = []
         sites: list = make_site_list(site_record)
 
+        # if make_site_list returns a site site id as a string, convert to list for consistency with the batch processing logic below
+        if isinstance(sites, str):
+            sites = [sites]
+
         # group sites into batches of num_sites to pass to the API
         # USGS APIs allow up to 250 sites to be queried at once with complex queries
         list_of_lists_of_sites: list = []
