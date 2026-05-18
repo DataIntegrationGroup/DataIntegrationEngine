@@ -68,10 +68,13 @@ class NMBGMRSiteSource(BaseSiteSource):
         return "NMBGMRSiteSource"
 
     def health(self):
-        resp = self._execute_json_request(
-            _make_url("locations"), tag="features", params={"limit": 1}
-        )
-        return bool(resp)
+        try:
+            resp = self._execute_json_request(
+                _make_url("locations"), tag="features", params={"limit": 1}
+            )
+            return True
+        except Exception:
+            return False
 
     def get_records(self):
         config = self.config
