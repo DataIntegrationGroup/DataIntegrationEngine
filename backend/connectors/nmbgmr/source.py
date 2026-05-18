@@ -72,7 +72,7 @@ class NMBGMRSiteSource(BaseSiteSource):
             resp = self._execute_json_request(
                 _make_url("locations"), tag="features", params={"limit": 1}
             )
-            return True
+            return bool(resp)
         except Exception:
             return False
 
