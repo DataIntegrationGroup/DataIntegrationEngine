@@ -198,6 +198,12 @@ The USGS now uses [API keys](https://api.waterdata.usgs.gov/signup/) to increase
 die weave waterlevels --output-type timeseries_unified --usgs-api-key FAKE_API_KEY
 ```
 
+or
+
+```
+die sites --usgs-api-key FAKE_API_KEY
+```
+
 ### Geographic Filters [In Development]
 
 The following flags can be used to geographically filter data:
