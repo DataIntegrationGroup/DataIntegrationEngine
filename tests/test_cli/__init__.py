@@ -189,13 +189,15 @@ class BaseCLITestClass:
             if usgs_api_key:
                 assert os.getenv("USGS_API_KEY") == usgs_api_key
 
-                if original_usgs_api_key is not None:
-                    os.environ["USGS_API_KEY"] = original_usgs_api_key
-                else:
-                    del os.environ["USGS_API_KEY"]
         except Exception as e:
             print(result)
             assert False
+        finally:
+            # reset USGS_API_KEY to original value after test
+            if original_usgs_api_key is not None:
+                os.environ["USGS_API_KEY"] = original_usgs_api_key
+            else:
+                os.environ.pop("USGS_API_KEY", None)
 
     def test_weave_summary(self):
         self._test_weave(parameter=WATERLEVELS, output_type="summary")
