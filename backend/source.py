@@ -288,9 +288,9 @@ class BaseSource(Loggable):
                             return obj[tag]
                         return obj
                     except JSONDecodeError:
-                        self.warn(f"service responded but with no data. \n{resp.text}")
+                        self.warn(f"service responded but with invalid or no JSON data. \n{resp.text}")
                         self.warn(f"URL: {url}")
-                        return None
+                        self.warn(f"Retrying... {tries+1}/{max_retries}")
                 else:
                     self.warn(f"service responded with status {resp.status_code}")
                     self.warn(f"service responded with text {resp.text} for url {resp.url}")
