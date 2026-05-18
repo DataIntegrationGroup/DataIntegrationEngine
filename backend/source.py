@@ -39,6 +39,7 @@ from backend.record import (
     SiteRecord,
 )
 from backend.transformer import BaseTransformer, convert_units
+from backend.exceptions import PartialOrNoDataError
 
 
 def make_site_list(site_record: list[SiteRecord] | SiteRecord) -> list | str:
@@ -242,7 +243,8 @@ class BaseSource(Loggable):
             tries += 1
             time.sleep(tries)
 
-        return ""
+        self.warn("Failed to retrieve records after multiple attempts")
+        raise PartialOrNoDataError("Failed to retrieve records after multiple attempts")
 
     def _execute_json_request(
         self,
@@ -292,14 +294,15 @@ class BaseSource(Loggable):
                 else:
                     self.warn(f"service responded with status {resp.status_code}")
                     self.warn(f"service responded with text {resp.text} for url {resp.url}")
-                    self.warn(f"URL: {url}")
                     self.warn(f"Retrying... {tries+1}/{max_retries}")
             except Exception as e:
                 self.warn(f"Error during request: {e}")
                 self.warn(f"Retrying... {tries+1}/{max_retries}")
             tries += 1
             time.sleep(tries)
-        return None
+        
+        self.warn("Failed to retrieve records after multiple attempts")
+        raise PartialOrNoDataError("Failed to retrieve records after multiple attempts")
 
     # ==========================================================================
     # Methods Implemented in BaseSiteSource and BaseParameterSource
