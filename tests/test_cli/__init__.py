@@ -3,6 +3,7 @@ from logging import shutdown as logger_shutdown
 from pathlib import Path
 import pytest
 from typing import List
+import os
 
 from backend.config import SOURCE_KEYS
 from backend.constants import (
@@ -57,6 +58,7 @@ class BaseCLITestClass:
         bbox: str | None = None,
         county: str | None = None,
         wkt: str | None = None,
+        usgs_api_key: str | None = None,
     ):
         # Arrange
         # turn off all sources except for the one being tested
@@ -99,6 +101,11 @@ class BaseCLITestClass:
             arguments.extend([f"--{geographic_filter_name}", geographic_filter_value])
 
         arguments.extend(no_agencies)
+
+        # save original USGS_API_KEY to reset after test, and set to test value if provided
+        original_usgs_api_key = os.getenv("USGS_API_KEY", None)
+        if usgs_api_key:
+            arguments.extend(["--usgs-api-key", usgs_api_key])
 
         # Act
         result = self.runner.invoke(weave, arguments, standalone_mode=False)
@@ -177,9 +184,20 @@ class BaseCLITestClass:
 
             # 9
             assert getattr(config, "output_format") == output_format
+
+            # 10
+            if usgs_api_key:
+                assert os.getenv("USGS_API_KEY") == usgs_api_key
+
         except Exception as e:
             print(result)
             assert False
+        finally:
+            # reset USGS_API_KEY to original value after test
+            if original_usgs_api_key is not None:
+                os.environ["USGS_API_KEY"] = original_usgs_api_key
+            else:
+                os.environ.pop("USGS_API_KEY", None)
 
     def test_weave_summary(self):
         self._test_weave(parameter=WATERLEVELS, output_type="summary")
@@ -215,6 +233,13 @@ class BaseCLITestClass:
             parameter=WATERLEVELS,
             output_type="summary",
             wkt="POLYGON((-106.0 32.0, -102.0 32.0, -102.0 36.0, -106.0 36.0, -106.0 32.0))",
+        )
+
+    def test_weave_usgs_api_key(self):
+        self._test_weave(
+            parameter=WATERLEVELS,
+            output_type="summary",
+            usgs_api_key="TEST_API_KEY",
         )
 
     def test_weave_waterlevels(self):

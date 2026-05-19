@@ -1,4 +1,5 @@
 click==8.2.1
+python-dotenv
 flask
 frost_sta_client
 Geoalchemy2

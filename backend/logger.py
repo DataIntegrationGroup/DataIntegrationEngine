@@ -20,6 +20,10 @@ import os
 import click
 
 
+# Track handlers created by this module to avoid closing unrelated handlers
+_managed_handlers = []
+
+
 class Loggable:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -39,6 +43,7 @@ class Loggable:
 
 
 def setup_logging(level=None, log_format=None, path=None):
+    global _managed_handlers
 
     if level is None:
         level = logging.DEBUG
@@ -50,6 +55,12 @@ def setup_logging(level=None, log_format=None, path=None):
     root = logging.getLogger()
     root.setLevel(level)
 
+    # Remove only the RotatingFileHandler instances we created
+    for handler in _managed_handlers:
+        root.removeHandler(handler)
+        handler.close()
+    _managed_handlers.clear()
+
     if path is None:
         path = "die.log"
     else:
@@ -57,6 +68,7 @@ def setup_logging(level=None, log_format=None, path=None):
 
     # shandler = logging.StreamHandler()
     rhandler = RotatingFileHandler(path, maxBytes=1e8, backupCount=50)
+    _managed_handlers.append(rhandler)
 
     handlers = [rhandler]
 
