@@ -119,6 +119,7 @@ class BasePersister(Loggable):
                 self.log("no sites to dump", fg="red")
         except Exception as e:
             self.warn(f"failed to dump sites: {e}")
+            raise e
 
     def dump_summary(self, path: str):
         try:
@@ -131,7 +132,8 @@ class BasePersister(Loggable):
                 self.log("no records to dump", fg="red")
         except Exception as e:
             self.warn(f"failed to dump summary: {e}")
-
+            raise e
+        
     def dump_timeseries_unified(self, path: str):
         try:
             if self.timeseries:
@@ -143,6 +145,7 @@ class BasePersister(Loggable):
                 self.log("no timeseries records to dump", fg="red")
         except Exception as e:
             self.warn(f"failed to dump unified timeseries: {e}")
+            raise e
 
     def dump_timeseries_separated(self, path: str):
         try:
@@ -163,6 +166,7 @@ class BasePersister(Loggable):
                 self.log("no timeseries records to dump", fg="red")
         except Exception as e:
             self.warn(f"failed to dump separated timeseries: {e}")
+            raise e
 
     def add_extension(self, path: str, extension: OutputFormat):
         if not extension:
