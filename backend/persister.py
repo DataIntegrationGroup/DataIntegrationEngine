@@ -133,7 +133,7 @@ class BasePersister(Loggable):
         except Exception as e:
             self.warn(f"failed to dump summary: {e}")
             raise
-        
+
     def dump_timeseries_unified(self, path: str):
         try:
             if self.timeseries:
