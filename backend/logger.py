@@ -28,15 +28,15 @@ class Loggable:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def log(self, msg, level=None, fg="yellow"):
+    def log(self, msg, level=None, fg="yellow", **kwargs):
         if level is None:
             level = logging.INFO
 
         click.secho(f"{self.__class__.__name__:40s}{msg}", fg=fg)
-        self.logger.log(level, msg)
+        self.logger.log(level, msg, **kwargs)
 
-    def warn(self, msg, fg="red"):
-        self.log(msg, fg=fg, level=logging.WARNING)
+    def warn(self, msg, fg="red", **kwargs):
+        self.log(msg, fg=fg, level=logging.WARNING, **kwargs)
 
     def debug(self, msg):
         self.log(msg, level=logging.DEBUG, fg="blue")
