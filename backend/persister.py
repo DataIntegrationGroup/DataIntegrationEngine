@@ -42,7 +42,7 @@ def dump_timeseries(path, timeseries: list[list]):
     of timeseries separated, the inner list will contain the records for a single site
     and this function will be called multiple times, once for each site.
     """
-    with open(path, "w", newline="", encoding="utf-8-sig") as f:
+    with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         headers_have_not_been_written = True
         for i, records in enumerate(timeseries):
@@ -55,7 +55,7 @@ def dump_timeseries(path, timeseries: list[list]):
 
 def dump_sites_summary(path, records, output_format: OutputFormat):
     if output_format == OutputFormat.CSV:
-        with open(path, "w", newline="", encoding="utf-8-sig") as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             for i, site in enumerate(records):
                 if i == 0:
