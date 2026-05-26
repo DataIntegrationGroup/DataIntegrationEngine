@@ -156,12 +156,12 @@ class BasePersister(Loggable):
                 self._make_output_directory(timeseries_path)
                 for records in self.timeseries:
                     site_id = records[0].id
-                    path = os.path.join(timeseries_path, str(site_id).replace(" ", "_"))
-                    path = self.add_extension(path, OutputFormat.CSV.value)
-                    self.log(f"dumping {site_id} to {os.path.abspath(path)}")
+                    site_path = os.path.join(timeseries_path, str(site_id).replace(" ", "_"))
+                    site_path = self.add_extension(site_path, OutputFormat.CSV.value)
+                    self.log(f"dumping {site_id} to {os.path.abspath(site_path)}")
 
                     list_of_records = [records]
-                    self._dump_timeseries(path, list_of_records)
+                    self._dump_timeseries(site_path, list_of_records)
             else:
                 self.log("no timeseries records to dump", fg="red")
         except Exception as e:
