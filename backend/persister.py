@@ -42,7 +42,7 @@ def dump_timeseries(path, timeseries: list[list]):
     of timeseries separated, the inner list will contain the records for a single site
     and this function will be called multiple times, once for each site.
     """
-    with open(path, "w", newline="") as f:
+    with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         headers_have_not_been_written = True
         for i, records in enumerate(timeseries):
@@ -55,7 +55,7 @@ def dump_timeseries(path, timeseries: list[list]):
 
 def dump_sites_summary(path, records, output_format: OutputFormat):
     if output_format == OutputFormat.CSV:
-        with open(path, "w", newline="") as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             for i, site in enumerate(records):
                 if i == 0:
@@ -83,7 +83,7 @@ def dump_sites_summary(path, records, output_format: OutputFormat):
         ]
         feature_collection = {"type": "FeatureCollection", "features": features}
 
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(feature_collection, f, indent=4)
 
 
@@ -109,48 +109,64 @@ class BasePersister(Loggable):
         pass
 
     def dump_sites(self, path: str):
-        if self.sites:
-            path = os.path.join(path, "sites")
-            path = self.add_extension(path, self.config.output_format)
-            self.log(f"dumping sites to {os.path.abspath(path)}")
-            self._dump_sites_summary(path, self.sites, self.config.output_format)
-        else:
-            self.log("no sites to dump", fg="red")
+        try:
+            if self.sites:
+                path = os.path.join(path, "sites")
+                path = self.add_extension(path, self.config.output_format)
+                self.log(f"dumping sites to {os.path.abspath(path)}")
+                self._dump_sites_summary(path, self.sites, self.config.output_format)
+            else:
+                self.log("no sites to dump", fg="red")
+        except Exception as e:
+            self.warn(f"failed to dump sites: {e}", exc_info=True)
+            raise
 
     def dump_summary(self, path: str):
-        if self.records:
-            path = os.path.join(path, "summary")
-            path = self.add_extension(path, self.config.output_format)
-            self.log(f"dumping summary to {os.path.abspath(path)}")
-            self._dump_sites_summary(path, self.records, self.config.output_format)
-        else:
-            self.log("no records to dump", fg="red")
+        try:
+            if self.records:
+                path = os.path.join(path, "summary")
+                path = self.add_extension(path, self.config.output_format)
+                self.log(f"dumping summary to {os.path.abspath(path)}")
+                self._dump_sites_summary(path, self.records, self.config.output_format)
+            else:
+                self.log("no records to dump", fg="red")
+        except Exception as e:
+            self.warn(f"failed to dump summary: {e}", exc_info=True)
+            raise
 
     def dump_timeseries_unified(self, path: str):
-        if self.timeseries:
-            path = os.path.join(path, "timeseries_unified")
-            path = self.add_extension(path, OutputFormat.CSV.value)
-            self.log(f"dumping unified timeseries to {os.path.abspath(path)}")
-            self._dump_timeseries(path, self.timeseries)
-        else:
-            self.log("no timeseries records to dump", fg="red")
+        try:
+            if self.timeseries:
+                path = os.path.join(path, "timeseries_unified")
+                path = self.add_extension(path, OutputFormat.CSV.value)
+                self.log(f"dumping unified timeseries to {os.path.abspath(path)}")
+                self._dump_timeseries(path, self.timeseries)
+            else:
+                self.log("no timeseries records to dump", fg="red")
+        except Exception as e:
+            self.warn(f"failed to dump unified timeseries: {e}", exc_info=True)
+            raise
 
     def dump_timeseries_separated(self, path: str):
-        if self.timeseries:
-            # make timeseries path inside of config.output_path to which
-            # the individual site timeseries will be dumped
-            timeseries_path = os.path.join(path, "timeseries")
-            self._make_output_directory(timeseries_path)
-            for records in self.timeseries:
-                site_id = records[0].id
-                path = os.path.join(timeseries_path, str(site_id).replace(" ", "_"))
-                path = self.add_extension(path, OutputFormat.CSV.value)
-                self.log(f"dumping {site_id} to {os.path.abspath(path)}")
+        try:
+            if self.timeseries:
+                # make timeseries path inside of config.output_path to which
+                # the individual site timeseries will be dumped
+                timeseries_path = os.path.join(path, "timeseries")
+                self._make_output_directory(timeseries_path)
+                for records in self.timeseries:
+                    site_id = records[0].id
+                    site_path = os.path.join(timeseries_path, str(site_id).replace(" ", "_"))
+                    site_path = self.add_extension(site_path, OutputFormat.CSV.value)
+                    self.log(f"dumping {site_id} to {os.path.abspath(site_path)}")
 
-                list_of_records = [records]
-                self._dump_timeseries(path, list_of_records)
-        else:
-            self.log("no timeseries records to dump", fg="red")
+                    list_of_records = [records]
+                    self._dump_timeseries(site_path, list_of_records)
+            else:
+                self.log("no timeseries records to dump", fg="red")
+        except Exception as e:
+            self.warn(f"failed to dump separated timeseries: {e}", exc_info=True)
+            raise
 
     def add_extension(self, path: str, extension: OutputFormat):
         if not extension:
