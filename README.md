@@ -204,6 +204,21 @@ or
 die sites --usgs-api-key FAKE_API_KEY
 ```
 
+### Encoding
+
+The exported files are encoded with `utf-8`. When opening the files in Python or another programming language ensure that they are opened with the same `utf-8` encoding.
+
+#### Working in Excel
+
+Because the csv files are not encoded with `utf-8-sig`, when opened in Excel special characters may be displayed incorrectly (such as μ appearing garbled). `utf-8-sig` includes a Byte Order Mark (BOM) that tells Excel the file is `utf-8` encoded. To view the characters properly, follow these steps:
+
+1. Go to the `Data` tab and click on `Get Data`
+2. Choose `Text/CSV` and select the file to open
+3. Under `File origin` select `65001: Unicode (UTF-8)`
+4. Under `Delimiter` select `Comma`
+5. Load the data
+
+
 ### Geographic Filters [In Development]
 
 The following flags can be used to geographically filter data:
