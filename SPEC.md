@@ -904,7 +904,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.26 [.] `PersisterFactory` extracted from `Unifier`
+### §T.26 [x] `PersisterFactory` extracted from `Unifier`
 **Goal:** Remove persister selection if/else from `_unify_parameter()`.
 
 **Changes:**

@@ -20,11 +20,7 @@ from backend.logger import make_logger, setup_logging
 
 _log = make_logger("unifier")
 from backend.constants import WATERLEVELS
-from backend.persister import BasePersister
-try:
-    from backend.persisters.geoserver import GeoServerPersister
-except ImportError:
-    GeoServerPersister = None
+from backend.persisters.factory import make_persister
 from backend.source import BaseSiteSource
 from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
 
@@ -250,15 +246,7 @@ def _unify_parameter(
     sources,
 ):
 
-    if config.output_format == OutputFormat.GEOSERVER:
-        if GeoServerPersister is None:
-            raise ImportError(
-                "GeoServer output requires 'geoserver' extras: "
-                "pip install nmuwd[geoserver]"
-            )
-        persister = GeoServerPersister(config)
-    else:
-        persister = BasePersister(config)
+    persister = make_persister(config)
 
     for site_source, parameter_source in sources:
         _site_wrapper(
