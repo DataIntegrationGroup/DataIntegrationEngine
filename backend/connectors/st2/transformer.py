@@ -17,12 +17,12 @@ import pprint
 import sys
 
 from backend.connectors.st_connector import STSiteTransformer
-from backend.record import SiteRecord, WaterLevelRecord
+from backend.record import SiteRecord
+from backend.converter import StandardUnitConverter
 from backend.transformer import (
     BaseTransformer,
     WaterLevelTransformer,
     SiteTransformer,
-    convert_units,
 )
 
 
@@ -73,7 +73,7 @@ class CABQSiteTransformer(STSiteTransformer):
             try:
                 thing = record.things._entities[0]
                 stickup_height_ft = thing._properties["stickup_height"]["value"]
-                stickup_height_m, conversion_factor, warning_msg = convert_units(
+                stickup_height_m, conversion_factor, warning_msg = StandardUnitConverter().convert(
                     stickup_height_ft, "ft", "m", "stickup_height", "stickup_height"
                 )
                 elevation = elevation - stickup_height_m

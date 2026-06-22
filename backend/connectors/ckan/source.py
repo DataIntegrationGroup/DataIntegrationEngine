@@ -62,7 +62,7 @@ class CKANSource:
             raise NotImplementedError("base_url is not set")
 
         if self._cached_response is None:
-            self._cached_response = httpx.get(self.base_url, params=self._get_params())
+            self._cached_response = self._http_client.get(self.base_url, params=self._get_params())
 
         return self._cached_response
 
@@ -91,9 +91,8 @@ class OSERoswellSource(NMWDICKANSource):
 
 
 class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
-    transformer_klass = OSERoswellSiteTransformer
-
     def __init__(self, resource_id, **kw):
+        kw.setdefault("transformer", OSERoswellSiteTransformer())
         super().__init__(resource_id, **kw)
         if resource_id == HONDO_RESOURCE_ID:
             self.bounding_polygon = OSE_ROSWELL_HONDO_BOUNDING_POLYGON
@@ -108,7 +107,7 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
     def health(self):
         params = self._get_params()
         params["limit"] = 1
-        resp = httpx.get(self.base_url, params=params)
+        resp = self._http_client.get(self.base_url, params=params)
         return resp.status_code == 200
 
     def _parse_response(self, resp):
@@ -123,7 +122,9 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
 
 
 class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
-    transformer_klass = OSERoswellWaterLevelTransformer
+    def __init__(self, resource_id=None, **kw):
+        kw.setdefault("transformer", OSERoswellWaterLevelTransformer())
+        super().__init__(resource_id, **kw)
 
     def __repr__(self):
         return "NMOSERoswellWaterLevelSource"
@@ -138,8 +139,8 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
     def _extract_source_parameter_results(self, records):
         return [float(r["DTWGS"]) for r in records]
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, tag="Date", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, tag="Date", position=position)
         return {
             "value": record["DTWGS"],
             "datetime": record["Date"],

@@ -15,7 +15,7 @@
 # ===============================================================================
 import pprint
 
-from backend.record import SiteRecord, AnalyteSummaryRecord
+from backend.record import SiteRecord
 from backend.transformer import (
     BaseTransformer,
     SiteTransformer,

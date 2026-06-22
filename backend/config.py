@@ -76,6 +76,27 @@ from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLeve
 from backend.logger import make_logger
 
 
+PARAMETER_SOURCE_MAP = {
+    WATERLEVELS: {"agencies": ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]},
+    CARBONATE: {"agencies": ["nmbgmr_amp", "wqp"]},
+    ARSENIC: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]},
+    URANIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]},
+    SPECIFIC_CONDUCTANCE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    CONDUCTIVITY: {"agencies": ["bor", "nmose_isc_seven_rivers", "wqp"]},
+    BICARBONATE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    CALCIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    CHLORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    FLUORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    MAGNESIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    NITRATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    PH: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    POTASSIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    SILICA: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    SODIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    SULFATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    TDS: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+}
+
 SOURCE_DICT = {
     "bernco": BernCoSiteSource,
     "bor": BORSiteSource,
@@ -218,113 +239,18 @@ class Config:
             self.warn(f"Config file {path} not found")
 
     def get_config_and_false_agencies(self):
-        if self.parameter == WATERLEVELS:
-            config_agencies = [
-                "bernco",
-                "cabq",
-                "ebid",
-                "nmbgmr_amp",
-                "nmose_isc_seven_rivers",
-                "nmose_roswell",
-                "nwis",
-                "pvacd",
-                "wqp",
-            ]
-            false_agencies = ["bor", "nmose_pod", "nmed_dwb"]
-        elif self.parameter == CARBONATE:
-            config_agencies = ["nmbgmr_amp", "wqp"]
-            false_agencies = [
-                "bor",
-                "bernco",
-                "cabq",
-                "ebid",
-                "nmed_dwb",
-                "nmose_isc_seven_rivers",
-                "nmose_pod",
-                "nmose_roswell",
-                "nwis",
-                "pvacd",
-            ]
-        elif self.parameter in [ARSENIC, URANIUM]:
-            config_agencies = ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]
-            false_agencies = [
-                "bernco",
-                "cabq",
-                "ebid",
-                "nmose_isc_seven_rivers",
-                "nmose_roswell",
-                "nmose_pod",
-                "nwis",
-                "pvacd",
-            ]
-        elif self.parameter in [SPECIFIC_CONDUCTANCE]:
-            config_agencies = ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]
-            false_agencies = [
-                "bor",
-                "bernco",
-                "cabq",
-                "ebid",
-                "nmose_roswell",
-                "nmose_pod",
-                "nwis",
-                "pvacd",
-            ]
-        elif self.parameter in [CONDUCTIVITY]:
-            config_agencies = ["bor", "nmose_isc_seven_rivers", "wqp"]
-            false_agencies = [
-                "bor",
-                "bernco",
-                "cabq",
-                "ebid",
-                "nmbgmr_amp",
-                "nmed_dwb",
-                "nmose_roswell",
-                "nmose_pod",
-                "nwis",
-                "pvacd",
-            ]
-        elif self.parameter in [BICARBONATE]:
-            config_agencies = ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]
-            false_agencies = [
-                "bor",
-                "bernco",
-                "cabq",
-                "ebid",
-                "nmose_roswell",
-                "nmose_pod",
-                "nwis",
-                "pvacd",
-            ]
-        elif self.parameter in [
-            CALCIUM,
-            CHLORIDE,
-            FLUORIDE,
-            MAGNESIUM,
-            NITRATE,
-            PH,
-            POTASSIUM,
-            SILICA,
-            SODIUM,
-            SULFATE,
-            TDS,
-        ]:
-            config_agencies = [
-                "bor",
-                "nmbgmr_amp",
-                "nmed_dwb",
-                "nmose_isc_seven_rivers",
-                "wqp",
-            ]
-            false_agencies = [
-                "bernco",
-                "cabq",
-                "ebid",
-                "nmose_roswell",
-                "nmose_pod",
-                "nwis",
-                "pvacd",
-            ]
+        entry = PARAMETER_SOURCE_MAP.get(self.parameter)
+        if entry is None:
+            raise ValueError(f"Unknown parameter {self.parameter!r}. Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}")
+        config_agencies = entry["agencies"]
+        false_agencies = [a for a in SOURCE_KEYS if a not in config_agencies]
         return config_agencies, false_agencies
+
+    def _build_source_pair(self, site_klass, param_klass):
+        s, ss = site_klass(), param_klass()
+        s.set_config(self)
+        ss.set_config(self)
+        return s, ss
 
     def finalize(self):
         self._update_output_units()
@@ -348,56 +274,28 @@ class Config:
         return sources
 
     def analyte_sources(self):
-        sources = []
-
-        if self.use_source_bor:
-            sources.append((BORSiteSource(), BORAnalyteSource()))
-        if self.use_source_wqp:
-            sources.append((WQPSiteSource(), WQPAnalyteSource()))
-        if self.use_source_nmose_isc_seven_rivers:
-            sources.append((ISCSevenRiversSiteSource(), ISCSevenRiversAnalyteSource()))
-        if self.use_source_nmbgmr_amp:
-            sources.append((NMBGMRSiteSource(), NMBGMRAnalyteSource()))
-        if self.use_source_nmed_dwb:
-            sources.append((DWBSiteSource(), DWBAnalyteSource()))
-
-        for s, ss in sources:
-            s.set_config(self)
-            ss.set_config(self)
-
-        return sources
+        pairs = [
+            (BORSiteSource, BORAnalyteSource, self.use_source_bor),
+            (WQPSiteSource, WQPAnalyteSource, self.use_source_wqp),
+            (ISCSevenRiversSiteSource, ISCSevenRiversAnalyteSource, self.use_source_nmose_isc_seven_rivers),
+            (NMBGMRSiteSource, NMBGMRAnalyteSource, self.use_source_nmbgmr_amp),
+            (DWBSiteSource, DWBAnalyteSource, self.use_source_nmed_dwb),
+        ]
+        return [self._build_source_pair(s, ss) for s, ss, enabled in pairs if enabled]
 
     def water_level_sources(self):
-        sources = []
-        if self.use_source_nmbgmr_amp:
-            sources.append((NMBGMRSiteSource(), NMBGMRWaterLevelSource()))
-
-        if self.use_source_nmose_isc_seven_rivers:
-            sources.append(
-                (ISCSevenRiversSiteSource(), ISCSevenRiversWaterLevelSource())
-            )
-
-        if self.use_source_nwis:
-            sources.append((NWISSiteSource(), NWISWaterLevelSource()))
-
-        if self.use_source_nmose_roswell:
-            sources.append((NMOSERoswellSiteSource(), NMOSERoswellWaterLevelSource()))
-        if self.use_source_pvacd:
-            sources.append((PVACDSiteSource(), PVACDWaterLevelSource()))
-        if self.use_source_bernco:
-            sources.append((BernCoSiteSource(), BernCoWaterLevelSource()))
-        if self.use_source_ebid:
-            sources.append((EBIDSiteSource(), EBIDWaterLevelSource()))
-        if self.use_source_cabq:
-            sources.append((CABQSiteSource(), CABQWaterLevelSource()))
-        if self.use_source_wqp:
-            sources.append((WQPSiteSource(), WQPWaterLevelSource()))
-
-        for s, ss in sources:
-            s.set_config(self)
-            ss.set_config(self)
-
-        return sources
+        pairs = [
+            (NMBGMRSiteSource, NMBGMRWaterLevelSource, self.use_source_nmbgmr_amp),
+            (ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource, self.use_source_nmose_isc_seven_rivers),
+            (NWISSiteSource, NWISWaterLevelSource, self.use_source_nwis),
+            (NMOSERoswellSiteSource, NMOSERoswellWaterLevelSource, self.use_source_nmose_roswell),
+            (PVACDSiteSource, PVACDWaterLevelSource, self.use_source_pvacd),
+            (BernCoSiteSource, BernCoWaterLevelSource, self.use_source_bernco),
+            (EBIDSiteSource, EBIDWaterLevelSource, self.use_source_ebid),
+            (CABQSiteSource, CABQWaterLevelSource, self.use_source_cabq),
+            (WQPSiteSource, WQPWaterLevelSource, self.use_source_wqp),
+        ]
+        return [self._build_source_pair(s, ss) for s, ss, enabled in pairs if enabled]
 
     def bbox_bounding_points(self, bbox=None):
         if bbox is None:

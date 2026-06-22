@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 from backend.constants import DTW
-from backend.record import SiteRecord, WaterLevelRecord
+from backend.record import SiteRecord
 from backend.transformer import (
     BaseTransformer,
     WaterLevelTransformer,

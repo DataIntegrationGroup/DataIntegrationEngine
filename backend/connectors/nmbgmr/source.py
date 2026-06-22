@@ -60,9 +60,11 @@ def _make_url(endpoint):
 
 
 class NMBGMRSiteSource(BaseSiteSource):
-    transformer_klass = NMBGMRSiteTransformer
     chunk_size = 10
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+
+    def __init__(self):
+        super().__init__(transformer=NMBGMRSiteTransformer())
 
     def __repr__(self):
         return "NMBGMRSiteSource"
@@ -119,7 +121,8 @@ class NMBGMRSiteSource(BaseSiteSource):
 
 
 class NMBGMRAnalyteSource(BaseAnalyteSource):
-    transformer_klass = NMBGMRAnalyteTransformer
+    def __init__(self):
+        super().__init__(transformer=NMBGMRAnalyteTransformer())
 
     def __repr__(self):
         return "NMBGMRAnalyteSource"
@@ -151,8 +154,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     def _extract_source_parameter_units(self, records):
         return [r["Units"] for r in records]
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "info.CollectionDate", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "info.CollectionDate", position=position)
         return {
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
@@ -181,7 +184,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
 
 class NMBGMRWaterLevelSource(BaseWaterLevelSource):
-    transformer_klass = NMBGMRWaterLevelTransformer
+    def __init__(self):
+        super().__init__(transformer=NMBGMRWaterLevelTransformer())
 
     def __repr__(self):
         return "NMBGMRWaterLevelSource"
@@ -203,8 +207,8 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         record[SOURCE_PARAMETER_UNITS] = record["DepthToWaterBGSUnits"]
         return record
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "DateMeasured", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "DateMeasured", position=position)
         return {
             "value": record["DepthToWaterBGS"],
             "datetime": (record["DateMeasured"], record["TimeMeasured"]),

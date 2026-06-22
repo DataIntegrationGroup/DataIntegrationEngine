@@ -63,7 +63,7 @@ class BaseRecord:
 
         # both analyte and water level tables have the same fields, but the
         # rounding should only occur for water level tables
-        if isinstance(self, WaterLevelRecord):
+        if self._payload.get("record_type") == "waterlevels":
             field_sigfigs.append((PARAMETER_VALUE, 2))
 
         for field, sigfigs in field_sigfigs:
@@ -104,14 +104,6 @@ class ParameterRecord(BaseRecord):
     defaults: dict = {}
 
 
-class WaterLevelRecord(ParameterRecord):
-    pass
-
-
-class AnalyteRecord(ParameterRecord):
-    pass
-
-
 class SummaryRecord(BaseRecord):
     keys: tuple = (
         "source",
@@ -142,14 +134,6 @@ class SummaryRecord(BaseRecord):
         "latest_units",
     )
     defaults: dict = {}
-
-
-class WaterLevelSummaryRecord(SummaryRecord):
-    pass
-
-
-class AnalyteSummaryRecord(SummaryRecord):
-    pass
 
 
 class SiteRecord(BaseRecord):

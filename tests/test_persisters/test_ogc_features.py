@@ -3,7 +3,7 @@ import os
 import tempfile
 
 from backend.persisters.ogc_features import dump_summary_collection, dump_timeseries_collection
-from backend.record import SummaryRecord, SiteRecord, WaterLevelRecord
+from backend.record import SummaryRecord, SiteRecord, ParameterRecord
 
 
 def _make_summary_record(source="nmbgmr_amp", rid="RA-1234", lat=35.0, lon=-106.5):
@@ -58,7 +58,7 @@ def _make_site_record(source="nmbgmr_amp", rid="RA-1234", lat=35.0, lon=-106.5):
 
 
 def _make_wl_record(source="nmbgmr_amp", rid="RA-1234", date="2024-01-15", value=212.4):
-    return WaterLevelRecord({
+    return ParameterRecord({
         "source": source,
         "id": rid,
         "parameter_name": "waterlevels",
@@ -69,6 +69,7 @@ def _make_wl_record(source="nmbgmr_amp", rid="RA-1234", date="2024-01-15", value
         "source_parameter_name": "depth_to_water",
         "source_parameter_units": "ft",
         "conversion_factor": 1.0,
+        "record_type": "waterlevels",
     })
 
 

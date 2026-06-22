@@ -16,7 +16,7 @@
 import pprint
 import json
 
-from backend.record import SiteRecord, WaterLevelRecord, AnalyteSummaryRecord
+from backend.record import SiteRecord
 from backend.transformer import (
     BaseTransformer,
     WaterLevelTransformer,

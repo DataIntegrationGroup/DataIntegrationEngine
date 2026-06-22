@@ -514,7 +514,7 @@ Cloud Run Job env vars (from Secret Manager):
 
 ## §9 Tasks
 
-### §T.1 [~] uv migration
+### §T.1 [x] uv migration
 - Delete `setup.py`, `requirements.txt`, `pytest.ini`, `mypy.ini`
 - Write root `pyproject.toml` (§7.1)
 - Run `uv lock`
@@ -666,7 +666,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.11 [.] Replace `STSource` mixin with `STClient` composition
+### §T.11 [x] Replace `STSource` mixin with `STClient` composition
 **Goal:** Kill multiple inheritance in all ST source classes.
 
 **Changes:**
@@ -681,7 +681,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.12 [.] Collapse ST2 class hierarchy into configured instances
+### §T.12 [x] Collapse ST2 class hierarchy into configured instances
 **Goal:** Delete 5 nearly-identical site source classes; replace with factory.
 
 **Affected classes (delete):**
@@ -699,7 +699,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.13 [.] Replace `CloudStoragePersister` with output strategy injection
+### §T.13 [x] Replace `CloudStoragePersister` with output strategy injection
 **Goal:** `BasePersister` accepts an output strategy; `CloudStoragePersister` subclass deleted.
 
 **Changes:**
@@ -727,7 +727,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.14 [.] Inject transformer into source constructor
+### §T.14 [x] Inject transformer into source constructor
 **Goal:** Remove `transformer_klass` class attribute pattern; pass transformer as dependency.
 
 **Changes:**
@@ -740,7 +740,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.15 [.] Collapse empty record subclasses
+### §T.15 [x] Collapse empty record subclasses
 **Goal:** `WaterLevelRecord`, `AnalyteRecord`, `WaterLevelSummaryRecord`, `AnalyteSummaryRecord` add zero behavior — remove them.
 
 **Changes:**
@@ -780,7 +780,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.18 [.] Batch extraction in `BaseParameterSource.read()`
+### §T.18 [x] Batch extraction in `BaseParameterSource.read()`
 **Goal:** Extract dates/results/units/names once before the per-site loop, not once per site.
 
 **Changes:**
@@ -828,7 +828,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.21 [.] Split `BaseParameterSource` god class
+### §T.21 [x] Split `BaseParameterSource` god class
 **Goal:** 476-line class → focused classes ≤150 lines each.
 
 **Changes:**
@@ -842,7 +842,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.22 [.] Split `do_transform()` into focused methods
+### §T.22 [x] Split `do_transform()` into focused methods
 **Goal:** 191-line method → orchestrator + focused helpers ≤30 lines each.
 
 **Changes:**
@@ -858,7 +858,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.23 [.] Data-driven `Config` source setup
+### §T.23 [x] Data-driven `Config` source setup
 **Goal:** Replace ~107-line `if/elif` per parameter in `get_config_and_false_agencies()` with a mapping.
 
 **Changes:**
@@ -871,7 +871,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.24 [.] Inject HTTP client into `BaseSource`
+### §T.24 [x] Inject HTTP client into `BaseSource`
 **Goal:** `httpx.get()` hardcoded → injected client; enables testability without live network.
 
 **Changes:**
@@ -883,7 +883,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.25 [.] `UnitConverter` as injectable strategy
+### §T.25 [x] `UnitConverter` as injectable strategy
 **Goal:** Replace 120+ line `convert_units()` monolith with pluggable converter.
 
 **Changes:**
