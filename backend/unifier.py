@@ -16,7 +16,9 @@
 import shapely
 
 from backend.config import Config, get_source, OutputFormat
-from backend.logger import setup_logging
+from backend.logger import make_logger, setup_logging
+
+_log = make_logger("unifier")
 from backend.constants import WATERLEVELS
 from backend.persister import BasePersister
 try:
@@ -49,7 +51,7 @@ def health_check(source: BaseSiteSource) -> bool | None:
 
 
 def unify_analytes(config):
-    print("Unifying analytes\n")
+    _log.log("Unifying analytes")
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
 
@@ -60,7 +62,7 @@ def unify_analytes(config):
 
 
 def unify_waterlevels(config):
-    print("Unifying waterlevels\n")
+    _log.log("Unifying waterlevels")
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
@@ -72,7 +74,7 @@ def unify_waterlevels(config):
 
 
 def unify_sites(config):
-    print("Unifying sites only\n")
+    _log.log("Unifying sites only")
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
@@ -286,7 +288,7 @@ def get_sources_in_polygon(polygon):
     sources = get_sources()
     rets = []
     for source in sources:
-        print(source)
+        _log.log(str(source))
         if source.intersects(polygon):
             rets.append(source.tag)
     return rets
@@ -405,7 +407,7 @@ def get_datastreams():
     s = get_source("pvacd")
     for si in s.read_sites():
         ds = get_datastream(si.id)
-        print(si, si.id, ds["@iot.id"])
+        _log.log(f"{si} {si.id} {ds['@iot.id']}")
 
 
 # if __name__ == "__main__":

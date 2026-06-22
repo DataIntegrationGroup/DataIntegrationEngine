@@ -23,10 +23,12 @@ from backend import OutputFormat
 from backend.logger import make_logger
 
 
+import logging as _logging
+
 try:
     from google.cloud import storage
 except ImportError:
-    print("google cloud storage not available")
+    _logging.getLogger(__name__).debug("google cloud storage not available")
 
 
 def write_memory(func, records, output_format=None):

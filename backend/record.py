@@ -71,8 +71,7 @@ class BaseRecord:
                 try:
                     v = round(v, sigfigs)
                 except TypeError as e:
-                    print(field, attr)
-                    raise e
+                    raise TypeError(f"rounding failed for field={field!r} attr={attr!r}") from e
                 break
         return v
 

@@ -402,15 +402,10 @@ class BaseSiteSource(BaseSource):
         return self.__class__.__name__.lower().replace("sitesource", "")
 
     def generate_bounding_polygon(self):
-        """
-        Generates a bounding MultiPolygon base on the longitude and latitude
-        of each site record
-        """
         records = self.read_sites()
-        print(records[0].latitude)
+        self.log(str(records[0].latitude))
         mpt = MultiPoint([(r.longitude, r.latitude) for r in records])
-        print(mpt.convex_hull.buffer(1 / 60.0).wkt)
-        # print(mpt.convex_hull.wkt)
+        self.log(mpt.convex_hull.buffer(1 / 60.0).wkt)
 
     def intersects(self, wkt: str) -> bool:
         """

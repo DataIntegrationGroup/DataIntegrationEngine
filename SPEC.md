@@ -793,7 +793,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.19 [.] Replace all `print()` with structured logging
+### §T.19 [x] Replace all `print()` with structured logging
 **Goal:** All console output goes through the logger; no raw `print()` in backend.
 
 **Changes:**
