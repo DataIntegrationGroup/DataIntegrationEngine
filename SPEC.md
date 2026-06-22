@@ -574,8 +574,134 @@ Cloud Run Job env vars (from Secret Manager):
 
 ---
 
+## §10 Composition Refactor
+
+### §10.1 Goals
+
+Replace inheritance-for-code-reuse with injected dependencies. Targets:
+1. `Loggable` base class — used only to get `self.log()` → inject logger
+2. `STSource` mixin via multiple inheritance → `STClient` composed into sources
+3. ST2 class explosion (5 near-identical subclasses) → instances with config
+4. `CloudStoragePersister` overrides `_dump_*` to redirect output → Strategy pattern
+5. Transformer coupled by `transformer_klass` class attribute → inject transformer
+6. Empty record subclasses (`WaterLevelRecord`, `AnalyteRecord`, etc.) → type field
+
+### §10.2 New Branch
+
+```
+feature/composition-refactor   ← branch off main after §T.9 merged
+```
+
+---
+
+### §T.10 [.] Replace `Loggable` base with injected logger
+**Goal:** Remove `Loggable` from the inheritance chain of all classes.
+
+**Changes:**
+- `backend/logger.py`: add `make_logger(name: str) -> Logger` factory function
+- `BaseSource`, `BasePersister`, `BaseTransformer`, `Config`: remove `(Loggable)` base; call `make_logger(self.__class__.__name__)` in `__init__`
+- All `self.log()` / `self.warn()` / `self.debug()` calls: keep working — keep the same helper wrappers as module-level or instance-assigned callables rather than inherited methods
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q`
+
+---
+
+### §T.11 [.] Replace `STSource` mixin with `STClient` composition
+**Goal:** Kill multiple inheritance in all ST source classes.
+
+**Changes:**
+- `backend/connectors/st_connector.py`: extract `STSource` methods into `STClient` class with `__init__(self, url: str)`
+  - `get_service()`, `get_things()`, `_extract_terminal_record()`, `_parse_result()` → methods on `STClient`
+- `STSiteSource(BaseSiteSource, STSource)` → `STSiteSource(BaseSiteSource)` with `self.client = STClient(self.url)`
+- `STWaterLevelSource(STSource, BaseWaterLevelSource)` → `STWaterLevelSource(BaseWaterLevelSource)` with `self.client = STClient(self.url)`
+- `STAnalyteSource(STSource, BaseAnalyteSource)` → `STAnalyteSource(BaseAnalyteSource)` with `self.client = STClient(self.url)`
+- All `self.get_service()` / `self._get_things()` call sites → `self.client.get_service()` / `self.client.get_things()`
+
+**Verification:** `uv run pytest tests/test_sources/ -k "st or bernco or cabq or ebid or pvacd or roswell" -q`
+
+---
+
+### §T.12 [.] Collapse ST2 class hierarchy into configured instances
+**Goal:** Delete 5 nearly-identical site source classes; replace with factory.
+
+**Affected classes (delete):**
+`BernCoSiteSource`, `CABQSiteSource`, `EBIDSiteSource`, `PVACDSiteSource`, `NMOSERoswellSiteSource`
+
+**Changes:**
+- `ST2SiteSource`: accept `agency: str`, `bounding_wkt: str | None`, `transformer_klass` in `__init__`; move per-subclass logic (bounding polygon, filter) into constructor
+- `backend/connectors/st2/source.py` (or equivalent): replace class definitions with module-level instances:
+  ```python
+  BernCoSiteSource = ST2SiteSource(agency="BernCo", bounding_wkt=BERNCO_WKT, transformer_klass=BernCoSiteTransformer)
+  ```
+- `Config.water_level_sources()` / `Config.analyte_sources()`: update to use instances
+
+**Verification:** `uv run pytest tests/test_sources/ -k "bernco or cabq or ebid or pvacd" -q`
+
+---
+
+### §T.13 [.] Replace `CloudStoragePersister` with output strategy injection
+**Goal:** `BasePersister` accepts an output strategy; `CloudStoragePersister` subclass deleted.
+
+**Changes:**
+- Add `backend/persisters/strategies.py`:
+  ```python
+  class OutputStrategy(Protocol):
+      def write(self, name: str, content: bytes) -> None: ...
+      def make_directory(self, path: str) -> None: ...
+
+  class LocalFileStrategy:
+      def write(self, name, content): Path(name).write_bytes(content)
+      def make_directory(self, path): Path(path).mkdir(parents=True, exist_ok=True)
+
+  class GCSStrategy:
+      def __init__(self, bucket_name: str, prefix: str): ...
+      def write(self, name, content): ...  # uploads to GCS
+      def make_directory(self, path): pass  # no-op
+  ```
+- `BasePersister.__init__`: accept `strategy: OutputStrategy = LocalFileStrategy()`
+- All `_dump_*` methods: call `self.strategy.write(...)` instead of `Path.write_*`
+- Delete `CloudStoragePersister` class
+- Update `backend/unifier.py`: create `GCSStrategy` instead of `CloudStoragePersister` when `config.use_cloud_storage`
+
+**Verification:** `uv run pytest tests/ -q --ignore=tests/test_sources`
+
+---
+
+### §T.14 [.] Inject transformer into source constructor
+**Goal:** Remove `transformer_klass` class attribute pattern; pass transformer as dependency.
+
+**Changes:**
+- `BaseSource.__init__`: accept `transformer: BaseTransformer` parameter; remove `self.transformer = self.transformer_klass()`
+- All concrete source classes: remove `transformer_klass` class attribute; pass transformer in `super().__init__(transformer=XTransformer())`
+- `set_config(config)`: still propagates to both source + transformer
+- Tests that construct sources directly: update constructors
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q`
+
+---
+
+### §T.15 [.] Collapse empty record subclasses
+**Goal:** `WaterLevelRecord`, `AnalyteRecord`, `WaterLevelSummaryRecord`, `AnalyteSummaryRecord` add zero behavior — remove them.
+
+**Changes:**
+- `backend/record.py`: delete `WaterLevelRecord`, `AnalyteRecord`, `WaterLevelSummaryRecord`, `AnalyteSummaryRecord`
+- Add `record_type: str` field to `ParameterRecord` and `SummaryRecord` keys
+- `WaterLevelTransformer._get_record_klass()` → returns `ParameterRecord` or `SummaryRecord`; sets `record_type="waterlevels"` in transform
+- `AnalyteTransformer._get_record_klass()` → same pattern with `record_type="analytes"`
+- Grep for `isinstance(r, WaterLevelRecord)` etc. — update to `r.record_type == "waterlevels"`
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q`
+
+---
+
 ## §V Invariants
 
+- No class MUST inherit `Loggable` — use `make_logger()` factory (§T.10)
+- No ST source class MUST use multiple inheritance — `STClient` injected as `self.client` (§T.11)
+- ST2 per-agency behavior MUST be expressed as constructor args, not subclasses (§T.12)
+- `BasePersister` MUST NOT contain GCS-specific logic — output target injected via strategy (§T.13)
+- Source classes MUST NOT declare `transformer_klass` — transformer passed to `__init__` (§T.14)
+- `WaterLevelRecord`, `AnalyteRecord`, `WaterLevelSummaryRecord`, `AnalyteSummaryRecord` MUST NOT exist (§T.15)
 - Orchestration code MUST NOT appear in `[tool.hatch.build.targets.wheel].packages`
 - OGC FC output MUST include top-level `id`, `type`, `numberReturned`, `timeStamp`
 - Each Feature MUST have top-level `id` (not only in properties)
