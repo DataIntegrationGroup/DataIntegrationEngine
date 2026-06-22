@@ -163,51 +163,32 @@ class BaseSource:
     # ==========================================================================
 
     def _execute_text_request(self, url: str, params: dict | None = None, max_tries: int = 7, **kw) -> str:
-        """
-        Executes a get request to the provided url and returns the text response.
-
-        Parameters
-        ----------
-        url : str
-            the url to request
-
-        params : dict
-            key-value query parameters to pass to the get request
-
-        max_tries : int
-            the maximum number of times to retry the request if it fails
-
-        Returns
-        -------
-        str
-            the text responses
-        """
         if "timeout" not in kw:
-            kw["timeout"] = 10
+            kw["timeout"] = 900
 
         tries: int = 0
-
+        last_err: str = ""
         while tries < max_tries:
+            t0 = time.monotonic()
             try:
                 resp = httpx.get(url, params=params, **kw)
+                elapsed = int((time.monotonic() - t0) * 1000)
+                self.log(
+                    f"HTTP GET source={self.tag} status={resp.status_code} attempt={tries+1}/{max_tries} elapsed_ms={elapsed} url={url}"
+                )
                 if resp.status_code == 200:
                     return resp.text
-                else:
-                    self.warn(f"service responded with status {resp.status_code}")
-                    self.warn(f"service responded with text {resp.text}")
-                    self.warn(f"URL: {url}")
-                    self.warn(f"Parameters: {params}")
-                    self.warn(f"Retrying... {tries+1}/{max_tries}")
-            except Exception as e:
-                self.warn(f"Error during request: {e}")
-                self.warn(f"URL: {url}")
-                self.warn(f"Parameters: {params}")
-                self.warn(f"Retrying... {tries+1}/{max_tries}")
+                last_err = f"status {resp.status_code}: {resp.text[:200]}"
+                self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_tries}")
+            except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
+                elapsed = int((time.monotonic() - t0) * 1000)
+                last_err = str(e)
+                self.warn(f"Request error attempt={tries+1}/{max_tries} elapsed_ms={elapsed} url={url}: {e}")
             tries += 1
-            time.sleep(tries)
+            time.sleep(min(2 ** tries, 60))
 
-        self.warn("Failed to retrieve records after multiple attempts")
-        raise PartialOrNoDataError("Failed to retrieve records after multiple attempts")
+        self.warn(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
+        raise PartialOrNoDataError(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
 
     def _execute_json_request(
         self,
@@ -217,59 +198,37 @@ class BaseSource:
         max_retries: int = 7,
         **kw
     ) -> dict:
-        """
-        Executes a get request to the provided url and returns the json response.
-
-        Parameters
-        ----------
-        url : str
-            the url to request
-
-        params : dict
-            key-value query parameters to pass to the get request
-
-        tag : str
-            the key to extract from the json response if required
-        
-        max_retries : int
-            the maximum number of times to retry the request if it fails
-
-        Returns
-        -------
-        dict
-            the json response
-        """
         tries: int = 0
+        last_err: str = ""
         while tries < max_retries:
+            t0 = time.monotonic()
             try:
                 resp = httpx.get(url, params=params, **kw)
-
+                elapsed = int((time.monotonic() - t0) * 1000)
+                self.log(
+                    f"HTTP GET source={self.tag} status={resp.status_code} attempt={tries+1}/{max_retries} elapsed_ms={elapsed} url={url}"
+                )
                 if resp.status_code == 200:
                     try:
                         obj = resp.json()
                         if tag and isinstance(obj, dict):
                             return obj[tag]
                         return obj
-                    except JSONDecodeError:
-                        self.warn(f"service responded but with invalid or no JSON data. \n{resp.text}")
-                        self.warn(f"URL: {url}")
-                        self.warn(f"Parameters: {params}")
-                        self.warn(f"Retrying... {tries+1}/{max_retries}")
+                    except JSONDecodeError as e:
+                        last_err = f"JSONDecodeError: {e}. Response: {resp.text[:200]}"
+                        self.warn(f"Invalid JSON response attempt={tries+1}/{max_retries} url={url}: {last_err}")
                 else:
-                    self.warn(f"service responded with status {resp.status_code}")
-                    self.warn(f"service responded with text {resp.text} for url {resp.url}")
-                    self.warn(f"Parameters: {params}")
-                    self.warn(f"Retrying... {tries+1}/{max_retries}")
-            except Exception as e:
-                self.warn(f"Error during request: {e}")
-                self.warn(f"URL: {url}")
-                self.warn(f"Parameters: {params}")
-                self.warn(f"Retrying... {tries+1}/{max_retries}")
+                    last_err = f"status {resp.status_code}: {resp.text[:200]}"
+                    self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_retries}")
+            except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
+                elapsed = int((time.monotonic() - t0) * 1000)
+                last_err = str(e)
+                self.warn(f"Request error attempt={tries+1}/{max_retries} elapsed_ms={elapsed} url={url}: {e}")
             tries += 1
-            time.sleep(tries)
-        
-        self.warn("Failed to retrieve records after multiple attempts")
-        raise PartialOrNoDataError("Failed to retrieve records after multiple attempts")
+            time.sleep(min(2 ** tries, 60))
+
+        self.warn(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
+        raise PartialOrNoDataError(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
 
     # ==========================================================================
     # Methods Implemented in BaseSiteSource and BaseParameterSource

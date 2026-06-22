@@ -754,7 +754,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.16 [.] Exponential backoff + request structured logging
+### §T.16 [x] Exponential backoff + request structured logging
 **Goal:** Fix linear retry backoff; add per-request structured log entries.
 
 **Changes:**
