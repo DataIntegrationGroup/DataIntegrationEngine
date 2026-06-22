@@ -574,9 +574,69 @@ Cloud Run Job env vars (from Secret Manager):
 
 ---
 
-## §10 Composition Refactor
+## §10 Backend Improvements
 
-### §10.1 Goals
+### §10.1 Performance
+
+**Retry backoff** (`_execute_text_request`, `_execute_json_request` in `source.py`): linear `time.sleep(tries)` → exponential backoff capped at 60s.
+
+**Polygon re-parse per record** (`BaseTransformer.contained()`, `transformer.py`): `_cached_polygon` is set at instance level but `config.bounding_wkt()` is called on every record. Cache shapely object permanently at first call.
+
+**Redundant list extraction in `BaseParameterSource.read()`** (`source.py`): `_extract_parameter_dates()`, `_extract_source_parameter_results()`, `_extract_source_parameter_units()`, `_extract_source_parameter_names()` called independently per site, each iterating the same `records` list. Batch extract once before loop.
+
+### §10.2 Reliability
+
+**Bare `except Exception`** (`_execute_text_request` line ~241, `_site_wrapper` in `unifier.py`): catches everything including `KeyboardInterrupt` siblings. Catch `httpx.HTTPError`, `httpx.TimeoutException`, `json.JSONDecodeError` specifically. Log full traceback.
+
+**No coordinate range validation** (`do_transform()` in `transformer.py`): checks `x == 0 or y == 0` but not whether lng/lat are in valid ranges (−180..180, −90..90). Silent pass-through of bogus coords.
+
+**Unchecked unit conversion** (`convert_units()` `transformer.py`): returns `None` if `die_parameter_name` is unrecognized, propagates silently into record payload.
+
+**`with` statement missing on file open** (`Config._load_from_yaml()` `config.py`): unclosed handle on read failure.
+
+**Manual slice rollback** (`_site_wrapper()` `unifier.py` lines ~183–202): slices `persister.records/timeseries/sites` back to pre-chunk length on error. Fragile — an atomic checkpoint abstraction is safer.
+
+### §10.3 Observability
+
+**`print()` instead of logger** (multiple): `generate_bounding_polygon()` in `source.py`, lines ~52/63/75 in `unifier.py`, line ~29 in `persister.py`. None go through `self.log()`.
+
+**No request timing** (`_execute_text_request/json_request`): no record of latency, retry count, or which URL failed. Add structured log entry: `source`, `url`, `status_code`, `attempt`, `elapsed_ms` on every attempt.
+
+**Low-information warnings**: "Failed to retrieve records after multiple attempts" doesn't include URL, params, or last exception.
+
+**No transform failure metrics** (`do_transform()` `transformer.py`): returns `None` silently. Caller doesn't know how many records were dropped and why.
+
+**No chunk progress** (`_site_wrapper()` `unifier.py`): no log of chunk index, site count per chunk, or timing.
+
+### §10.4 Readability
+
+**`BaseParameterSource` god class** (`source.py`, ~476 lines): handles extraction, validation, unit conversion, and summarization in one class + one 167-line `read()` method with 5 levels of nesting. Split into: `RecordExtractor`, `RecordValidator`, `RecordSummarizer`.
+
+**`do_transform()` god method** (`transformer.py`, ~191 lines): 6 sequential transform steps in one method body. Extract each into `_apply_datum_transform()`, `_apply_elevation_transform()`, `_apply_well_depth_transform()`, `_apply_unit_conversion()`.
+
+**`Config.get_config_and_false_agencies()`** (`config.py`, ~107 lines): repetitive `if/elif` per parameter. Replace with a dict mapping `parameter → (agency_defaults, source_classes)`.
+
+**`start_ind` / `end_ind` in `BaseParameterSource.read()`**: only used for logging but add confusion. Rename or remove if unused.
+
+**`bookend` naming** (`_extract_terminal_record()`): unclear. Rename to `position` or use `Literal["earliest", "latest"]`.
+
+### §10.5 Additional Composition (Sources / Transformers / Unifier)
+
+**HTTP client injection** (`BaseSource`): uses `httpx.get()` directly. Inject `httpx.Client` (or a protocol) so retry policy is testable and swappable.
+
+**Config post-construction injection** (`set_config()` on both `BaseSource` and `BaseTransformer`): config is required to function. Move to `__init__` param with `Optional` type; keep `set_config()` only as override for unifier's late binding.
+
+**`RecordExtractor` protocol** (`BaseParameterSource`): the 8 abstract `_extract_*` methods form an implicit interface. Define an explicit `ParameterExtractor` Protocol; `BaseParameterSource` accepts one in `__init__`. Enables injecting fake extractors in tests.
+
+**`UnitConverter` strategy** (`convert_units()` in `transformer.py`): 120+ line monolithic function. Extract to `UnitConverter` class; inject into `BaseTransformer`. Enables per-source custom conversions.
+
+**Persister factory in `unifier.py`**: `_unify_parameter()` contains if/else to pick persister class. Extract to `PersisterFactory(config) -> BasePersister`; inject factory into `Unifier.__init__`.
+
+---
+
+## §11 Composition Refactor
+
+### §11.1 Goals
 
 Replace inheritance-for-code-reuse with injected dependencies. Targets:
 1. `Loggable` base class — used only to get `self.log()` → inject logger
@@ -586,7 +646,7 @@ Replace inheritance-for-code-reuse with injected dependencies. Targets:
 5. Transformer coupled by `transformer_klass` class attribute → inject transformer
 6. Empty record subclasses (`WaterLevelRecord`, `AnalyteRecord`, etc.) → type field
 
-### §10.2 New Branch
+### §11.2 New Branch
 
 ```
 feature/composition-refactor   ← branch off main after §T.9 merged
@@ -694,8 +754,189 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
+### §T.16 [.] Exponential backoff + request structured logging
+**Goal:** Fix linear retry backoff; add per-request structured log entries.
+
+**Changes:**
+- `backend/source.py` `_execute_text_request()` + `_execute_json_request()`:
+  - Replace `time.sleep(tries)` with `time.sleep(min(2 ** tries, 60))`
+  - After each attempt log: `source`, `url`, `status_code`, `attempt`, `elapsed_ms`
+  - Catch `httpx.HTTPStatusError`, `httpx.TimeoutException`, `httpx.RequestError` specifically — no bare `except Exception`
+  - Include last exception message in "Failed after N attempts" warning
+
+**Verification:** `uv run pytest tests/test_cli/ -q`
+
+---
+
+### §T.17 [.] Cache bounding polygon at class level
+**Goal:** Prevent re-parsing WKT shapely object on every record.
+
+**Changes:**
+- `backend/transformer.py` `BaseTransformer.contained()`:
+  - Move `_cached_polygon` from instance variable to class-level cache keyed on WKT string (e.g. `_polygon_cache: dict[str, Polygon] = {}`)
+  - First call for a given WKT parses and caches; subsequent calls return cached object
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q` + manual timing on 1000-record transform
+
+---
+
+### §T.18 [.] Batch extraction in `BaseParameterSource.read()`
+**Goal:** Extract dates/results/units/names once before the per-site loop, not once per site.
+
+**Changes:**
+- `backend/source.py` `BaseParameterSource.read()`:
+  - Call `_extract_parameter_dates()`, `_extract_source_parameter_results()`, `_extract_source_parameter_units()`, `_extract_source_parameter_names()` once on full `cleaned` records before the site loop
+  - Pass extracted lists into inner loop rather than re-extracting per site
+  - Extract 167-line `read()` body into `_summarize_records()` and `_build_timeseries_records()` helpers (≤50 lines each)
+
+**Verification:** `uv run pytest tests/test_cli/ -q`
+
+---
+
+### §T.19 [.] Replace all `print()` with structured logging
+**Goal:** All console output goes through the logger; no raw `print()` in backend.
+
+**Changes:**
+- `backend/source.py` `generate_bounding_polygon()` lines ~450–452: `print()` → `self.log()`
+- `backend/unifier.py` lines ~52/63/75: `print()` → `config.log()`
+- `backend/persister.py` line ~29: `print("google cloud storage not available")` → `logging.warning()`
+- Grep `print(` across `backend/` — replace every hit
+- Add `elapsed_ms` to transform failure log in `do_transform()` when returning `None`
+- Log chunk index + site count per chunk in `_site_wrapper()`
+
+**Verification:** `grep -r "print(" backend/ | wc -l` → 0
+
+---
+
+### §T.20 [.] Specific exception handling + input validation
+**Goal:** No bare `except Exception`; all swallowed errors surface detail.
+
+**Changes:**
+- `backend/source.py`:
+  - `_execute_text_request` / `_execute_json_request`: replace bare except → specific httpx exceptions (see §T.16)
+  - `_extract_site_records()`: guard against `None`/empty `records` before returning
+  - `read()` inner ValueError/TypeError catches: log full `traceback.format_exc()`, not just message
+- `backend/transformer.py` `convert_units()`:
+  - If `die_parameter_name` unrecognized → raise `ValueError(f"Unknown parameter: {die_parameter_name}")` instead of returning `None`
+  - Add lat/lng range check: `assert -180 <= lng <= 180 and -90 <= lat <= 90`
+- `backend/unifier.py` `_site_wrapper()`:
+  - Replace `except BaseException` → `except Exception`; log `traceback.format_exc()` via `config.warn()`
+- `backend/config.py` `_load_from_yaml()`:
+  - Wrap file open in `with` statement
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q`
+
+---
+
+### §T.21 [.] Split `BaseParameterSource` god class
+**Goal:** 476-line class → focused classes ≤150 lines each.
+
+**Changes:**
+- Extract `RecordValidator` class with `validate(record) -> bool`; holds current `_validate_record()` logic
+- Extract `RecordSummarizer` class with `summarize(records, site_record) -> SummaryRecord`; holds summary path of `read()`
+- `BaseParameterSource.__init__` accepts `validator: RecordValidator` (default = existing subclass method shim during migration)
+- Split `read()` into `read_summary()` + `read_timeseries()` ≤50 lines each
+- Rename `bookend` parameter → `position: Literal["earliest", "latest"]`
+
+**Verification:** `uv run pytest tests/ -q --ignore=tests/test_sources`
+
+---
+
+### §T.22 [.] Split `do_transform()` into focused methods
+**Goal:** 191-line method → orchestrator + focused helpers ≤30 lines each.
+
+**Changes:**
+- `backend/transformer.py` `BaseTransformer.do_transform()`:
+  - Extract `_apply_geographic_filter(record) -> bool`
+  - Extract `_apply_datum_transform(record) -> record`
+  - Extract `_apply_elevation_transform(record) -> record`
+  - Extract `_apply_well_depth_transform(record) -> record`
+  - Extract `_apply_unit_conversion(record) -> record`
+  - `do_transform()` becomes orchestrator calling each in sequence ≤40 lines
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q`
+
+---
+
+### §T.23 [.] Data-driven `Config` source setup
+**Goal:** Replace ~107-line `if/elif` per parameter in `get_config_and_false_agencies()` with a mapping.
+
+**Changes:**
+- `backend/config.py`:
+  - Add `PARAMETER_SOURCE_MAP: dict[str, dict]` mapping each parameter name → `{site_source_klass, parameter_source_klass, agencies}`
+  - `get_config_and_false_agencies()` looks up parameter in map; raises `ValueError` for unknown parameter
+  - Extract duplicate `set_config()` calls in `analyte_sources()` / `water_level_sources()` / `all_site_sources()` into `_build_source_pair(site_klass, param_klass) -> tuple`
+
+**Verification:** `uv run pytest tests/test_cli/ -q`
+
+---
+
+### §T.24 [.] Inject HTTP client into `BaseSource`
+**Goal:** `httpx.get()` hardcoded → injected client; enables testability without live network.
+
+**Changes:**
+- `backend/source.py` `BaseSource.__init__`: accept `http_client: httpx.Client | None = None`; default creates `httpx.Client(timeout=900)`
+- `_execute_text_request()` / `_execute_json_request()`: use `self._http_client.get(...)` instead of `httpx.get(...)`
+- Tests in `tests/test_cli/` or new `tests/test_sources_unit/`: pass mock client returning fixture responses — no live HTTP
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q`
+
+---
+
+### §T.25 [.] `UnitConverter` as injectable strategy
+**Goal:** Replace 120+ line `convert_units()` monolith with pluggable converter.
+
+**Changes:**
+- `backend/converter.py` (new file):
+  ```python
+  class UnitConverter(Protocol):
+      def convert(self, value: float, from_units: str, to_units: str, parameter: str) -> float: ...
+
+  class StandardUnitConverter:
+      def convert(self, value, from_units, to_units, parameter): ...
+      # current convert_units() logic moved here
+  ```
+- `backend/transformer.py` `BaseTransformer.__init__`: accept `converter: UnitConverter = StandardUnitConverter()`
+- Remove `convert_units()` module-level function; call `self.converter.convert(...)` in `_apply_unit_conversion()`
+- ST/DWB sources needing custom conversion: pass custom `UnitConverter` subclass
+
+**Verification:** `uv run pytest tests/test_cli/ tests/test_persisters/ -q`
+
+---
+
+### §T.26 [.] `PersisterFactory` extracted from `Unifier`
+**Goal:** Remove persister selection if/else from `_unify_parameter()`.
+
+**Changes:**
+- `backend/persisters/factory.py` (new file):
+  ```python
+  def make_persister(config: Config) -> BasePersister:
+      if config.output_format == OutputFormat.GEOSERVER:
+          ...
+      elif config.use_cloud_storage:
+          ...
+      else:
+          return BasePersister(config)
+  ```
+- `backend/unifier.py` `_unify_parameter()`: call `make_persister(config)` instead of inline if/else
+- `Unifier.__init__`: optionally accept `persister_factory: Callable[[Config], BasePersister]` for testing
+
+**Verification:** `uv run pytest tests/test_cli/ -q`
+
+---
+
 ## §V Invariants
 
+- HTTP retry backoff MUST be exponential with cap: `min(2**n, 60)` seconds (§T.16)
+- HTTP request attempts MUST log `source`, `url`, `status_code`, `attempt`, `elapsed_ms` (§T.16)
+- No bare `except Exception` in `backend/` — catch specific exception types (§T.20)
+- `convert_units()` MUST raise `ValueError` on unknown parameter, never return `None` silently (§T.20)
+- `print()` MUST NOT appear in `backend/` — all output through logger (§T.19)
+- No method in `backend/` MUST exceed 50 lines (excluding `__init__`) (§T.21 §T.22)
+- `Config` source setup MUST be driven by `PARAMETER_SOURCE_MAP`, not `if/elif` chains (§T.23)
+- `BaseSource` MUST accept injected `http_client`; no direct `httpx.get()` calls (§T.24)
+- `UnitConverter` MUST be injectable into `BaseTransformer` (§T.25)
+- Persister selection logic MUST live in `make_persister()`, not in `Unifier` (§T.26)
 - No class MUST inherit `Loggable` — use `make_logger()` factory (§T.10)
 - No ST source class MUST use multiple inheritance — `STClient` injected as `self.client` (§T.11)
 - ST2 per-agency behavior MUST be expressed as constructor args, not subclasses (§T.12)
