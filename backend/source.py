@@ -30,7 +30,7 @@ from backend.constants import (
     EARLIEST,
     LATEST,
 )
-from backend.logger import Loggable
+from backend.logger import make_logger
 from backend.record import (
     AnalyteRecord,
     AnalyteSummaryRecord,
@@ -132,55 +132,15 @@ def get_analyte_search_param(parameter: str, mapping: dict) -> str:
         )
 
 
-class BaseSource(Loggable):
-    """
-    The BaseSource class is a base class for all sources, whether it be a site source or a parameter source.
-
-    ============================================================================
-    Attributes
-    ============================================================================
-    transformer_klass : BaseTransformer
-
-    config : Config
-        the configuration class for the source
-
-    tag : str
-    ============================================================================
-    Methods With Universal Implementations (Already Implemented)
-    ============================================================================
-    warn
-        Prints warning messages to the console in red
-
-    log
-        Prints the message to the console in yellow
-
-    _execute_text_request
-        Executes a get request to the provided url with query parameters and and returns the text response
-
-    _execute_json_request
-        Executes a get request to the provided url with query parameters and and returns the json response
-
-    ============================================================================
-    Methods Implemented in BaseSiteSource and BaseParameterSource
-    ============================================================================
-    read
-        Returns a list of transformed records
-
-    ============================================================================
-    Methods That Need to be Implemented For Each Source
-    ============================================================================
-    health
-        Determines if the source is healthy
-
-    get_records
-        Returns the site or parameter records from the source
-    """
-
+class BaseSource:
     transformer_klass = BaseTransformer
 
     def __init__(self):
         self.transformer = self.transformer_klass()
-        super().__init__()
+        _l = make_logger(self.__class__.__name__)
+        self.log = _l.log
+        self.warn = _l.warn
+        self.debug = _l.debug
 
     @property
     def tag(self):

@@ -35,7 +35,7 @@ from backend.constants import (
     LATEST,
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
-from backend.logger import Loggable
+from backend.logger import make_logger
 from backend.record import (
     WaterLevelSummaryRecord,
     WaterLevelRecord,
@@ -44,8 +44,6 @@ from backend.record import (
     SummaryRecord,
     AnalyteRecord,
 )
-
-logger = Loggable()
 
 
 def transform_horizontal_datum(
@@ -301,47 +299,15 @@ def standardize_datetime(dt, record_id):
     return dt.strftime("%Y-%m-%d"), tt
 
 
-class BaseTransformer(Loggable):
-    """
-    Base class for transforming records. Transformers are used in BaseSiteSource and BaseParameterSource to transform records
-
-    ============================================================================
-    Methods With Universal Implementations (Already Implemented)
-    ============================================================================
-    do_transform
-        Transforms a record, site or parameter, into a standardized format
-
-    contained
-        Checks if a point is contained within a polygon
-
-    ============================================================================
-    Methods That Need to be Implemented For Each SiteTransformer
-    ============================================================================
-    _transform
-        Transforms a record into a standardized format
-
-    _post_transform
-
-    ============================================================================
-    Methods Implemented In Each ParameterTransformer (Don't Need To Be Implemented For Each Source)
-    ============================================================================
-    _transform
-
-    _get_parameter
-
-    ============================================================================
-    Methods That Are Implemented In Each ParameterTransformer and SiteTransformer (Don't Need To Be Implemented For Each Source)
-    ============================================================================
-    _get_record_klass
-    """
-
-    _cached_polygon = None
-    # config = None
+class BaseTransformer:
+    _polygon_cache: dict = {}
     check_contained = True
 
-    # ==========================================================================
-    # Methods Already Implemented
-    # ==========================================================================
+    def __init__(self):
+        _l = make_logger(self.__class__.__name__)
+        self.log = _l.log
+        self.warn = _l.warn
+        self.debug = _l.debug
 
     def set_config(self, config):
         """
@@ -594,14 +560,11 @@ class BaseTransformer(Loggable):
         """
         config = self.config
         if config and config.has_bounds() and self.check_contained:
-            if not self._cached_polygon:
-                poly = shapely.wkt.loads(config.bounding_wkt())
-                self._cached_polygon = poly
-            else:
-                poly = self._cached_polygon
-
-            pt = Point(lng, lat)
-            return poly.contains(pt)
+            wkt = config.bounding_wkt()
+            if wkt not in BaseTransformer._polygon_cache:
+                BaseTransformer._polygon_cache[wkt] = shapely.wkt.loads(wkt)
+            poly = BaseTransformer._polygon_cache[wkt]
+            return poly.contains(Point(lng, lat))
 
         return True
 

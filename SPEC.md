@@ -654,7 +654,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.10 [.] Replace `Loggable` base with injected logger
+### §T.10 [x] Replace `Loggable` base with injected logger
 **Goal:** Remove `Loggable` from the inheritance chain of all classes.
 
 **Changes:**
@@ -768,7 +768,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.17 [.] Cache bounding polygon at class level
+### §T.17 [x] Cache bounding polygon at class level
 **Goal:** Prevent re-parsing WKT shapely object on every record.
 
 **Changes:**

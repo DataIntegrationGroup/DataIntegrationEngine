@@ -24,7 +24,33 @@ import click
 _managed_handlers = []
 
 
+class Logger:
+    """Standalone logger. Use make_logger() to create instances."""
+
+    def __init__(self, name: str):
+        self._name = name
+        self.logger = logging.getLogger(name)
+
+    def log(self, msg, level=None, fg="yellow", **kwargs):
+        if level is None:
+            level = logging.INFO
+        click.secho(f"{self._name:40s}{msg}", fg=fg)
+        self.logger.log(level, msg, **kwargs)
+
+    def warn(self, msg, fg="red", **kwargs):
+        self.log(msg, fg=fg, level=logging.WARNING, **kwargs)
+
+    def debug(self, msg):
+        self.log(msg, level=logging.DEBUG, fg="blue")
+
+
+def make_logger(name: str) -> Logger:
+    return Logger(name)
+
+
 class Loggable:
+    """Deprecated — do not subclass. Use make_logger() instead."""
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 

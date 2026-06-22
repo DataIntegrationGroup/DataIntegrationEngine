@@ -20,7 +20,7 @@ from pprint import pprint
 import json
 
 from backend import OutputFormat
-from backend.logger import Loggable
+from backend.logger import make_logger
 
 
 try:
@@ -87,19 +87,16 @@ def dump_sites_summary(path, records, output_format: OutputFormat):
             json.dump(feature_collection, f, indent=4)
 
 
-class BasePersister(Loggable):
-    """
-    Class to persist the data to a file or cloud storage.
-    If persisting to a file, the output directory is created by config._make_output_path()
-    """
-
+class BasePersister:
     def __init__(self, config=None):
         self.records = []
         self.timeseries = []
         self.sites = []
         self.config = config
-
-        super().__init__()
+        _l = make_logger(self.__class__.__name__)
+        self.log = _l.log
+        self.warn = _l.warn
+        self.debug = _l.debug
         # self.keys = record_klass.keys
 
     def load(self, records: list):

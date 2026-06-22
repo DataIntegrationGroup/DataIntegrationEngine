@@ -73,7 +73,7 @@ from .connectors.st2.source import (
 )
 from .connectors.usgs.source import NWISSiteSource, NWISWaterLevelSource
 from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLevelSource
-from backend.logger import Loggable
+from backend.logger import make_logger
 
 
 SOURCE_DICT = {
@@ -104,7 +104,7 @@ def get_source(source):
         return klass()
 
 
-class Config(Loggable):
+class Config:
     site_limit: int = 0
     dry: bool = False
 
@@ -157,8 +157,10 @@ class Config(Loggable):
     yes: bool = False
 
     def __init__(self, model=None, payload=None, path=None):
-        # need to initialize logger
-        super().__init__()
+        _l = make_logger(self.__class__.__name__)
+        self.log = _l.log
+        self.warn = _l.warn
+        self.debug = _l.debug
 
         if path:
             payload = self._load_from_yaml(path)
