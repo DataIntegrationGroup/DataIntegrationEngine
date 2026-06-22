@@ -808,7 +808,7 @@ feature/composition-refactor   ← branch off main after §T.9 merged
 
 ---
 
-### §T.20 [.] Specific exception handling + input validation
+### §T.20 [x] Specific exception handling + input validation
 **Goal:** No bare `except Exception`; all swallowed errors surface detail.
 
 **Changes:**

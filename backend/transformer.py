@@ -425,6 +425,12 @@ class BaseTransformer:
                 )
                 return None
 
+            if not (-180 <= x <= 180) or not (-90 <= y <= 90):
+                self.warn(
+                    f"Skipping site {klassed_record.id}. Coordinates out of range: lng={x}, lat={y}"
+                )
+                return None
+
             input_horizontal_datum = klassed_record.horizontal_datum
 
             if input_horizontal_datum not in ALLOWED_DATUMS:

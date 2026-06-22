@@ -238,11 +238,10 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                             ]
                         break
 
-    except BaseException:
+    except Exception:
         import traceback
 
-        exc = traceback.format_exc()
-        config.warn(exc)
+        config.warn(traceback.format_exc())
         config.warn(f"Failed to unify {site_source}")
 
 
