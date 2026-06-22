@@ -1,0 +1,27 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-orchestration:$COMMIT_SHA'
+      - '-t'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-orchestration:latest'
+      - '-f'
+      - 'orchestration/Dockerfile'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-orchestration'
+
+substitutions:
+  _REGION: us-central1
+
+images:
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-orchestration:$COMMIT_SHA'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-orchestration:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

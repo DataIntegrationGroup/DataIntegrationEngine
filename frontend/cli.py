@@ -37,84 +37,84 @@ ALL_SOURCE_OPTIONS = [
     click.option(
         "--no-bernco",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude Bernalillo County Water Authority data. Default is to include",
     ),
     click.option(
         "--no-bor",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude BoR data. Default is to include",
     ),
     click.option(
         "--no-cabq",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude CABQ data. Default is to include",
     ),
     click.option(
         "--no-ebid",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude EBID data. Default is to include",
     ),
     click.option(
         "--no-nmbgmr-amp",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMBGMR AMP data. Default is to include",
     ),
     click.option(
         "--no-nmed-dwb",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMED DWB data. Default is to include",
     ),
     click.option(
         "--no-nmose-isc-seven-rivers",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMOSE ISC Seven Rivers data. Default is to include",
     ),
     click.option(
         "--no-nmose-pod",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMOSE POD data. Default is to include",
     ),
     click.option(
         "--no-nmose-roswell",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMOSE Roswell data. Default is to include",
     ),
     click.option(
         "--no-nwis",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NWIS data. Default is to include",
     ),
     click.option(
         "--no-pvacd",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude PVACD data. Default is to include",
     ),
     click.option(
         "--no-wqp",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude WQP data. Default is to include",
     ),
@@ -317,7 +317,7 @@ def weave(
         lcs = locals()
         if config_agencies:
             for agency in config_agencies:
-                setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
+                setattr(config, f"use_source_{agency}", not lcs.get(f"no_{agency}", False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -400,7 +400,7 @@ def sites(
     if config_path is None:
         lcs = locals()
         for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
+            setattr(config, f"use_source_{agency}", not lcs.get(f"no_{agency}", False))
         config.output_dir = output_dir
 
     config.sites_only = True

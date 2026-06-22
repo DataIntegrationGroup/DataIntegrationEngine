@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nmuwd"
+version = "0.10.3"
+description = "New Mexico Water Data Integration Engine"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Jake Ross" }]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "click>=8.2.1",
+    "python-dotenv",
+    "frost_sta_client",
+    "geopandas",
+    "httpx",
+    "pandas",
+    "pyyaml",
+    "types-pyyaml",
+    "urllib3>=2.2.0,<3.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/DataIntegrationGroup/DataIntegrationEngine"
+
+[project.optional-dependencies]
+dev = ["pytest", "mypy", "flake8"]
+geoserver = ["psycopg2-binary", "GeoAlchemy2", "SQLAlchemy"]
+gcs = ["google-cloud-storage"]
+
+[project.scripts]
+die = "frontend.cli:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["frontend", "backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["tests/archived"]
+
+[tool.mypy]
+ignore_missing_imports = true

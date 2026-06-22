@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "die-orchestration"
+version = "0.1.0"
+description = "DIE Dagster orchestration (internal, not published)"
+requires-python = ">=3.10"
+dependencies = [
+    "dagster>=1.8",
+    "dagster-gcp>=0.24",
+    "dagster-webserver>=1.8",
+    "google-cloud-storage",
+    "google-cloud-secret-manager",
+    "Jinja2",
+    "nmuwd",
+]
+
+[tool.uv.sources]
+nmuwd = { path = "..", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["orchestration"]
