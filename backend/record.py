@@ -25,6 +25,9 @@ from backend.constants import (
 
 
 class BaseRecord:
+    # Set by the source after transform; not all record types use it.
+    chunk_size: int | None = None
+
     def to_csv(self):
         raise NotImplementedError
 

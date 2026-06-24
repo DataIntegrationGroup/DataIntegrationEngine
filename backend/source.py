@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 from json import JSONDecodeError
-from typing import Literal, Union, List, Callable, Dict
+from typing import Any, Literal, Optional, Union, List, Callable, Dict, cast
 
 import httpx
 import shapely.wkt
@@ -45,7 +45,7 @@ from backend.exceptions import PartialOrNoDataError
 # =============================================================================
 
 class RecordValidator:
-    config = None
+    config: Any = None
 
     def set_config(self, config) -> None:
         self.config = config
@@ -190,7 +190,7 @@ def get_analyte_search_param(parameter: str, mapping: dict) -> str:
 class BaseSource:
     transformer_klass = BaseTransformer  # deprecated: pass transformer= to __init__
 
-    def __init__(self, transformer: BaseTransformer = None, http_client: httpx.Client | None = None):
+    def __init__(self, transformer: Optional[BaseTransformer] = None, http_client: httpx.Client | None = None):
         self.transformer = transformer if transformer is not None else self.transformer_klass()
         self._http_client = http_client if http_client is not None else httpx.Client(timeout=900)
         _l = make_logger(self.__class__.__name__)
@@ -318,12 +318,13 @@ class BaseSiteSource(BaseSource):
         return None
 
     def _transform_sites(self, records: list) -> List[SiteRecord]:
-        transformed_records = []
+        transformed_records: List[SiteRecord] = []
         for record in records:
-            record = self.transformer.do_transform(record)
-            if record:
-                record.chunk_size = self.chunk_size
-                transformed_records.append(record)
+            transformed = self.transformer.do_transform(record)
+            if transformed:
+                site_record = cast(SiteRecord, transformed)
+                site_record.chunk_size = self.chunk_size
+                transformed_records.append(site_record)
         self.log(f"processed nrecords={len(transformed_records)}")
         return transformed_records
 
@@ -338,7 +339,7 @@ class BaseSiteSource(BaseSource):
 class BaseParameterSource(BaseSource):
     name = ""
 
-    def __init__(self, transformer=None, validator: RecordValidator = None, http_client: httpx.Client | None = None):
+    def __init__(self, transformer=None, validator: Optional[RecordValidator] = None, http_client: httpx.Client | None = None):
         super().__init__(transformer=transformer, http_client=http_client)
         self._validator = validator if validator is not None else _SubclassValidatorShim(self)
         self._summarizer = RecordSummarizer(self)
@@ -350,9 +351,11 @@ class BaseParameterSource(BaseSource):
         return self._extract_terminal_record(records, position=LATEST)
 
     def read(self, site_record: SiteRecord | list, use_summarize: bool, start_ind: int, end_ind: int) -> List[ParameterRecord | SummaryRecord] | None:
+        # read_summary/read_timeseries return homogeneous lists; cast to the
+        # mixed-element list type the signature advertises (List is invariant).
         if use_summarize:
-            return self.read_summary(site_record, start_ind, end_ind)
-        return self.read_timeseries(site_record)
+            return cast("List[ParameterRecord | SummaryRecord] | None", self.read_summary(site_record, start_ind, end_ind))
+        return cast("List[ParameterRecord | SummaryRecord] | None", self.read_timeseries(site_record))
 
     def read_summary(self, site_record: SiteRecord | list, start_ind: int, end_ind: int) -> List[SummaryRecord] | None:
         if isinstance(site_record, list):
@@ -439,7 +442,7 @@ class BaseParameterSource(BaseSource):
     def _clean_records(self, records: list) -> list:
         return records
 
-    def _extract_terminal_record(self, records, position: Literal["earliest", "latest"]):
+    def _extract_terminal_record(self, records, position: str):
         raise NotImplementedError(f"{self.__class__.__name__} Must implement _extract_terminal_record")
 
     def _extract_source_parameter_units(self, records: list) -> list:

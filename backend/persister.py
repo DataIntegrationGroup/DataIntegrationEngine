@@ -148,7 +148,7 @@ class BasePersister:
             self.warn(f"failed to dump separated timeseries: {e}", exc_info=True)
             raise
 
-    def add_extension(self, path: str, extension: OutputFormat):
+    def add_extension(self, path: str, extension: str):
         if not extension:
             raise NotImplementedError
         else:

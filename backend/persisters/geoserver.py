@@ -9,7 +9,7 @@ import json
 import os
 import time
 from itertools import groupby
-from typing import Type
+from typing import Any, Type
 from shapely.geometry.multipoint import MultiPoint
 from shapely.geometry.point import Point
 from sqlalchemy.dialects.postgresql import JSONB, insert
@@ -31,7 +31,9 @@ from sqlalchemy import (
 )
 from geoalchemy2 import Geometry
 
-Base = declarative_base()
+# declarative_base() returns a dynamic class; annotate as Any so mypy accepts
+# it as a base for the ORM models below.
+Base: Any = declarative_base()
 
 
 def session_factory(connection: dict):

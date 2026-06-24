@@ -130,7 +130,7 @@ def convert_units(
 ) -> tuple[float, float | None, str]:
     """Deprecated: use StandardUnitConverter().convert() instead."""
     from backend.converter import StandardUnitConverter
-    return StandardUnitConverter().convert(input_value, input_units, output_units, source_parameter_name, die_parameter_name, dt)
+    return StandardUnitConverter().convert(float(input_value), input_units, output_units, source_parameter_name, die_parameter_name, dt)
 
 
 def standardize_datetime(dt, record_id):

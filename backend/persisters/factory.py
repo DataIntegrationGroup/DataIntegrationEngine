@@ -7,7 +7,7 @@ def make_persister(config) -> BasePersister:
     try:
         from backend.persisters.geoserver import GeoServerPersister
     except ImportError:
-        GeoServerPersister = None
+        GeoServerPersister = None  # type: ignore[assignment,misc]
 
     if config.output_format == OutputFormat.GEOSERVER:
         if GeoServerPersister is None:

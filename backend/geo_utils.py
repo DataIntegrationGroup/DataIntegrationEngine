@@ -16,8 +16,8 @@
 import pyproj
 from shapely.ops import transform
 
-PROJECTIONS = {}
-TRANSFORMS = {}
+PROJECTIONS: dict = {}
+TRANSFORMS: dict = {}
 
 ALLOWED_DATUMS = ["NAD27", "NAD83", "WGS84"]
 
