@@ -9,6 +9,7 @@ description = "DIE Dagster orchestration (internal, not published)"
 requires-python = ">=3.10"
 dependencies = [
     "dagster>=1.8",
+    "dagster-cloud",
     "dagster-gcp>=0.24",
     "dagster-webserver>=1.8",
     "google-cloud-storage",
