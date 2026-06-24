@@ -13,10 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import pprint
-from json import JSONDecodeError
 
-import httpx
 
 from backend.connectors.bor.transformer import BORSiteTransformer, BORAnalyteTransformer
 from backend.connectors.mappings import BOR_ANALYTE_MAPPING
@@ -27,12 +24,9 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
-    EARLIEST,
-    LATEST,
 )
 
 from backend.source import (
-    BaseSource,
     BaseSiteSource,
     BaseAnalyteSource,
     get_terminal_record,

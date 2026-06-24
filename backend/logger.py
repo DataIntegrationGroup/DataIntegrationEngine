@@ -48,26 +48,6 @@ def make_logger(name: str) -> Logger:
     return Logger(name)
 
 
-class Loggable:
-    """Deprecated — do not subclass. Use make_logger() instead."""
-
-    def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-    def log(self, msg, level=None, fg="yellow", **kwargs):
-        if level is None:
-            level = logging.INFO
-
-        click.secho(f"{self.__class__.__name__:40s}{msg}", fg=fg)
-        self.logger.log(level, msg, **kwargs)
-
-    def warn(self, msg, fg="red", **kwargs):
-        self.log(msg, fg=fg, level=logging.WARNING, **kwargs)
-
-    def debug(self, msg):
-        self.log(msg, level=logging.DEBUG, fg="blue")
-
-
 def setup_logging(level=None, log_format=None, path=None):
     # _managed_handlers is mutated in place (clear/append), never reassigned,
     # so no `global` declaration is needed.

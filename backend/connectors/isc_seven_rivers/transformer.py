@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import shapely.wkt
-from shapely import Point
 
-from backend.record import SiteRecord
 from backend.transformer import (
-    BaseTransformer,
     WaterLevelTransformer,
     SiteTransformer,
     AnalyteTransformer,

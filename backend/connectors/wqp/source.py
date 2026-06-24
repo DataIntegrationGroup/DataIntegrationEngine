@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import pprint
 
-import httpx
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.mappings import WQP_ANALYTE_MAPPING
@@ -26,8 +24,6 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
-    EARLIEST,
-    LATEST,
     TDS,
     WATERLEVELS,
     SPECIFIC_CONDUCTANCE,

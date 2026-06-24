@@ -1,11 +1,5 @@
 import io
 import os
-from typing import Protocol
-
-
-class OutputStrategy(Protocol):
-    def write_bytes(self, path: str, content: bytes) -> None: ...
-    def make_directory(self, path: str) -> None: ...
 
 
 class LocalFileStrategy:

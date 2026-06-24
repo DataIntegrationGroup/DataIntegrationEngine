@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 from json import JSONDecodeError
-from typing import Any, Literal, Optional, Union, List, Callable, Dict, cast
+from typing import Any, Optional, Union, List, Callable, Dict, cast
 
 import httpx
 import shapely.wkt
@@ -274,20 +274,6 @@ class BaseSource:
         raise NotImplementedError(f"test not implemented by {self.__class__.__name__}")
 
 
-class BaseContainerSource(BaseSource):
-    def __init__(self, *args, **kw):
-        super().__init__(*args, **kw)
-
-    def check(self):
-        pass
-
-    def discover(self, *args, **kw):
-        pass
-
-    def read(self, *args, **kw):
-        pass
-
-
 class BaseSiteSource(BaseSource):
     chunk_size = 1
     bounding_polygon = None
@@ -494,10 +480,6 @@ class BaseWaterLevelSource(BaseParameterSource):
 
     def _extract_source_parameter_units(self, records):
         return [FEET for _ in records]
-
-
-class BaseFileSource(BaseSource):
-    name = "files"
 
 
 # ============= EOF =============================================

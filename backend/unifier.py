@@ -15,8 +15,8 @@
 # ===============================================================================
 import shapely
 
-from backend.config import Config, get_source, OutputFormat
-from backend.logger import make_logger, setup_logging
+from backend.config import Config, get_source
+from backend.logger import make_logger
 
 _log = make_logger("unifier")
 from backend.constants import WATERLEVELS
@@ -270,17 +270,6 @@ def _unify_parameter(
     persister.finalize(config.output_name)
 
 
-def get_sources_in_polygon(polygon):
-    # polygon = shapely.wkt.loads(polygon)
-    sources = get_sources()
-    rets = []
-    for source in sources:
-        _log.log(str(source))
-        if source.intersects(polygon):
-            rets.append(source.tag)
-    return rets
-
-
 def get_county_bounds(county):
     config = Config()
     config.county = county
@@ -329,85 +318,5 @@ def get_sources(config=None):
             sources.append(source)
     return sources
 
-
-def generate_site_bounds():
-    source = get_source("bernco")
-    source.generate_bounding_polygon()
-
-
-def analyte_unification_test():
-    cfg = Config()
-    cfg.county = "chaves"
-    cfg.county = "eddy"
-
-    cfg.analyte = "TDS"
-    cfg.output_summary = True
-
-    # analyte testing
-    cfg.use_source_wqp = False
-    # cfg.use_source_nmbgmr = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_bor = False
-    cfg.use_source_dwb = False
-    cfg.site_limit = 10
-
-    unify_analytes(cfg)
-
-
-def waterlevel_unification_test():
-    cfg = Config()
-    cfg.county = "chaves"
-    # cfg.county = "eddy"
-    # cfg.bbox = "-104.5 32.5,-104 33"
-    # cfg.start_date = "2020-01-01"
-    # cfg.end_date = "2020-5-01"
-    cfg.output_summary = False
-    cfg.output_name = "test00112233"
-    # cfg.output_summary = True
-    cfg.output_single_timeseries = True
-
-    cfg.use_source_nwis = False
-    cfg.use_source_nmbgmr = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_pvacd = False
-    # cfg.use_source_oseroswell = False
-    cfg.use_source_bernco = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_nmose_isc_seven_rivers = False
-    cfg.use_source_ebid = False
-    # cfg.site_limit = 10
-
-    unify_waterlevels(cfg)
-
-
-def get_datastream(siteid):
-    import httpx
-
-    resp = httpx.get(
-        f"https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations({siteid})?$expand=Things/Datastreams"
-    )
-    obj = resp.json()
-    return obj["Things"][0]["Datastreams"][0]
-
-
-def get_datastreams():
-    s = get_source("pvacd")
-    for si in s.read_sites():
-        ds = get_datastream(si.id)
-        _log.log(f"{si} {si.id} {ds['@iot.id']}")
-
-
-# if __name__ == "__main__":
-# test_waterlevel_unification()
-# root = logging.getLogger()
-# root.setLevel(logging.DEBUG)
-# shandler = logging.StreamHandler()
-# get_sources(Config())
-# setup_logging()
-# site_unification_test()
-# waterlevel_unification_test()
-# analyte_unification_test()
-# print(health_check("nwis"))
-# generate_site_bounds()
 
 # ============= EOF =============================================

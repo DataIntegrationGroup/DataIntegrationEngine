@@ -32,8 +32,6 @@ from backend.constants import (
     PARAMETER_VALUE,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
-    EARLIEST,
-    LATEST,
 )
 from backend.source import (
     BaseWaterLevelSource,

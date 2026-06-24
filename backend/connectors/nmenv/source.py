@@ -33,7 +33,6 @@ from backend.source import get_analyte_search_param, get_terminal_record
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
-import sys
 
 
 class DWBSiteSource(STSiteSource):
