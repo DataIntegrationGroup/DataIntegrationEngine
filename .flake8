@@ -1,0 +1,7 @@
+[flake8]
+# Don't lint the virtualenv or generated output dirs. extend-exclude keeps
+# flake8's built-in defaults (.git, __pycache__, build, dist, ...).
+extend-exclude =
+    .venv,
+    output,
+    output_1

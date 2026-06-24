@@ -14,6 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 from datetime import datetime
+from typing import Optional
 
 import frost_sta_client as fsc
 from shapely import MultiPolygon, unary_union
@@ -68,7 +69,7 @@ def make_dt_filter(tag, start, end):
 
 
 class STSiteSource(BaseSiteSource):
-    url: str = None
+    url: Optional[str] = None
 
     def __init__(self, transformer=None):
         super().__init__(transformer=transformer)
@@ -126,7 +127,7 @@ class STSiteSource(BaseSiteSource):
 
 
 class STWaterLevelSource(BaseWaterLevelSource):
-    url: str = None
+    url: Optional[str] = None
 
     def __init__(self, transformer=None):
         super().__init__(transformer=transformer)
@@ -148,7 +149,7 @@ class STWaterLevelSource(BaseWaterLevelSource):
 
 
 class STAnalyteSource(BaseAnalyteSource):
-    url: str = None
+    url: Optional[str] = None
 
     def __init__(self, transformer=None):
         super().__init__(transformer=transformer)

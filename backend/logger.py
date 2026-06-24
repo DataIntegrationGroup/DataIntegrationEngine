@@ -21,7 +21,7 @@ import click
 
 
 # Track handlers created by this module to avoid closing unrelated handlers
-_managed_handlers = []
+_managed_handlers: list = []
 
 
 class Logger:
@@ -69,8 +69,8 @@ class Loggable:
 
 
 def setup_logging(level=None, log_format=None, path=None):
-    global _managed_handlers
-
+    # _managed_handlers is mutated in place (clear/append), never reassigned,
+    # so no `global` declaration is needed.
     if level is None:
         level = logging.DEBUG
     if log_format is None:
