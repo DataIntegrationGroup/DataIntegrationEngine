@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import sys
+import os
 
 import click
 
@@ -37,84 +37,84 @@ ALL_SOURCE_OPTIONS = [
     click.option(
         "--no-bernco",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude Bernalillo County Water Authority data. Default is to include",
     ),
     click.option(
         "--no-bor",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude BoR data. Default is to include",
     ),
     click.option(
         "--no-cabq",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude CABQ data. Default is to include",
     ),
     click.option(
         "--no-ebid",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude EBID data. Default is to include",
     ),
     click.option(
         "--no-nmbgmr-amp",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMBGMR AMP data. Default is to include",
     ),
     click.option(
         "--no-nmed-dwb",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMED DWB data. Default is to include",
     ),
     click.option(
         "--no-nmose-isc-seven-rivers",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMOSE ISC Seven Rivers data. Default is to include",
     ),
     click.option(
         "--no-nmose-pod",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMOSE POD data. Default is to include",
     ),
     click.option(
         "--no-nmose-roswell",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NMOSE Roswell data. Default is to include",
     ),
     click.option(
         "--no-nwis",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude NWIS data. Default is to include",
     ),
     click.option(
         "--no-pvacd",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude PVACD data. Default is to include",
     ),
     click.option(
         "--no-wqp",
         is_flag=True,
-        default=True,
+        default=False,
         show_default=True,
         help="Exclude WQP data. Default is to include",
     ),
@@ -206,6 +206,13 @@ CONFIG_PATH_OPTIONS = [
     ),
 ]
 
+USGS_API_KEY_OPTION = [
+    click.option(
+        "--usgs-api-key",
+        default=None,
+        help="USGS API key. Can also be set via USGS_API_KEY environment variable",
+    )
+]
 
 def add_options(options):
     def _add_options(func):
@@ -230,6 +237,7 @@ def add_options(options):
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 @add_options(OUTPUT_FORMAT_OPTIONS)
+@add_options(USGS_API_KEY_OPTION)
 def weave(
     parameter,
     config_path,
@@ -256,10 +264,15 @@ def weave(
     dry,
     yes,
     output_format,
+    usgs_api_key,
 ):
     """
     Get parameter timeseries or summary data
     """
+    # set USGS_API_KEY environment variable if usgs_api_key is provided
+    if usgs_api_key is not None:
+        os.environ["USGS_API_KEY"] = usgs_api_key
+
     # instantiate config and set up parameter
     config = setup_config(
         tag=parameter,
@@ -304,7 +317,7 @@ def weave(
         lcs = locals()
         if config_agencies:
             for agency in config_agencies:
-                setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
+                setattr(config, f"use_source_{agency}", not lcs.get(f"no_{agency}", False))
     # dates
     config.start_date = start_date
     config.end_date = end_date
@@ -334,6 +347,7 @@ def weave(
 @add_options(ALL_SOURCE_OPTIONS)
 @add_options(DEBUG_OPTIONS)
 @add_options(OUTPUT_FORMAT_OPTIONS)
+@add_options(USGS_API_KEY_OPTION)
 def sites(
     config_path,
     bbox,
@@ -356,10 +370,15 @@ def sites(
     dry,
     yes,
     output_format,
+    usgs_api_key,
 ):
     """
     Get sites
     """
+    # set USGS_API_KEY environment variable if usgs_api_key is provided
+    if usgs_api_key is not None:
+        os.environ["USGS_API_KEY"] = usgs_api_key
+
     config = setup_config(
         "sites", config_path, bbox, county, wkt, site_limit, dry, output_format
     )
@@ -381,7 +400,7 @@ def sites(
     if config_path is None:
         lcs = locals()
         for agency in config_agencies:
-            setattr(config, f"use_source_{agency}", lcs.get(f"no_{agency}", False))
+            setattr(config, f"use_source_{agency}", not lcs.get(f"no_{agency}", False))
         config.output_dir = output_dir
 
     config.sites_only = True

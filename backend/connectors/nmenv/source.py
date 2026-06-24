@@ -33,20 +33,25 @@ from backend.source import get_analyte_search_param, get_terminal_record
 
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
-import sys
 
 
 class DWBSiteSource(STSiteSource):
     url = URL
-    transformer_klass = DWBSiteTransformer
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+
+    def __init__(self):
+        super().__init__(transformer=DWBSiteTransformer())
 
     def __repr__(self):
         return "DWBSiteSource"
 
     def health(self):
-        return self.get_records(top=10, analyte=TDS)
-
+        try:
+            resp = self.get_records(top=10, analyte=TDS)
+            return bool(resp)
+        except Exception:
+            return False
+            
     def get_records(self, *args, **kw):
 
         analyte = None
@@ -55,7 +60,7 @@ class DWBSiteSource(STSiteSource):
         elif self.config:
             analyte = self.config.parameter
 
-        service = self.get_service()
+        service = self.client.get_service()
         if self.config.sites_only:
             ds = service.things()
             q = ds.query()
@@ -106,7 +111,9 @@ class DWBSiteSource(STSiteSource):
 
 class DWBAnalyteSource(STAnalyteSource):
     url = URL
-    transformer_klass = DWBAnalyteTransformer
+
+    def __init__(self):
+        super().__init__(transformer=DWBAnalyteTransformer())
 
     def __repr__(self):
         return "DWBAnalyteSource"
@@ -127,7 +134,7 @@ class DWBAnalyteSource(STAnalyteSource):
             return float(result.split(" ")[0])
 
     def get_records(self, site, *args, **kw):
-        service = self.get_service()
+        service = self.client.get_service()
 
         analyte = get_analyte_search_param(self.config.parameter, DWB_ANALYTE_MAPPING)
         ds = service.datastreams()
@@ -186,10 +193,10 @@ class DWBAnalyteSource(STAnalyteSource):
     def _extract_source_parameter_names(self, records: list) -> list:
         return [r["datastream"].observed_property.name for r in records]
 
-    def _extract_terminal_record(self, records, bookend):
+    def _extract_terminal_record(self, records, position):
         # this is only used in summary output
         record = get_terminal_record(
-            records, tag=lambda x: x["observation"].phenomenon_time, bookend=bookend
+            records, tag=lambda x: x["observation"].phenomenon_time, position=position
         )
 
         return {

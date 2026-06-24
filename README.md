@@ -38,8 +38,9 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`
 - [Pecos Valley Artesian Conservancy District (PVACD)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27PVACD%27)
   - Available data: `water levels`
-- [USGS (NWIS)](https://waterdata.usgs.gov/nwis)
+- [USGS (NWIS)](https://api.waterdata.usgs.gov/docs/)
   - Available data: `water levels`
+  - **IMPORTANT:** The USGS now uses API keys. To prevent yourself from hitting the rate limit please [acquire an API key](https://api.waterdata.usgs.gov/signup/), save it, and provide it via the `--usgs-api-key` flag when gathering water level or site data from the USGS.
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
   - Available data: `water levels`, `water quality`
 
@@ -56,22 +57,24 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 
 
 #### Available Parameters
-|                            | waterlevels | arsenic | bicarbonate | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | sulfate | tds | uranium |
-| -------------------------- | ----------- | ------- | ----------- | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | ------- | --- | ------- |
-| **bernco**                 | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **bor**                    | -           | X       | -           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
-| **cabq**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **ebid**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **nmbgmr-amp**             | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
-| **nmed-dwb**               | -           | X       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | X       |
-| **nmose-isc-seven-rivers** | X           | -       | X           | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X   | -       |
-| **nmose-pod**              | -           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **nmose-roswell**          | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **nwis**                   | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **pvacd**                  | X           | -       | -           | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -       | -   | -       |
-| **wqp**                    | X           | X       | X           | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X       | X*  | X       |
+|                            | waterlevels | arsenic | bicarbonate | conductivity | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | specific conductance | sulfate | tds | uranium |
+| -------------------------- | ----------- | ------- | ----------- | ------------ | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | -------------------- |-------- | --- | ------- |
+| **bernco**                 | X           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **bor**                    | -           | X       | -           | X            | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | -                    | X       | X   | X       |
+| **cabq**                   | X           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **ebid**                   | X           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **nmbgmr-amp**             | X           | X       | X           | -            | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X   | X       |
+| **nmed-dwb**               | -           | X       | X           | -            | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X   | X       |
+| **nmose-isc-seven-rivers** | X           | -       | X           | X            | X       | -         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X   | -       |
+| **nmose-pod**              | -           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **nmose-roswell**          | X           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **nwis**                   | X           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **pvacd**                  | X           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
+| **wqp**                    | X           | X       | X           | X            | X       | X         | X        | X        | X         | X       | X   | X         | X      | X      | X                    | X       | X*  | X       |
 
-<sup>*TDS data from WQP may contain duplicates. Duplicates are identified when they have the same ActivityIdentifier. If duplicates are identified, only one is kept as identified by its USGS pCode. The order of preference for the pCodes is: [70300](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70300&fmt=html), [70301](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70301&fmt=html), [70303](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70303&fmt=html).
+<sup>*TDS data from WQP may contain duplicates. Duplicates are identified when they have the same ActivityIdentifier. If duplicates are identified, only one is kept as identified by its USGS pCode. The order of preference for the pCodes is: [70300](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70300&fmt=html), [70301](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70301&fmt=html), [70303](https://help.waterdata.usgs.gov/code/parameter_cd_nm_query?parm_nm_cd=70303&fmt=html).</sup>
+
+<sup>**While conductivity and specific conductance are often used interchangeably, they are distinguished here by the methods with which they are determined. A record is defined as `specific conductance` if it was determined at the standard 25&deg;C (e.g. [EPA method 120.1](https://www.epa.gov/sites/default/files/2015-08/documents/method_120-1_1982.pdf)), otherwise it is defined as `conductivity`</sup>
 
 ### Output Type
 The `--output-type` option is required and used to set the output type:
@@ -186,6 +189,35 @@ The Data Integration Engine enables the user to obtain groundwater level and gro
 - `--no-nwis` to exclude USGS NWIS data
 - `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
 - `--no-wqp` to exclude Water Quality Portal (WQP) data
+
+### USGS API Keys
+
+The USGS now uses [API keys](https://api.waterdata.usgs.gov/signup/) to increase the query rate limit for their APIs. If you intend to include USGS water level data in your output please acquire an API key, save it somewhere, and provide it via the `--usgs-api-key` flag. For example:
+
+```
+die weave waterlevels --output-type timeseries_unified --usgs-api-key FAKE_API_KEY
+```
+
+or
+
+```
+die sites --usgs-api-key FAKE_API_KEY
+```
+
+### Encoding
+
+The exported files are encoded with `utf-8`. When opening the files in Python or another programming language ensure that they are opened with the same `utf-8` encoding.
+
+#### Working in Excel
+
+Because the csv files are not encoded with `utf-8-sig`, when opened in Excel special characters may be displayed incorrectly (such as μ appearing garbled). `utf-8-sig` includes a Byte Order Mark (BOM) that tells Excel the file is `utf-8` encoded. To view the characters properly, follow these steps:
+
+1. Go to the `Data` tab and click on `Get Data`
+2. Choose `Text/CSV` and select the file to open
+3. Under `File origin` select `65001: Unicode (UTF-8)`
+4. Under `Delimiter` select `Comma`
+5. Load the data
+
 
 ### Geographic Filters [In Development]
 

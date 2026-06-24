@@ -32,8 +32,6 @@ from backend.constants import (
     PARAMETER_VALUE,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
-    EARLIEST,
-    LATEST,
 )
 from backend.source import (
     BaseWaterLevelSource,
@@ -45,6 +43,12 @@ from backend.source import (
 )
 
 
+# Set timeout to 15 minutes for analyte and water level requests since some sites have a large number of records and the NMBGMR API can be slow to respond.
+# Don't use timeout=None since that can cause the request to hang indefinitely if there are issues with the API.
+# Instead, catch timeout and other exceptions and retry the request up to 7 times with a delay between retries.
+
+TIMEOUT=15*60
+
 def _make_url(endpoint):
     if os.getenv("DEBUG") == "1":
         url = f"http://localhost:8000/latest/{endpoint}"
@@ -54,18 +58,23 @@ def _make_url(endpoint):
 
 
 class NMBGMRSiteSource(BaseSiteSource):
-    transformer_klass = NMBGMRSiteTransformer
-    chunk_size = 100
+    chunk_size = 10
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+
+    def __init__(self):
+        super().__init__(transformer=NMBGMRSiteTransformer())
 
     def __repr__(self):
         return "NMBGMRSiteSource"
 
     def health(self):
-        resp = self._execute_json_request(
-            _make_url("locations"), tag="features", params={"limit": 1}
-        )
-        return bool(resp)
+        try:
+            resp = self._execute_json_request(
+                _make_url("locations"), tag="features", params={"limit": 1}
+            )
+            return bool(resp)
+        except Exception:
+            return False
 
     def get_records(self):
         config = self.config
@@ -82,21 +91,21 @@ class NMBGMRSiteSource(BaseSiteSource):
             else:
                 params["parameter"] = "Manual groundwater levels"
 
-        # tags="features" because the response object is a GeoJSON
         sites = self._execute_json_request(
-            _make_url("locations"), params, tag="features", timeout=30
+            _make_url("locations"), params, tag="features", timeout=TIMEOUT
         )
+
         if not config.sites_only:
             for site in sites:
                 if get_bool_env_variable("IS_TESTING_ENV"):
-                    print(
-                        f"Skipping well data for {site['properties']['point_id']} for testing (until well data can be retrieved in batches)"
+                    self.log(
+                        f"Skipping well data for {site['properties']['point_id']} for testing"
                     )
                     site["properties"]["formation"] = None
                     site["properties"]["well_depth"] = None
                     site["properties"]["well_depth_units"] = FEET
                 else:
-                    print(f"Obtaining well data for {site['properties']['point_id']}")
+                    self.log(f"Obtaining well data for {site['properties']['point_id']}")
                     well_data = self._execute_json_request(
                         _make_url("wells"),
                         params={"pointid": site["properties"]["point_id"]},
@@ -110,7 +119,8 @@ class NMBGMRSiteSource(BaseSiteSource):
 
 
 class NMBGMRAnalyteSource(BaseAnalyteSource):
-    transformer_klass = NMBGMRAnalyteTransformer
+    def __init__(self):
+        super().__init__(transformer=NMBGMRAnalyteTransformer())
 
     def __repr__(self):
         return "NMBGMRAnalyteSource"
@@ -119,6 +129,7 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         analyte = get_analyte_search_param(
             self.config.parameter, NMBGMR_ANALYTE_MAPPING
         )
+
         records = self._execute_json_request(
             _make_url("waterchemistry"),
             params={
@@ -126,7 +137,9 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
                 "analyte": analyte,
             },
             tag="",
+            timeout=TIMEOUT
         )
+
         records_sorted_by_pointid = {}
         for pointid in records.keys():
             records_sorted_by_pointid[pointid] = records[pointid][analyte]
@@ -139,8 +152,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
     def _extract_source_parameter_units(self, records):
         return [r["Units"] for r in records]
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "info.CollectionDate", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "info.CollectionDate", position=position)
         return {
             "value": record["SampleValue"],
             "datetime": record["info"]["CollectionDate"],
@@ -169,7 +182,8 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 
 
 class NMBGMRWaterLevelSource(BaseWaterLevelSource):
-    transformer_klass = NMBGMRWaterLevelTransformer
+    def __init__(self):
+        super().__init__(transformer=NMBGMRWaterLevelTransformer())
 
     def __repr__(self):
         return "NMBGMRWaterLevelSource"
@@ -191,8 +205,8 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         record[SOURCE_PARAMETER_UNITS] = record["DepthToWaterBGSUnits"]
         return record
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "DateMeasured", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "DateMeasured", position=position)
         return {
             "value": record["DepthToWaterBGS"],
             "datetime": (record["DateMeasured"], record["TimeMeasured"]),
@@ -224,7 +238,8 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         # just use manual waterlevels temporarily
         url = _make_url("waterlevels/manual")
 
-        paginated_records = self._execute_json_request(url, params, tag="")
+        paginated_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
+
         items = paginated_records["items"]
         page = paginated_records["page"]
         pages = paginated_records["pages"]
@@ -232,7 +247,9 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         while page < pages:
             page += 1
             params["page"] = page
-            new_records = self._execute_json_request(url, params, tag="")
+
+            new_records = self._execute_json_request(url, params, tag="", timeout=TIMEOUT)
+            
             items.extend(new_records["items"])
             pages = new_records["pages"]
 

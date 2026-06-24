@@ -15,6 +15,13 @@ The conversion factor is applied to the reported value from the source to obtain
 | nitrate               | mg/L as N    | nitrate            | mg/L                | 4.427             | -     |
 | nitrate               | ug/L as N    | nitrate            | mg/L                | 0.004427          | -     |
 | nitrate               | mg/L as NO3  | nitrate            | mg/L                | 1                 | -     |
+| specific conductance  | umho/cm      | specific conductance | uS/cm             | 1                 | -     |
+| specific conductance  | umhos/cm     | specific conductance | uS/cm             | 1                 | -     |
+| specific conductance  | uS/cm @25C   | specific conductance | uS/cm             | 1                 | -     |
+| specific conductance  | uS/cm @25C   | specific conductance | uS/cm             | 1                 | -     |
+| conductivity @ 25 c umhos/cm | cm-1  | specific conductance | uS/cm             | 1                 | -     |
+| conductivity @ 25 c umhos/cm | micromhos per centimeter | specific conductance | uS/cm | 1          | -     |
+| conductivity @ 25 c umhos/cm | su.   | specific conductance | uS/cm             | 1                 | -     |
 | sulfate as SO4        | mg/L         | sulfate            | mg/L                | 1                 | -     |
 | sulfur sulfate        | mg/L         | sulfate            | mg/L                | 1                 | -     |
 | uranium               | pCi/L        | uranium            | mg/L                | 0.00149           | [conversion factor source](https://www.epa.gov/sites/default/files/2015-09/documents/qa_rad_webcast.pdf) |

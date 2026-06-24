@@ -13,11 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import pprint
 
-from backend.record import SiteRecord, AnalyteSummaryRecord
 from backend.transformer import (
-    BaseTransformer,
     SiteTransformer,
     AnalyteTransformer,
     WaterLevelTransformer,
@@ -26,7 +23,6 @@ from backend.transformer import (
 
 class WQPSiteTransformer(SiteTransformer):
     def _transform(self, record):
-        # pprint.pprint(record)
         provider = record["ProviderName"]
         rec = {
             "source": f"WQP/{provider}",

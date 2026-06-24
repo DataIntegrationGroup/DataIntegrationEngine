@@ -15,12 +15,14 @@
 # ===============================================================================
 import shapely
 
-from backend.config import Config, get_source, OutputFormat
-from backend.logger import setup_logging
+from backend.config import Config, get_source
+from backend.logger import make_logger
+
+_log = make_logger("unifier")
 from backend.constants import WATERLEVELS
-from backend.persister import BasePersister
-from backend.persisters.geoserver import GeoServerPersister
+from backend.persisters.factory import make_persister
 from backend.source import BaseSiteSource
+from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
 
 
 def health_check(source: BaseSiteSource) -> bool | None:
@@ -45,7 +47,7 @@ def health_check(source: BaseSiteSource) -> bool | None:
 
 
 def unify_analytes(config):
-    print("Unifying analytes\n")
+    _log.log("Unifying analytes")
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
 
@@ -56,7 +58,7 @@ def unify_analytes(config):
 
 
 def unify_waterlevels(config):
-    print("Unifying waterlevels\n")
+    _log.log("Unifying waterlevels")
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
@@ -68,7 +70,7 @@ def unify_waterlevels(config):
 
 
 def unify_sites(config):
-    print("Unifying sites only\n")
+    _log.log("Unifying sites only")
 
     # config.report() -- report is done in cli.py, no need to do it twice
     config.validate()
@@ -131,10 +133,22 @@ def _site_wrapper(site_source, parameter_source, persister, config):
         # in the future make discover required
         # return
 
+        # used to revert back to initial state if a rate limit error is hit, so there aren't partial records
+        initial_sites_len = len(persister.sites)
+        initial_timeseries_len = len(persister.timeseries)
+        initial_records_len = len(persister.records)
+
+        incomplete_sites_record_msg = f"Failed to retrieve complete site records for {site_source}. No records will be saved for this source."
+        incomplete_parameter_record_msg = f"Failed to retrieve complete parameter records for {site_source}. No records will be saved for this source."
+
         use_summarize = config.output_summary
         site_limit = config.site_limit
 
-        sites = site_source.read()
+        try:
+            sites = site_source.read()
+        except (USGSRateLimitError, PartialOrNoDataError):
+            config.warn(incomplete_sites_record_msg)
+            sites = []
 
         if not sites:
             return
@@ -158,18 +172,34 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                     end_ind += n
 
                 if use_summarize:
-                    summary_records = parameter_source.read(
-                        site_records, use_summarize, start_ind, end_ind
-                    )
+                    try:
+                        summary_records = parameter_source.read(
+                            site_records, use_summarize, start_ind, end_ind
+                        )
+                    except (USGSRateLimitError, PartialOrNoDataError):
+                        # remove partial records to prevent incomplete data from being saved
+                        persister.sites = persister.sites[:initial_sites_len]
+                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        persister.records = persister.records[:initial_records_len]
+                        config.warn(incomplete_parameter_record_msg)
+                        break
                     if summary_records:
                         persister.records.extend(summary_records)
                         sites_with_records_count += len(summary_records)
                     else:
                         continue
                 else:
-                    results = parameter_source.read(
-                        site_records, use_summarize, start_ind, end_ind
-                    )
+                    try:
+                        results = parameter_source.read(
+                            site_records, use_summarize, start_ind, end_ind
+                        )
+                    except (USGSRateLimitError, PartialOrNoDataError):
+                        # remove partial records to prevent incomplete data from being saved
+                        persister.sites = persister.sites[:initial_sites_len]
+                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        persister.records = persister.records[:initial_records_len]
+                        config.warn(incomplete_parameter_record_msg)
+                        break
                     # no records are returned if there is no site record for parameter
                     # or if the record isn't clean (doesn't have the correct fields)
                     # don't count these sites to apply to site_limit
@@ -204,11 +234,10 @@ def _site_wrapper(site_source, parameter_source, persister, config):
                             ]
                         break
 
-    except BaseException:
+    except Exception:
         import traceback
 
-        exc = traceback.format_exc()
-        config.warn(exc)
+        config.warn(traceback.format_exc())
         config.warn(f"Failed to unify {site_source}")
 
 
@@ -217,10 +246,7 @@ def _unify_parameter(
     sources,
 ):
 
-    if config.output_format == OutputFormat.GEOSERVER:
-        persister = GeoServerPersister(config)
-    else:
-        persister = BasePersister(config)
+    persister = make_persister(config)
 
     for site_source, parameter_source in sources:
         _site_wrapper(
@@ -242,17 +268,6 @@ def _unify_parameter(
         persister.dump_sites(config.output_path)
 
     persister.finalize(config.output_name)
-
-
-def get_sources_in_polygon(polygon):
-    # polygon = shapely.wkt.loads(polygon)
-    sources = get_sources()
-    rets = []
-    for source in sources:
-        print(source)
-        if source.intersects(polygon):
-            rets.append(source.tag)
-    return rets
 
 
 def get_county_bounds(county):
@@ -303,85 +318,5 @@ def get_sources(config=None):
             sources.append(source)
     return sources
 
-
-def generate_site_bounds():
-    source = get_source("bernco")
-    source.generate_bounding_polygon()
-
-
-def analyte_unification_test():
-    cfg = Config()
-    cfg.county = "chaves"
-    cfg.county = "eddy"
-
-    cfg.analyte = "TDS"
-    cfg.output_summary = True
-
-    # analyte testing
-    cfg.use_source_wqp = False
-    # cfg.use_source_nmbgmr = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_bor = False
-    cfg.use_source_dwb = False
-    cfg.site_limit = 10
-
-    unify_analytes(cfg)
-
-
-def waterlevel_unification_test():
-    cfg = Config()
-    cfg.county = "chaves"
-    # cfg.county = "eddy"
-    # cfg.bbox = "-104.5 32.5,-104 33"
-    # cfg.start_date = "2020-01-01"
-    # cfg.end_date = "2020-5-01"
-    cfg.output_summary = False
-    cfg.output_name = "test00112233"
-    # cfg.output_summary = True
-    cfg.output_single_timeseries = True
-
-    cfg.use_source_nwis = False
-    cfg.use_source_nmbgmr = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_pvacd = False
-    # cfg.use_source_oseroswell = False
-    cfg.use_source_bernco = False
-    cfg.use_source_iscsevenrivers = False
-    cfg.use_source_nmose_isc_seven_rivers = False
-    cfg.use_source_ebid = False
-    # cfg.site_limit = 10
-
-    unify_waterlevels(cfg)
-
-
-def get_datastream(siteid):
-    import httpx
-
-    resp = httpx.get(
-        f"https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations({siteid})?$expand=Things/Datastreams"
-    )
-    obj = resp.json()
-    return obj["Things"][0]["Datastreams"][0]
-
-
-def get_datastreams():
-    s = get_source("pvacd")
-    for si in s.read_sites():
-        ds = get_datastream(si.id)
-        print(si, si.id, ds["@iot.id"])
-
-
-# if __name__ == "__main__":
-# test_waterlevel_unification()
-# root = logging.getLogger()
-# root.setLevel(logging.DEBUG)
-# shandler = logging.StreamHandler()
-# get_sources(Config())
-# setup_logging()
-# site_unification_test()
-# waterlevel_unification_test()
-# analyte_unification_test()
-# print(health_check("nwis"))
-# generate_site_bounds()
 
 # ============= EOF =============================================

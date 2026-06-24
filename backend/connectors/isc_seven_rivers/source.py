@@ -15,7 +15,6 @@
 # ===============================================================================
 from datetime import datetime
 
-import httpx
 
 from backend.connectors import ISC_SEVEN_RIVERS_BOUNDING_POLYGON
 from backend.connectors.mappings import ISC_SEVEN_RIVERS_ANALYTE_MAPPING
@@ -28,8 +27,6 @@ from backend.constants import (
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
-    EARLIEST,
-    LATEST,
 )
 from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversSiteTransformer,
@@ -37,7 +34,6 @@ from backend.connectors.isc_seven_rivers.transformer import (
     ISCSevenRiversAnalyteTransformer,
 )
 from backend.source import (
-    BaseSource,
     BaseSiteSource,
     BaseWaterLevelSource,
     BaseAnalyteSource,
@@ -68,30 +64,35 @@ def _make_url(endpoint):
 
 
 class ISCSevenRiversSiteSource(BaseSiteSource):
-    transformer_klass = ISCSevenRiversSiteTransformer
     bounding_polygon = ISC_SEVEN_RIVERS_BOUNDING_POLYGON
+
+    def __init__(self):
+        super().__init__(transformer=ISCSevenRiversSiteTransformer())
 
     def __repr__(self):
         return "ISCSevenRiversSiteSource"
 
     def health(self):
         try:
-            self.get_records()
-            return True
+            resp = self.get_records()
+            return bool(resp)
         except Exception as e:
-            print("Failed to get records", e)
+            self.warn(f"Failed to get records: {e}")
             return False
 
     def get_records(self):
         return self._execute_json_request(
             _make_url("getMonitoringPoints.ashx"),
+            tag="data",
         )
 
 
 class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
-    transformer_klass = ISCSevenRiversAnalyteTransformer
     _analyte_ids = None
     _source_parameter_name = None
+
+    def __init__(self):
+        super().__init__(transformer=ISCSevenRiversAnalyteTransformer())
 
     def __repr__(self):
         return "ISCSevenRiversAnalyteSource"
@@ -100,7 +101,7 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
         """ """
         if self._analyte_ids is None:
 
-            resp = self._execute_json_request(_make_url("getAnalytes.ashx"))
+            resp = self._execute_json_request(_make_url("getAnalytes.ashx"), tag="data")
             if resp:
                 self._analyte_ids = {r["name"]: r["id"] for r in resp}
 
@@ -122,8 +123,8 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
         return record
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "dateTime", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "dateTime", position=position)
 
         return {
             "value": record["result"],
@@ -164,13 +165,15 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
                 self._source_parameter_name = analyte_id_and_name["name"]
 
             return self._execute_json_request(
-                _make_url("getReadings.ashx"), params=params
+                _make_url("getReadings.ashx"), params=params, tag="data"
             )
 
 
 class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
-    transformer_klass = ISCSevenRiversWaterLevelTransformer
     _source_parameter_name = "depthToWaterFeet"
+
+    def __init__(self):
+        super().__init__(transformer=ISCSevenRiversWaterLevelTransformer())
     _source_parameter_units = FEET
 
     def get_records(self, site_record):
@@ -184,6 +187,7 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
         return self._execute_json_request(
             _make_url("getWaterLevels.ashx"),
             params=params,
+            tag="data",
         )
 
     def _clean_records(self, records):
@@ -214,8 +218,8 @@ class ISCSevenRiversWaterLevelSource(BaseWaterLevelSource):
     def _extract_source_parameter_units(self, records):
         return [self._source_parameter_units for r in records]
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "dateTime", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "dateTime", position=position)
         t = get_datetime(record)
         return {
             "value": record["depthToWaterFeet"],

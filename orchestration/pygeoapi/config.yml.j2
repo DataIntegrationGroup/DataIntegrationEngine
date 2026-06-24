@@ -1,0 +1,82 @@
+server:
+  bind:
+    host: 0.0.0.0
+    port: 80
+  url: ${PYGEOAPI_SERVER_URL}
+  mimetype: application/json
+  encoding: utf-8
+  language: en-US
+  cors: true
+  pretty_print: false
+  limit: 500
+
+logging:
+  level: ERROR
+
+metadata:
+  identification:
+    title: NM Unified Water Data
+    description: OGC API - Features for New Mexico water data
+    keywords:
+      - water
+      - groundwater
+      - New Mexico
+      - NMBGMR
+    keywords_type: theme
+    terms_of_service: https://creativecommons.org/licenses/by/4.0/
+    url: https://waterdata.nmt.edu
+  license:
+    name: CC-BY 4.0
+    url: https://creativecommons.org/licenses/by/4.0/
+  provider:
+    name: NM Bureau of Geology & Mineral Resources
+    url: https://geoinfo.nmt.edu
+  contact:
+    address: 801 Leroy Place
+    city: Socorro
+    stateorprovince: New Mexico
+    postalcode: "87801"
+    country: USA
+
+resources:
+{% for product in products %}
+  {{ product.id }}:
+    type: collection
+    title: {{ product.title | tojson }}
+    description: {{ product.description | tojson }}
+    keywords:
+      - water
+      - groundwater
+      - New Mexico
+    extent:
+      spatial:
+        bbox:
+          - -109.05
+          - 31.33
+          - -103.00
+          - 37.00
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+{% if product.output_type == 'ogc_timeseries' %}
+      temporal:
+        interval:
+          - - "1900-01-01T00:00:00Z"
+            - null
+{% endif %}
+    providers:
+      - type: feature
+        name: OGR
+        data:
+          source_type: GeoJSON
+          source: /vsigs/{{ gcs_bucket }}/products/{{ product.id }}/latest.geojson
+          source_options:
+            GDAL_HTTP_UNSAFESSL: "NO"
+          gdal_ogr_options:
+            EMPTY_AS_NULL: "NO"
+            GDAL_CACHEMAX: "64"
+        id_field: id
+        layer: OGRGeoJSON
+{% if product.output_type == 'ogc_timeseries' %}
+        time_field: datetime
+{% endif %}
+
+{% endfor %}

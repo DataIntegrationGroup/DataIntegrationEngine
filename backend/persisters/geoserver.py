@@ -5,11 +5,9 @@
 # You may not use this file except in compliance with the License.
 # You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 # ===============================================================================
-import json
-import os
 import time
 from itertools import groupby
-from typing import Type
+from typing import Any
 from shapely.geometry.multipoint import MultiPoint
 from shapely.geometry.point import Point
 from sqlalchemy.dialects.postgresql import JSONB, insert
@@ -22,7 +20,6 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     create_engine,
-    UUID,
     String,
     Integer,
     Float,
@@ -31,7 +28,9 @@ from sqlalchemy import (
 )
 from geoalchemy2 import Geometry
 
-Base = declarative_base()
+# declarative_base() returns a dynamic class; annotate as Any so mypy accepts
+# it as a base for the ORM models below.
+Base: Any = declarative_base()
 
 
 def session_factory(connection: dict):

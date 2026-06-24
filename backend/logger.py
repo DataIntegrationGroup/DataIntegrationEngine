@@ -20,26 +20,37 @@ import os
 import click
 
 
-class Loggable:
-    def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
+# Track handlers created by this module to avoid closing unrelated handlers
+_managed_handlers: list = []
 
-    def log(self, msg, level=None, fg="yellow"):
+
+class Logger:
+    """Standalone logger. Use make_logger() to create instances."""
+
+    def __init__(self, name: str):
+        self._name = name
+        self.logger = logging.getLogger(name)
+
+    def log(self, msg, level=None, fg="yellow", **kwargs):
         if level is None:
             level = logging.INFO
+        click.secho(f"{self._name:40s}{msg}", fg=fg)
+        self.logger.log(level, msg, **kwargs)
 
-        click.secho(f"{self.__class__.__name__:40s}{msg}", fg=fg)
-        self.logger.log(level, msg)
-
-    def warn(self, msg, fg="red"):
-        self.log(msg, fg=fg, level=logging.WARNING)
+    def warn(self, msg, fg="red", **kwargs):
+        self.log(msg, fg=fg, level=logging.WARNING, **kwargs)
 
     def debug(self, msg):
         self.log(msg, level=logging.DEBUG, fg="blue")
 
 
-def setup_logging(level=None, log_format=None, path=None):
+def make_logger(name: str) -> Logger:
+    return Logger(name)
 
+
+def setup_logging(level=None, log_format=None, path=None):
+    # _managed_handlers is mutated in place (clear/append), never reassigned,
+    # so no `global` declaration is needed.
     if level is None:
         level = logging.DEBUG
     if log_format is None:
@@ -50,6 +61,12 @@ def setup_logging(level=None, log_format=None, path=None):
     root = logging.getLogger()
     root.setLevel(level)
 
+    # Remove only the RotatingFileHandler instances we created
+    for handler in _managed_handlers:
+        root.removeHandler(handler)
+        handler.close()
+    _managed_handlers.clear()
+
     if path is None:
         path = "die.log"
     else:
@@ -57,6 +74,7 @@ def setup_logging(level=None, log_format=None, path=None):
 
     # shandler = logging.StreamHandler()
     rhandler = RotatingFileHandler(path, maxBytes=1e8, backupCount=50)
+    _managed_handlers.append(rhandler)
 
     handlers = [rhandler]
 

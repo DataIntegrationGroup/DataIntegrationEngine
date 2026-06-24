@@ -23,6 +23,7 @@ BICARBONATE = "bicarbonate"
 CALCIUM = "calcium"
 CARBONATE = "carbonate"
 CHLORIDE = "chloride"
+CONDUCTIVITY = "conductivity"
 FLUORIDE = "fluoride"
 MAGNESIUM = "magnesium"
 NITRATE = "nitrate"
@@ -30,6 +31,7 @@ PH = "ph"
 POTASSIUM = "potassium"
 SILICA = "silica"
 SODIUM = "sodium"
+SPECIFIC_CONDUCTANCE = "specific_conductance"
 SULFATE = "sulfate"
 TDS = "tds"
 URANIUM = "uranium"
@@ -37,6 +39,7 @@ URANIUM = "uranium"
 
 MILLIGRAMS_PER_LITER = "mg/L"
 MICROGRAMS_PER_LITER = "ug/L"
+MICROSIEMENS_PER_CENTIMETER = "uS/cm"
 PARTS_PER_MILLION = "ppm"
 PARTS_PER_BILLION = "ppb"
 TONS_PER_ACRE_FOOT = "tons/ac ft"
@@ -69,6 +72,7 @@ ANALYTE_OPTIONS = sorted(
         CALCIUM,
         CARBONATE,
         CHLORIDE,
+        CONDUCTIVITY,
         FLUORIDE,
         MAGNESIUM,
         NITRATE,
@@ -76,6 +80,7 @@ ANALYTE_OPTIONS = sorted(
         POTASSIUM,
         SILICA,
         SODIUM,
+        SPECIFIC_CONDUCTANCE,
         SULFATE,
         TDS,
         URANIUM,

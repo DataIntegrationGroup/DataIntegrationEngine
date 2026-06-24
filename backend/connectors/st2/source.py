@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import datetime
-
-import frost_sta_client as fsc
+from functools import partial
 
 from backend.connectors import (
     PVACD_BOUNDING_POLYGON,
@@ -42,7 +40,6 @@ from backend.connectors.st_connector import (
 )
 from backend.constants import (
     DTW,
-    DTW_UNITS,
     DT_MEASURED,
     PARAMETER_NAME,
     PARAMETER_VALUE,
@@ -50,68 +47,64 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
 )
-from backend.source import BaseSiteSource, BaseWaterLevelSource, get_terminal_record
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.1"
 
 
 class ST2SiteSource(STSiteSource):
-    agency: str
     url = URL
+
+    def __init__(self, agency: str, bounding_polygon=None, transformer=None):
+        self.agency = agency
+        if bounding_polygon is not None:
+            self.bounding_polygon = bounding_polygon
+        super().__init__(transformer=transformer)
+
+    def __repr__(self):
+        return f"ST2SiteSource(agency={self.agency!r})"
 
     def _get_filters(self):
         if self.agency is None:
             raise ValueError(f"{self.__class__.__name__}. Agency not set")
-
         return [f"properties/agency eq '{self.agency}'"]
 
 
-class NMOSERoswellSiteSource(ST2SiteSource):
-    transformer_klass = NMOSERoswellSiteTransformer
-    agency = "OSE-Roswell"
-
-    def __repr__(self):
-        return "NMOSERoswellSiteSource"
-
-
-class PVACDSiteSource(ST2SiteSource):
-    transformer_klass = PVACDSiteTransformer
-    agency = "PVACD"
-    bounding_polygon = PVACD_BOUNDING_POLYGON
-
-    def __repr__(self):
-        return "PVACDSiteSource"
-
-
-class EBIDSiteSource(ST2SiteSource):
-    transformer_klass = EBIDSiteTransformer
-    agency = "EBID"
-    bounding_polygon = EBID_BOUNDING_POLYGON
-
-    def __repr__(self):
-        return "EBIDSiteSource"
-
-
-class BernCoSiteSource(ST2SiteSource):
-    agency = "BernCo"
-    transformer_klass = BernCoSiteTransformer
-    bounding_polygon = BERNCO_BOUNDING_POLYGON
-
-    def __repr__(self):
-        return "BernCoSiteSource"
-
-
-class CABQSiteSource(ST2SiteSource):
-    transformer_klass = CABQSiteTransformer
-    agency = "CABQ"
-    bounding_polygon = CABQ_BOUNDING_POLYGON
-
-    def __repr__(self):
-        return "CABQSiteSource"
+NMOSERoswellSiteSource = partial(
+    ST2SiteSource,
+    agency="OSE-Roswell",
+    transformer=NMOSERoswellSiteTransformer(),
+)
+PVACDSiteSource = partial(
+    ST2SiteSource,
+    agency="PVACD",
+    bounding_polygon=PVACD_BOUNDING_POLYGON,
+    transformer=PVACDSiteTransformer(),
+)
+EBIDSiteSource = partial(
+    ST2SiteSource,
+    agency="EBID",
+    bounding_polygon=EBID_BOUNDING_POLYGON,
+    transformer=EBIDSiteTransformer(),
+)
+BernCoSiteSource = partial(
+    ST2SiteSource,
+    agency="BernCo",
+    bounding_polygon=BERNCO_BOUNDING_POLYGON,
+    transformer=BernCoSiteTransformer(),
+)
+CABQSiteSource = partial(
+    ST2SiteSource,
+    agency="CABQ",
+    bounding_polygon=CABQ_BOUNDING_POLYGON,
+    transformer=CABQSiteTransformer(),
+)
 
 
 class ST2WaterLevelSource(STWaterLevelSource):
     url = URL
+
+    def __init__(self, transformer=None):
+        super().__init__(transformer=transformer)
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = DTW
@@ -132,15 +125,14 @@ class ST2WaterLevelSource(STWaterLevelSource):
         return [r["datastream"].name for r in records]
 
     def _clean_records(self, records: list) -> list:
-        rs = [r for r in records if r["observation"].result is not None]
-        return rs
+        return [r for r in records if r["observation"].result is not None]
 
     def get_records(self, site_record, *args, **kw):
-        service = self.get_service()
+        service = self.client.get_service()
         config = self.config
 
         records = []
-        for t in self._get_things(service, site_record):
+        for t in self.client._get_things(service, site_record):
             if t.name == "Water Well":
                 for di in t.datastreams:
 
@@ -152,7 +144,6 @@ class ST2WaterLevelSource(STWaterLevelSource):
                     if fi:
                         q = q.filter(fi)
 
-                    # if config.latest_water_level_only and not config.output_summary:
                     q = q.orderby("phenomenonTime", "desc")
 
                     for obs in q.list():
@@ -164,31 +155,34 @@ class ST2WaterLevelSource(STWaterLevelSource):
                                 "observation": obs,
                             }
                         )
-
-                        # if config.latest_water_level_only and not config.output_summary:
-                        #     break
         return records
 
 
 class NMOSERoswellWaterLevelSource(ST2WaterLevelSource):
-    transformer_klass = NMOSERoswellWaterLevelTransformer
     agency = "OSE-Roswell"
+
+    def __init__(self):
+        super().__init__(transformer=NMOSERoswellWaterLevelTransformer())
 
     def __repr__(self):
         return "NMOSERoswellWaterLevelSource"
 
 
 class PVACDWaterLevelSource(ST2WaterLevelSource):
-    transformer_klass = PVACDWaterLevelTransformer
     agency = "PVACD"
+
+    def __init__(self):
+        super().__init__(transformer=PVACDWaterLevelTransformer())
 
     def __repr__(self):
         return "PVACDWaterLevelSource"
 
 
 class EBIDWaterLevelSource(ST2WaterLevelSource):
-    transformer_klass = EBIDWaterLevelTransformer
     agency = "EBID"
+
+    def __init__(self):
+        super().__init__(transformer=EBIDWaterLevelTransformer())
 
     def __repr__(self):
         return "EBIDWaterLevelSource"
@@ -196,15 +190,19 @@ class EBIDWaterLevelSource(ST2WaterLevelSource):
 
 class BernCoWaterLevelSource(ST2WaterLevelSource):
     agency = "BernCo"
-    transformer_klass = BernCoWaterLevelTransformer
+
+    def __init__(self):
+        super().__init__(transformer=BernCoWaterLevelTransformer())
 
     def __repr__(self):
         return "BernCoWaterLevelSource"
 
 
 class CABQWaterLevelSource(ST2WaterLevelSource):
-    transformer_klass = CABQWaterLevelTransformer
     agency = "CABQ"
+
+    def __init__(self):
+        super().__init__(transformer=CABQWaterLevelTransformer())
 
     def __repr__(self):
         return "CABQWaterLevelSource"

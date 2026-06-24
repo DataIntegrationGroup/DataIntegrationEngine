@@ -29,6 +29,8 @@ from backend.constants import (
     CARBONATE,
     PH,
     BICARBONATE,
+    SPECIFIC_CONDUCTANCE,
+    CONDUCTIVITY
 )
 
 # DWB ===============================================================================
@@ -39,12 +41,14 @@ DWB_ANALYTE_MAPPING: dict = {
     CALCIUM: 11,
     CARBONATE: None,
     CHLORIDE: 15,
+    CONDUCTIVITY: None,
     FLUORIDE: 19,
     MAGNESIUM: 23,
     NITRATE: 35,
     POTASSIUM: 33,
     SILICA: 37,
     SODIUM: 38,
+    SPECIFIC_CONDUCTANCE: 49,   # name = "CONDUCTIVITY @ 25 C UMHOS/CM"
     SULFATE: 41,
     TDS: 90,
     # "Uranium-238": 386,
@@ -54,7 +58,7 @@ DWB_ANALYTE_MAPPING: dict = {
 # ISC Seven Rivers ===============================================================================
 """
 pH
-Specific Conductance
+Specific Conductance    <-- field parameter
 Temperature
 Potassium
 Magnesium
@@ -66,7 +70,7 @@ Total recoverable metals, Iron
 Turbidity
 Iron
 Manganese
-Electrical Conductance
+Electrical Conductance  <-- lab parameter with EPA method 120.1, which specifies "Measurement of Electrical Conductivity at 25 degrees C." It is assumed that the records with method "UNKNOWN" still used EPA 120.1
 Ion Balance
 SiO2
 Chloride
@@ -94,12 +98,14 @@ ISC_SEVEN_RIVERS_ANALYTE_MAPPING: dict = {
     CHLORIDE: "Chloride",
     CALCIUM: "Calcium",
     CARBONATE: "Carbonate (CO3)",
+    CONDUCTIVITY: "Specific Conductance",
     FLUORIDE: "Fluoride",
     MAGNESIUM: "Magnesium",
     NITRATE: "Nitrate",
     POTASSIUM: "Potassium",
     SILICA: "SiO2",
     SODIUM: "Sodium",
+    SPECIFIC_CONDUCTANCE: "Electrical Conductance",
     SULFATE: "Sulfate",
     TDS: "TDS calc",
     URANIUM: None,
@@ -137,6 +143,8 @@ NMBGMR_ANALYTE_MAPPING: dict = {
     CALCIUM: "Calcium",
     CARBONATE: "Carbonate",
     CHLORIDE: "Chloride",
+    CONDUCTIVITY: None,
+    SPECIFIC_CONDUCTANCE: "Conductivity, laboratory",
     FLUORIDE: "Fluoride",
     MAGNESIUM: "Magnesium",
     NITRATE: "Nitrate (as N)",
@@ -156,11 +164,13 @@ WQP_ANALYTE_MAPPING: dict = {
     CALCIUM: ["Calcium"],
     CARBONATE: ["Carbonate"],
     CHLORIDE: ["Chloride"],
+    CONDUCTIVITY: ["Specific conductance"],
     FLUORIDE: ["Fluoride"],
     MAGNESIUM: ["Magnesium"],
     NITRATE: ["Nitrate", "Nitrate-N", "Nitrate as N"],
     POTASSIUM: ["Potassium"],
     SILICA: ["Silica"],
+    SPECIFIC_CONDUCTANCE: ["Specific conductance"],
     SODIUM: ["Sodium"],
     SULFATE: [
         "Sulfate",
@@ -184,7 +194,7 @@ ALK
 P ALK
 pH
 Color
-Cond
+Cond    <-- "Electrical Conductactivity" specifies "Measurement of Electrical conductivity at 25 degrees C." This will therefore be used for "conductivity" but not "Specific Conductance" 
 Br
 Cl
 CN
@@ -234,12 +244,14 @@ BOR_ANALYTE_MAPPING: dict = {
     CALCIUM: "Ca",
     CARBONATE: None,
     CHLORIDE: "Cl",
+    CONDUCTIVITY: "Cond",
     FLUORIDE: "F",
     MAGNESIUM: "Mg",
     NITRATE: "NO3",
     POTASSIUM: "K",
     SILICA: "SiO2",
     SODIUM: "Na",
+    SPECIFIC_CONDUCTANCE: None,
     SULFATE: "SO4",
     TDS: "TDS",
     URANIUM: "U",
@@ -267,11 +279,13 @@ for mapping in (
         CALCIUM,
         CARBONATE,
         CHLORIDE,
+        CONDUCTIVITY,
         FLUORIDE,
         MAGNESIUM,
         NITRATE,
         POTASSIUM,
         SODIUM,
+        SPECIFIC_CONDUCTANCE,
         SULFATE,
         TDS,
         URANIUM,
