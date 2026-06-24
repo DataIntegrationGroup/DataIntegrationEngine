@@ -1,0 +1,14 @@
+# Runtime dependencies for the Dagster+ serverless code location.
+# dagster_cloud.yaml builds from the repo root, so the PEX dependency
+# resolver reads this file (plus the root pyproject.toml, which supplies the
+# backend/nmuwd deps). The dagster stack lives here because it is not part of
+# the published nmuwd package.
+#
+# NOTE: must NOT contain editable/path entries (e.g. `-e .`) — the PEX deps
+# builder cannot resolve those. The local packages (backend/, orchestration/)
+# are bundled into the source PEX automatically.
+dagster>=1.8
+dagster-cloud
+dagster-gcp>=0.24
+google-cloud-storage
+google-cloud-secret-manager
