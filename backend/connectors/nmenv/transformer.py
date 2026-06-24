@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 from backend.connectors.st_connector import STSiteTransformer
-from backend.transformer import SiteTransformer, AnalyteTransformer
+from backend.transformer import AnalyteTransformer
 
 
 class DWBSiteTransformer(STSiteTransformer):

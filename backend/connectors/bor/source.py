@@ -13,10 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import pprint
-from json import JSONDecodeError
 
-import httpx
 
 from backend.connectors.bor.transformer import BORSiteTransformer, BORAnalyteTransformer
 from backend.connectors.mappings import BOR_ANALYTE_MAPPING
@@ -27,12 +24,9 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
-    EARLIEST,
-    LATEST,
 )
 
 from backend.source import (
-    BaseSource,
     BaseSiteSource,
     BaseAnalyteSource,
     get_terminal_record,
@@ -41,7 +35,8 @@ from backend.source import (
 
 
 class BORSiteSource(BaseSiteSource):
-    transformer_klass = BORSiteTransformer
+    def __init__(self):
+        super().__init__(transformer=BORSiteTransformer())
 
     def __repr__(self):
         return "BORSiteSource"
@@ -65,8 +60,10 @@ def parse_dt(dt):
 
 
 class BORAnalyteSource(BaseAnalyteSource):
-    transformer_klass = BORAnalyteTransformer
     _catalog_item_idx = None
+
+    def __init__(self):
+        super().__init__(transformer=BORAnalyteTransformer())
     _source_parameter_name = None
 
     def __repr__(self):
@@ -95,8 +92,8 @@ class BORAnalyteSource(BaseAnalyteSource):
     def _extract_source_parameter_names(self, records):
         return [self._source_parameter_name for ri in records]
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "attributes.dateTime", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "attributes.dateTime", position=position)
         return {
             "value": record["attributes"]["result"],
             "datetime": parse_dt(record["attributes"]["dateTime"]),

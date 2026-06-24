@@ -1,0 +1,42 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:$COMMIT_SHA'
+      - '-t'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:latest'
+      - '-f'
+      - 'orchestration/pygeoapi/Dockerfile'
+      - 'orchestration/pygeoapi'   # build context — allows COPY ../config/products.yaml
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'die-pygeoapi'
+      - '--image=$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:$COMMIT_SHA'
+      - '--region=$_REGION'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=80'
+      - '--memory=512Mi'
+      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$_SUFFIX.run.app'
+
+substitutions:
+  _REGION: us-central1
+  _SUFFIX: placeholder   # replace with Cloud Run URL suffix after first deploy
+
+images:
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:$COMMIT_SHA'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

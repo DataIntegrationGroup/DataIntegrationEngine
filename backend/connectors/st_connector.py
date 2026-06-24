@@ -14,12 +14,12 @@
 # limitations under the License.
 # ===============================================================================
 from datetime import datetime
+from typing import Optional
 
 import frost_sta_client as fsc
-from shapely import MultiPolygon, Polygon, unary_union
+from shapely import MultiPolygon, unary_union
 
 from backend.bounding_polygons import get_state_polygon
-from backend.constants import EARLIEST, LATEST
 from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
@@ -30,47 +30,27 @@ from backend.transformer import SiteTransformer
 
 
 def get_service(url):
-    s = fsc.SensorThingsService(url)
-    return s
+    return fsc.SensorThingsService(url)
 
 
-class STSource:
-    url: str
+class STClient:
+    def __init__(self, url: str):
+        self._url = url
 
     def get_service(self):
-        if self.url is None:
+        if self._url is None:
             raise ValueError("URL not set")
+        return get_service(self._url)
 
-        return get_service(self.url)
-
-    def _get_things(
-        self, service, site, expand="Locations,Datastreams", additional_filters=None
-    ):
-
+    def _get_things(self, service, site, expand="Locations,Datastreams", additional_filters=None):
         things = service.things().query().expand(expand)
         fs = [f"Locations/id eq {site.id}"]
-        if additional_filters is not None:
+        if additional_filters:
             for fi in additional_filters:
                 fs.append(fi)
         if fs:
             things.filter(" and ".join(fs))
-
         return things.list()
-
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(
-            records, tag=lambda x: x["observation"].phenomenon_time, bookend=bookend
-        )
-
-        return {
-            "value": self._parse_result(record["observation"].result),
-            "datetime": record["observation"].phenomenon_time,
-            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].name,
-        }
-
-    def _parse_result(self, result):
-        return result
 
 
 def make_dt_filter(tag, start, end):
@@ -84,36 +64,37 @@ def make_dt_filter(tag, start, end):
     elif end:
         e = end.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         return f"{tag} le {e}"
-
     return ""
 
 
-class STSiteSource(BaseSiteSource, STSource):
+class STSiteSource(BaseSiteSource):
+    url: Optional[str] = None
+
+    def __init__(self, transformer=None):
+        super().__init__(transformer=transformer)
+        self.client = STClient(self.url)
+
     def health(self):
         try:
-            # Health checks may run before config is initialized; probe the service directly.
-            service = self.get_service()
+            service = self.client.get_service()
             resp = list(service.locations().query().top(1).list())
             return bool(resp)
         except Exception:
             return False
-            
+
     def get_records(self, *args, **kw):
-        service = self.get_service()
+        service = self.client.get_service()
 
         config = self.config
 
         fs = []
         if config:
             if config.has_bounds():
-
                 poly = config.bounding_wkt(as_wkt=False)
-                # if poly is a MULTIPOLYGON convert to POLYGON
                 if type(poly) == MultiPolygon:
                     if len(poly.geoms) == 1:
                         poly = unary_union(poly)
                     else:
-                        # HUC4 1508 has 2 polygons, one of them is outside of NM
                         state_boundary = get_state_polygon("NM")
                         for geom in poly:
                             if state_boundary.contains(geom):
@@ -144,17 +125,53 @@ class STSiteSource(BaseSiteSource, STSource):
         return []
 
 
-class STWaterLevelSource(STSource, BaseWaterLevelSource):
-    pass
+class STWaterLevelSource(BaseWaterLevelSource):
+    url: Optional[str] = None
+
+    def __init__(self, transformer=None):
+        super().__init__(transformer=transformer)
+        self.client = STClient(self.url)
+
+    def _parse_result(self, result):
+        return result
+
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(
+            records, tag=lambda x: x["observation"].phenomenon_time, position=position
+        )
+        return {
+            "value": self._parse_result(record["observation"].result),
+            "datetime": record["observation"].phenomenon_time,
+            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_name": record["datastream"].name,
+        }
 
 
-class STAnalyteSource(STSource, BaseAnalyteSource):
-    pass
+class STAnalyteSource(BaseAnalyteSource):
+    url: Optional[str] = None
+
+    def __init__(self, transformer=None):
+        super().__init__(transformer=transformer)
+        self.client = STClient(self.url)
+
+    def _parse_result(self, result):
+        return result
+
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(
+            records, tag=lambda x: x["observation"].phenomenon_time, position=position
+        )
+        return {
+            "value": self._parse_result(record["observation"].result),
+            "datetime": record["observation"].phenomenon_time,
+            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
+            "source_parameter_name": record["datastream"].name,
+        }
 
 
 class STSiteTransformer(SiteTransformer):
     source_id: str
-    check_contained = False  # API returns only records within the bounds
+    check_contained = False
 
     def _transform_elevation(self, elevation, record):
         return elevation
@@ -170,9 +187,6 @@ class STSiteTransformer(SiteTransformer):
 
         lat = coordinates[1]
         lng = coordinates[0]
-        # if not self.contained(lng, lat):
-        #     print("not contained")
-        #     return
 
         ele = None
         if len(coordinates) == 3:

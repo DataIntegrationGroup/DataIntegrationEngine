@@ -21,18 +21,20 @@ import click
 
 
 # Track handlers created by this module to avoid closing unrelated handlers
-_managed_handlers = []
+_managed_handlers: list = []
 
 
-class Loggable:
-    def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
+class Logger:
+    """Standalone logger. Use make_logger() to create instances."""
+
+    def __init__(self, name: str):
+        self._name = name
+        self.logger = logging.getLogger(name)
 
     def log(self, msg, level=None, fg="yellow", **kwargs):
         if level is None:
             level = logging.INFO
-
-        click.secho(f"{self.__class__.__name__:40s}{msg}", fg=fg)
+        click.secho(f"{self._name:40s}{msg}", fg=fg)
         self.logger.log(level, msg, **kwargs)
 
     def warn(self, msg, fg="red", **kwargs):
@@ -42,9 +44,13 @@ class Loggable:
         self.log(msg, level=logging.DEBUG, fg="blue")
 
 
-def setup_logging(level=None, log_format=None, path=None):
-    global _managed_handlers
+def make_logger(name: str) -> Logger:
+    return Logger(name)
 
+
+def setup_logging(level=None, log_format=None, path=None):
+    # _managed_handlers is mutated in place (clear/append), never reassigned,
+    # so no `global` declaration is needed.
     if level is None:
         level = logging.DEBUG
     if log_format is None:

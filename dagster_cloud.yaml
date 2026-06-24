@@ -1,0 +1,9 @@
+locations:
+  - location_name: die-orchestration
+    code_source:
+      module_name: orchestration.definitions
+    build:
+      # PEX fast-deploy build root. orchestration/pyproject.toml declares the
+      # dagster deps and the `nmuwd` path-dependency (tool.uv.sources); the
+      # builder recurses into the repo root to collect backend/ + its deps.
+      directory: orchestration

@@ -19,9 +19,11 @@ class NMOSEPODSiteSource(BaseSiteSource):
     It is used to fetch site data from the NMOSEPOD API.
     """
 
-    transformer_klass = NMOSEPODSiteTransformer
     chunk_size: int = 5000
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+
+    def __init__(self):
+        super().__init__(transformer=NMOSEPODSiteTransformer())
 
     def get_records(self, *args, **kw) -> List[Dict]:
         config = self.config

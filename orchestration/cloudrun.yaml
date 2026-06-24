@@ -1,0 +1,38 @@
+# Cloud Run Job definition for DIE orchestration.
+# Deploy with:
+#   gcloud run jobs replace orchestration/cloudrun.yaml
+#
+# Each product in products.yaml gets its own Cloud Scheduler trigger
+# pointing at this job with PRODUCT_ID set to the product id.
+
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: die-orchestration
+  labels:
+    app: die
+spec:
+  template:
+    spec:
+      taskCount: 1
+      timeoutSeconds: 3600
+      template:
+        spec:
+          containers:
+            - image: us-central1-docker.pkg.dev/PROJECT_ID/die/die-orchestration:latest
+              env:
+                - name: PRODUCT_ID
+                  value: nm_waterlevels_summary   # overridden per Cloud Scheduler job
+                - name: GCS_BUCKET
+                  value: die-products
+                - name: USGS_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: usgs-api-key
+                      key: latest
+              resources:
+                limits:
+                  cpu: "2"
+                  memory: "4Gi"
+          serviceAccountName: die-orchestration-sa@PROJECT_ID.iam.gserviceaccount.com
+          maxRetries: 1

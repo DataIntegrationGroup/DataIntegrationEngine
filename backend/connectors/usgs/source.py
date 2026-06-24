@@ -45,8 +45,10 @@ TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
 MAX_RETRIES = 7
 
 class NWISSiteSource(BaseSiteSource):
-    transformer_klass = NWISSiteTransformer
     chunk_size = 500
+
+    def __init__(self):
+        super().__init__(transformer=NWISSiteTransformer())
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
     sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items"
 
@@ -63,7 +65,7 @@ class NWISSiteSource(BaseSiteSource):
                 headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
             else:
                 headers = {}
-            response = httpx.get(
+            response = self._http_client.get(
                 url=self.sites_url,
                 params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                 timeout=30,
@@ -107,7 +109,7 @@ class NWISSiteSource(BaseSiteSource):
                     headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
                 else:
                     headers = {}
-                response = httpx.get(
+                response = self._http_client.get(
                     url=self.sites_url,
                     params=params,
                     timeout=TIMEOUT,
@@ -153,7 +155,8 @@ class NWISSiteSource(BaseSiteSource):
 
 
 class NWISWaterLevelSource(BaseWaterLevelSource):
-    transformer_klass = NWISWaterLevelTransformer
+    def __init__(self):
+        super().__init__(transformer=NWISWaterLevelTransformer())
     # USGS complex queries allow up to 250 sites to be queried at once
     # https://api.waterdata.usgs.gov/docs/ogcapi/complex-queries
     num_sites = 250
@@ -295,8 +298,8 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
     def _extract_source_parameter_units(self, records):
         return [r["source_parameter_units"] for r in records]
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "datetime_measured", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "datetime_measured", position=position)
         return {
             "value": float(record["value"]),
             # "datetime": (record["date_measured"], record["time_measured"]),

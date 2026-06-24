@@ -1,4 +1,4 @@
-from backend.transformer import BaseTransformer, SiteTransformer
+from backend.transformer import SiteTransformer
 
 
 class NMOSEPODSiteTransformer(SiteTransformer):

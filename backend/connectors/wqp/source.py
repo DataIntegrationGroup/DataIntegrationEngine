@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import pprint
 
-import httpx
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.connectors.mappings import WQP_ANALYTE_MAPPING
@@ -26,8 +24,6 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
-    EARLIEST,
-    LATEST,
     TDS,
     WATERLEVELS,
     SPECIFIC_CONDUCTANCE,
@@ -69,17 +65,18 @@ def get_date_range(config):
 
 
 class WQPSiteSource(BaseSiteSource):
-    transformer_klass = WQPSiteTransformer
     chunk_size = 50
-
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
+
+    def __init__(self):
+        super().__init__(transformer=WQPSiteTransformer())
 
     def __repr__(self):
         return "WQPSiteSource"
 
     def health(self):
         try:
-            r = httpx.get(
+            r = self._http_client.get(
                 "https://www.waterqualitydata.us/data/Station/search",
                 params={"mimeType": "tsv", "siteid": "325754103461301"},
             )
@@ -206,8 +203,8 @@ class WQPParameterSource(BaseParameterSource):
     def _extract_source_parameter_names(self, records):
         return [ri["CharacteristicName"] for ri in records]
 
-    def _extract_terminal_record(self, records, bookend):
-        record = get_terminal_record(records, "ActivityStartDate", bookend=bookend)
+    def _extract_terminal_record(self, records, position):
+        record = get_terminal_record(records, "ActivityStartDate", position=position)
         return {
             "value": record["ResultMeasureValue"],
             "datetime": record["ActivityStartDate"],
@@ -249,7 +246,8 @@ class WQPParameterSource(BaseParameterSource):
 
 
 class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
-    transformer_klass = WQPAnalyteTransformer
+    def __init__(self):
+        super().__init__(transformer=WQPAnalyteTransformer())
 
     def __repr__(self):
         return "WQPAnalyteSource"
@@ -260,7 +258,8 @@ class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
 
 # inherit from WQPParameterSource first so that its _extract_souce_parameter_units method is used instead of BaseWaterLevelSource's method
 class WQPWaterLevelSource(WQPParameterSource, BaseWaterLevelSource):
-    transformer_klass = WQPWaterLevelTransformer
+    def __init__(self):
+        super().__init__(transformer=WQPWaterLevelTransformer())
 
     def __repr__(self):
         return "WQPWaterLevelSource"
