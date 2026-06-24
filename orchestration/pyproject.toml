@@ -9,6 +9,7 @@ description = "DIE Dagster orchestration (internal, not published)"
 requires-python = ">=3.10"
 dependencies = [
     "dagster>=1.8",
+    "dagster-cloud",
     "dagster-gcp>=0.24",
     "dagster-webserver>=1.8",
     "google-cloud-storage",
@@ -17,8 +18,11 @@ dependencies = [
     "nmuwd",
 ]
 
+# Trailing slash is required: the dagster-cloud PEX builder only treats a
+# uv.sources path as a local package when it starts with "./", "../", or "/".
+# Bare ".." is parsed as a (broken) dependency string instead.
 [tool.uv.sources]
-nmuwd = { path = "..", editable = true }
+nmuwd = { path = "../", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["orchestration"]
