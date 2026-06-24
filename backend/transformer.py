@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import click
-import pprint
 from datetime import datetime, date, timedelta
 
 import shapely
@@ -22,13 +20,8 @@ from shapely import Point
 
 from backend.bounding_polygons import NM_BOUNDARY_BUFFERED
 from backend.constants import (
-    MILLIGRAMS_PER_LITER,
-    PARTS_PER_MILLION,
-    PARTS_PER_BILLION,
     FEET,
     METERS,
-    TONS_PER_ACRE_FOOT,
-    MICROGRAMS_PER_LITER,
     DT_MEASURED,
     DTW,
     EARLIEST,
@@ -118,19 +111,6 @@ def transform_length_units(
             value = value * 3.28084
             unit = FEET
     return value, out_unit
-
-
-def convert_units(
-    input_value: int | float | str,
-    input_units: str,
-    output_units: str,
-    source_parameter_name: str,
-    die_parameter_name: str,
-    dt: str | None = None,
-) -> tuple[float, float | None, str]:
-    """Deprecated: use StandardUnitConverter().convert() instead."""
-    from backend.converter import StandardUnitConverter
-    return StandardUnitConverter().convert(float(input_value), input_units, output_units, source_parameter_name, die_parameter_name, dt)
 
 
 def standardize_datetime(dt, record_id):

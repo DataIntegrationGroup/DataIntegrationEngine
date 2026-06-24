@@ -20,7 +20,6 @@ import frost_sta_client as fsc
 from shapely import MultiPolygon, unary_union
 
 from backend.bounding_polygons import get_state_polygon
-from backend.constants import EARLIEST, LATEST
 from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,

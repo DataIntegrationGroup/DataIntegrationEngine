@@ -15,111 +15,12 @@
 # ===============================================================================
 import json
 import os
-from pprint import pprint
 
 import click
 import httpx
-from shapely import Polygon, box
 from shapely.geometry import shape
 
 from backend.geo_utils import transform_srid, SRID_WGS84, SRID_UTM_ZONE_13N
-
-
-# polygon retrivial functions
-# multiple polygons
-def get_congressional_district_boundaries(state, district):
-    pass
-
-
-def get_tribal_boundaries(state=None):
-    state, statefp = _get_statefp(state)
-
-    # use the processes service to get all tribal boundaries that intersect the state
-    def func():
-        payload = {
-            "inputs": {
-                "collection": f"aiannh",
-                "url": f"https://geoconnex.us/ref/states/{statefp}",
-            }
-        }
-        resp = httpx.post(
-            "https://reference.geoconnex.us/processes/intersector/execution",
-            json=payload,
-        )
-        return resp.json()
-
-    obj = _get_cached_object(f"{state}.aiannh", f"{state} AIANNH", func)
-
-    return obj
-
-
-def get_state_hucs_boundaries(state=None, level=8):
-    state, statefp = _get_statefp(state)
-
-    # use the processes service to get all hucs from this level that intersect the state of NM
-    def func():
-        payload = {
-            "inputs": {
-                "collection": f"hu{level:02n}",
-                "url": f"https://geoconnex.us/ref/states/{statefp}",
-            }
-        }
-        resp = httpx.post(
-            "https://reference.geoconnex.us/processes/intersector/execution",
-            json=payload,
-        )
-        return resp.json()
-
-    obj = _get_cached_object(f"{state}.hucs.{level}", f"{state} HU{level:02n}", func)
-
-    return obj
-
-
-def get_state_pwss_boundaries(state=None):
-    state, statefp = _get_statefp(state)
-    obj = _get_cached_object(
-        f"{state}.pws",
-        f"{state} PWSs",
-        f"https://reference.geoconnex.us/collections/pws/items?f=json&state_code={state}",
-    )
-
-    return obj
-
-
-# single polygons
-
-
-def get_pws_polygon(pwsid, as_wkt=True):
-    obj = _get_cached_object(
-        pwsid,
-        pwsid,
-        f"https://reference.geoconnex.us/collections/pws/items/{pwsid}?f=json",
-    )
-    return _make_shape(obj, as_wkt)
-
-
-def get_huc_polygon(huc, as_wkt=True):
-    if len(huc) == 2:
-        collection = "hu02"
-    elif len(huc) == 4:
-        collection = "hu04"
-    elif len(huc) == 6:
-        collection = "hu06"
-    elif len(huc) == 8:
-        collection = "hu08"
-    elif len(huc) == 10:
-        collection = "hu10"
-    else:
-        _warning(f"Invalid HUC {huc}. length must be 2, 4, 6, 8, or 10")
-        return
-
-    obj = _get_cached_object(
-        huc,
-        huc,
-        f"https://reference.geoconnex.us/collections/{collection}/items/{huc}?f=json",
-    )
-
-    return _make_shape(obj, as_wkt)
 
 
 def get_county_polygon(name, as_wkt=True):

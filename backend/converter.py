@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from typing import Protocol, runtime_checkable
-
 from backend.constants import (
     MILLIGRAMS_PER_LITER,
     PARTS_PER_MILLION,
@@ -24,19 +22,6 @@ from backend.constants import (
     TONS_PER_ACRE_FOOT,
     MICROGRAMS_PER_LITER,
 )
-
-
-@runtime_checkable
-class UnitConverter(Protocol):
-    def convert(
-        self,
-        input_value: float,
-        input_units: str,
-        output_units: str,
-        source_parameter_name: str,
-        die_parameter_name: str,
-        dt: str | None = None,
-    ) -> tuple[float, float | None, str]: ...
 
 
 class StandardUnitConverter:

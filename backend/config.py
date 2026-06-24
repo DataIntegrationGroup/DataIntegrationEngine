@@ -16,7 +16,6 @@
 import os
 import sys
 from datetime import datetime, timedelta
-from enum import Enum
 import shapely.wkt
 import yaml
 

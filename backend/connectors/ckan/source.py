@@ -15,7 +15,6 @@
 # ===============================================================================
 from itertools import groupby
 
-import httpx
 
 from backend.connectors import (
     OSE_ROSWELL_HONDO_BOUNDING_POLYGON,
@@ -34,7 +33,6 @@ from backend.connectors.ckan.transformer import (
 from backend.constants import (
     FEET,
     DTW,
-    DTW_UNITS,
     DT_MEASURED,
     PARAMETER_NAME,
     PARAMETER_UNITS,
@@ -43,7 +41,6 @@ from backend.constants import (
     SOURCE_PARAMETER_UNITS,
 )
 from backend.source import (
-    BaseSource,
     BaseSiteSource,
     BaseWaterLevelSource,
     get_terminal_record,

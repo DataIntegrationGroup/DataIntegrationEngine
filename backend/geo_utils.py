@@ -16,7 +16,6 @@
 import pyproj
 from shapely.ops import transform
 
-PROJECTIONS: dict = {}
 TRANSFORMS: dict = {}
 
 ALLOWED_DATUMS = ["NAD27", "NAD83", "WGS84"]
@@ -73,58 +72,6 @@ def datum_transform(x, y, in_datum, out_datum):
     pr = TRANSFORMS[name]
     lng, lat = pr.transform(x, y)
     return lng, lat
-
-
-def utm_to_lonlat(e, n, zone=13):
-    """
-    Converts easting and northing into longitude and latitude
-
-    Parameters
-    --------
-    e: float
-        easting
-    n: float
-        northing
-
-    Returns
-    --------
-    tuple
-        (longitude, latitude)
-    """
-    name = f"utm{zone}"
-    if name not in PROJECTIONS:
-        pr = pyproj.Proj(proj="utm", zone=int(zone), ellps="WGS84")
-        PROJECTIONS[name] = pr
-    pr = PROJECTIONS[name]
-    lonlat = pr(e, n, inverse=True)
-    return lonlat
-
-
-def lonlat_to_utm(lon, lat, zone=13):
-    """
-    Converts longitude and latitude into easting and northing
-
-    Parameters
-    --------
-    lon: float
-        longitude in decimal degrees
-    lat: float
-        latitude in decimal degrees
-
-
-    Returns
-    --------
-    tuple
-        (easting, northing)
-    """
-    name = "lonlat"
-    if name not in PROJECTIONS:
-        pr = pyproj.Proj(proj="utm", ellps="WGS84", zone=zone)
-        PROJECTIONS[name] = pr
-
-    pr = PROJECTIONS[name]
-    easting_northing = pr(lon, lat)
-    return easting_northing
 
 
 # ============= EOF =============================================

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import datetime
 from functools import partial
 
 from backend.connectors import (
@@ -41,7 +40,6 @@ from backend.connectors.st_connector import (
 )
 from backend.constants import (
     DTW,
-    DTW_UNITS,
     DT_MEASURED,
     PARAMETER_NAME,
     PARAMETER_VALUE,
@@ -49,7 +47,6 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
 )
-from backend.source import BaseSiteSource, BaseWaterLevelSource, get_terminal_record
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.1"
 

@@ -13,15 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import pprint
 
-from backend.record import SiteRecord
-from backend.transformer import BaseTransformer, WaterLevelTransformer, SiteTransformer
+from backend.transformer import WaterLevelTransformer, SiteTransformer
 
 
 class OSERoswellSiteTransformer(SiteTransformer):
     def _transform(self, record):
-        # pprint.pprint(record)
         lat = float(record["DD_lat"])
         lng = float(record["DD_lon"])
         # if not self.contained(lng, lat):
