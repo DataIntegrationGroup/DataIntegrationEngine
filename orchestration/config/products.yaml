@@ -55,14 +55,3 @@ products:
       state: NM
     sources:
       exclude: []
-
-  - id: nm_tds_latest
-    parameter: tds
-    output_type: ogc_summary
-    title: "NM Latest TDS Value"
-    description: "Most recent TDS value per site, all NM sources"
-    schedule: "0 11 * * *"
-    spatial_filter:
-      state: NM
-    sources:
-      exclude: []
