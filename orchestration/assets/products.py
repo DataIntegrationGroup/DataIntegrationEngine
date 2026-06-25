@@ -161,11 +161,12 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
     return _combine_asset
 
 
-def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path) -> Path:
+def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path):
     """Convert a GeoJSON file to a GeoPackage whose layer (table) is named
     *layer_name* (so the published GeoServer layer is named *layer_name*).
     GeoPackage is a single file with no field-name length limit, unlike the
-    zipped ESRI Shapefile this replaces. Returns the path to the .gpkg."""
+    zipped ESRI Shapefile this replaces. Returns (gpkg_path, bbox) where bbox is
+    (minx, miny, maxx, maxy) in EPSG:4326."""
     gdf = gpd.read_file(geojson_path)
     if gdf.empty:
         raise ValueError(f"{layer_name}: GeoJSON has no features; nothing to publish")
@@ -177,9 +178,13 @@ def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path) -
     # computing bounds, so flatten to 2D — elevation remains an attribute.
     gdf["geometry"] = gdf.geometry.force_2d()
 
+    # Bounds are passed to GeoServer explicitly so it never calls getBounds on
+    # the gpkg store (which still trips the 3D-CRS bug at publish time).
+    minx, miny, maxx, maxy = (float(v) for v in gdf.total_bounds)
+
     gpkg_path = out_dir / f"{layer_name}.gpkg"
     gdf.to_file(gpkg_path, driver="GPKG", layer=layer_name)
-    return gpkg_path
+    return gpkg_path, (minx, miny, maxx, maxy)
 
 
 def _build_geoserver_asset(product: dict, group: str):
@@ -203,12 +208,13 @@ def _build_geoserver_asset(product: dict, group: str):
             with tempfile.TemporaryDirectory() as tmpdir:
                 geojson = Path(tmpdir) / f"{pid}.geojson"
                 gcs.download_latest(pid, str(geojson))
-                gpkg_path = _geojson_to_geopackage(geojson, pid, Path(tmpdir))
+                gpkg_path, bbox = _geojson_to_geopackage(geojson, pid, Path(tmpdir))
                 actions = geoserver.publish_geopackage(
                     pid,
                     str(gpkg_path),
                     title=product.get("title", pid),
                     abstract=product.get("description", ""),
+                    bbox=bbox,
                 )
         except Exception:
             error = traceback.format_exc()
