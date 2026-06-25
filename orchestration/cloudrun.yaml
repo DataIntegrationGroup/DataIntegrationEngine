@@ -24,7 +24,7 @@ spec:
                 - name: PRODUCT_ID
                   value: nm_waterlevels_summary   # overridden per Cloud Scheduler job
                 - name: GCS_BUCKET
-                  value: die-products
+                  value: dataservices-die-products
                 - name: USGS_API_KEY
                   valueFrom:
                     secretKeyRef:

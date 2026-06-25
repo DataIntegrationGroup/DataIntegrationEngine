@@ -1,4 +1,4 @@
-gcs_bucket: die-products
+gcs_bucket: dataservices-die-products
 
 products:
   - id: nm_waterlevels_summary

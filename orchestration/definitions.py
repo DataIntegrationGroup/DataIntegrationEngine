@@ -62,7 +62,7 @@ defs = dg.Definitions(
     resources={
         "die_config": DIEConfigResource(),
         "gcs": GCSResource(
-            bucket_name=_products_config.get("gcs_bucket", "die-products"),
+            bucket_name=_products_config.get("gcs_bucket", "dataservices-die-products"),
         ),
     },
 )
