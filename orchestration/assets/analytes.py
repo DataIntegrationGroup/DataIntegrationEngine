@@ -7,11 +7,13 @@ from backend.unifier import unify_analytes
 from backend.persisters.ogc_features import dump_summary_collection
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource
+from orchestration.logging_bridge import forward_die_logs
 
 
 def build_analyte_summary_asset(product: dict):
     @dg.asset(name=product["id"], group_name="analytes")
     def _analyte_asset(
+        context: dg.AssetExecutionContext,
         die_config: DIEConfigResource,
         gcs: GCSResource,
     ) -> dg.MaterializeResult:
@@ -19,7 +21,8 @@ def build_analyte_summary_asset(product: dict):
         config.output_summary = True
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            unify_analytes(config)
+            with forward_die_logs(context):
+                unify_analytes(config)
 
             persister = getattr(config, "_persister", None)
             records = persister.records if persister else []

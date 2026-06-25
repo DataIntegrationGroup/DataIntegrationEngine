@@ -1,3 +1,5 @@
+import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -26,6 +28,13 @@ class GCSResource(dg.ConfigurableResource):
     def _client(self):
         if not _GCS_AVAILABLE:
             raise ImportError("google-cloud-storage not installed")
+        # Dagster+ serverless has no Application Default Credentials. Prefer an
+        # explicit service-account key from a Dagster+ secret env var; fall back
+        # to ADC (local dev with `gcloud auth application-default login`).
+        key = os.environ.get("GCP_SERVICE_ACCOUNT_KEY")
+        if key:
+            info = json.loads(key)
+            return storage.Client.from_service_account_info(info)
         return storage.Client()
 
     def upload_product(

@@ -7,11 +7,13 @@ from backend.unifier import unify_waterlevels
 from backend.persisters.ogc_features import dump_summary_collection, dump_timeseries_collection
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource
+from orchestration.logging_bridge import forward_die_logs
 
 
 def build_waterlevels_summary_asset(product: dict):
     @dg.asset(name=product["id"], group_name="waterlevels")
     def _wl_summary_asset(
+        context: dg.AssetExecutionContext,
         die_config: DIEConfigResource,
         gcs: GCSResource,
     ) -> dg.MaterializeResult:
@@ -19,7 +21,8 @@ def build_waterlevels_summary_asset(product: dict):
         config.output_summary = True
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            unify_waterlevels(config)
+            with forward_die_logs(context):
+                unify_waterlevels(config)
 
             persister = getattr(config, "_persister", None)
             records = persister.records if persister else []
@@ -53,6 +56,7 @@ def build_waterlevels_timeseries_asset(product: dict):
 
     @dg.asset(name=product["id"], group_name="waterlevels")
     def _wl_ts_asset(
+        context: dg.AssetExecutionContext,
         die_config: DIEConfigResource,
         gcs: GCSResource,
     ) -> dg.MaterializeResult:
@@ -61,7 +65,8 @@ def build_waterlevels_timeseries_asset(product: dict):
         config.output_timeseries_unified = True
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            unify_waterlevels(config)
+            with forward_die_logs(context):
+                unify_waterlevels(config)
 
             persister = getattr(config, "_persister", None)
             site_records = persister.sites if persister else []
