@@ -23,6 +23,23 @@ from backend.constants import (
     MICROGRAMS_PER_LITER,
 )
 
+# Lab non-detect markers. Mirrors the nmenv connector convention: a non-detect
+# is treated as 0 for summary statistics. Compared against the lowercased,
+# stripped value.
+_NON_DETECT_MARKERS = ("nd", "not detected", "< mrl", "< mdl", "<mrl", "<mdl")
+
+
+def _coerce_value(input_value):
+    """Return (value, ok). ok=False means the value is not numeric and is not a
+    recognized non-detect, so the caller should skip it rather than crash."""
+    try:
+        return float(input_value), True
+    except (TypeError, ValueError):
+        normalized = str(input_value).strip().lower()
+        if any(m in normalized for m in _NON_DETECT_MARKERS):
+            return 0.0, True
+        return None, False
+
 
 class StandardUnitConverter:
     def convert(
@@ -37,7 +54,17 @@ class StandardUnitConverter:
         warning = ""
         conversion_factor = None
 
-        input_value = float(input_value)
+        value, ok = _coerce_value(input_value)
+        if not ok:
+            # Non-numeric and not a known non-detect: leave value as-is and
+            # signal a failed conversion (conversion_factor None) so the record
+            # is skipped downstream rather than crashing the run.
+            warning = (
+                f"Non-numeric value {input_value!r} for "
+                f"{source_parameter_name} on {dt}; skipping."
+            )
+            return input_value, None, warning
+        input_value = value
         input_units = input_units.strip().lower()
         output_units = output_units.strip().lower()
         source_parameter_name = source_parameter_name.strip().lower()
