@@ -172,6 +172,11 @@ def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path) -
     if gdf.crs is None:
         gdf = gdf.set_crs("EPSG:4326")
 
+    # Sites with an elevation get 3D point geometry in the GeoJSON. GeoServer's
+    # GeoPackage reader rejects a 3D CRS ("WGS 84 has 3 dimensions") when
+    # computing bounds, so flatten to 2D — elevation remains an attribute.
+    gdf["geometry"] = gdf.geometry.force_2d()
+
     gpkg_path = out_dir / f"{layer_name}.gpkg"
     gdf.to_file(gpkg_path, driver="GPKG", layer=layer_name)
     return gpkg_path

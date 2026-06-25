@@ -100,12 +100,14 @@ class GeoServerResource(dg.ConfigurableResource):
             self._raise(r)
         actions["datastore_reset"] = "deleted" if r.status_code == 200 else "absent"
 
-        # Upload the GeoPackage. PUT .../file.gpkg creates the datastore and
-        # publishes the contained layer. A .gpkg is a SQLite database, hence
-        # the application/x-sqlite3 content type GeoServer expects.
+        # Upload the GeoPackage to create the datastore only. Unlike the
+        # shapefile flow, configure=all does NOT reliably publish a gpkg's
+        # layer, so use configure=none and publish the featuretype explicitly
+        # below. A .gpkg is a SQLite database, hence the application/x-sqlite3
+        # content type GeoServer expects.
         with open(gpkg_path, "rb") as f:
             data = f.read()
-        url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/file.gpkg?configure=all"
+        url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/file.gpkg?configure=none"
         r = requests.put(
             url,
             data=data,
@@ -116,30 +118,28 @@ class GeoServerResource(dg.ConfigurableResource):
         self._raise(r)
         actions["upload"] = "ok"
 
-        # Set title/abstract on the published featuretype. The GeoPackage layer
-        # name is the table name written by geopandas (== layer_name here).
-        if title is not None or abstract is not None:
-            ft_url = (
-                f"{base}/rest/workspaces/{ws}/datastores/{layer_name}"
-                f"/featuretypes/{layer_name}"
-            )
-            r = requests.put(
-                ft_url,
-                auth=auth,
-                json={
-                    "featureType": {
-                        "title": title or layer_name,
-                        "abstract": abstract or "",
-                    }
-                },
-                headers={"Content-Type": "application/json"},
-                timeout=self.timeout,
-            )
-            # non-fatal: data is already published even if metadata update fails
-            if r.status_code < 400:
-                actions["metadata"] = "updated"
-            else:
-                actions["metadata"] = f"skipped ({r.status_code})"
+        # Publish the layer from the gpkg's table. nativeName is the table name
+        # written by geopandas (== layer_name); name is the published layer
+        # name. The store was recreated above, so this POST always creates a
+        # fresh featuretype. srs is set explicitly — the data is WGS84.
+        ft_url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/featuretypes"
+        r = requests.post(
+            ft_url,
+            auth=auth,
+            json={
+                "featureType": {
+                    "name": layer_name,
+                    "nativeName": layer_name,
+                    "title": title or layer_name,
+                    "abstract": abstract or "",
+                    "srs": "EPSG:4326",
+                }
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=self.timeout,
+        )
+        self._raise(r)
+        actions["layer"] = "published"
 
         actions["layer_url"] = f"{base}/{ws}/wms?layers={ws}:{layer_name}"
         return actions

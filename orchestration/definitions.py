@@ -2,10 +2,10 @@ from pathlib import Path
 
 import dagster as dg
 import yaml
-from dagster_gcp.gcs import GCSPickleIOManager, GCSResource as DagsterGCSResource
+from dagster_gcp.gcs import GCSPickleIOManager
 
 from orchestration.resources.die_config import DIEConfigResource
-from orchestration.resources.gcs import GCSResource
+from orchestration.resources.gcs import GCSResource, AuthedGCSResource
 from orchestration.resources.geoserver import GeoServerResource
 from orchestration.assets.products import build_product_assets
 
@@ -65,7 +65,7 @@ defs = dg.Definitions(
         # geoserver) on its own can't load its source inputs from a prior run
         # and fails with FileNotFoundError.
         "io_manager": GCSPickleIOManager(
-            gcs=DagsterGCSResource(),
+            gcs=AuthedGCSResource(),
             gcs_bucket=_products_config.get("gcs_bucket", "dataservices-die-products"),
             gcs_prefix="dagster-io",
         ),
