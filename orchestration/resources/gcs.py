@@ -37,6 +37,14 @@ class GCSResource(dg.ConfigurableResource):
             return storage.Client.from_service_account_info(info)
         return storage.Client()
 
+    def download_latest(self, product_id: str, dest_path: str) -> str:
+        """Download a product's latest.geojson to *dest_path*. Returns the path."""
+        client = self._client()
+        bucket = client.bucket(self.bucket_name)
+        latest_key = f"{self.products_prefix}/{product_id}/latest.geojson"
+        bucket.blob(latest_key).download_to_filename(dest_path)
+        return dest_path
+
     def upload_product(
         self,
         local_path: str,

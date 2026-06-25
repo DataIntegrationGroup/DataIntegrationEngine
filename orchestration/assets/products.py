@@ -15,9 +15,11 @@ Design notes:
 """
 import tempfile
 import traceback
+import zipfile
 from pathlib import Path
 
 import dagster as dg
+import geopandas as gpd
 
 from backend.config import PARAMETER_SOURCE_MAP, WATERLEVELS
 from backend.persisters.ogc_features import (
@@ -160,6 +162,30 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
     return _combine_asset
 
 
+def _geojson_to_shapefile_zip(geojson_path: Path, layer_name: str, out_dir: Path) -> Path:
+    """Convert a GeoJSON file to a zipped ESRI Shapefile whose components share
+    *layer_name* as their basename (so the published GeoServer layer is named
+    *layer_name*). Returns the path to the zip."""
+    gdf = gpd.read_file(geojson_path)
+    if gdf.empty:
+        raise ValueError(f"{layer_name}: GeoJSON has no features; nothing to publish")
+    if gdf.crs is None:
+        gdf = gdf.set_crs("EPSG:4326")
+
+    shp_dir = out_dir / "shp"
+    shp_dir.mkdir(exist_ok=True)
+    shp_path = shp_dir / f"{layer_name}.shp"
+    # pyogrio engine writes ESRI Shapefile; field names are truncated to the
+    # 10-char shapefile limit automatically.
+    gdf.to_file(shp_path, driver="ESRI Shapefile")
+
+    zip_path = out_dir / f"{layer_name}.zip"
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for component in shp_dir.glob(f"{layer_name}.*"):
+            zf.write(component, arcname=component.name)
+    return zip_path
+
+
 def _build_geoserver_asset(product: dict, group: str):
     pid = product["id"]
     gs_key = dg.AssetKey([pid, "geoserver"])
@@ -175,26 +201,24 @@ def _build_geoserver_asset(product: dict, group: str):
         gcs: GCSResource,
         geoserver: GeoServerResource,
     ) -> dg.MaterializeResult:
-        # Public GCS URL of the combine asset's latest.geojson.
-        geojson_url = (
-            f"https://storage.googleapis.com/{gcs.bucket_name}"
-            f"/{gcs.products_prefix}/{pid}/latest.geojson"
-        )
-
         error = ""
         actions: dict = {}
         try:
-            actions = geoserver.register_geojson(
-                pid,
-                geojson_url,
-                title=product.get("title", pid),
-                abstract=product.get("description", ""),
-            )
+            with tempfile.TemporaryDirectory() as tmpdir:
+                geojson = Path(tmpdir) / f"{pid}.geojson"
+                gcs.download_latest(pid, str(geojson))
+                zip_path = _geojson_to_shapefile_zip(geojson, pid, Path(tmpdir))
+                actions = geoserver.publish_shapefile(
+                    pid,
+                    str(zip_path),
+                    title=product.get("title", pid),
+                    abstract=product.get("description", ""),
+                )
         except Exception:
             error = traceback.format_exc()
-            context.log.error(f"GeoServer registration failed for {pid}:\n{error}")
+            context.log.error(f"GeoServer publish failed for {pid}:\n{error}")
 
-        metadata = {"geojson_url": geojson_url, "error": error}
+        metadata = {"error": error}
         for k, v in actions.items():
             metadata[f"geoserver_{k}"] = str(v)
 
