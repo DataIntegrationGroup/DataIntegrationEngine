@@ -87,15 +87,24 @@ class GeoServerResource(dg.ConfigurableResource):
 
         actions = {"workspace": self._ensure_workspace(base, ws, auth)}
 
-        # Upload the zipped shapefile. PUT .../file.shp creates the datastore (if
-        # absent) and publishes the contained layer; update=overwrite replaces
-        # the data on subsequent runs.
+        # Delete any pre-existing datastore of this name first. PUT file.shp
+        # reuses an existing store's factory type, so a store left over from a
+        # different backend (e.g. a broken OGR store) would otherwise force a
+        # 500. Recreating from scratch each run keeps this self-healing; the
+        # data is re-uploaded every run regardless.
+        ds_url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}"
+        r = requests.delete(
+            f"{ds_url}?recurse=true", auth=auth, timeout=self.timeout
+        )
+        if r.status_code not in (200, 404):
+            self._raise(r)
+        actions["datastore_reset"] = "deleted" if r.status_code == 200 else "absent"
+
+        # Upload the zipped shapefile. PUT .../file.shp creates the datastore and
+        # publishes the contained layer.
         with open(shapefile_zip_path, "rb") as f:
             data = f.read()
-        url = (
-            f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/file.shp"
-            "?configure=all&update=overwrite"
-        )
+        url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/file.shp?configure=all"
         r = requests.put(
             url,
             data=data,
