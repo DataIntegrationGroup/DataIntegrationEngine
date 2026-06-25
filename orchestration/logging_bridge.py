@@ -6,7 +6,17 @@ handler that relays every root log record to the Dagster logger. Removed on exit
 so we never leak handlers across runs.
 """
 import logging
+import os
 from contextlib import contextmanager
+
+
+def _enabled() -> bool:
+    return os.environ.get("DIE_FORWARD_LOGS_TO_DAGSTER", "false").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 class _DagsterForwardHandler(logging.Handler):
@@ -24,7 +34,14 @@ class _DagsterForwardHandler(logging.Handler):
 
 @contextmanager
 def forward_die_logs(context, level=logging.INFO):
-    """Relay root-logger records to `context.log` for the duration of the block."""
+    """Relay root-logger records to `context.log` for the duration of the block.
+
+    No-op unless the DIE_FORWARD_LOGS_TO_DAGSTER env var is truthy (default off).
+    """
+    if not _enabled():
+        yield
+        return
+
     handler = _DagsterForwardHandler(context.log)
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter("%(name)-30s %(message)s"))
