@@ -75,6 +75,7 @@ class GeoServerResource(dg.ConfigurableResource):
         gpkg_path: str,
         title: Optional[str] = None,
         abstract: Optional[str] = None,
+        bbox: Optional[tuple] = None,
     ) -> dict:
         """Create-or-update a native GeoPackage datastore named *layer_name*
         from the GeoPackage at *gpkg_path* and publish its layer. Idempotent —
@@ -122,19 +123,33 @@ class GeoServerResource(dg.ConfigurableResource):
         # written by geopandas (== layer_name); name is the published layer
         # name. The store was recreated above, so this POST always creates a
         # fresh featuretype. srs is set explicitly — the data is WGS84.
-        ft_url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/featuretypes"
+        feature_type: dict = {
+            "name": layer_name,
+            "nativeName": layer_name,
+            "title": title or layer_name,
+            "abstract": abstract or "",
+            "srs": "EPSG:4326",
+            "nativeCRS": "EPSG:4326",
+        }
+        # Supply the bounding boxes so GeoServer does not call getBounds on the
+        # gpkg store — that path still trips a 3D-CRS dimension error at publish.
+        # recalculate= (empty) tells GeoServer to keep the supplied boxes as-is.
+        recalc = ""
+        if bbox is not None:
+            minx, miny, maxx, maxy = bbox
+            box = {
+                "minx": minx, "miny": miny, "maxx": maxx, "maxy": maxy,
+                "crs": "EPSG:4326",
+            }
+            feature_type["nativeBoundingBox"] = box
+            feature_type["latLonBoundingBox"] = dict(box)
+            recalc = "?recalculate="
+
+        ft_url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/featuretypes{recalc}"
         r = requests.post(
             ft_url,
             auth=auth,
-            json={
-                "featureType": {
-                    "name": layer_name,
-                    "nativeName": layer_name,
-                    "title": title or layer_name,
-                    "abstract": abstract or "",
-                    "srs": "EPSG:4326",
-                }
-            },
+            json={"featureType": feature_type},
             headers={"Content-Type": "application/json"},
             timeout=self.timeout,
         )
