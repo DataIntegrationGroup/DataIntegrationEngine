@@ -58,6 +58,18 @@ class GeoServerResource(dg.ConfigurableResource):
         )
         return resp
 
+    @staticmethod
+    def _raise(resp):
+        """raise_for_status, but include GeoServer's response body — it carries
+        the real reason (e.g. auth/role failure) that the bare status hides."""
+        if resp.status_code >= 400:
+            body = (resp.text or "").strip()
+            raise requests.HTTPError(
+                f"{resp.status_code} {resp.reason} for {resp.request.method} "
+                f"{resp.url}: {body[:500]}",
+                response=resp,
+            )
+
     # -- public api -----------------------------------------------------------
     def register_geojson(
         self,
@@ -83,10 +95,10 @@ class GeoServerResource(dg.ConfigurableResource):
             r = self._req(
                 "POST", f"{base}/rest/workspaces", auth, json={"workspace": {"name": ws}}
             )
-            r.raise_for_status()
+            self._raise(r)
             actions["workspace"] = "created"
         else:
-            r.raise_for_status()
+            self._raise(r)
             actions["workspace"] = "exists"
 
         # 2. OGR datastore
@@ -112,12 +124,12 @@ class GeoServerResource(dg.ConfigurableResource):
                 auth,
                 json=ds_body,
             )
-            r.raise_for_status()
+            self._raise(r)
             actions["datastore"] = "created"
         else:
-            r.raise_for_status()
+            self._raise(r)
             r = self._req("PUT", ds_url, auth, json=ds_body)
-            r.raise_for_status()
+            self._raise(r)
             actions["datastore"] = "updated"
 
         # 3. featuretype (the published layer)
@@ -136,15 +148,15 @@ class GeoServerResource(dg.ConfigurableResource):
         r = self._req("GET", f"{ft_url}.json", auth)
         if r.status_code == 404:
             r = self._req("POST", ft_collection, auth, json=ft_body)
-            r.raise_for_status()
+            self._raise(r)
             actions["featuretype"] = "created"
         else:
-            r.raise_for_status()
+            self._raise(r)
             # recalculate bounding boxes on update so extent tracks new data
             r = self._req(
                 "PUT", f"{ft_url}?recalculate=nativebbox,latlonbbox", auth, json=ft_body
             )
-            r.raise_for_status()
+            self._raise(r)
             actions["featuretype"] = "updated"
 
         actions["layer_url"] = f"{base}/{ws}/wms?layers={ws}:{layer_name}"
