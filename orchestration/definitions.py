@@ -5,13 +5,11 @@ import yaml
 
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource
-from orchestration.assets.waterlevels import (
-    build_waterlevels_summary_asset,
-    build_waterlevels_timeseries_asset,
-)
-from orchestration.assets.analytes import build_analyte_summary_asset
+from orchestration.assets.products import build_product_assets
 
 _PRODUCTS_PATH = Path(__file__).parent / "config" / "products.yaml"
+
+_SUPPORTED_OUTPUT_TYPES = {"ogc_summary", "ogc_timeseries"}
 
 
 def _load_products() -> dict:
@@ -21,30 +19,23 @@ def _load_products() -> dict:
 def _build_assets(products_config: dict) -> list:
     assets = []
     for product in products_config["products"]:
-        param = product["parameter"]
-        output_type = product["output_type"]
-
-        if param == "waterlevels" and output_type == "ogc_summary":
-            assets.append(build_waterlevels_summary_asset(product))
-        elif param == "waterlevels" and output_type == "ogc_timeseries":
-            assets.append(build_waterlevels_timeseries_asset(product))
-        elif output_type == "ogc_summary":
-            assets.append(build_analyte_summary_asset(product))
-
+        if product.get("output_type") in _SUPPORTED_OUTPUT_TYPES:
+            assets.extend(build_product_assets(product))
     return assets
 
 
-def _build_schedules(products_config: dict, assets: list) -> list:
-    asset_names = {a.key.path[-1] for a in assets}
+def _build_schedules(products_config: dict) -> list:
     schedules = []
     for product in products_config["products"]:
-        pid = product["id"]
-        if pid not in asset_names:
+        if product.get("output_type") not in _SUPPORTED_OUTPUT_TYPES:
             continue
+        pid = product["id"]
         schedules.append(
             dg.ScheduleDefinition(
                 name=f"schedule_{pid}",
-                target=dg.AssetSelection.keys(pid),
+                # Materialize the combine asset and all its upstream source
+                # assets for this product.
+                target=dg.AssetSelection.keys(pid).upstream(),
                 cron_schedule=product.get("schedule", "0 6 * * *"),
                 execution_timezone="America/Denver",
             )
@@ -54,7 +45,7 @@ def _build_schedules(products_config: dict, assets: list) -> list:
 
 _products_config = _load_products()
 _assets = _build_assets(_products_config)
-_schedules = _build_schedules(_products_config, _assets)
+_schedules = _build_schedules(_products_config)
 
 defs = dg.Definitions(
     assets=_assets,

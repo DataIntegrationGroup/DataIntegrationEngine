@@ -119,7 +119,7 @@ def unify_sites(config):
 #     persister.save(config.output_path)
 
 
-def _site_wrapper(site_source, parameter_source, persister, config):
+def _site_wrapper(site_source, parameter_source, persister, config, raise_errors=False):
 
     try:
         # TODO: fully develop checks/discoveries below
@@ -239,6 +239,8 @@ def _site_wrapper(site_source, parameter_source, persister, config):
 
         config.warn(traceback.format_exc())
         config.warn(f"Failed to unify {site_source}")
+        if raise_errors:
+            raise
 
 
 def _unify_parameter(
@@ -271,6 +273,32 @@ def _unify_parameter(
         persister.dump_sites(config.output_path)
 
     persister.finalize(config.output_name)
+
+
+def unify_source(config, source_key):
+    """Run unification for a single source and return its persister.
+
+    Used by the per-source Dagster assets so each source's contribution
+    (records/sites/timeseries) can be materialized and observed independently.
+    Unexpected errors propagate (raise_errors=True) so the caller can mark the
+    source as failed; rate-limit / partial-data conditions are still handled
+    gracefully inside _site_wrapper.
+    """
+    config.validate()
+
+    persister = make_persister(config)
+    config._persister = persister
+
+    pair = config.source_pair(source_key)
+    if pair is None:
+        config.warn(
+            f"Source {source_key!r} does not provide parameter {config.parameter!r}"
+        )
+        return persister
+
+    site_source, parameter_source = pair
+    _site_wrapper(site_source, parameter_source, persister, config, raise_errors=True)
+    return persister
 
 
 def get_county_bounds(county):

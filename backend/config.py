@@ -113,6 +113,30 @@ SOURCE_DICT = {
 
 SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
 
+# Per-source (site_source, parameter_source) class pairs, keyed by source key.
+# Insertion order mirrors the historical order of analyte_sources()/
+# water_level_sources(). source_pair() and the *_sources() methods build from
+# these so per-source unification can resolve a single source by key.
+ANALYTE_SOURCE_PAIRS = {
+    "bor": (BORSiteSource, BORAnalyteSource),
+    "wqp": (WQPSiteSource, WQPAnalyteSource),
+    "nmose_isc_seven_rivers": (ISCSevenRiversSiteSource, ISCSevenRiversAnalyteSource),
+    "nmbgmr_amp": (NMBGMRSiteSource, NMBGMRAnalyteSource),
+    "nmed_dwb": (DWBSiteSource, DWBAnalyteSource),
+}
+
+WATERLEVEL_SOURCE_PAIRS = {
+    "nmbgmr_amp": (NMBGMRSiteSource, NMBGMRWaterLevelSource),
+    "nmose_isc_seven_rivers": (ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource),
+    "nwis": (NWISSiteSource, NWISWaterLevelSource),
+    "nmose_roswell": (NMOSERoswellSiteSource, NMOSERoswellWaterLevelSource),
+    "pvacd": (PVACDSiteSource, PVACDWaterLevelSource),
+    "bernco": (BernCoSiteSource, BernCoWaterLevelSource),
+    "ebid": (EBIDSiteSource, EBIDWaterLevelSource),
+    "cabq": (CABQSiteSource, CABQWaterLevelSource),
+    "wqp": (WQPSiteSource, WQPWaterLevelSource),
+}
+
 
 def get_source(source):
     try:
@@ -273,28 +297,32 @@ class Config:
         return sources
 
     def analyte_sources(self):
-        pairs = [
-            (BORSiteSource, BORAnalyteSource, self.use_source_bor),
-            (WQPSiteSource, WQPAnalyteSource, self.use_source_wqp),
-            (ISCSevenRiversSiteSource, ISCSevenRiversAnalyteSource, self.use_source_nmose_isc_seven_rivers),
-            (NMBGMRSiteSource, NMBGMRAnalyteSource, self.use_source_nmbgmr_amp),
-            (DWBSiteSource, DWBAnalyteSource, self.use_source_nmed_dwb),
+        return [
+            self._build_source_pair(s, ss)
+            for key, (s, ss) in ANALYTE_SOURCE_PAIRS.items()
+            if getattr(self, f"use_source_{key}")
         ]
-        return [self._build_source_pair(s, ss) for s, ss, enabled in pairs if enabled]
 
     def water_level_sources(self):
-        pairs = [
-            (NMBGMRSiteSource, NMBGMRWaterLevelSource, self.use_source_nmbgmr_amp),
-            (ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource, self.use_source_nmose_isc_seven_rivers),
-            (NWISSiteSource, NWISWaterLevelSource, self.use_source_nwis),
-            (NMOSERoswellSiteSource, NMOSERoswellWaterLevelSource, self.use_source_nmose_roswell),
-            (PVACDSiteSource, PVACDWaterLevelSource, self.use_source_pvacd),
-            (BernCoSiteSource, BernCoWaterLevelSource, self.use_source_bernco),
-            (EBIDSiteSource, EBIDWaterLevelSource, self.use_source_ebid),
-            (CABQSiteSource, CABQWaterLevelSource, self.use_source_cabq),
-            (WQPSiteSource, WQPWaterLevelSource, self.use_source_wqp),
+        return [
+            self._build_source_pair(s, ss)
+            for key, (s, ss) in WATERLEVEL_SOURCE_PAIRS.items()
+            if getattr(self, f"use_source_{key}")
         ]
-        return [self._build_source_pair(s, ss) for s, ss, enabled in pairs if enabled]
+
+    def source_pair(self, source_key):
+        """Return the (site_source, parameter_source) pair for a single source
+        key, respecting the current parameter. Returns None if the source does
+        not provide the parameter."""
+        table = (
+            WATERLEVEL_SOURCE_PAIRS
+            if self.parameter == WATERLEVELS
+            else ANALYTE_SOURCE_PAIRS
+        )
+        entry = table.get(source_key)
+        if entry is None:
+            return None
+        return self._build_source_pair(*entry)
 
     def bbox_bounding_points(self, bbox=None):
         if bbox is None:
