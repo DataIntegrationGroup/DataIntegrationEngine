@@ -247,6 +247,9 @@ def _unify_parameter(
 ):
 
     persister = make_persister(config)
+    # Expose the persister so callers (e.g. the Dagster assets) can read the
+    # collected records/sites/timeseries after unification.
+    config._persister = persister
 
     for site_source, parameter_source in sources:
         _site_wrapper(
