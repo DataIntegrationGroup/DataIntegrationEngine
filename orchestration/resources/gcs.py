@@ -13,6 +13,19 @@ except ImportError:
     _GCS_AVAILABLE = False
 
 
+def _storage_client():
+    """Build a GCS client. Dagster+ serverless has no Application Default
+    Credentials, so prefer an explicit service-account key from a Dagster+
+    secret env var; fall back to ADC (local dev with
+    `gcloud auth application-default login`)."""
+    if not _GCS_AVAILABLE:
+        raise ImportError("google-cloud-storage not installed")
+    key = os.environ.get("GCP_SERVICE_ACCOUNT_KEY")
+    if key:
+        return storage.Client.from_service_account_info(json.loads(key))
+    return storage.Client()
+
+
 class GCSResource(dg.ConfigurableResource):
     """
     Upload OGC Feature Collection GeoJSON files to GCS.
@@ -26,16 +39,7 @@ class GCSResource(dg.ConfigurableResource):
     products_prefix: str = "products"
 
     def _client(self):
-        if not _GCS_AVAILABLE:
-            raise ImportError("google-cloud-storage not installed")
-        # Dagster+ serverless has no Application Default Credentials. Prefer an
-        # explicit service-account key from a Dagster+ secret env var; fall back
-        # to ADC (local dev with `gcloud auth application-default login`).
-        key = os.environ.get("GCP_SERVICE_ACCOUNT_KEY")
-        if key:
-            info = json.loads(key)
-            return storage.Client.from_service_account_info(info)
-        return storage.Client()
+        return _storage_client()
 
     def download_latest(self, product_id: str, dest_path: str) -> str:
         """Download a product's latest.geojson to *dest_path*. Returns the path."""
@@ -90,3 +94,16 @@ class GCSResource(dg.ConfigurableResource):
             "file_size_bytes": file_size,
             "run_date": run_date,
         }
+
+
+from dagster_gcp.gcs import GCSResource as _DagsterGCSResource  # noqa: E402
+
+
+class AuthedGCSResource(_DagsterGCSResource):
+    """dagster_gcp GCSResource for the GCS IO manager. The stock resource builds
+    its client via Application Default Credentials, which Dagster+ serverless
+    lacks — so authenticate from GCP_SERVICE_ACCOUNT_KEY like GCSResource above.
+    """
+
+    def get_client(self):
+        return _storage_client()
