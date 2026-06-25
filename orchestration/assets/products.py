@@ -29,8 +29,10 @@ from backend.unifier import unify_source
 from orchestration.logging_bridge import forward_die_logs
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource
+from orchestration.resources.geoserver import GeoServerResource
 
 _CHECK_NAME = "returned_data"
+_GEOSERVER_CHECK_NAME = "registered"
 
 
 def _product_source_keys(product: dict) -> list:
@@ -158,6 +160,60 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
     return _combine_asset
 
 
+def _build_geoserver_asset(product: dict, group: str):
+    pid = product["id"]
+    gs_key = dg.AssetKey([pid, "geoserver"])
+
+    @dg.asset(
+        key=gs_key,
+        group_name=group,
+        deps=[dg.AssetKey(pid)],
+        check_specs=[dg.AssetCheckSpec(name=_GEOSERVER_CHECK_NAME, asset=gs_key)],
+    )
+    def _geoserver_asset(
+        context: dg.AssetExecutionContext,
+        gcs: GCSResource,
+        geoserver: GeoServerResource,
+    ) -> dg.MaterializeResult:
+        # Public GCS URL of the combine asset's latest.geojson.
+        geojson_url = (
+            f"https://storage.googleapis.com/{gcs.bucket_name}"
+            f"/{gcs.products_prefix}/{pid}/latest.geojson"
+        )
+
+        error = ""
+        actions: dict = {}
+        try:
+            actions = geoserver.register_geojson(
+                pid,
+                geojson_url,
+                title=product.get("title", pid),
+                abstract=product.get("description", ""),
+            )
+        except Exception:
+            error = traceback.format_exc()
+            context.log.error(f"GeoServer registration failed for {pid}:\n{error}")
+
+        metadata = {"geojson_url": geojson_url, "error": error}
+        for k, v in actions.items():
+            metadata[f"geoserver_{k}"] = str(v)
+
+        return dg.MaterializeResult(
+            metadata=metadata,
+            check_results=[
+                dg.AssetCheckResult(
+                    asset_key=gs_key,
+                    check_name=_GEOSERVER_CHECK_NAME,
+                    passed=error == "",
+                    severity=dg.AssetCheckSeverity.WARN,
+                    metadata={"error": error},
+                )
+            ],
+        )
+
+    return _geoserver_asset
+
+
 def build_product_assets(product: dict) -> list:
     """Return the per-source assets and the combine asset for *product*."""
     group = "waterlevels" if product["parameter"] == WATERLEVELS else "analytes"
@@ -171,4 +227,5 @@ def build_product_assets(product: dict) -> list:
         source_asset_keys.append(key)
 
     combine = _build_combine_asset(product, source_keys, source_asset_keys, group)
-    return source_assets + [combine]
+    geoserver = _build_geoserver_asset(product, group)
+    return source_assets + [combine, geoserver]

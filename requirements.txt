@@ -12,3 +12,4 @@ dagster-cloud
 dagster-gcp>=0.24
 google-cloud-storage
 google-cloud-secret-manager
+requests

@@ -5,6 +5,7 @@ import yaml
 
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource
+from orchestration.resources.geoserver import GeoServerResource
 from orchestration.assets.products import build_product_assets
 
 _PRODUCTS_PATH = Path(__file__).parent / "config" / "products.yaml"
@@ -33,9 +34,11 @@ def _build_schedules(products_config: dict) -> list:
         schedules.append(
             dg.ScheduleDefinition(
                 name=f"schedule_{pid}",
-                # Materialize the combine asset and all its upstream source
-                # assets for this product.
-                target=dg.AssetSelection.keys(pid).upstream(),
+                # Materialize the full per-product graph: the geoserver leaf plus
+                # everything upstream of it (combine asset + source assets).
+                target=dg.AssetSelection.keys(
+                    dg.AssetKey([pid, "geoserver"])
+                ).upstream(),
                 cron_schedule=product.get("schedule", "0 6 * * *"),
                 execution_timezone="America/Denver",
             )
@@ -55,5 +58,6 @@ defs = dg.Definitions(
         "gcs": GCSResource(
             bucket_name=_products_config.get("gcs_bucket", "dataservices-die-products"),
         ),
+        "geoserver": GeoServerResource(),
     },
 )
