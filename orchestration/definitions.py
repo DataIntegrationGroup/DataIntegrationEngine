@@ -2,6 +2,7 @@ from pathlib import Path
 
 import dagster as dg
 import yaml
+from dagster_gcp.gcs import GCSPickleIOManager, GCSResource as DagsterGCSResource
 
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource
@@ -59,5 +60,14 @@ defs = dg.Definitions(
             bucket_name=_products_config.get("gcs_bucket", "dataservices-die-products"),
         ),
         "geoserver": GeoServerResource(),
+        # Persist asset I/O to GCS instead of the serverless run's ephemeral
+        # /tmp. Without this, materializing a downstream asset (combine /
+        # geoserver) on its own can't load its source inputs from a prior run
+        # and fails with FileNotFoundError.
+        "io_manager": GCSPickleIOManager(
+            gcs=DagsterGCSResource(),
+            gcs_bucket=_products_config.get("gcs_bucket", "dataservices-die-products"),
+            gcs_prefix="dagster-io",
+        ),
     },
 )
