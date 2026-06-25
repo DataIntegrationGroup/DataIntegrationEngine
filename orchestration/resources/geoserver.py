@@ -15,9 +15,9 @@ class GeoServerResource(dg.ConfigurableResource):
       GEOSERVER_PASSWORD   admin password
       GEOSERVER_WORKSPACE  target workspace (default "die")
 
-    The layer is published from a zipped ESRI Shapefile uploaded to a native
-    shapefile datastore (no GeoServer extensions required). GeoServer keeps its
-    own copy of the data, refreshed on each run.
+    The layer is published from a GeoPackage uploaded to a native GeoPackage
+    datastore (no GeoServer extensions required). GeoServer keeps its own copy
+    of the data, refreshed on each run.
     """
 
     timeout: int = 60
@@ -69,17 +69,17 @@ class GeoServerResource(dg.ConfigurableResource):
         return "exists"
 
     # -- public api -----------------------------------------------------------
-    def publish_shapefile(
+    def publish_geopackage(
         self,
         layer_name: str,
-        shapefile_zip_path: str,
+        gpkg_path: str,
         title: Optional[str] = None,
         abstract: Optional[str] = None,
     ) -> dict:
-        """Create-or-update a native shapefile datastore named *layer_name* from
-        the zipped shapefile at *shapefile_zip_path* and publish its layer.
-        Idempotent — re-running overwrites the store's data. Returns a dict
-        describing the actions taken."""
+        """Create-or-update a native GeoPackage datastore named *layer_name*
+        from the GeoPackage at *gpkg_path* and publish its layer. Idempotent —
+        re-running overwrites the store's data. Returns a dict describing the
+        actions taken."""
         cfg = self._cfg()
         base = cfg["url"]
         ws = cfg["workspace"]
@@ -87,11 +87,11 @@ class GeoServerResource(dg.ConfigurableResource):
 
         actions = {"workspace": self._ensure_workspace(base, ws, auth)}
 
-        # Delete any pre-existing datastore of this name first. PUT file.shp
+        # Delete any pre-existing datastore of this name first. PUT file.gpkg
         # reuses an existing store's factory type, so a store left over from a
-        # different backend (e.g. a broken OGR store) would otherwise force a
-        # 500. Recreating from scratch each run keeps this self-healing; the
-        # data is re-uploaded every run regardless.
+        # different backend (e.g. a shapefile or OGR store) would otherwise
+        # force a 500. Recreating from scratch each run keeps this
+        # self-healing; the data is re-uploaded every run regardless.
         ds_url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}"
         r = requests.delete(
             f"{ds_url}?recurse=true", auth=auth, timeout=self.timeout
@@ -100,23 +100,24 @@ class GeoServerResource(dg.ConfigurableResource):
             self._raise(r)
         actions["datastore_reset"] = "deleted" if r.status_code == 200 else "absent"
 
-        # Upload the zipped shapefile. PUT .../file.shp creates the datastore and
-        # publishes the contained layer.
-        with open(shapefile_zip_path, "rb") as f:
+        # Upload the GeoPackage. PUT .../file.gpkg creates the datastore and
+        # publishes the contained layer. A .gpkg is a SQLite database, hence
+        # the application/x-sqlite3 content type GeoServer expects.
+        with open(gpkg_path, "rb") as f:
             data = f.read()
-        url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/file.shp?configure=all"
+        url = f"{base}/rest/workspaces/{ws}/datastores/{layer_name}/file.gpkg?configure=all"
         r = requests.put(
             url,
             data=data,
             auth=auth,
-            headers={"Content-Type": "application/zip"},
+            headers={"Content-Type": "application/x-sqlite3"},
             timeout=self.timeout,
         )
         self._raise(r)
         actions["upload"] = "ok"
 
-        # Set title/abstract on the published featuretype. The shapefile layer
-        # name defaults to the .shp basename inside the zip (== layer_name here).
+        # Set title/abstract on the published featuretype. The GeoPackage layer
+        # name is the table name written by geopandas (== layer_name here).
         if title is not None or abstract is not None:
             ft_url = (
                 f"{base}/rest/workspaces/{ws}/datastores/{layer_name}"

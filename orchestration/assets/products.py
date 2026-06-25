@@ -15,7 +15,6 @@ Design notes:
 """
 import tempfile
 import traceback
-import zipfile
 from pathlib import Path
 
 import dagster as dg
@@ -162,28 +161,20 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
     return _combine_asset
 
 
-def _geojson_to_shapefile_zip(geojson_path: Path, layer_name: str, out_dir: Path) -> Path:
-    """Convert a GeoJSON file to a zipped ESRI Shapefile whose components share
-    *layer_name* as their basename (so the published GeoServer layer is named
-    *layer_name*). Returns the path to the zip."""
+def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path) -> Path:
+    """Convert a GeoJSON file to a GeoPackage whose layer (table) is named
+    *layer_name* (so the published GeoServer layer is named *layer_name*).
+    GeoPackage is a single file with no field-name length limit, unlike the
+    zipped ESRI Shapefile this replaces. Returns the path to the .gpkg."""
     gdf = gpd.read_file(geojson_path)
     if gdf.empty:
         raise ValueError(f"{layer_name}: GeoJSON has no features; nothing to publish")
     if gdf.crs is None:
         gdf = gdf.set_crs("EPSG:4326")
 
-    shp_dir = out_dir / "shp"
-    shp_dir.mkdir(exist_ok=True)
-    shp_path = shp_dir / f"{layer_name}.shp"
-    # pyogrio engine writes ESRI Shapefile; field names are truncated to the
-    # 10-char shapefile limit automatically.
-    gdf.to_file(shp_path, driver="ESRI Shapefile")
-
-    zip_path = out_dir / f"{layer_name}.zip"
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for component in shp_dir.glob(f"{layer_name}.*"):
-            zf.write(component, arcname=component.name)
-    return zip_path
+    gpkg_path = out_dir / f"{layer_name}.gpkg"
+    gdf.to_file(gpkg_path, driver="GPKG", layer=layer_name)
+    return gpkg_path
 
 
 def _build_geoserver_asset(product: dict, group: str):
@@ -207,10 +198,10 @@ def _build_geoserver_asset(product: dict, group: str):
             with tempfile.TemporaryDirectory() as tmpdir:
                 geojson = Path(tmpdir) / f"{pid}.geojson"
                 gcs.download_latest(pid, str(geojson))
-                zip_path = _geojson_to_shapefile_zip(geojson, pid, Path(tmpdir))
-                actions = geoserver.publish_shapefile(
+                gpkg_path = _geojson_to_geopackage(geojson, pid, Path(tmpdir))
+                actions = geoserver.publish_geopackage(
                     pid,
-                    str(zip_path),
+                    str(gpkg_path),
                     title=product.get("title", pid),
                     abstract=product.get("description", ""),
                 )
