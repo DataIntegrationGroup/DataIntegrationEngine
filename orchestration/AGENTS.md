@@ -7,12 +7,18 @@ publishes the DIE data products. This dir is a `dg` (Dagster CLI) project — se
 ## Use `dg` for Dagster operations
 
 Prefer the `dg` CLI over raw `dagster ...` or ad-hoc scripts for anything
-Dagster-related (listing, running, validating, dev server). Run it through the
-project venv:
+Dagster-related (listing, running, validating, dev server). Run it from the
+`orchestration/` directory so `uv` uses the venv that has dagster + dg:
 
 ```bash
 uv run dg <command>          # from the orchestration/ directory
 ```
+
+Note: the `dg` project root is the **repo root** (`[tool.dg]` in the top-level
+`pyproject.toml`), because the `orchestration` package lives at repo-root level
+(`./orchestration/`) — same place the Dagster+ serverless build imports it from.
+`dg` discovers that project by walking up from `orchestration/`; just always run
+via `uv run` from `orchestration/` and it resolves correctly.
 
 Common operations:
 
@@ -30,15 +36,18 @@ so `<product_id>/geoserver` plus upstream covers the whole product.
 
 ## Validating changes
 
-`dg check defs` currently fails here due to a `[tool.dg] root_module` layout
-mismatch (the code lives at repo-root-level `orchestration/`, not nested). Until
-that's resolved, validate that definitions load with the import smoke test:
+Validate that all definitions load and component YAML is valid:
+
+```bash
+uv run dg check defs         # from orchestration/
+```
+
+`uv run dg list defs` also exercises loading and is a good quick check. The
+plain import smoke test still works as a fallback:
 
 ```bash
 uv run python -c "import orchestration.definitions; print('ok')"
 ```
-
-`uv run dg list defs` also exercises loading and is a good quick check.
 
 ## Architecture (so changes land in the right place)
 

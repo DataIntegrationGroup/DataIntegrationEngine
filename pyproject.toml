@@ -52,3 +52,9 @@ exclude = ["tests/archived/"]
 
 [tool.dg]
 directory_type = "project"
+
+[tool.dg.cli]
+suppress_warnings = ["project_and_activated_venv_mismatch"]
+
+[tool.dg.project]
+root_module = "orchestration"
