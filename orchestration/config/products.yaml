@@ -55,3 +55,16 @@ products:
       state: NM
     sources:
       exclude: []
+
+  # One feature per well; each major-ion analyte's latest value/units/date,
+  # plus well depth, stored as properties. Analyte set is fixed in
+  # assets/products.py (_MAJOR_CHEMISTRY), so no `parameter` here.
+  - id: nm_major_chemistry
+    output_type: ogc_major_chemistry
+    title: "NM Major Chemistry"
+    description: "Wells with major-ion chemistry (latest value per analyte), well depth, all NM sources"
+    schedule: "0 11 * * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
