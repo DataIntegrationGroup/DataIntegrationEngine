@@ -11,30 +11,32 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
-# Seconds per Julian year (365.25 days) — matches Ocotillo's trend MV, which
-# divides the per-second regression slope by 31557600 to get ft/year.
+# Seconds per Julian year (365.25 days) — used to express the Theil-Sen slope
+# in ft/year.
 _SECONDS_PER_YEAR = 31557600.0
 
-# Trend classification thresholds, ported verbatim from the Ocotillo
-# ogc_depth_to_water_trend_wells materialized view.
-_TREND_SLOPE_THRESHOLD = 0.25  # ft/year
+# A well is classified only when it has enough data for a meaningful
+# Mann-Kendall test: at least 10 measurements, or at least 4 spanning >= 2 years.
 _TREND_MIN_RECORDS = 10
 _TREND_MIN_RECORDS_WITH_SPAN = 4
 _TREND_MIN_SPAN_YEARS = 2.0
+_TREND_ALPHA = 0.05  # significance level for the Mann-Kendall test
 
 # Human-readable description of the trend method, embedded in the product so
 # consumers know how the classification was derived.
 TREND_METHOD_DESCRIPTION = (
-    "Depth-to-water trend per well. A least-squares linear regression "
-    "(equivalent to PostgreSQL REGR_SLOPE) is fit to depth-to-water-below-"
-    "ground-surface (feet) against observation time; the per-second slope is "
-    "scaled by 31,557,600 s/yr (a 365.25-day year) to slope_ft_per_year. A well "
-    "is classified only when it has at least 10 measurements, or at least 4 "
+    "Depth-to-water trend per well. Monotonic trend is tested with the "
+    "non-parametric Mann-Kendall test (pymannkendall.original_test, alpha=0.05) "
+    "on depth-to-water-below-ground-surface (feet) ordered by observation time. "
+    "The rate is the Theil-Sen slope of depth-to-water vs time, in ft/year. A "
+    "well is classified only when it has at least 10 measurements, or at least 4 "
     "measurements spanning at least 2 years; otherwise 'not enough data'. When "
-    "classified: slope > 0.25 ft/yr is 'increasing' (water level getting "
-    "DEEPER, i.e. a declining water table), slope < -0.25 ft/yr is 'decreasing' "
-    "(water level getting SHALLOWER), otherwise 'stable'. Ported from the "
-    "Ocotillo API ogc_depth_to_water_trend_wells materialized view."
+    "classified: a statistically significant increasing trend is 'increasing' "
+    "(water level getting DEEPER, i.e. a declining water table), a significant "
+    "decreasing trend is 'decreasing' (water level getting SHALLOWER), and no "
+    "significant trend is 'stable'. Mirrors the intent of the Ocotillo API "
+    "ogc_depth_to_water_trend_wells materialized view, using Mann-Kendall + "
+    "Theil-Sen instead of ordinary least squares."
 )
 
 
@@ -63,33 +65,32 @@ def _parse_epoch_seconds(date, time) -> Optional[float]:
         return None
 
 
-def _regr_slope(xs: list, ys: list) -> Optional[float]:
-    """Least-squares slope of ys on xs (PostgreSQL REGR_SLOPE). None if x has no
-    variance (fewer than 2 distinct x values)."""
-    n = len(xs)
-    if n < 2:
-        return None
-    mx = sum(xs) / n
-    my = sum(ys) / n
-    sxx = sum((x - mx) ** 2 for x in xs)
-    if sxx == 0:
-        return None
-    sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
-    return sxy / sxx
-
-
-def _classify_trend(slope_ft_per_year, record_count, span_years) -> str:
-    qualifies = record_count >= _TREND_MIN_RECORDS or (
+def _qualifies_for_trend(record_count, span_years) -> bool:
+    return record_count >= _TREND_MIN_RECORDS or (
         record_count >= _TREND_MIN_RECORDS_WITH_SPAN
         and span_years >= _TREND_MIN_SPAN_YEARS
     )
-    if not qualifies or slope_ft_per_year is None:
-        return "not enough data"
-    if slope_ft_per_year > _TREND_SLOPE_THRESHOLD:
-        return "increasing"
-    if slope_ft_per_year < -_TREND_SLOPE_THRESHOLD:
-        return "decreasing"
-    return "stable"
+
+
+def _mann_kendall_trend(years: list, values: list):
+    """Run the Mann-Kendall trend test + Theil-Sen slope.
+
+    Returns (trend_category, slope_ft_per_year, p_value, tau). *years* are
+    decimal years, *values* depth-to-water (ft), both ordered by time.
+    trend_category is one of 'increasing' / 'decreasing' / 'stable'.
+    """
+    import pymannkendall as mk
+    from scipy.stats import theilslopes
+
+    result = mk.original_test(values, alpha=_TREND_ALPHA)
+    # Time-aware Theil-Sen slope (ft/year) — robust and correct for the
+    # irregular sampling typical of water-level records, unlike MK's index-based
+    # slope which assumes unit spacing.
+    slope_ft_per_year = float(theilslopes(values, years)[0])
+
+    # mk trend is 'increasing' / 'decreasing' / 'no trend'.
+    category = "stable" if result.trend == "no trend" else result.trend
+    return category, slope_ft_per_year, float(result.p), float(result.Tau)
 
 
 def _make_feature(record, collection_id: str) -> dict:
@@ -266,9 +267,9 @@ def dump_waterlevel_trend_collection(
     surface in feet, so no measuring-point adjustment is applied here).
 
     Each feature carries: record_count, first/last_observation_datetime,
-    span_years, slope_ft_per_year, trend_category, well_depth(+units). The
-    collection carries ``trend_method`` describing the calculation. See
-    TREND_METHOD_DESCRIPTION.
+    span_years, slope_ft_per_year (Theil-Sen), trend_category (Mann-Kendall),
+    mk_p_value, mk_tau, well_depth(+units). The collection carries
+    ``trend_method`` describing the calculation. See TREND_METHOD_DESCRIPTION.
 
     §V: MUST include top-level id, type, numberReturned, timeStamp.
     §V: Each Feature MUST have top-level id.
@@ -294,16 +295,18 @@ def dump_waterlevel_trend_collection(
         record_count = len(pairs)
         xs = [p[0] for p in pairs]
         ys = [p[1] for p in pairs]
+        span_years = (xs[-1] - xs[0]) / _SECONDS_PER_YEAR if record_count >= 2 else 0.0
 
-        if record_count >= 2:
-            span_years = (xs[-1] - xs[0]) / _SECONDS_PER_YEAR
-            slope = _regr_slope(xs, ys)
-            slope_ft_per_year = None if slope is None else slope * _SECONDS_PER_YEAR
+        slope_ft_per_year = None
+        p_value = None
+        tau = None
+        if _qualifies_for_trend(record_count, span_years):
+            years = [x / _SECONDS_PER_YEAR for x in xs]
+            trend_category, slope_ft_per_year, p_value, tau = _mann_kendall_trend(
+                years, ys
+            )
         else:
-            span_years = 0.0
-            slope_ft_per_year = None
-
-        trend_category = _classify_trend(slope_ft_per_year, record_count, span_years)
+            trend_category = "not enough data"
 
         source = getattr(site, "source", "") or ""
         rid = getattr(site, "id", "") or ""
@@ -330,6 +333,8 @@ def dump_waterlevel_trend_collection(
                 None if slope_ft_per_year is None else round(slope_ft_per_year, 4)
             ),
             "trend_category": trend_category,
+            "mk_p_value": None if p_value is None else round(p_value, 4),
+            "mk_tau": None if tau is None else round(tau, 4),
         }
 
         lat = getattr(site, "latitude", None)
