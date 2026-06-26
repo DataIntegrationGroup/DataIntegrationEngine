@@ -26,3 +26,4 @@ nmuwd = { path = "../", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["orchestration"]
+

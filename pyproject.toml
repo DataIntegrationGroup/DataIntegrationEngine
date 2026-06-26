@@ -49,3 +49,12 @@ ignore_missing_imports = true
 # Archived tests are excluded from pytest (norecursedirs) and reference an old
 # CLI API; don't type-check them either.
 exclude = ["tests/archived/"]
+
+[tool.dg]
+directory_type = "project"
+
+[tool.dg.cli]
+suppress_warnings = ["project_and_activated_venv_mismatch"]
+
+[tool.dg.project]
+root_module = "orchestration"
