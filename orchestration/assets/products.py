@@ -27,6 +27,7 @@ Design notes:
 """
 import tempfile
 import traceback
+from collections.abc import Iterator
 from pathlib import Path
 
 import dagster as dg
@@ -63,7 +64,7 @@ _MAJOR_CHEMISTRY = [
 ]
 
 
-def _product_params(product: dict) -> list:
+def _product_params(product: dict) -> list[str]:
     """The DIE parameter(s) a product unifies. Single-parameter products yield
     one; the major-chemistry product yields the major-ion suite."""
     if product.get("output_type") == "ogc_major_chemistry":
@@ -71,7 +72,7 @@ def _product_params(product: dict) -> list:
     return [product["parameter"]]
 
 
-def _product_source_keys(product: dict) -> list:
+def _product_source_keys(product: dict) -> list[str]:
     """Source keys that apply to this product: the union of its parameters'
     agencies, filtered by the product's include/exclude list."""
     agencies: list = []
@@ -93,7 +94,9 @@ def _in_name(source_key: str) -> str:
     return f"src_{source_key.replace('-', '_')}"
 
 
-def _build_source_asset(product: dict, source_key: str, group: str):
+def _build_source_asset(
+    product: dict, source_key: str, group: str
+) -> tuple[dg.AssetsDefinition, dg.AssetKey]:
     """Build the asset that unifies a single source for *product*.
 
     Returns ``(asset_def, asset_key)``. The asset never raises: on failure it
@@ -109,9 +112,13 @@ def _build_source_asset(product: dict, source_key: str, group: str):
         group_name=group,
         check_specs=[dg.AssetCheckSpec(name=_CHECK_NAME, asset=src_key)],
     )
-    def _source_asset(context: dg.AssetExecutionContext, die_config: DIEConfigResource):
+    def _source_asset(
+        context: dg.AssetExecutionContext, die_config: DIEConfigResource
+    ) -> Iterator[dg.Output | dg.AssetCheckResult]:
         error = ""
-        records, sites, timeseries = [], [], []
+        records: list[dict] = []
+        sites: list[dict] = []
+        timeseries: list[list[dict]] = []
         try:
             # One unification pass per parameter. Single-parameter products run
             # once; the major-chemistry product runs once per analyte and
@@ -163,7 +170,12 @@ def _build_source_asset(product: dict, source_key: str, group: str):
     return _source_asset, src_key
 
 
-def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: list, group: str):
+def _build_combine_asset(
+    product: dict,
+    source_keys: list[str],
+    source_asset_keys: list[dg.AssetKey],
+    group: str,
+) -> dg.AssetsDefinition:
     """Build the combine asset (keyed ``[product_id]``) for *product*.
 
     Depends on every source asset (wired via ``ins``), merges their
@@ -260,7 +272,7 @@ def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path):
     return gpkg_path, (minx, miny, maxx, maxy)
 
 
-def _build_geoserver_asset(product: dict, group: str):
+def _build_geoserver_asset(product: dict, group: str) -> dg.AssetsDefinition:
     """Build the GeoServer publish asset (keyed ``[product_id, "geoserver"]``).
 
     Depends on the combine asset for ordering only (``deps``, no data passed):
@@ -320,7 +332,7 @@ def _build_geoserver_asset(product: dict, group: str):
     return _geoserver_asset
 
 
-def build_product_assets(product: dict) -> list:
+def build_product_assets(product: dict) -> list[dg.AssetsDefinition]:
     """Return the full asset list for *product*: one source asset per applicable
     source, the combine asset, and the geoserver publish asset (see module
     docstring for the graph shape). Assets are grouped ``waterlevels`` or

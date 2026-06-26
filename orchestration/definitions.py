@@ -1,4 +1,6 @@
+from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import dagster as dg
 import yaml
@@ -8,6 +10,12 @@ from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource, AuthedGCSResource
 from orchestration.resources.geoserver import GeoServerResource
 from orchestration.assets.products import build_product_assets
+
+if TYPE_CHECKING:
+    # define_asset_job returns this; it isn't a public dagster export.
+    from dagster._core.definitions.unresolved_asset_job_definition import (
+        UnresolvedAssetJobDefinition,
+    )
 
 _PRODUCTS_PATH = Path(__file__).parent / "config" / "products.yaml"
 
@@ -23,7 +31,7 @@ def _load_products() -> dict:
     return yaml.safe_load(_PRODUCTS_PATH.read_text())
 
 
-def _build_assets(products_config: dict) -> list:
+def _build_assets(products_config: dict) -> list[dg.AssetsDefinition]:
     assets = []
     for product in products_config["products"]:
         if product.get("output_type") in _SUPPORTED_OUTPUT_TYPES:
@@ -37,13 +45,13 @@ def _product_selection(pid: str) -> dg.AssetSelection:
     return dg.AssetSelection.keys(dg.AssetKey([pid, "geoserver"])).upstream()
 
 
-def _products(products_config: dict):
+def _products(products_config: dict) -> Iterator[dict]:
     for product in products_config["products"]:
         if product.get("output_type") in _SUPPORTED_OUTPUT_TYPES:
             yield product
 
 
-def _build_jobs(products_config: dict) -> dict:
+def _build_jobs(products_config: dict) -> dict[str, "UnresolvedAssetJobDefinition"]:
     """One asset job per product, selecting that product's whole graph.
     Returns {product_id: job} so schedules can target the job."""
     jobs = {}
@@ -57,7 +65,9 @@ def _build_jobs(products_config: dict) -> dict:
     return jobs
 
 
-def _build_schedules(products_config: dict, jobs: dict) -> list:
+def _build_schedules(
+    products_config: dict, jobs: dict[str, "UnresolvedAssetJobDefinition"]
+) -> list[dg.ScheduleDefinition]:
     schedules = []
     for product in _products(products_config):
         pid = product["id"]
