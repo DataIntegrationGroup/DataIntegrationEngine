@@ -65,5 +65,11 @@ uv run python -c "import orchestration.definitions; print('ok')"
 
 Dagster+ serverless builds from the repo root per `dagster_cloud.yaml`
 (`module_name: orchestration.definitions`). Runtime deps come from the root
-`requirements.txt`. Secrets (GCS, GeoServer) are set as Dagster+ env vars, not
-in code.
+`requirements.txt`. Secrets are set as Dagster+ env vars, not in code:
+
+- `GCP_SERVICE_ACCOUNT_KEY` — GCS upload/IO-manager auth (JSON key).
+- `GEOSERVER_URL` / `GEOSERVER_USER` / `GEOSERVER_PASSWORD` / `GEOSERVER_WORKSPACE`.
+- `USGS_API_KEY` — USGS/NWIS API key. Without it the USGS water data API is
+  heavily rate-limited. Resolved via `dg.EnvVar` into `DIEConfigResource`, which
+  exports it to the environment for the NWIS connector.
+- `DIE_FORWARD_LOGS_TO_DAGSTER` (optional) — forward DIE logs to the compute log.

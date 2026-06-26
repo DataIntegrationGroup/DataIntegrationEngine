@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 import dagster as dg
 from backend.config import Config
@@ -6,6 +7,11 @@ from backend.config import Config
 class DIEConfigResource(dg.ConfigurableResource):
     """Dagster resource that constructs a DIE Config from a product spec dict."""
 
+    # USGS/NWIS API key. Without it the USGS water data API is heavily
+    # rate-limited. Sourced from the USGS_API_KEY env var (a Dagster+ secret) in
+    # definitions.py; exported back to the environment in get_config so the
+    # backend NWIS connector — which reads os.environ["USGS_API_KEY"] at request
+    # time — picks it up.
     usgs_api_key: Optional[str] = None
 
     def get_config(self, product: dict, parameter: Optional[str] = None) -> Config:
@@ -26,6 +32,12 @@ class DIEConfigResource(dg.ConfigurableResource):
         major-chemistry product, which has no single parameter and calls this
         once per analyte.
         """
+        # Make the USGS key visible to the backend NWIS connector (reads it from
+        # the environment). Only set when provided so we never clobber an
+        # ambient value with an empty one.
+        if self.usgs_api_key:
+            os.environ["USGS_API_KEY"] = self.usgs_api_key
+
         spatial = product.get("spatial_filter", {})
         sources_spec = product.get("sources", {})
 
