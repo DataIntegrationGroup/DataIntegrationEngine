@@ -26,3 +26,9 @@ nmuwd = { path = "../", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["orchestration"]
+
+[tool.dg]
+directory_type="project"
+
+[tool.dg.project]
+root_module="orchestration"
