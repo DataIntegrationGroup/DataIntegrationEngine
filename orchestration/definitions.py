@@ -11,7 +11,12 @@ from orchestration.assets.products import build_product_assets
 
 _PRODUCTS_PATH = Path(__file__).parent / "config" / "products.yaml"
 
-_SUPPORTED_OUTPUT_TYPES = {"ogc_summary", "ogc_timeseries", "ogc_major_chemistry"}
+_SUPPORTED_OUTPUT_TYPES = {
+    "ogc_summary",
+    "ogc_timeseries",
+    "ogc_major_chemistry",
+    "ogc_waterlevel_trend",
+}
 
 
 def _load_products() -> dict:
