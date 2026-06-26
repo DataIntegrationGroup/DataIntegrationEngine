@@ -26,7 +26,7 @@ jobs:
         version: "latest"
 
     - name: Set up Python
-      run: uv python install 3.10
+      run: uv python install 3.14
 
     - name: Install root package deps
       run: uv sync --extra dev
