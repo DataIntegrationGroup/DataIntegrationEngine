@@ -34,6 +34,7 @@ import geopandas as gpd
 
 from backend.config import PARAMETER_SOURCE_MAP, WATERLEVELS
 from backend.persisters.ogc_features import (
+    dump_major_chemistry_collection,
     dump_summary_collection,
     dump_timeseries_collection,
 )
@@ -47,17 +48,42 @@ from orchestration.resources.geoserver import GeoServerResource
 _CHECK_NAME = "returned_data"
 _GEOSERVER_CHECK_NAME = "registered"
 
+# Classic major-ion suite for the ogc_major_chemistry product. One feature per
+# well, with each analyte's latest value/units/date as properties.
+_MAJOR_CHEMISTRY = [
+    "calcium",
+    "magnesium",
+    "sodium",
+    "potassium",
+    "bicarbonate",
+    "carbonate",
+    "chloride",
+    "sulfate",
+]
+
+
+def _product_params(product: dict) -> list:
+    """The DIE parameter(s) a product unifies. Single-parameter products yield
+    one; the major-chemistry product yields the major-ion suite."""
+    if product.get("output_type") == "ogc_major_chemistry":
+        return list(_MAJOR_CHEMISTRY)
+    return [product["parameter"]]
+
 
 def _product_source_keys(product: dict) -> list:
-    """Source keys that apply to this product: the parameter's agencies,
-    filtered by the product's include/exclude list."""
-    agencies = PARAMETER_SOURCE_MAP[product["parameter"]]["agencies"]
+    """Source keys that apply to this product: the union of its parameters'
+    agencies, filtered by the product's include/exclude list."""
+    agencies: list = []
+    for param in _product_params(product):
+        for a in PARAMETER_SOURCE_MAP[param]["agencies"]:
+            if a not in agencies:
+                agencies.append(a)
     spec = product.get("sources", {}) or {}
     if spec.get("include"):
         return [a for a in agencies if a in spec["include"]]
     if spec.get("exclude"):
         return [a for a in agencies if a not in spec["exclude"]]
-    return list(agencies)
+    return agencies
 
 
 def _in_name(source_key: str) -> str:
@@ -75,6 +101,7 @@ def _build_source_asset(product: dict, source_key: str, group: str):
     plain ``_payload`` dicts for IO-manager pickling (see module docstring)."""
     pid = product["id"]
     src_key = dg.AssetKey([pid, "sources", source_key])
+    params = _product_params(product)
 
     @dg.asset(
         key=src_key,
@@ -82,17 +109,24 @@ def _build_source_asset(product: dict, source_key: str, group: str):
         check_specs=[dg.AssetCheckSpec(name=_CHECK_NAME, asset=src_key)],
     )
     def _source_asset(context: dg.AssetExecutionContext, die_config: DIEConfigResource):
-        config = die_config.get_config(product)
-
         error = ""
         records, sites, timeseries = [], [], []
         try:
+            # One unification pass per parameter. Single-parameter products run
+            # once; the major-chemistry product runs once per analyte and
+            # accumulates summary records (analyte identity lives in each
+            # record's parameter_name). A source that doesn't provide a given
+            # parameter is skipped by unify_source (source_pair → None).
             with forward_die_logs(context):
-                persister = unify_source(config, source_key)
-            # Ship plain dicts across the IO manager; rebuild in combine.
-            records = [r._payload for r in persister.records]
-            sites = [s._payload for s in persister.sites]
-            timeseries = [[o._payload for o in site_ts] for site_ts in persister.timeseries]
+                for param in params:
+                    config = die_config.get_config(product, parameter=param)
+                    persister = unify_source(config, source_key)
+                    # Ship plain dicts across the IO manager; rebuild in combine.
+                    records.extend(r._payload for r in persister.records)
+                    sites.extend(s._payload for s in persister.sites)
+                    timeseries.extend(
+                        [o._payload for o in site_ts] for site_ts in persister.timeseries
+                    )
         except Exception:
             error = traceback.format_exc()
             context.log.error(f"Source {source_key} failed:\n{error}")
@@ -132,10 +166,11 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
     """Build the combine asset (keyed ``[product_id]``) for *product*.
 
     Depends on every source asset (wired via ``ins``), merges their
-    records/sites/timeseries, writes the OGC GeoJSON collection — summary or
-    timeseries depending on ``output_type`` — and uploads it to GCS."""
+    records/sites/timeseries, writes the OGC GeoJSON collection — summary,
+    timeseries, or major-chemistry depending on ``output_type`` — and uploads it
+    to GCS."""
     pid = product["id"]
-    is_summary = product["output_type"] == "ogc_summary"
+    output_type = product["output_type"]
     ins = {
         _in_name(k): dg.AssetIn(key=ak)
         for k, ak in zip(source_keys, source_asset_keys)
@@ -161,7 +196,12 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
 
         with tempfile.TemporaryDirectory() as tmpdir:
             out = Path(tmpdir) / "collection.geojson"
-            if is_summary:
+            if output_type == "ogc_major_chemistry":
+                # All summary records (one per well+analyte); the dumper pivots
+                # to one feature per well with analytes as properties.
+                records = [SummaryRecord(p) for p in all_records]
+                dump_major_chemistry_collection(str(out), records, meta)
+            elif output_type == "ogc_summary":
                 records = [SummaryRecord(p) for p in all_records]
                 dump_summary_collection(str(out), records, meta)
             else:
@@ -275,8 +315,9 @@ def build_product_assets(product: dict) -> list:
     """Return the full asset list for *product*: one source asset per applicable
     source, the combine asset, and the geoserver publish asset (see module
     docstring for the graph shape). Assets are grouped ``waterlevels`` or
-    ``analytes`` by parameter."""
-    group = "waterlevels" if product["parameter"] == WATERLEVELS else "analytes"
+    ``analytes`` by parameter (major-chemistry products group under
+    ``analytes``)."""
+    group = "waterlevels" if product.get("parameter") == WATERLEVELS else "analytes"
     source_keys = _product_source_keys(product)
 
     source_assets = []

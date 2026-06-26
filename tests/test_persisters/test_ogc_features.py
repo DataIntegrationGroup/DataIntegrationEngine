@@ -2,7 +2,11 @@ import json
 import os
 import tempfile
 
-from backend.persisters.ogc_features import dump_summary_collection, dump_timeseries_collection
+from backend.persisters.ogc_features import (
+    dump_summary_collection,
+    dump_timeseries_collection,
+    dump_major_chemistry_collection,
+)
 from backend.record import SummaryRecord, SiteRecord, ParameterRecord
 
 
@@ -172,3 +176,55 @@ class TestDumpTimeseriesCollection:
         assert result["id"] == "nm_ts"
         assert "timeStamp" in result
         assert "numberReturned" in result
+
+
+def _make_chem_record(source, rid, analyte, value, units="mg/L", date="2024-05-01", well_depth=None):
+    return SummaryRecord({
+        "source": source,
+        "id": rid,
+        "name": f"Well {rid}",
+        "latitude": 34.0,
+        "longitude": -106.0,
+        "elevation": None,
+        "well_depth": well_depth,
+        "well_depth_units": "ft",
+        "parameter_name": analyte,
+        "latest_value": value,
+        "latest_units": units,
+        "latest_date": date,
+    })
+
+
+class TestMajorChemistryCollection:
+    def test_pivots_analytes_into_one_feature_per_well(self, tmp_path):
+        records = [
+            _make_chem_record("NMBGMR", "W1", "calcium", 42.0, well_depth=120.0),
+            _make_chem_record("NMBGMR", "W1", "chloride", 15.0),
+            _make_chem_record("WQP", "W2", "calcium", 55.0),
+        ]
+        out = tmp_path / "mc.geojson"
+        result = dump_major_chemistry_collection(str(out), records, {"id": "nm_major_chemistry"})
+
+        assert result["numberReturned"] == 2  # two distinct wells
+        by_id = {f["id"]: f for f in result["features"]}
+
+        w1 = by_id["NMBGMR:W1"]["properties"]
+        assert w1["calcium"] == 42.0
+        assert w1["calcium_units"] == "mg/L"
+        assert w1["calcium_date"] == "2024-05-01"
+        assert w1["chloride"] == 15.0
+        assert w1["well_depth"] == 120.0  # carried from the record that had it
+
+        w2 = by_id["WQP:W2"]["properties"]
+        assert w2["calcium"] == 55.0
+        assert "chloride" not in w2  # missing analyte omitted
+
+    def test_geometry_and_required_fields(self, tmp_path):
+        out = tmp_path / "mc.geojson"
+        result = dump_major_chemistry_collection(
+            str(out), [_make_chem_record("NMBGMR", "W1", "sodium", 30.0)], {"id": "nm_major_chemistry"}
+        )
+        assert result["type"] == "FeatureCollection"
+        assert "timeStamp" in result
+        feat = result["features"][0]
+        assert feat["geometry"]["coordinates"] == [-106.0, 34.0]
