@@ -44,6 +44,52 @@ def _timestamp_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _iso_utc(epoch) -> Optional[str]:
+    """Format POSIX seconds as an ISO-8601 UTC string (None passes through)."""
+    if epoch is None:
+        return None
+    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _feature_id(source, rid) -> str:
+    source = source or ""
+    rid = rid or ""
+    return f"{source}:{rid}" if source and rid else str(rid)
+
+
+def _point_geometry(lat, lon, elev=None) -> dict:
+    coords = [lon, lat] if elev is None else [lon, lat, elev]
+    return {"type": "Point", "coordinates": coords}
+
+
+def _dump_collection(
+    path: str, collection_id: str, features: list, meta: dict, extra: Optional[dict] = None
+) -> dict:
+    """Build the OGC FeatureCollection envelope around *features*, write it to
+    *path*, and return it. *extra* injects collection-level keys (e.g.
+    trend_method) after description.
+
+    §V: MUST include top-level id, type, numberReturned, timeStamp.
+    """
+    collection = {
+        "type": "FeatureCollection",
+        "id": collection_id,
+        "title": meta.get("title", collection_id),
+        "description": meta.get("description", ""),
+        **(extra or {}),
+        "timeStamp": _timestamp_now(),
+        "numberMatched": len(features),
+        "numberReturned": len(features),
+        "links": [
+            {"href": meta.get("href", ""), "rel": "self", "type": "application/geo+json"}
+        ],
+        "features": features,
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(collection, f, indent=2, default=str)
+    return collection
+
+
 def _parse_epoch_seconds(date, time) -> Optional[float]:
     """Best-effort parse of a DIE date (+optional time) to POSIX seconds (UTC)."""
     if not date:
@@ -95,23 +141,17 @@ def _mann_kendall_trend(years: list, values: list):
 
 def _make_feature(record, collection_id: str) -> dict:
     """Build one OGC-compliant Feature from a SummaryRecord or SiteRecord."""
-    source = getattr(record, "source", "")
-    rid = getattr(record, "id", "")
-    feature_id = f"{source}:{rid}" if source and rid else str(rid)
-
     props = {k: getattr(record, k) for k in record.keys
              if k not in ("latitude", "longitude", "elevation")}
 
-    lat = getattr(record, "latitude", None)
-    lon = getattr(record, "longitude", None)
-    elev = getattr(record, "elevation", None)
-
-    coords = [lon, lat] if elev is None else [lon, lat, elev]
-
     return {
         "type": "Feature",
-        "id": feature_id,
-        "geometry": {"type": "Point", "coordinates": coords},
+        "id": _feature_id(getattr(record, "source", ""), getattr(record, "id", "")),
+        "geometry": _point_geometry(
+            getattr(record, "latitude", None),
+            getattr(record, "longitude", None),
+            getattr(record, "elevation", None),
+        ),
         "properties": props,
     }
 
@@ -129,29 +169,7 @@ def dump_summary_collection(path: str, records: list, meta: dict) -> dict:
     """
     collection_id = meta.get("id", "collection")
     features = [_make_feature(r, collection_id) for r in records]
-
-    collection = {
-        "type": "FeatureCollection",
-        "id": collection_id,
-        "title": meta.get("title", collection_id),
-        "description": meta.get("description", ""),
-        "timeStamp": _timestamp_now(),
-        "numberMatched": len(features),
-        "numberReturned": len(features),
-        "links": [
-            {
-                "href": meta.get("href", ""),
-                "rel": "self",
-                "type": "application/geo+json",
-            }
-        ],
-        "features": features,
-    }
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(collection, f, indent=2, default=str)
-
-    return collection
+    return _dump_collection(path, collection_id, features, meta)
 
 
 def dump_major_chemistry_collection(path: str, records: list, meta: dict) -> dict:
@@ -205,7 +223,6 @@ def dump_major_chemistry_collection(path: str, records: list, meta: dict) -> dic
 
     features = []
     for (source, rid), well in wells.items():
-        feature_id = f"{source}:{rid}" if source and rid else str(rid)
         props = {
             "source": source,
             "id": rid,
@@ -218,37 +235,14 @@ def dump_major_chemistry_collection(path: str, records: list, meta: dict) -> dic
             props[f"{analyte}_units"] = vals["units"]
             props[f"{analyte}_date"] = vals["date"]
 
-        lat, lon, elev = well["latitude"], well["longitude"], well["elevation"]
-        coords = [lon, lat] if elev is None else [lon, lat, elev]
         features.append({
             "type": "Feature",
-            "id": feature_id,
-            "geometry": {"type": "Point", "coordinates": coords},
+            "id": _feature_id(source, rid),
+            "geometry": _point_geometry(well["latitude"], well["longitude"], well["elevation"]),
             "properties": props,
         })
 
-    collection = {
-        "type": "FeatureCollection",
-        "id": collection_id,
-        "title": meta.get("title", collection_id),
-        "description": meta.get("description", ""),
-        "timeStamp": _timestamp_now(),
-        "numberMatched": len(features),
-        "numberReturned": len(features),
-        "links": [
-            {
-                "href": meta.get("href", ""),
-                "rel": "self",
-                "type": "application/geo+json",
-            }
-        ],
-        "features": features,
-    }
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(collection, f, indent=2, default=str)
-
-    return collection
+    return _dump_collection(path, collection_id, features, meta)
 
 
 def dump_waterlevel_trend_collection(
@@ -308,26 +302,15 @@ def dump_waterlevel_trend_collection(
         else:
             trend_category = "not enough data"
 
-        source = getattr(site, "source", "") or ""
-        rid = getattr(site, "id", "") or ""
-        feature_id = f"{source}:{rid}" if source and rid else str(rid)
-
-        def _iso(epoch):
-            if epoch is None:
-                return None
-            return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
-
         props = {
-            "source": source,
-            "id": rid,
+            "source": getattr(site, "source", "") or "",
+            "id": getattr(site, "id", "") or "",
             "name": getattr(site, "name", None),
             "well_depth": getattr(site, "well_depth", None),
             "well_depth_units": getattr(site, "well_depth_units", None),
             "record_count": record_count,
-            "first_observation_datetime": _iso(xs[0]) if record_count else None,
-            "last_observation_datetime": _iso(xs[-1]) if record_count else None,
+            "first_observation_datetime": _iso_utc(xs[0]) if record_count else None,
+            "last_observation_datetime": _iso_utc(xs[-1]) if record_count else None,
             "span_years": round(span_years, 3),
             "slope_ft_per_year": (
                 None if slope_ft_per_year is None else round(slope_ft_per_year, 4)
@@ -337,41 +320,21 @@ def dump_waterlevel_trend_collection(
             "mk_tau": None if tau is None else round(tau, 4),
         }
 
-        lat = getattr(site, "latitude", None)
-        lon = getattr(site, "longitude", None)
-        elev = getattr(site, "elevation", None)
-        coords = [lon, lat] if elev is None else [lon, lat, elev]
-
         features.append({
             "type": "Feature",
-            "id": feature_id,
-            "geometry": {"type": "Point", "coordinates": coords},
+            "id": _feature_id(props["source"], props["id"]),
+            "geometry": _point_geometry(
+                getattr(site, "latitude", None),
+                getattr(site, "longitude", None),
+                getattr(site, "elevation", None),
+            ),
             "properties": props,
         })
 
-    collection = {
-        "type": "FeatureCollection",
-        "id": collection_id,
-        "title": meta.get("title", collection_id),
-        "description": meta.get("description", ""),
-        "trend_method": TREND_METHOD_DESCRIPTION,
-        "timeStamp": _timestamp_now(),
-        "numberMatched": len(features),
-        "numberReturned": len(features),
-        "links": [
-            {
-                "href": meta.get("href", ""),
-                "rel": "self",
-                "type": "application/geo+json",
-            }
-        ],
-        "features": features,
-    }
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(collection, f, indent=2, default=str)
-
-    return collection
+    return _dump_collection(
+        path, collection_id, features, meta,
+        extra={"trend_method": TREND_METHOD_DESCRIPTION},
+    )
 
 
 def dump_timeseries_collection(
@@ -407,11 +370,11 @@ def dump_timeseries_collection(
         site = site_lookup.get(site_id)
 
         if site:
-            lat = getattr(site, "latitude", None)
-            lon = getattr(site, "longitude", None)
-            elev = getattr(site, "elevation", None)
-            coords = [lon, lat] if elev is None else [lon, lat, elev]
-            geometry = {"type": "Point", "coordinates": coords}
+            geometry = _point_geometry(
+                getattr(site, "latitude", None),
+                getattr(site, "longitude", None),
+                getattr(site, "elevation", None),
+            )
         else:
             geometry = None
 
@@ -437,25 +400,4 @@ def dump_timeseries_collection(
             "properties": props,
         })
 
-    collection = {
-        "type": "FeatureCollection",
-        "id": collection_id,
-        "title": meta.get("title", collection_id),
-        "description": meta.get("description", ""),
-        "timeStamp": _timestamp_now(),
-        "numberMatched": len(features),
-        "numberReturned": len(features),
-        "links": [
-            {
-                "href": meta.get("href", ""),
-                "rel": "self",
-                "type": "application/geo+json",
-            }
-        ],
-        "features": features,
-    }
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(collection, f, indent=2, default=str)
-
-    return collection
+    return _dump_collection(path, collection_id, features, meta)
