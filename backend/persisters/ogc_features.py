@@ -25,12 +25,14 @@ _TREND_ALPHA = 0.05  # significance level for the Mann-Kendall test
 # Human-readable description of the trend method, embedded in the product so
 # consumers know how the classification was derived.
 TREND_METHOD_DESCRIPTION = (
-    "Depth-to-water trend per well. Monotonic trend is tested with the "
-    "non-parametric Mann-Kendall test (pymannkendall.original_test, alpha=0.05) "
-    "on depth-to-water-below-ground-surface (feet) ordered by observation time. "
-    "The rate is the Theil-Sen slope of depth-to-water vs time, in ft/year. A "
-    "well is classified only when it has at least 10 measurements, or at least 4 "
-    "measurements spanning at least 2 years; otherwise 'not enough data'. When "
+    "Depth-to-water trend per well. Observations are first downsampled to one "
+    "point per calendar day, keeping the daily minimum depth-to-water (the "
+    "shallowest reading). Monotonic trend is then tested with the non-parametric "
+    "Mann-Kendall test (pymannkendall.original_test, alpha=0.05) on the daily "
+    "depth-to-water-below-ground-surface (feet) series ordered by time. The rate "
+    "is the Theil-Sen slope of depth-to-water vs time, in ft/year. A well is "
+    "classified only when it has at least 10 daily points, or at least 4 daily "
+    "points spanning at least 2 years; otherwise 'not enough data'. When "
     "classified: a statistically significant increasing trend is 'increasing' "
     "(water level getting DEEPER, i.e. a declining water table), a significant "
     "decreasing trend is 'decreasing' (water level getting SHALLOWER), and no "
@@ -109,6 +111,41 @@ def _parse_epoch_seconds(date, time) -> Optional[float]:
         return dt.timestamp()
     except (ValueError, TypeError):
         return None
+
+
+def _daily_min_series(obs_list: list) -> tuple[int, list]:
+    """Reduce a well's observations to one point per calendar day, keeping the
+    minimum depth-to-water for each day (the shallowest reading), keyed at the
+    day's UTC midnight epoch.
+
+    Downsampling bounds the O(n^2) Mann-Kendall cost for high-frequency wells
+    (e.g. continuous loggers) and removes within-day sampling noise. Returns
+    (raw_observation_count, [(day_epoch_seconds, min_value), ...] sorted by day).
+    """
+    raw_count = 0
+    daily: dict = {}  # date -> (day_epoch, min_value)
+    for obs in obs_list:
+        value = getattr(obs, "parameter_value", None)
+        epoch = _parse_epoch_seconds(
+            getattr(obs, "date_measured", None), getattr(obs, "time_measured", None)
+        )
+        if value is None or epoch is None:
+            continue
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            continue
+        raw_count += 1
+        day = datetime.fromtimestamp(epoch, tz=timezone.utc).date()
+        day_epoch = datetime(
+            day.year, day.month, day.day, tzinfo=timezone.utc
+        ).timestamp()
+        existing = daily.get(day)
+        if existing is None or v < existing[1]:
+            daily[day] = (day_epoch, v)
+
+    pairs = sorted(daily.values(), key=lambda p: p[0])
+    return raw_count, pairs
 
 
 def _qualifies_for_trend(record_count, span_years) -> bool:
@@ -260,10 +297,12 @@ def dump_waterlevel_trend_collection(
     observations (DIE water-level values are already depth-to-water below ground
     surface in feet, so no measuring-point adjustment is applied here).
 
-    Each feature carries: record_count, first/last_observation_datetime,
-    span_years, slope_ft_per_year (Theil-Sen), trend_category (Mann-Kendall),
-    mk_p_value, mk_tau, well_depth(+units). The collection carries
-    ``trend_method`` describing the calculation. See TREND_METHOD_DESCRIPTION.
+    Observations are downsampled to the daily minimum depth-to-water before the
+    trend test (see _daily_min_series). Each feature carries: record_count
+    (daily points used), observation_count (raw readings),
+    first/last_observation_datetime, span_years, slope_ft_per_year (Theil-Sen),
+    trend_category (Mann-Kendall), mk_p_value, mk_tau, well_depth(+units). The
+    collection carries ``trend_method``. See TREND_METHOD_DESCRIPTION.
 
     §V: MUST include top-level id, type, numberReturned, timeStamp.
     §V: Each Feature MUST have top-level id.
@@ -272,20 +311,10 @@ def dump_waterlevel_trend_collection(
 
     features = []
     for site, obs_list in zip(site_records, timeseries_records):
-        pairs = []
-        for obs in obs_list:
-            value = getattr(obs, "parameter_value", None)
-            epoch = _parse_epoch_seconds(
-                getattr(obs, "date_measured", None), getattr(obs, "time_measured", None)
-            )
-            if value is None or epoch is None:
-                continue
-            try:
-                pairs.append((epoch, float(value)))
-            except (TypeError, ValueError):
-                continue
-
-        pairs.sort(key=lambda p: p[0])
+        # Downsample to one min-depth-to-water point per day before the trend
+        # test (see _daily_min_series). record_count is the daily-point count
+        # used for the trend; observation_count is the raw reading count.
+        observation_count, pairs = _daily_min_series(obs_list)
         record_count = len(pairs)
         xs = [p[0] for p in pairs]
         ys = [p[1] for p in pairs]
@@ -309,6 +338,7 @@ def dump_waterlevel_trend_collection(
             "well_depth": getattr(site, "well_depth", None),
             "well_depth_units": getattr(site, "well_depth_units", None),
             "record_count": record_count,
+            "observation_count": observation_count,
             "first_observation_datetime": _iso_utc(xs[0]) if record_count else None,
             "last_observation_datetime": _iso_utc(xs[-1]) if record_count else None,
             "span_years": round(span_years, 3),
