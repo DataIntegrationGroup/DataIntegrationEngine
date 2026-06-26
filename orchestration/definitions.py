@@ -77,7 +77,12 @@ defs = dg.Definitions(
     jobs=list(_jobs.values()),
     schedules=_schedules,
     resources={
-        "die_config": DIEConfigResource(),
+        # USGS_API_KEY is a Dagster+ secret; EnvVar resolves it at run time and
+        # the resource exports it for the NWIS connector. Resolves to None when
+        # unset (the API still works, just rate-limited).
+        "die_config": DIEConfigResource(
+            usgs_api_key=dg.EnvVar("USGS_API_KEY"),
+        ),
         "gcs": GCSResource(
             bucket_name=_products_config.get("gcs_bucket", "dataservices-die-products"),
         ),

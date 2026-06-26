@@ -40,9 +40,20 @@ from backend.source import (
     get_terminal_record,
 )
 
-LIMIT = 50000    
+LIMIT = 50000
 TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
 MAX_RETRIES = 7
+
+
+def _usgs_headers(extra: dict | None = None) -> dict:
+    """Request headers for the USGS water data API. Adds the X-API-Key header
+    when a USGS_API_KEY is set (env var, e.g. a Dagster+ secret). Without a key
+    the API is heavily rate-limited."""
+    headers = dict(extra or {})
+    key = os.environ.get("USGS_API_KEY")
+    if key:
+        headers["X-API-Key"] = key
+    return headers
 
 class NWISSiteSource(BaseSiteSource):
     chunk_size = 500
@@ -61,15 +72,11 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            if os.environ.get("USGS_API_KEY"):
-                headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
-            else:
-                headers = {}
             response = self._http_client.get(
                 url=self.sites_url,
                 params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
                 timeout=30,
-                headers=headers
+                headers=_usgs_headers()
             )
             response.raise_for_status()
             return True
@@ -105,15 +112,11 @@ class NWISSiteSource(BaseSiteSource):
 
         while tries < MAX_RETRIES:
             try:
-                if os.environ.get("USGS_API_KEY"):
-                    headers = {"X-API-Key": os.environ["USGS_API_KEY"]}
-                else:
-                    headers = {}
                 response = self._http_client.get(
                     url=self.sites_url,
                     params=params,
                     timeout=TIMEOUT,
-                    headers=headers
+                    headers=_usgs_headers()
                 )
 
                 if response.status_code == 200:
@@ -215,10 +218,7 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
 
             while tries < MAX_RETRIES:
                 try:
-                    if os.environ.get("USGS_API_KEY"):
-                        headers = {"X-API-Key": os.environ["USGS_API_KEY"], "Content-Type": "application/query-cql-json"}
-                    else:
-                        headers = {"Content-Type": "application/query-cql-json"}
+                    headers = _usgs_headers({"Content-Type": "application/query-cql-json"})
                     response = httpx.post(
                         url="https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
                         json=json_data,
