@@ -9,6 +9,17 @@ class DIEConfigResource(dg.ConfigurableResource):
     usgs_api_key: Optional[str] = None
 
     def get_config(self, product: dict) -> Config:
+        """Translate a products.yaml entry into a finalized DIE ``Config``.
+
+        Mapping:
+        - ``output_type`` → ``output_summary`` / ``output_format``.
+        - ``spatial_filter.county`` → ``county``. ``spatial_filter.state`` sets
+          ``wkt = None`` (statewide; DIE applies the NM extent downstream).
+        - ``sources.include`` → enable only those sources (all others off).
+          ``sources.exclude`` → disable those, leave the rest at their defaults.
+        - ``parameter`` is set on the Config, then ``finalize()`` validates and
+          resolves output units/paths.
+        """
         spatial = product.get("spatial_filter", {})
         sources_spec = product.get("sources", {})
 
@@ -24,6 +35,8 @@ class DIEConfigResource(dg.ConfigurableResource):
             payload["wkt"] = None
 
         if sources_spec.get("include"):
+            # NOTE: must stay in sync with backend.config.SOURCE_KEYS — an
+            # include-list product silently drops any source missing here.
             all_sources = [
                 "bernco", "bor", "cabq", "ebid", "nmbgmr_amp",
                 "nmed_dwb", "nmose_isc_seven_rivers", "nmose_pod",

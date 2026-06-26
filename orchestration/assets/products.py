@@ -1,14 +1,26 @@
 """Per-source Dagster asset graph for a product.
 
-Each product fans out into one asset per data source (keyed
-``[product_id, "sources", <source_key>]``) plus a combine asset (keyed
-``[product_id]``) that merges every source's contribution, writes the OGC
-GeoJSON collection, and uploads it to GCS.
+``build_product_assets(product)`` expands one products.yaml entry into a small
+asset graph:
+
+    sources/<key>  ─┐
+    sources/<key>  ─┼─▶  <product_id>  ─▶  <product_id>/geoserver
+    sources/<key>  ─┘    (combine)         (publish)
+
+- **source assets** — keyed ``[product_id, "sources", <source_key>]``, one per
+  data source that provides the product's parameter. Each runs DIE unification
+  for just that source and emits its records/sites/timeseries.
+- **combine asset** — keyed ``[product_id]``. Merges every source's
+  contribution, writes the OGC GeoJSON collection, and uploads it to GCS.
+- **geoserver asset** — keyed ``[product_id, "geoserver"]``. Downloads the
+  combined GeoJSON, converts it to a GeoPackage, and publishes it as a layer in
+  GeoServer.
 
 Design notes:
-- Source assets never hard-fail. They emit row-count metadata and an
-  AssetCheckResult that goes red (WARN) on error or empty output, so one dead
-  source surfaces in the UI without blocking the product's combine asset.
+- Source and geoserver assets never hard-fail. They catch their own errors and
+  report status via an ``AssetCheckResult`` that goes red (WARN) on error or
+  empty output, so one dead source — or a GeoServer outage — surfaces in the UI
+  without blocking the rest of the product graph.
 - Records cross the IO manager as plain ``_payload`` dicts (the record classes
   use ``__getattr__`` over ``_payload`` which does not survive pickling). The
   combine asset rebuilds record objects before dumping.
@@ -49,13 +61,20 @@ def _product_source_keys(product: dict) -> list:
 
 
 def _in_name(source_key: str) -> str:
+    # Combine-asset input kwargs must be valid Python identifiers; source keys
+    # may contain hyphens, so sanitize and prefix.
     return f"src_{source_key.replace('-', '_')}"
 
 
 def _build_source_asset(product: dict, source_key: str, group: str):
+    """Build the asset that unifies a single source for *product*.
+
+    Returns ``(asset_def, asset_key)``. The asset never raises: on failure it
+    records the traceback and fails its ``returned_data`` check (WARN) instead,
+    so a broken source does not block the combine asset. Output is shipped as
+    plain ``_payload`` dicts for IO-manager pickling (see module docstring)."""
     pid = product["id"]
     src_key = dg.AssetKey([pid, "sources", source_key])
-    is_summary = product["output_type"] == "ogc_summary"
 
     @dg.asset(
         key=src_key,
@@ -110,6 +129,11 @@ def _build_source_asset(product: dict, source_key: str, group: str):
 
 
 def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: list, group: str):
+    """Build the combine asset (keyed ``[product_id]``) for *product*.
+
+    Depends on every source asset (wired via ``ins``), merges their
+    records/sites/timeseries, writes the OGC GeoJSON collection — summary or
+    timeseries depending on ``output_type`` — and uploads it to GCS."""
     pid = product["id"]
     is_summary = product["output_type"] == "ogc_summary"
     ins = {
@@ -188,6 +212,13 @@ def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path):
 
 
 def _build_geoserver_asset(product: dict, group: str):
+    """Build the GeoServer publish asset (keyed ``[product_id, "geoserver"]``).
+
+    Depends on the combine asset for ordering only (``deps``, no data passed):
+    it reads the combined GeoJSON back from GCS, converts to GeoPackage, and
+    publishes it. Never raises — failures fail the ``registered`` check (WARN)
+    instead, so a GeoServer outage doesn't fail the run after GCS upload
+    succeeded."""
     pid = product["id"]
     gs_key = dg.AssetKey([pid, "geoserver"])
 
@@ -241,7 +272,10 @@ def _build_geoserver_asset(product: dict, group: str):
 
 
 def build_product_assets(product: dict) -> list:
-    """Return the per-source assets and the combine asset for *product*."""
+    """Return the full asset list for *product*: one source asset per applicable
+    source, the combine asset, and the geoserver publish asset (see module
+    docstring for the graph shape). Assets are grouped ``waterlevels`` or
+    ``analytes`` by parameter."""
     group = "waterlevels" if product["parameter"] == WATERLEVELS else "analytes"
     source_keys = _product_source_keys(product)
 
