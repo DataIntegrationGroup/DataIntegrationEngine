@@ -233,16 +233,17 @@ class TestMajorChemistryCollection:
 from backend.persisters.ogc_features import dump_waterlevel_trend_collection
 
 
+# The trend dumper consumes payload dicts directly (no record rebuild).
 def _trend_site(source="NMBGMR", rid="W1", well_depth=100.0):
-    return SiteRecord({
+    return {
         "source": source, "id": rid, "name": f"Well {rid}",
         "latitude": 34.0, "longitude": -106.0, "elevation": None,
         "well_depth": well_depth, "well_depth_units": "ft",
-    })
+    }
 
 
 def _trend_obs(date, value):
-    return ParameterRecord({"parameter_value": value, "date_measured": date, "time_measured": None})
+    return {"parameter_value": value, "date_measured": date, "time_measured": None}
 
 
 class TestWaterLevelTrendCollection:
@@ -278,3 +279,22 @@ class TestWaterLevelTrendCollection:
         feat = result["features"][0]
         assert feat["geometry"]["coordinates"] == [-106.0, 34.0]
         assert feat["properties"]["trend_category"] == "not enough data"  # single record
+
+
+class TestWaterLevelTrendDailyMin:
+    def test_downsamples_to_daily_min(self, tmp_path):
+        # Two readings on the same day -> keep the min (shallowest) DTW; one
+        # reading the next day. record_count counts days, observation_count raw.
+        obs = [
+            _trend_obs("2020-01-01", 50.0),
+            _trend_obs("2020-01-01", 48.0),  # same day, lower -> kept
+            _trend_obs("2020-01-02", 52.0),
+        ]
+        out = tmp_path / "tr.geojson"
+        result = dump_waterlevel_trend_collection(
+            str(out), [_trend_site(rid="W1")], [obs], {"id": "nm_waterlevel_trends"}
+        )
+        props = result["features"][0]["properties"]
+        assert props["observation_count"] == 3
+        assert props["record_count"] == 2  # two distinct days
+        assert props["first_observation_datetime"].startswith("2020-01-01")
