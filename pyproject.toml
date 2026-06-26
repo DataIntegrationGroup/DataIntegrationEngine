@@ -21,6 +21,7 @@ dependencies = [
     "geopandas",
     "httpx",
     "pandas",
+    "pymannkendall",
     "pyyaml",
     "types-pyyaml",
     "urllib3>=2.2.0,<3.0.0",

@@ -68,3 +68,18 @@ products:
       state: NM
     sources:
       exclude: []
+
+  # One feature per well with a depth-to-water trend (slope_ft_per_year +
+  # category) computed from each well's water-level timeseries. The collection
+  # carries a trend_method description. Algorithm ported from the Ocotillo API
+  # ogc_depth_to_water_trend_wells materialized view (see ogc_features.py).
+  - id: nm_waterlevel_trends
+    parameter: waterlevels
+    output_type: ogc_waterlevel_trend
+    title: "NM Water Level Trends"
+    description: "Per-well depth-to-water trend (slope and category), all NM sources"
+    schedule: "0 12 * * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []

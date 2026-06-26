@@ -37,6 +37,7 @@ from backend.persisters.ogc_features import (
     dump_major_chemistry_collection,
     dump_summary_collection,
     dump_timeseries_collection,
+    dump_waterlevel_trend_collection,
 )
 from backend.record import ParameterRecord, SiteRecord, SummaryRecord
 from backend.unifier import unify_source
@@ -167,8 +168,8 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
 
     Depends on every source asset (wired via ``ins``), merges their
     records/sites/timeseries, writes the OGC GeoJSON collection — summary,
-    timeseries, or major-chemistry depending on ``output_type`` — and uploads it
-    to GCS."""
+    timeseries, major-chemistry, or waterlevel-trend depending on
+    ``output_type`` — and uploads it to GCS."""
     pid = product["id"]
     output_type = product["output_type"]
     ins = {
@@ -204,6 +205,14 @@ def _build_combine_asset(product: dict, source_keys: list, source_asset_keys: li
             elif output_type == "ogc_summary":
                 records = [SummaryRecord(p) for p in all_records]
                 dump_summary_collection(str(out), records, meta)
+            elif output_type == "ogc_waterlevel_trend":
+                # site_records and the per-site observation lists are index
+                # aligned (see source asset); compute one trend per well.
+                site_records = [SiteRecord(p) for p in all_sites]
+                series = [
+                    [ParameterRecord(o) for o in site_ts] for site_ts in all_timeseries
+                ]
+                dump_waterlevel_trend_collection(str(out), site_records, series, meta)
             else:
                 site_records = [SiteRecord(p) for p in all_sites]
                 flat = [

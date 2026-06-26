@@ -228,3 +228,53 @@ class TestMajorChemistryCollection:
         assert "timeStamp" in result
         feat = result["features"][0]
         assert feat["geometry"]["coordinates"] == [-106.0, 34.0]
+
+
+from backend.persisters.ogc_features import dump_waterlevel_trend_collection
+
+
+def _trend_site(source="NMBGMR", rid="W1", well_depth=100.0):
+    return SiteRecord({
+        "source": source, "id": rid, "name": f"Well {rid}",
+        "latitude": 34.0, "longitude": -106.0, "elevation": None,
+        "well_depth": well_depth, "well_depth_units": "ft",
+    })
+
+
+def _trend_obs(date, value):
+    return ParameterRecord({"parameter_value": value, "date_measured": date, "time_measured": None})
+
+
+class TestWaterLevelTrendCollection:
+    def test_classifies_trends_and_carries_method(self, tmp_path):
+        increasing = [_trend_obs(f"{2010 + i}-01-01", 50.0 + 0.5 * i) for i in range(12)]
+        stable = [_trend_obs(f"{2010 + i}-01-01", 50.0) for i in range(12)]
+        sparse = [_trend_obs("2010-01-01", 50.0), _trend_obs("2011-01-01", 51.0), _trend_obs("2012-01-01", 52.0)]
+        decreasing = [_trend_obs(f"{2010 + i}-01-01", 60.0 - 1.0 * i) for i in range(5)]
+
+        sites = [_trend_site(rid="A"), _trend_site(rid="B"), _trend_site("NWIS", "C"), _trend_site("PVACD", "D")]
+        series = [increasing, stable, sparse, decreasing]
+
+        out = tmp_path / "tr.geojson"
+        result = dump_waterlevel_trend_collection(str(out), sites, series, {"id": "nm_waterlevel_trends"})
+
+        assert result["numberReturned"] == 4
+        assert "trend_method" in result and result["trend_method"]
+        by_id = {f["id"]: f["properties"] for f in result["features"]}
+
+        assert by_id["NMBGMR:A"]["trend_category"] == "increasing"
+        assert round(by_id["NMBGMR:A"]["slope_ft_per_year"], 2) == 0.5
+        assert by_id["NMBGMR:B"]["trend_category"] == "stable"
+        assert by_id["NWIS:C"]["trend_category"] == "not enough data"  # only 3 records
+        assert by_id["PVACD:D"]["trend_category"] == "decreasing"      # 5 records / 4 yr span
+
+    def test_required_fields_and_geometry(self, tmp_path):
+        sites = [_trend_site(rid="W1")]
+        series = [[_trend_obs("2010-01-01", 50.0)]]
+        out = tmp_path / "tr.geojson"
+        result = dump_waterlevel_trend_collection(str(out), sites, series, {"id": "nm_waterlevel_trends"})
+        assert result["type"] == "FeatureCollection"
+        assert "timeStamp" in result
+        feat = result["features"][0]
+        assert feat["geometry"]["coordinates"] == [-106.0, 34.0]
+        assert feat["properties"]["trend_category"] == "not enough data"  # single record
