@@ -233,16 +233,17 @@ class TestMajorChemistryCollection:
 from backend.persisters.ogc_features import dump_waterlevel_trend_collection
 
 
+# The trend dumper consumes payload dicts directly (no record rebuild).
 def _trend_site(source="NMBGMR", rid="W1", well_depth=100.0):
-    return SiteRecord({
+    return {
         "source": source, "id": rid, "name": f"Well {rid}",
         "latitude": 34.0, "longitude": -106.0, "elevation": None,
         "well_depth": well_depth, "well_depth_units": "ft",
-    })
+    }
 
 
 def _trend_obs(date, value):
-    return ParameterRecord({"parameter_value": value, "date_measured": date, "time_measured": None})
+    return {"parameter_value": value, "date_measured": date, "time_measured": None}
 
 
 class TestWaterLevelTrendCollection:

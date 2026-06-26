@@ -118,6 +118,10 @@ def _daily_min_series(obs_list: list) -> tuple[int, list]:
     minimum depth-to-water for each day (the shallowest reading), keyed at the
     day's UTC midnight epoch.
 
+    *obs_list* is a list of observation payload dicts (parameter_value,
+    date_measured, time_measured). Operating on dicts avoids rebuilding
+    ParameterRecord objects for what can be millions of observations.
+
     Downsampling bounds the O(n^2) Mann-Kendall cost for high-frequency wells
     (e.g. continuous loggers) and removes within-day sampling noise. Returns
     (raw_observation_count, [(day_epoch_seconds, min_value), ...] sorted by day).
@@ -125,9 +129,9 @@ def _daily_min_series(obs_list: list) -> tuple[int, list]:
     raw_count = 0
     daily: dict = {}  # date -> (day_epoch, min_value)
     for obs in obs_list:
-        value = getattr(obs, "parameter_value", None)
+        value = obs.get("parameter_value")
         epoch = _parse_epoch_seconds(
-            getattr(obs, "date_measured", None), getattr(obs, "time_measured", None)
+            obs.get("date_measured"), obs.get("time_measured")
         )
         if value is None or epoch is None:
             continue
@@ -292,10 +296,12 @@ def dump_waterlevel_trend_collection(
     Write an OGC FeatureCollection of per-well depth-to-water trends to *path*.
     One Feature per well.
 
-    *site_records* and *timeseries_records* are index-aligned: ``site_records[i]``
-    is the well and ``timeseries_records[i]`` is its list of ParameterRecord
-    observations (DIE water-level values are already depth-to-water below ground
-    surface in feet, so no measuring-point adjustment is applied here).
+    *site_records* and *timeseries_records* are index-aligned **payload dicts**:
+    ``site_records[i]`` is the well's site dict and ``timeseries_records[i]`` is
+    its list of observation dicts. They are consumed as dicts (not rebuilt into
+    record objects) to keep memory bounded for statewide, high-frequency data.
+    DIE water-level values are already depth-to-water below ground surface in
+    feet, so no measuring-point adjustment is applied here.
 
     Observations are downsampled to the daily minimum depth-to-water before the
     trend test (see _daily_min_series). Each feature carries: record_count
@@ -332,11 +338,11 @@ def dump_waterlevel_trend_collection(
             trend_category = "not enough data"
 
         props = {
-            "source": getattr(site, "source", "") or "",
-            "id": getattr(site, "id", "") or "",
-            "name": getattr(site, "name", None),
-            "well_depth": getattr(site, "well_depth", None),
-            "well_depth_units": getattr(site, "well_depth_units", None),
+            "source": site.get("source") or "",
+            "id": site.get("id") or "",
+            "name": site.get("name"),
+            "well_depth": site.get("well_depth"),
+            "well_depth_units": site.get("well_depth_units"),
             "record_count": record_count,
             "observation_count": observation_count,
             "first_observation_datetime": _iso_utc(xs[0]) if record_count else None,
@@ -354,9 +360,9 @@ def dump_waterlevel_trend_collection(
             "type": "Feature",
             "id": _feature_id(props["source"], props["id"]),
             "geometry": _point_geometry(
-                getattr(site, "latitude", None),
-                getattr(site, "longitude", None),
-                getattr(site, "elevation", None),
+                site.get("latitude"),
+                site.get("longitude"),
+                site.get("elevation"),
             ),
             "properties": props,
         })

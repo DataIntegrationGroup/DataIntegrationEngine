@@ -218,13 +218,13 @@ def _build_combine_asset(
                 records = [SummaryRecord(p) for p in all_records]
                 dump_summary_collection(str(out), records, meta)
             elif output_type == "ogc_waterlevel_trend":
-                # site_records and the per-site observation lists are index
-                # aligned (see source asset); compute one trend per well.
-                site_records = [SiteRecord(p) for p in all_sites]
-                series = [
-                    [ParameterRecord(o) for o in site_ts] for site_ts in all_timeseries
-                ]
-                dump_waterlevel_trend_collection(str(out), site_records, series, meta)
+                # all_sites and all_timeseries are index-aligned payload dicts
+                # (see source asset). The trend dumper consumes dicts directly —
+                # no ParameterRecord/SiteRecord rebuild — to keep memory bounded
+                # for statewide, high-frequency water-level data.
+                dump_waterlevel_trend_collection(
+                    str(out), all_sites, all_timeseries, meta
+                )
             else:
                 site_records = [SiteRecord(p) for p in all_sites]
                 flat = [
