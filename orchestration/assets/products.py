@@ -34,6 +34,23 @@ Design notes:
 - Records cross the IO manager as plain ``_payload`` dicts (the record classes
   use ``__getattr__`` over ``_payload`` which does not survive pickling). The
   combine asset rebuilds record objects before dumping.
+
+Known limitation — per-analyte source fetches (potential future optimization):
+  Sharing is deduped at the ``(parameter, mode, scope, source)`` grain, which
+  collapses duplication *across products* (e.g. ``sulfate/summary/state_NM/wqp``
+  is one asset shared by nm_major_chemistry and nm_mcl_exceedance). It does NOT
+  collapse *across analytes*: a source appears once per analyte (e.g. ``wqp``
+  has ~13 summary source assets, one per analyte). This is because the backend
+  unifies a single parameter per pass (``unify_source`` uses one
+  ``config.parameter``), so each analyte is a separate sweep of the same wells
+  even though one provider query (WQP/AMP/...) typically returns all analytes at
+  once. Collapsing this would need a **backend** change — multi-analyte
+  unification that fetches a source once and emits per-analyte records — after
+  which the source key could drop ``parameter`` (e.g.
+  ``["sources", "analytes", mode, scope, source]``) and the analyte combines
+  would each filter the shared multi-analyte payload. That is the bulk of the
+  remaining redundant API pulls for analyte products; it touches DIE core, not
+  this asset graph, so it is intentionally out of scope here.
 """
 import tempfile
 import traceback
