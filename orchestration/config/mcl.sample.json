@@ -1,0 +1,9 @@
+{
+  "_comment": "Sample MCL thresholds for the nm_mcl_exceedance product. The REAL file is the source of truth and lives at gs://<products_bucket>/config/mcl.json (NOT this repo file). Values MUST be in the same units DIE normalizes analytes to (mg/L). 'type' is primary (health) or secondary (aesthetic). An analyte present here is compared; one absent is reported without a flag.",
+  "arsenic": {"mcl": 0.01, "type": "primary"},
+  "nitrate": {"mcl": 10.0, "type": "primary"},
+  "fluoride": {"mcl": 4.0, "type": "primary"},
+  "sulfate": {"mcl": 250.0, "type": "secondary"},
+  "chloride": {"mcl": 250.0, "type": "secondary"},
+  "tds": {"mcl": 500.0, "type": "secondary"}
+}
