@@ -234,14 +234,27 @@ def _build_combine_asset(
 
             info = gcs.upload_product(str(out), pid)
 
-        return dg.MaterializeResult(
-            metadata={
-                "feature_count": dg.MetadataValue.int(info["feature_count"]),
-                "dated_uri": dg.MetadataValue.url(info["dated_uri"]),
-                "latest_uri": dg.MetadataValue.url(info["latest_uri"]),
-                "source_count": dg.MetadataValue.int(len(sources)),
-            }
-        )
+        metadata: dict = {
+            "feature_count": dg.MetadataValue.int(info["feature_count"]),
+            "latest_uri": dg.MetadataValue.url(info["latest_uri"]),
+            "source_count": dg.MetadataValue.int(len(sources)),
+            # True when content matched what's already in GCS (no new upload).
+            "skipped_unchanged": dg.MetadataValue.bool(bool(info.get("skipped"))),
+        }
+        # dated_uri is None when the upload was skipped as unchanged.
+        if info.get("dated_uri"):
+            metadata["dated_uri"] = dg.MetadataValue.url(info["dated_uri"])
+        # Change-recency signal for tuning run frequency: how long the data has
+        # been static. A large, growing value means the schedule can be relaxed
+        # (e.g. daily -> monthly); 0 means it changed this run.
+        if info.get("last_changed"):
+            metadata["last_changed"] = dg.MetadataValue.text(info["last_changed"])
+        if info.get("days_since_last_change") is not None:
+            metadata["days_since_last_change"] = dg.MetadataValue.int(
+                info["days_since_last_change"]
+            )
+
+        return dg.MaterializeResult(metadata=metadata)
 
     return _combine_asset
 
