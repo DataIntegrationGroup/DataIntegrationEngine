@@ -66,6 +66,13 @@ class GCSResource(dg.ConfigurableResource):
     def _client(self):
         return _storage_client()
 
+    def read_json(self, key: str) -> dict:
+        """Read and parse a JSON object from the bucket at *key* (e.g.
+        'config/mcl.json'). Raises if the object is missing."""
+        client = self._client()
+        bucket = client.bucket(self.bucket_name)
+        return json.loads(bucket.blob(key).download_as_bytes())
+
     def download_latest(self, product_id: str, dest_path: str) -> str:
         """Download a product's latest.geojson to *dest_path*. Returns the path."""
         client = self._client()

@@ -230,7 +230,7 @@ class TestMajorChemistryCollection:
         assert feat["geometry"]["coordinates"] == [-106.0, 34.0]
 
 
-from backend.persisters.ogc_features import dump_waterlevel_trend_collection
+from backend.persisters.ogc_features import dump_trend_collection
 
 
 # The trend dumper consumes payload dicts directly (no record rebuild).
@@ -257,14 +257,14 @@ class TestWaterLevelTrendCollection:
         series = [increasing, stable, sparse, decreasing]
 
         out = tmp_path / "tr.geojson"
-        result = dump_waterlevel_trend_collection(str(out), sites, series, {"id": "nm_waterlevel_trends"})
+        result = dump_trend_collection(str(out), sites, series, {"id": "nm_waterlevel_trends"}, slope_units="ft/year", reducer="min")
 
         assert result["numberReturned"] == 4
         assert "trend_method" in result and result["trend_method"]
         by_id = {f["id"]: f["properties"] for f in result["features"]}
 
         assert by_id["NMBGMR:A"]["trend_category"] == "increasing"
-        assert round(by_id["NMBGMR:A"]["slope_ft_per_year"], 2) == 0.5
+        assert round(by_id["NMBGMR:A"]["slope_per_year"], 2) == 0.5
         assert by_id["NMBGMR:B"]["trend_category"] == "stable"
         assert by_id["NWIS:C"]["trend_category"] == "not enough data"  # only 3 records
         assert by_id["PVACD:D"]["trend_category"] == "decreasing"      # 5 records / 4 yr span
@@ -273,7 +273,7 @@ class TestWaterLevelTrendCollection:
         sites = [_trend_site(rid="W1")]
         series = [[_trend_obs("2010-01-01", 50.0)]]
         out = tmp_path / "tr.geojson"
-        result = dump_waterlevel_trend_collection(str(out), sites, series, {"id": "nm_waterlevel_trends"})
+        result = dump_trend_collection(str(out), sites, series, {"id": "nm_waterlevel_trends"}, slope_units="ft/year", reducer="min")
         assert result["type"] == "FeatureCollection"
         assert "timeStamp" in result
         feat = result["features"][0]
@@ -291,8 +291,8 @@ class TestWaterLevelTrendDailyMin:
             _trend_obs("2020-01-02", 52.0),
         ]
         out = tmp_path / "tr.geojson"
-        result = dump_waterlevel_trend_collection(
-            str(out), [_trend_site(rid="W1")], [obs], {"id": "nm_waterlevel_trends"}
+        result = dump_trend_collection(
+            str(out), [_trend_site(rid="W1")], [obs], {"id": "nm_waterlevel_trends"}, slope_units="ft/year", reducer="min"
         )
         props = result["features"][0]["properties"]
         assert props["observation_count"] == 3
@@ -309,8 +309,8 @@ class TestSourceDatastreamLink:
             for i in range(12)
         ]
         out = tmp_path / "tr.geojson"
-        result = dump_waterlevel_trend_collection(
-            str(out), [site], [obs], {"id": "nm_waterlevel_trends"}
+        result = dump_trend_collection(
+            str(out), [site], [obs], {"id": "nm_waterlevel_trends"}, slope_units="ft/year", reducer="min"
         )
         assert (
             result["features"][0]["properties"]["source_datastream_link"]
@@ -321,8 +321,8 @@ class TestSourceDatastreamLink:
         site = _trend_site(source="NWIS", rid="W2")
         obs = [_trend_obs(f"{2010 + i}-01-01", 50.0) for i in range(12)]
         out = tmp_path / "tr.geojson"
-        result = dump_waterlevel_trend_collection(
-            str(out), [site], [obs], {"id": "nm_waterlevel_trends"}
+        result = dump_trend_collection(
+            str(out), [site], [obs], {"id": "nm_waterlevel_trends"}, slope_units="ft/year", reducer="min"
         )
         assert "source_datastream_link" not in result["features"][0]["properties"]
 
@@ -335,3 +335,87 @@ class TestSourceDatastreamLink:
             result["features"][0]["properties"]["source_datastream_link"]
             == "https://st2/Datastreams(9)"
         )
+
+
+from backend.persisters.ogc_features import (
+    dump_mcl_exceedance_collection,
+    dump_monitoring_recency_collection,
+)
+
+
+def _mcl_record(source, rid, analyte, value):
+    return SummaryRecord({
+        "source": source, "id": rid, "name": f"Well {rid}",
+        "latitude": 34.0, "longitude": -106.0, "elevation": None,
+        "well_depth": None, "well_depth_units": "ft",
+        "parameter_name": analyte, "latest_value": value,
+    })
+
+
+class TestMCLExceedanceCollection:
+    def test_flags_exceedances(self, tmp_path):
+        recs = [
+            _mcl_record("WQP", "W1", "arsenic", 0.02),   # > 0.01 -> exceeds
+            _mcl_record("WQP", "W1", "nitrate", 5.0),    # < 10 -> ok
+        ]
+        thresholds = {"arsenic": {"mcl": 0.01, "type": "primary"},
+                      "nitrate": {"mcl": 10.0, "type": "primary"}}
+        out = tmp_path / "mcl.geojson"
+        result = dump_mcl_exceedance_collection(str(out), recs, {"id": "nm_mcl"}, thresholds)
+        props = result["features"][0]["properties"]
+        assert props["arsenic_exceeds"] is True
+        assert props["nitrate_exceeds"] is False
+        assert props["any_exceedance"] is True
+        assert props["exceedance_count"] == 1
+        assert props["exceeded_analytes"] == ["arsenic"]
+        assert result["mcl_thresholds"] == thresholds
+
+    def test_analyte_without_threshold_not_flagged(self, tmp_path):
+        recs = [_mcl_record("WQP", "W1", "calcium", 999.0)]
+        out = tmp_path / "mcl.geojson"
+        result = dump_mcl_exceedance_collection(str(out), recs, {"id": "nm_mcl"}, {})
+        props = result["features"][0]["properties"]
+        assert props["calcium"] == 999.0
+        assert "calcium_exceeds" not in props
+        assert props["any_exceedance"] is False
+
+
+class TestMonitoringRecencyCollection:
+    def test_status_active_and_stale(self, tmp_path):
+        active = _trend_site(source="PVACD", rid="A")
+        stale = _trend_site(source="PVACD", rid="B")
+        nodata = _trend_site(source="PVACD", rid="C")
+        sites = [active, stale, nodata]
+        series = [
+            [_trend_obs("2024-01-01", 1.0)],
+            [_trend_obs("2019-01-01", 1.0)],
+            [],
+        ]
+        out = tmp_path / "rec.geojson"
+        result = dump_monitoring_recency_collection(
+            str(out), sites, series, {"id": "nm_rec"}, run_date="2024-06-01", stale_days=365
+        )
+        by_id = {f["id"]: f["properties"] for f in result["features"]}
+        assert by_id["PVACD:A"]["status"] == "active"
+        assert by_id["PVACD:B"]["status"] == "stale"
+        assert by_id["PVACD:C"]["status"] == "no data"
+        assert by_id["PVACD:C"]["record_count"] == 0
+        assert result["stale_threshold_days"] == 365
+
+
+class TestAnalyteTrend:
+    def test_daily_mean_and_units(self, tmp_path):
+        site = _trend_site(source="WQP", rid="W1")
+        # two readings same day -> mean; rising over years -> increasing
+        obs = []
+        for i in range(12):
+            obs.append(_trend_obs(f"{2010 + i}-01-01", 0.005 + 0.001 * i))
+        out = tmp_path / "at.geojson"
+        result = dump_trend_collection(
+            str(out), [site], [obs], {"id": "nm_arsenic_trend"},
+            slope_units="mg/L/year", reducer="mean", parameter_name="arsenic",
+        )
+        props = result["features"][0]["properties"]
+        assert props["parameter_name"] == "arsenic"
+        assert props["slope_units"] == "mg/L/year"
+        assert props["trend_category"] == "increasing"

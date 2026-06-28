@@ -24,6 +24,9 @@ _SUPPORTED_OUTPUT_TYPES = {
     "ogc_timeseries",
     "ogc_major_chemistry",
     "ogc_waterlevel_trend",
+    "ogc_analyte_trend",
+    "ogc_mcl_exceedance",
+    "ogc_monitoring_recency",
 }
 
 
