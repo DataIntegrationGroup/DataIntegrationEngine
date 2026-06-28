@@ -244,6 +244,15 @@ def _build_combine_asset(
         # dated_uri is None when the upload was skipped as unchanged.
         if info.get("dated_uri"):
             metadata["dated_uri"] = dg.MetadataValue.url(info["dated_uri"])
+        # Change-recency signal for tuning run frequency: how long the data has
+        # been static. A large, growing value means the schedule can be relaxed
+        # (e.g. daily -> monthly); 0 means it changed this run.
+        if info.get("last_changed"):
+            metadata["last_changed"] = dg.MetadataValue.text(info["last_changed"])
+        if info.get("days_since_last_change") is not None:
+            metadata["days_since_last_change"] = dg.MetadataValue.int(
+                info["days_since_last_change"]
+            )
 
         return dg.MaterializeResult(metadata=metadata)
 

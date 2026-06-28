@@ -15,6 +15,17 @@ except ImportError:
 
 
 _CONTENT_HASH_KEY = "content_hash"
+_LAST_CHANGED_KEY = "last_changed"  # YYYY-MM-DD the content last actually changed
+
+
+def _days_between(start: str, end: str) -> Optional[int]:
+    """Whole days between two YYYY-MM-DD strings, or None if unparseable."""
+    try:
+        a = datetime.strptime(start, "%Y-%m-%d")
+        b = datetime.strptime(end, "%Y-%m-%d")
+        return (b - a).days
+    except (TypeError, ValueError):
+        return None
 
 
 def _content_hash(local_path: str) -> str:
@@ -103,11 +114,16 @@ class GCSResource(dg.ConfigurableResource):
 
         latest_uri = f"gs://{self.bucket_name}/{latest_key}"
 
-        # Skip if the existing latest.geojson has the same content hash.
+        # Skip if the existing latest.geojson has the same content hash. Carry
+        # forward the last-changed date so we can report how long the data has
+        # been static (a signal for tuning run frequency — e.g. data unchanged
+        # for months means the schedule can safely drop to monthly).
         latest_blob = bucket.blob(latest_key)
         if latest_blob.exists():
             latest_blob.reload()
-            if (latest_blob.metadata or {}).get(_CONTENT_HASH_KEY) == new_hash:
+            existing_meta = latest_blob.metadata or {}
+            if existing_meta.get(_CONTENT_HASH_KEY) == new_hash:
+                last_changed = existing_meta.get(_LAST_CHANGED_KEY, run_date)
                 return {
                     "dated_uri": None,
                     "latest_uri": latest_uri,
@@ -115,15 +131,18 @@ class GCSResource(dg.ConfigurableResource):
                     "file_size_bytes": file_size,
                     "run_date": run_date,
                     "skipped": True,
+                    "last_changed": last_changed,
+                    "days_since_last_change": _days_between(last_changed, run_date),
                 }
 
+        # Content changed (or first upload) — last_changed is now.
         dated_blob = bucket.blob(dated_key)
-        dated_blob.metadata = {_CONTENT_HASH_KEY: new_hash}
+        dated_blob.metadata = {_CONTENT_HASH_KEY: new_hash, _LAST_CHANGED_KEY: run_date}
         dated_blob.upload_from_filename(local_path, content_type="application/geo+json")
 
         # §V: atomic latest — copy from the just-uploaded dated blob, not
         # another upload that could race with a concurrent reader. copy_blob
-        # carries the content_hash metadata to latest for the next dedup check.
+        # carries the content_hash/last_changed metadata to latest.
         bucket.copy_blob(dated_blob, bucket, latest_key)
 
         return {
@@ -133,6 +152,8 @@ class GCSResource(dg.ConfigurableResource):
             "file_size_bytes": file_size,
             "run_date": run_date,
             "skipped": False,
+            "last_changed": run_date,
+            "days_since_last_change": 0,
         }
 
 
