@@ -116,7 +116,7 @@ products:
     title: "NM MCL Exceedances"
     description: "Wells flagged against drinking-water MCLs, all NM sources"
     schedule: "0 15 * * *"
-    analytes: [arsenic, nitrate, fluoride, sulfate, chloride, tds]
+    analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
     spatial_filter:
       state: NM
     sources:
