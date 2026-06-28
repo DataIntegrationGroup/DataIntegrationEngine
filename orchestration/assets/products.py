@@ -20,11 +20,15 @@ The graph has two layers wired through the GCS IO manager:
 - **geoserver asset** — keyed ``[product_id, "geoserver"]``. Downloads the
   combined GeoJSON, converts to GeoPackage, publishes it as a GeoServer layer.
 
-Job layout (see ``definitions.py``) makes the sharing pay off: a dedicated
-``sources_job`` materializes every shared source asset once; each per-product
-job selects only its combine + geoserver assets and loads the (already
-materialized) source inputs from the GCS IO manager. So a product run never
-re-unifies a source another product already produced.
+Job layout (see ``definitions.py``) makes the sharing pay off **and** keeps each
+run's lineage complete. Products are grouped into *cohorts* by
+(group, mode, scope) — the products that can share source assets. One job per
+cohort materializes that cohort's whole graph in a single run: each shared
+source unifies once (it is one asset key, selected once), then every member
+combine reads it back through the GCS IO manager and publishes. So a source is
+never fetched twice in a run, while the full sources → combine → geoserver
+lineage stays visible for every product. (Cross-product dedup requires the
+sharing products to run together; that is exactly what a cohort is.)
 
 Design notes:
 - Source and geoserver assets never hard-fail. They catch their own errors and
