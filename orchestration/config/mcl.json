@@ -1,12 +1,69 @@
 {
-  "_comment": "Drinking-water MCLs for the nm_mcl_exceedance product, values in mg/L (matching DIE's normalized analyte units). 'type': primary = enforceable National Primary Drinking Water Regulation (health); secondary = non-mandatory aesthetic SMCL. Sourced from EPA NPDWR and Secondary Drinking Water Standards. Uranium 30 ug/L = 0.030 mg/L. Fluoride uses the primary MCL (4.0); its secondary SMCL is 2.0. pH (6.5-8.5) is a range, not a single MCL, so it is omitted. Upload this file to gs://<products_bucket>/config/mcl.json.",
-  "_source": "https://www.epa.gov/ground-water-and-drinking-water/national-primary-drinking-water-regulations ; https://www.epa.gov/sdwa/secondary-drinking-water-standards-guidance-nuisance-chemicals",
-  "_retrieved": "2026-06-28",
-  "arsenic": {"mcl": 0.01, "type": "primary"},
-  "nitrate": {"mcl": 10.0, "type": "primary"},
-  "fluoride": {"mcl": 4.0, "type": "primary"},
-  "uranium": {"mcl": 0.03, "type": "primary"},
-  "chloride": {"mcl": 250.0, "type": "secondary"},
-  "sulfate": {"mcl": 250.0, "type": "secondary"},
-  "tds": {"mcl": 500.0, "type": "secondary"}
+  "_readme": "Drinking-water Maximum Contaminant Levels (MCLs) for the DIE nm_mcl_exceedance product. This file is the source of truth; upload it to gs://<products_bucket>/config/mcl.json. Each top-level key (except those starting with '_') is a DIE analyte name; the product compares each well's latest value to that analyte's 'mcl' and flags value > mcl. Analytes absent here are reported without a flag.",
+  "_schema": {
+    "mcl": "number — the threshold, in 'units'. Used by the product (value > mcl => exceedance).",
+    "units": "string — units of mcl; MUST match DIE's normalized output units for the analyte (mg/L).",
+    "type": "string — 'primary' (enforceable health-based NPDWR) or 'secondary' (non-mandatory aesthetic SMCL). Used by the product.",
+    "basis": "string — what the value is measured as (e.g. nitrate 'as N'); the data MUST be on the same basis for the comparison to be valid.",
+    "label": "string — human-readable contaminant name.",
+    "note": "string — clarifications/caveats."
+  },
+  "_source": {
+    "primary": "EPA National Primary Drinking Water Regulations — https://www.epa.gov/ground-water-and-drinking-water/national-primary-drinking-water-regulations",
+    "secondary": "EPA Secondary Drinking Water Standards — https://www.epa.gov/sdwa/secondary-drinking-water-standards-guidance-nuisance-chemicals",
+    "retrieved": "2026-06-28"
+  },
+  "arsenic": {
+    "mcl": 0.01,
+    "units": "mg/L",
+    "type": "primary",
+    "label": "Arsenic",
+    "note": "EPA NPDWR MCL 0.010 mg/L (10 ug/L)."
+  },
+  "nitrate": {
+    "mcl": 10.0,
+    "units": "mg/L",
+    "type": "primary",
+    "basis": "as N",
+    "label": "Nitrate (as nitrogen)",
+    "note": "EPA MCL is 10 mg/L measured as nitrogen (N). If DIE reports nitrate as NO3, convert (as-NO3 MCL ~= 44.3 mg/L) or this flag is wrong."
+  },
+  "fluoride": {
+    "mcl": 4.0,
+    "units": "mg/L",
+    "type": "primary",
+    "label": "Fluoride",
+    "note": "Primary (health) MCL 4.0 mg/L. A secondary aesthetic SMCL of 2.0 mg/L also exists; this file uses the enforceable primary MCL."
+  },
+  "uranium": {
+    "mcl": 0.03,
+    "units": "mg/L",
+    "type": "primary",
+    "label": "Uranium",
+    "note": "EPA MCL 30 ug/L = 0.030 mg/L (effective 2003)."
+  },
+  "chloride": {
+    "mcl": 250.0,
+    "units": "mg/L",
+    "type": "secondary",
+    "label": "Chloride",
+    "note": "Secondary (aesthetic) SMCL 250 mg/L."
+  },
+  "sulfate": {
+    "mcl": 250.0,
+    "units": "mg/L",
+    "type": "secondary",
+    "label": "Sulfate",
+    "note": "Secondary (aesthetic) SMCL 250 mg/L."
+  },
+  "tds": {
+    "mcl": 500.0,
+    "units": "mg/L",
+    "type": "secondary",
+    "label": "Total dissolved solids",
+    "note": "Secondary (aesthetic) SMCL 500 mg/L."
+  },
+  "_omitted": {
+    "ph": "EPA secondary standard is a RANGE (6.5-8.5), not a single MCL, so it does not fit the value > mcl test and is excluded."
+  }
 }
