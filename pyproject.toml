@@ -43,7 +43,10 @@ packages = ["frontend", "backend"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-norecursedirs = ["tests/archived"]
+# tests/test_sources hit live provider APIs over the network (slow, flaky);
+# excluded from default collection. Run them explicitly when needed:
+#   uv run pytest tests/test_sources --override-ini="norecursedirs="
+norecursedirs = ["tests/archived", "tests/test_sources"]
 
 [tool.mypy]
 ignore_missing_imports = true
