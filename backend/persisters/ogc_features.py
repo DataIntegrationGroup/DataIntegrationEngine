@@ -461,6 +461,12 @@ def dump_mcl_exceedance_collection(
             mcl = limit.get("mcl")
             props[f"{analyte}_mcl"] = mcl
             props[f"{analyte}_mcl_type"] = limit.get("type")
+            # Direct magnitude comparison: the MCL and the value MUST share
+            # units AND basis. NOTE (nitrate): the EPA MCL is 10 mg/L measured
+            # "as N", but providers/DIE may report nitrate "as NO3" (~4.43x
+            # larger). If the data basis is NO3, this flag is wrong unless the
+            # mcl in config/mcl.json is the as-NO3 value (~44.3 mg/L). Confirm
+            # DIE's normalized nitrate basis before trusting nitrate exceedances.
             exceeds = value is not None and mcl is not None and value > mcl
             props[f"{analyte}_exceeds"] = exceeds
             if exceeds:
