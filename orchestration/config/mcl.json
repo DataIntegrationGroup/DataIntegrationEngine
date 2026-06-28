@@ -1,0 +1,12 @@
+{
+  "_comment": "Drinking-water MCLs for the nm_mcl_exceedance product, values in mg/L (matching DIE's normalized analyte units). 'type': primary = enforceable National Primary Drinking Water Regulation (health); secondary = non-mandatory aesthetic SMCL. Sourced from EPA NPDWR and Secondary Drinking Water Standards. Uranium 30 ug/L = 0.030 mg/L. Fluoride uses the primary MCL (4.0); its secondary SMCL is 2.0. pH (6.5-8.5) is a range, not a single MCL, so it is omitted. Upload this file to gs://<products_bucket>/config/mcl.json.",
+  "_source": "https://www.epa.gov/ground-water-and-drinking-water/national-primary-drinking-water-regulations ; https://www.epa.gov/sdwa/secondary-drinking-water-standards-guidance-nuisance-chemicals",
+  "_retrieved": "2026-06-28",
+  "arsenic": {"mcl": 0.01, "type": "primary"},
+  "nitrate": {"mcl": 10.0, "type": "primary"},
+  "fluoride": {"mcl": 4.0, "type": "primary"},
+  "uranium": {"mcl": 0.03, "type": "primary"},
+  "chloride": {"mcl": 250.0, "type": "secondary"},
+  "sulfate": {"mcl": 250.0, "type": "secondary"},
+  "tds": {"mcl": 500.0, "type": "secondary"}
+}
