@@ -298,3 +298,40 @@ class TestWaterLevelTrendDailyMin:
         assert props["observation_count"] == 3
         assert props["record_count"] == 2  # two distinct days
         assert props["first_observation_datetime"].startswith("2020-01-01")
+
+
+class TestSourceDatastreamLink:
+    def test_trend_feature_includes_source_datastream_link(self, tmp_path):
+        site = _trend_site(source="PVACD", rid="W1")
+        obs = [
+            {**_trend_obs(f"{2010 + i}-01-01", 50.0 + 0.5 * i),
+             "source_datastream_link": "https://st2/FROST-Server/v1.1/Datastreams(42)"}
+            for i in range(12)
+        ]
+        out = tmp_path / "tr.geojson"
+        result = dump_waterlevel_trend_collection(
+            str(out), [site], [obs], {"id": "nm_waterlevel_trends"}
+        )
+        assert (
+            result["features"][0]["properties"]["source_datastream_link"]
+            == "https://st2/FROST-Server/v1.1/Datastreams(42)"
+        )
+
+    def test_trend_feature_omits_link_when_absent(self, tmp_path):
+        site = _trend_site(source="NWIS", rid="W2")
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0) for i in range(12)]
+        out = tmp_path / "tr.geojson"
+        result = dump_waterlevel_trend_collection(
+            str(out), [site], [obs], {"id": "nm_waterlevel_trends"}
+        )
+        assert "source_datastream_link" not in result["features"][0]["properties"]
+
+    def test_summary_feature_includes_source_datastream_link(self, tmp_path):
+        rec = _make_summary_record(source="PVACD", rid="W1")
+        rec.update(source_datastream_link="https://st2/Datastreams(9)")
+        out = tmp_path / "s.geojson"
+        result = dump_summary_collection(str(out), [rec], {"id": "nm_waterlevels_summary"})
+        assert (
+            result["features"][0]["properties"]["source_datastream_link"]
+            == "https://st2/Datastreams(9)"
+        )

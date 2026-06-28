@@ -20,6 +20,7 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     CONVERSION_FACTOR,
+    SOURCE_DATASTREAM_LINK,
     FEET,
 )
 
@@ -145,6 +146,7 @@ class SummaryRecord(BaseRecord):
         "latest_time",
         "latest_value",
         "latest_units",
+        SOURCE_DATASTREAM_LINK,
     )
     defaults: dict = {}
 

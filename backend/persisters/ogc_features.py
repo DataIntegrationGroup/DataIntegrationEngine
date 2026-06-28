@@ -356,6 +356,20 @@ def dump_waterlevel_trend_collection(
             "mk_tau": None if tau is None else round(tau, 4),
         }
 
+        # Link to the raw, non-normalized source datastream used for the
+        # calculation, when the source provides one (SensorThings/st2). Taken
+        # from the well's observations; absent for sources without one.
+        source_datastream_link = next(
+            (
+                o.get("source_datastream_link")
+                for o in obs_list
+                if o.get("source_datastream_link")
+            ),
+            None,
+        )
+        if source_datastream_link:
+            props["source_datastream_link"] = source_datastream_link
+
         features.append({
             "type": "Feature",
             "id": _feature_id(props["source"], props["id"]),

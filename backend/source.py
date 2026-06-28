@@ -142,6 +142,7 @@ class RecordSummarizer:
             "latest_source_units": latest_result["source_parameter_units"],
             "latest_source_name": latest_result["source_parameter_name"],
         }
+        rec.update(s._summary_extra(cleaned))
         return s.transformer.do_transform(rec, site)
 
 
@@ -427,6 +428,12 @@ class BaseParameterSource(BaseSource):
 
     def _clean_records(self, records: list) -> list:
         return records
+
+    def _summary_extra(self, cleaned: list) -> dict:
+        """Extra fields to merge into a site's summary record. Default none;
+        sources with a non-normalized source-series link (e.g. st2 SensorThings)
+        override to add a source_datastream_link."""
+        return {}
 
     def _extract_terminal_record(self, records, position: str):
         raise NotImplementedError(f"{self.__class__.__name__} Must implement _extract_terminal_record")
