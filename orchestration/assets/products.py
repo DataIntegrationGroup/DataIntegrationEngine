@@ -28,6 +28,7 @@ Design notes:
 import tempfile
 import traceback
 from collections.abc import Iterator
+from datetime import datetime, timezone
 from pathlib import Path
 
 import dagster as dg
@@ -35,10 +36,13 @@ import geopandas as gpd
 
 from backend.config import PARAMETER_SOURCE_MAP, WATERLEVELS
 from backend.persisters.ogc_features import (
+    ANALYTE_TREND_METHOD_DESCRIPTION,
     dump_major_chemistry_collection,
+    dump_mcl_exceedance_collection,
+    dump_monitoring_recency_collection,
     dump_summary_collection,
     dump_timeseries_collection,
-    dump_waterlevel_trend_collection,
+    dump_trend_collection,
 )
 from backend.record import ParameterRecord, SiteRecord, SummaryRecord
 from backend.unifier import unify_source
@@ -49,6 +53,13 @@ from orchestration.resources.geoserver import GeoServerResource
 
 _CHECK_NAME = "returned_data"
 _GEOSERVER_CHECK_NAME = "registered"
+
+# GCS key (within the products bucket) of the MCL threshold file — the source of
+# truth for the ogc_mcl_exceedance product.
+_MCL_KEY = "config/mcl.json"
+
+# Multi-analyte products that gather one summary record per analyte per well.
+_MULTI_ANALYTE_OUTPUT_TYPES = ("ogc_major_chemistry", "ogc_mcl_exceedance")
 
 # Classic major-ion suite for the ogc_major_chemistry product. One feature per
 # well, with each analyte's latest value/units/date as properties.
@@ -66,9 +77,14 @@ _MAJOR_CHEMISTRY = [
 
 def _product_params(product: dict) -> list[str]:
     """The DIE parameter(s) a product unifies. Single-parameter products yield
-    one; the major-chemistry product yields the major-ion suite."""
-    if product.get("output_type") == "ogc_major_chemistry":
+    one; multi-analyte products yield their analyte list."""
+    output_type = product.get("output_type")
+    if output_type == "ogc_major_chemistry":
         return list(_MAJOR_CHEMISTRY)
+    if output_type == "ogc_mcl_exceedance":
+        # Candidate analytes for the static asset graph; the MCL JSON is the
+        # source of truth for which actually have thresholds.
+        return list(product["analytes"])
     return [product["parameter"]]
 
 
@@ -214,16 +230,35 @@ def _build_combine_asset(
                 # to one feature per well with analytes as properties.
                 records = [SummaryRecord(p) for p in all_records]
                 dump_major_chemistry_collection(str(out), records, meta)
+            elif output_type == "ogc_mcl_exceedance":
+                # Compare each well's latest analyte values to the MCL JSON
+                # (source of truth) read from GCS.
+                thresholds = gcs.read_json(_MCL_KEY)
+                records = [SummaryRecord(p) for p in all_records]
+                dump_mcl_exceedance_collection(str(out), records, meta, thresholds)
             elif output_type == "ogc_summary":
                 records = [SummaryRecord(p) for p in all_records]
                 dump_summary_collection(str(out), records, meta)
             elif output_type == "ogc_waterlevel_trend":
-                # all_sites and all_timeseries are index-aligned payload dicts
-                # (see source asset). The trend dumper consumes dicts directly —
-                # no ParameterRecord/SiteRecord rebuild — to keep memory bounded
-                # for statewide, high-frequency water-level data.
-                dump_waterlevel_trend_collection(
-                    str(out), all_sites, all_timeseries, meta
+                # all_sites/all_timeseries are index-aligned payload dicts (see
+                # source asset); consumed as dicts to keep memory bounded.
+                dump_trend_collection(
+                    str(out), all_sites, all_timeseries, meta,
+                    slope_units="ft/year", reducer="min",
+                )
+            elif output_type == "ogc_analyte_trend":
+                dump_trend_collection(
+                    str(out), all_sites, all_timeseries, meta,
+                    slope_units="mg/L/year", reducer="mean",
+                    method=ANALYTE_TREND_METHOD_DESCRIPTION,
+                    parameter_name=product.get("parameter"),
+                )
+            elif output_type == "ogc_monitoring_recency":
+                run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                dump_monitoring_recency_collection(
+                    str(out), all_sites, all_timeseries, meta,
+                    run_date=run_date,
+                    stale_days=int(product.get("stale_days", 365)),
                 )
             else:
                 site_records = [SiteRecord(p) for p in all_sites]

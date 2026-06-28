@@ -11,34 +11,17 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
-# Seconds per Julian year (365.25 days) — used to express the Theil-Sen slope
-# in ft/year.
-_SECONDS_PER_YEAR = 31557600.0
-
-# A well is classified only when it has enough data for a meaningful
-# Mann-Kendall test: at least 10 measurements, or at least 4 spanning >= 2 years.
-_TREND_MIN_RECORDS = 10
-_TREND_MIN_RECORDS_WITH_SPAN = 4
-_TREND_MIN_SPAN_YEARS = 2.0
-_TREND_ALPHA = 0.05  # significance level for the Mann-Kendall test
-
-# Human-readable description of the trend method, embedded in the product so
-# consumers know how the classification was derived.
-TREND_METHOD_DESCRIPTION = (
-    "Depth-to-water trend per well. Observations are first downsampled to one "
-    "point per calendar day, keeping the daily minimum depth-to-water (the "
-    "shallowest reading). Monotonic trend is then tested with the non-parametric "
-    "Mann-Kendall test (pymannkendall.original_test, alpha=0.05) on the daily "
-    "depth-to-water-below-ground-surface (feet) series ordered by time. The rate "
-    "is the Theil-Sen slope of depth-to-water vs time, in ft/year. A well is "
-    "classified only when it has at least 10 daily points, or at least 4 daily "
-    "points spanning at least 2 years; otherwise 'not enough data'. When "
-    "classified: a statistically significant increasing trend is 'increasing' "
-    "(water level getting DEEPER, i.e. a declining water table), a significant "
-    "decreasing trend is 'decreasing' (water level getting SHALLOWER), and no "
-    "significant trend is 'stable'. Mirrors the intent of the Ocotillo API "
-    "ogc_depth_to_water_trend_wells materialized view, using Mann-Kendall + "
-    "Theil-Sen instead of ordinary least squares."
+# Trend statistics live in backend/trend_stats.py (analysis, not serialization).
+# Re-exported here so existing importers (and dump_trend_collection's default
+# method arg) keep working.
+from backend.trend_stats import (
+    _SECONDS_PER_YEAR,
+    ANALYTE_TREND_METHOD_DESCRIPTION,
+    TREND_METHOD_DESCRIPTION,
+    daily_series as _daily_series,
+    mann_kendall_trend as _mann_kendall_trend,
+    parse_epoch_seconds as _parse_epoch_seconds,
+    qualifies_for_trend as _qualifies_for_trend,
 )
 
 
@@ -90,94 +73,6 @@ def _dump_collection(
     with open(path, "w", encoding="utf-8") as f:
         json.dump(collection, f, indent=2, default=str)
     return collection
-
-
-def _parse_epoch_seconds(date, time) -> Optional[float]:
-    """Best-effort parse of a DIE date (+optional time) to POSIX seconds (UTC)."""
-    if not date:
-        return None
-    text = f"{date}T{time}" if time else str(date)
-    text = text.replace("Z", "")
-    for parse in (datetime.fromisoformat,):
-        try:
-            dt = parse(text)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt.timestamp()
-        except (ValueError, TypeError):
-            pass
-    try:
-        dt = datetime.fromisoformat(str(date)).replace(tzinfo=timezone.utc)
-        return dt.timestamp()
-    except (ValueError, TypeError):
-        return None
-
-
-def _daily_min_series(obs_list: list) -> tuple[int, list]:
-    """Reduce a well's observations to one point per calendar day, keeping the
-    minimum depth-to-water for each day (the shallowest reading), keyed at the
-    day's UTC midnight epoch.
-
-    *obs_list* is a list of observation payload dicts (parameter_value,
-    date_measured, time_measured). Operating on dicts avoids rebuilding
-    ParameterRecord objects for what can be millions of observations.
-
-    Downsampling bounds the O(n^2) Mann-Kendall cost for high-frequency wells
-    (e.g. continuous loggers) and removes within-day sampling noise. Returns
-    (raw_observation_count, [(day_epoch_seconds, min_value), ...] sorted by day).
-    """
-    raw_count = 0
-    daily: dict = {}  # date -> (day_epoch, min_value)
-    for obs in obs_list:
-        value = obs.get("parameter_value")
-        epoch = _parse_epoch_seconds(
-            obs.get("date_measured"), obs.get("time_measured")
-        )
-        if value is None or epoch is None:
-            continue
-        try:
-            v = float(value)
-        except (TypeError, ValueError):
-            continue
-        raw_count += 1
-        day = datetime.fromtimestamp(epoch, tz=timezone.utc).date()
-        day_epoch = datetime(
-            day.year, day.month, day.day, tzinfo=timezone.utc
-        ).timestamp()
-        existing = daily.get(day)
-        if existing is None or v < existing[1]:
-            daily[day] = (day_epoch, v)
-
-    pairs = sorted(daily.values(), key=lambda p: p[0])
-    return raw_count, pairs
-
-
-def _qualifies_for_trend(record_count, span_years) -> bool:
-    return record_count >= _TREND_MIN_RECORDS or (
-        record_count >= _TREND_MIN_RECORDS_WITH_SPAN
-        and span_years >= _TREND_MIN_SPAN_YEARS
-    )
-
-
-def _mann_kendall_trend(years: list, values: list):
-    """Run the Mann-Kendall trend test + Theil-Sen slope.
-
-    Returns (trend_category, slope_ft_per_year, p_value, tau). *years* are
-    decimal years, *values* depth-to-water (ft), both ordered by time.
-    trend_category is one of 'increasing' / 'decreasing' / 'stable'.
-    """
-    import pymannkendall as mk
-    from scipy.stats import theilslopes
-
-    result = mk.original_test(values, alpha=_TREND_ALPHA)
-    # Time-aware Theil-Sen slope (ft/year) — robust and correct for the
-    # irregular sampling typical of water-level records, unlike MK's index-based
-    # slope which assumes unit spacing.
-    slope_ft_per_year = float(theilslopes(values, years)[0])
-
-    # mk trend is 'increasing' / 'decreasing' / 'no trend'.
-    category = "stable" if result.trend == "no trend" else result.trend
-    return category, slope_ft_per_year, float(result.p), float(result.Tau)
 
 
 def _make_feature(record, collection_id: str) -> dict:
@@ -286,29 +181,33 @@ def dump_major_chemistry_collection(path: str, records: list, meta: dict) -> dic
     return _dump_collection(path, collection_id, features, meta)
 
 
-def dump_waterlevel_trend_collection(
+def dump_trend_collection(
     path: str,
     site_records: list,
     timeseries_records: list,
     meta: dict,
+    *,
+    slope_units: str,
+    reducer: str = "min",
+    method: str = TREND_METHOD_DESCRIPTION,
+    parameter_name: Optional[str] = None,
 ) -> dict:
     """
-    Write an OGC FeatureCollection of per-well depth-to-water trends to *path*.
-    One Feature per well.
+    Write an OGC FeatureCollection of per-well Mann-Kendall trends to *path*.
+    One Feature per well. Used for both water-level and analyte trends.
 
-    *site_records* and *timeseries_records* are index-aligned **payload dicts**:
-    ``site_records[i]`` is the well's site dict and ``timeseries_records[i]`` is
-    its list of observation dicts. They are consumed as dicts (not rebuilt into
-    record objects) to keep memory bounded for statewide, high-frequency data.
-    DIE water-level values are already depth-to-water below ground surface in
-    feet, so no measuring-point adjustment is applied here.
+    *site_records* and *timeseries_records* are index-aligned **payload dicts**
+    (consumed as dicts, not rebuilt into record objects, to keep memory bounded).
+    Each well's observations are downsampled to one point per calendar day using
+    *reducer* ("min" for depth-to-water, "mean" for analytes), then tested with
+    Mann-Kendall + Theil-Sen.
 
-    Observations are downsampled to the daily minimum depth-to-water before the
-    trend test (see _daily_min_series). Each feature carries: record_count
-    (daily points used), observation_count (raw readings),
-    first/last_observation_datetime, span_years, slope_ft_per_year (Theil-Sen),
-    trend_category (Mann-Kendall), mk_p_value, mk_tau, well_depth(+units). The
-    collection carries ``trend_method``. See TREND_METHOD_DESCRIPTION.
+    Each feature carries: parameter_name, record_count (daily points used),
+    observation_count (raw readings), first/last_observation_datetime,
+    span_years, slope_per_year (Theil-Sen) + slope_units, trend_category
+    (Mann-Kendall), mk_p_value, mk_tau, well_depth(+units), and
+    source_datastream_link when available. The collection carries
+    ``trend_method`` (*method*).
 
     §V: MUST include top-level id, type, numberReturned, timeStamp.
     §V: Each Feature MUST have top-level id.
@@ -317,21 +216,18 @@ def dump_waterlevel_trend_collection(
 
     features = []
     for site, obs_list in zip(site_records, timeseries_records):
-        # Downsample to one min-depth-to-water point per day before the trend
-        # test (see _daily_min_series). record_count is the daily-point count
-        # used for the trend; observation_count is the raw reading count.
-        observation_count, pairs = _daily_min_series(obs_list)
+        observation_count, pairs = _daily_series(obs_list, reducer)
         record_count = len(pairs)
         xs = [p[0] for p in pairs]
         ys = [p[1] for p in pairs]
         span_years = (xs[-1] - xs[0]) / _SECONDS_PER_YEAR if record_count >= 2 else 0.0
 
-        slope_ft_per_year = None
+        slope_per_year = None
         p_value = None
         tau = None
         if _qualifies_for_trend(record_count, span_years):
             years = [x / _SECONDS_PER_YEAR for x in xs]
-            trend_category, slope_ft_per_year, p_value, tau = _mann_kendall_trend(
+            trend_category, slope_per_year, p_value, tau = _mann_kendall_trend(
                 years, ys
             )
         else:
@@ -341,6 +237,7 @@ def dump_waterlevel_trend_collection(
             "source": site.get("source") or "",
             "id": site.get("id") or "",
             "name": site.get("name"),
+            "parameter_name": parameter_name,
             "well_depth": site.get("well_depth"),
             "well_depth_units": site.get("well_depth_units"),
             "record_count": record_count,
@@ -348,17 +245,17 @@ def dump_waterlevel_trend_collection(
             "first_observation_datetime": _iso_utc(xs[0]) if record_count else None,
             "last_observation_datetime": _iso_utc(xs[-1]) if record_count else None,
             "span_years": round(span_years, 3),
-            "slope_ft_per_year": (
-                None if slope_ft_per_year is None else round(slope_ft_per_year, 4)
+            "slope_per_year": (
+                None if slope_per_year is None else round(slope_per_year, 4)
             ),
+            "slope_units": slope_units,
             "trend_category": trend_category,
             "mk_p_value": None if p_value is None else round(p_value, 4),
             "mk_tau": None if tau is None else round(tau, 4),
         }
 
         # Link to the raw, non-normalized source datastream used for the
-        # calculation, when the source provides one (SensorThings/st2). Taken
-        # from the well's observations; absent for sources without one.
+        # calculation, when the source provides one (SensorThings/st2).
         source_datastream_link = next(
             (
                 o.get("source_datastream_link")
@@ -382,8 +279,164 @@ def dump_waterlevel_trend_collection(
         })
 
     return _dump_collection(
+        path, collection_id, features, meta, extra={"trend_method": method}
+    )
+
+
+def dump_mcl_exceedance_collection(
+    path: str, records: list, meta: dict, thresholds: dict
+) -> dict:
+    """
+    Write an OGC FeatureCollection flagging drinking-water MCL exceedances, one
+    Feature per well.
+
+    *records* is a flat list of SummaryRecord — one per (well, analyte) — pivoted
+    by well (like the major-chemistry product). *thresholds* maps analyte ->
+    {"mcl": <number, same units as the data (mg/L)>, "type": "primary"|"secondary"}
+    and is the source of truth for which analytes have an MCL.
+
+    Per analyte present on a well: ``<analyte>`` (latest value), ``<analyte>_mcl``,
+    ``<analyte>_mcl_type``, and ``<analyte>_exceeds`` (value > mcl). Plus
+    ``any_exceedance`` (bool), ``exceedance_count`` (int), and
+    ``exceeded_analytes`` (list). The collection carries ``mcl_thresholds``.
+    """
+    collection_id = meta.get("id", "collection")
+
+    wells: dict = {}
+    for r in records:
+        source = getattr(r, "source", "") or ""
+        rid = getattr(r, "id", "") or ""
+        key = (source, rid)
+        well = wells.get(key)
+        if well is None:
+            well = {
+                "source": source, "id": rid, "name": getattr(r, "name", None),
+                "latitude": getattr(r, "latitude", None),
+                "longitude": getattr(r, "longitude", None),
+                "elevation": getattr(r, "elevation", None),
+                "well_depth": getattr(r, "well_depth", None),
+                "well_depth_units": getattr(r, "well_depth_units", None),
+                "values": {},
+            }
+            wells[key] = well
+        analyte = getattr(r, "parameter_name", None)
+        if analyte:
+            well["values"][analyte] = getattr(r, "latest_value", None)
+
+    features = []
+    for (source, rid), well in wells.items():
+        props = {
+            "source": source, "id": rid, "name": well["name"],
+            "well_depth": well["well_depth"],
+            "well_depth_units": well["well_depth_units"],
+        }
+        exceeded = []
+        for analyte, value in well["values"].items():
+            props[analyte] = value
+            limit = thresholds.get(analyte)
+            if not limit:
+                continue
+            mcl = limit.get("mcl")
+            props[f"{analyte}_mcl"] = mcl
+            props[f"{analyte}_mcl_type"] = limit.get("type")
+            # Direct magnitude comparison: the MCL and the value MUST share
+            # units AND basis. NOTE (nitrate): the EPA MCL is 10 mg/L measured
+            # "as N", but providers/DIE may report nitrate "as NO3" (~4.43x
+            # larger). If the data basis is NO3, this flag is wrong unless the
+            # mcl in config/mcl.json is the as-NO3 value (~44.3 mg/L). Confirm
+            # DIE's normalized nitrate basis before trusting nitrate exceedances.
+            exceeds = value is not None and mcl is not None and value > mcl
+            props[f"{analyte}_exceeds"] = exceeds
+            if exceeds:
+                exceeded.append(analyte)
+
+        props["any_exceedance"] = bool(exceeded)
+        props["exceedance_count"] = len(exceeded)
+        props["exceeded_analytes"] = sorted(exceeded)
+
+        features.append({
+            "type": "Feature",
+            "id": _feature_id(source, rid),
+            "geometry": _point_geometry(
+                well["latitude"], well["longitude"], well["elevation"]
+            ),
+            "properties": props,
+        })
+
+    return _dump_collection(
+        path, collection_id, features, meta, extra={"mcl_thresholds": thresholds}
+    )
+
+
+def dump_monitoring_recency_collection(
+    path: str,
+    site_records: list,
+    timeseries_records: list,
+    meta: dict,
+    *,
+    run_date: str,
+    stale_days: int = 365,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of monitoring recency, one Feature per well.
+
+    *site_records* and *timeseries_records* are index-aligned payload dicts. Per
+    well: ``record_count``, ``first_observation_datetime``,
+    ``last_observation_datetime``, ``days_since_last`` (relative to *run_date*),
+    and ``status`` ("active" if days_since_last <= *stale_days*, else "stale";
+    "no data" when the well has no observations). Surfaces dead/lagging
+    monitoring points.
+    """
+    collection_id = meta.get("id", "collection")
+    run_epoch = _parse_epoch_seconds(run_date, None)
+
+    features = []
+    for site, obs_list in zip(site_records, timeseries_records):
+        epochs = [
+            e for e in (
+                _parse_epoch_seconds(o.get("date_measured"), o.get("time_measured"))
+                for o in obs_list
+            ) if e is not None
+        ]
+        record_count = len(epochs)
+        if record_count:
+            first_e, last_e = min(epochs), max(epochs)
+            days_since_last = (
+                int((run_epoch - last_e) // 86400) if run_epoch is not None else None
+            )
+            if days_since_last is None:
+                status = "unknown"
+            else:
+                status = "active" if days_since_last <= stale_days else "stale"
+        else:
+            first_e = last_e = None
+            days_since_last = None
+            status = "no data"
+
+        props = {
+            "source": site.get("source") or "",
+            "id": site.get("id") or "",
+            "name": site.get("name"),
+            "well_depth": site.get("well_depth"),
+            "well_depth_units": site.get("well_depth_units"),
+            "record_count": record_count,
+            "first_observation_datetime": _iso_utc(first_e),
+            "last_observation_datetime": _iso_utc(last_e),
+            "days_since_last": days_since_last,
+            "status": status,
+        }
+        features.append({
+            "type": "Feature",
+            "id": _feature_id(props["source"], props["id"]),
+            "geometry": _point_geometry(
+                site.get("latitude"), site.get("longitude"), site.get("elevation")
+            ),
+            "properties": props,
+        })
+
+    return _dump_collection(
         path, collection_id, features, meta,
-        extra={"trend_method": TREND_METHOD_DESCRIPTION},
+        extra={"stale_threshold_days": stale_days},
     )
 
 

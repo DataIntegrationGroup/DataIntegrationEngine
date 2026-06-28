@@ -42,7 +42,11 @@ class DIEConfigResource(dg.ConfigurableResource):
         sources_spec = product.get("sources", {})
 
         output_type = product.get("output_type", "ogc_summary")
-        is_summary = output_type in ("ogc_summary", "ogc_major_chemistry")
+        is_summary = output_type in (
+            "ogc_summary",
+            "ogc_major_chemistry",
+            "ogc_mcl_exceedance",
+        )
 
         payload: dict = {
             "yes": True,
