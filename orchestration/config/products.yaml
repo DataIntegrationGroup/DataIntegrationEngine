@@ -83,3 +83,55 @@ products:
       state: NM
     sources:
       exclude: []
+
+  # Per-well analyte concentration trend (Mann-Kendall + Theil-Sen, daily mean).
+  # One product per analyte, driven by `parameter`.
+  - id: nm_arsenic_trend
+    parameter: arsenic
+    output_type: ogc_analyte_trend
+    title: "NM Arsenic Trends"
+    description: "Per-well arsenic concentration trend (slope and category), all NM sources"
+    schedule: "0 13 * * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_nitrate_trend
+    parameter: nitrate
+    output_type: ogc_analyte_trend
+    title: "NM Nitrate Trends"
+    description: "Per-well nitrate concentration trend (slope and category), all NM sources"
+    schedule: "0 14 * * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well flagging drinking-water MCL exceedances. Thresholds are
+  # read at run time from gs://<bucket>/config/mcl.json (source of truth);
+  # `analytes` lists the candidates gathered for comparison.
+  - id: nm_mcl_exceedance
+    output_type: ogc_mcl_exceedance
+    title: "NM MCL Exceedances"
+    description: "Wells flagged against drinking-water MCLs, all NM sources"
+    schedule: "0 15 * * *"
+    analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: how recently it was measured (water levels), to surface
+  # dead/lagging monitoring points. status = active/stale at stale_days.
+  - id: nm_monitoring_recency
+    parameter: waterlevels
+    output_type: ogc_monitoring_recency
+    title: "NM Monitoring Recency"
+    description: "Per-well water-level monitoring recency and status, all NM sources"
+    schedule: "0 16 * * *"
+    stale_days: 365
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []

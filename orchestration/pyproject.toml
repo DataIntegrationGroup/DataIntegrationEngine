@@ -10,6 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "dagster>=1.8",
     "dagster-cloud",
+    "dagster-dg-cli",
     "dagster-gcp>=0.24",
     "dagster-webserver>=1.8",
     "google-cloud-storage",
