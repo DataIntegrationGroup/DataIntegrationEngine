@@ -20,11 +20,15 @@ The graph has two layers wired through the GCS IO manager:
 - **geoserver asset** — keyed ``[product_id, "geoserver"]``. Downloads the
   combined GeoJSON, converts to GeoPackage, publishes it as a GeoServer layer.
 
-Job layout (see ``definitions.py``) makes the sharing pay off: a dedicated
-``sources_job`` materializes every shared source asset once; each per-product
-job selects only its combine + geoserver assets and loads the (already
-materialized) source inputs from the GCS IO manager. So a product run never
-re-unifies a source another product already produced.
+Job layout (see ``definitions.py``) makes the sharing pay off **and** keeps each
+run's lineage complete. Products are grouped into *cohorts* by
+(group, mode, scope) — the products that can share source assets. One job per
+cohort materializes that cohort's whole graph in a single run: each shared
+source unifies once (it is one asset key, selected once), then every member
+combine reads it back through the GCS IO manager and publishes. So a source is
+never fetched twice in a run, while the full sources → combine → geoserver
+lineage stays visible for every product. (Cross-product dedup requires the
+sharing products to run together; that is exactly what a cohort is.)
 
 Design notes:
 - Source and geoserver assets never hard-fail. They catch their own errors and
@@ -34,6 +38,23 @@ Design notes:
 - Records cross the IO manager as plain ``_payload`` dicts (the record classes
   use ``__getattr__`` over ``_payload`` which does not survive pickling). The
   combine asset rebuilds record objects before dumping.
+
+Known limitation — per-analyte source fetches (potential future optimization):
+  Sharing is deduped at the ``(parameter, mode, scope, source)`` grain, which
+  collapses duplication *across products* (e.g. ``sulfate/summary/state_NM/wqp``
+  is one asset shared by nm_major_chemistry and nm_mcl_exceedance). It does NOT
+  collapse *across analytes*: a source appears once per analyte (e.g. ``wqp``
+  has ~13 summary source assets, one per analyte). This is because the backend
+  unifies a single parameter per pass (``unify_source`` uses one
+  ``config.parameter``), so each analyte is a separate sweep of the same wells
+  even though one provider query (WQP/AMP/...) typically returns all analytes at
+  once. Collapsing this would need a **backend** change — multi-analyte
+  unification that fetches a source once and emits per-analyte records — after
+  which the source key could drop ``parameter`` (e.g.
+  ``["sources", "analytes", mode, scope, source]``) and the analyte combines
+  would each filter the shared multi-analyte payload. That is the bulk of the
+  remaining redundant API pulls for analyte products; it touches DIE core, not
+  this asset graph, so it is intentionally out of scope here.
 """
 import tempfile
 import traceback
