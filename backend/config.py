@@ -15,6 +15,7 @@
 # ===============================================================================
 import os
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 import shapely.wkt
 import yaml
@@ -96,45 +97,62 @@ PARAMETER_SOURCE_MAP = {
     TDS: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
 }
 
-SOURCE_DICT = {
-    "bernco": BernCoSiteSource,
-    "bor": BORSiteSource,
-    "cabq": CABQSiteSource,
-    "ebid": EBIDSiteSource,
-    "nmbgmr_amp": NMBGMRSiteSource,
-    "nmed_dwb": DWBSiteSource,
-    "nmose_isc_seven_rivers": ISCSevenRiversSiteSource,
-    "nmose_pod": NMOSEPODSiteSource,
-    "nmose_roswell": NMOSERoswellSiteSource,
-    "nwis": NWISSiteSource,
-    "pvacd": PVACDSiteSource,
-    "wqp": WQPSiteSource,
-}
+@dataclass(frozen=True)
+class SourceDef:
+    """One data source's class wiring, declared in a single place.
 
-SOURCE_KEYS = sorted(list(SOURCE_DICT.keys()))
+    ``site`` is the site-source class (every source has one). ``waterlevel`` and
+    ``analyte`` are the parameter-source classes for each group, or ``None`` when
+    the source doesn't serve that group (e.g. ``bor`` is analyte-only; ``nmose_pod``
+    is site-only). The ``SOURCE_DICT`` / ``*_SOURCE_PAIRS`` lookup tables below are
+    derived from this, so adding a source is one ``SourceDef`` entry here (plus
+    listing it under the parameters it serves in ``PARAMETER_SOURCE_MAP``)."""
 
-# Per-source (site_source, parameter_source) class pairs, keyed by source key.
-# Insertion order mirrors the historical order of analyte_sources()/
-# water_level_sources(). source_pair() and the *_sources() methods build from
-# these so per-source unification can resolve a single source by key.
+    key: str
+    site: type
+    waterlevel: type | None = None
+    analyte: type | None = None
+
+
+# The single registry of sources. Order is the source-key order; it drives the
+# iteration order of water_level_sources()/analyte_sources(). A consistency test
+# (tests/test_source_registry.py) asserts this stays in sync with
+# PARAMETER_SOURCE_MAP so a source can't be wired in one place but not the other.
+SOURCES = (
+    SourceDef("bernco", BernCoSiteSource, waterlevel=BernCoWaterLevelSource),
+    SourceDef("bor", BORSiteSource, analyte=BORAnalyteSource),
+    SourceDef("cabq", CABQSiteSource, waterlevel=CABQWaterLevelSource),
+    SourceDef("ebid", EBIDSiteSource, waterlevel=EBIDWaterLevelSource),
+    SourceDef(
+        "nmbgmr_amp",
+        NMBGMRSiteSource,
+        waterlevel=NMBGMRWaterLevelSource,
+        analyte=NMBGMRAnalyteSource,
+    ),
+    SourceDef("nmed_dwb", DWBSiteSource, analyte=DWBAnalyteSource),
+    SourceDef(
+        "nmose_isc_seven_rivers",
+        ISCSevenRiversSiteSource,
+        waterlevel=ISCSevenRiversWaterLevelSource,
+        analyte=ISCSevenRiversAnalyteSource,
+    ),
+    SourceDef("nmose_pod", NMOSEPODSiteSource),
+    SourceDef("nmose_roswell", NMOSERoswellSiteSource, waterlevel=NMOSERoswellWaterLevelSource),
+    SourceDef("nwis", NWISSiteSource, waterlevel=NWISWaterLevelSource),
+    SourceDef("pvacd", PVACDSiteSource, waterlevel=PVACDWaterLevelSource),
+    SourceDef("wqp", WQPSiteSource, waterlevel=WQPWaterLevelSource, analyte=WQPAnalyteSource),
+)
+
+# Lookup tables derived from the registry — keep these read-only/derived; edit
+# SOURCES (and PARAMETER_SOURCE_MAP) instead.
+SOURCE_DICT = {s.key: s.site for s in SOURCES}
+SOURCE_KEYS = sorted(SOURCE_DICT)
+
 ANALYTE_SOURCE_PAIRS = {
-    "bor": (BORSiteSource, BORAnalyteSource),
-    "wqp": (WQPSiteSource, WQPAnalyteSource),
-    "nmose_isc_seven_rivers": (ISCSevenRiversSiteSource, ISCSevenRiversAnalyteSource),
-    "nmbgmr_amp": (NMBGMRSiteSource, NMBGMRAnalyteSource),
-    "nmed_dwb": (DWBSiteSource, DWBAnalyteSource),
+    s.key: (s.site, s.analyte) for s in SOURCES if s.analyte is not None
 }
-
 WATERLEVEL_SOURCE_PAIRS = {
-    "nmbgmr_amp": (NMBGMRSiteSource, NMBGMRWaterLevelSource),
-    "nmose_isc_seven_rivers": (ISCSevenRiversSiteSource, ISCSevenRiversWaterLevelSource),
-    "nwis": (NWISSiteSource, NWISWaterLevelSource),
-    "nmose_roswell": (NMOSERoswellSiteSource, NMOSERoswellWaterLevelSource),
-    "pvacd": (PVACDSiteSource, PVACDWaterLevelSource),
-    "bernco": (BernCoSiteSource, BernCoWaterLevelSource),
-    "ebid": (EBIDSiteSource, EBIDWaterLevelSource),
-    "cabq": (CABQSiteSource, CABQWaterLevelSource),
-    "wqp": (WQPSiteSource, WQPWaterLevelSource),
+    s.key: (s.site, s.waterlevel) for s in SOURCES if s.waterlevel is not None
 }
 
 
