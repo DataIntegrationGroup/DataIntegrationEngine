@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 import dagster as dg
-from backend.config import Config
+from backend.config import Config, SOURCE_KEYS
 
 
 class DIEConfigResource(dg.ConfigurableResource):
@@ -62,14 +62,10 @@ class DIEConfigResource(dg.ConfigurableResource):
             payload["wkt"] = None
 
         if sources_spec.get("include"):
-            # NOTE: must stay in sync with backend.config.SOURCE_KEYS — an
-            # include-list product silently drops any source missing here.
-            all_sources = [
-                "bernco", "bor", "cabq", "ebid", "nmbgmr_amp",
-                "nmed_dwb", "nmose_isc_seven_rivers", "nmose_pod",
-                "nmose_roswell", "nwis", "pvacd", "wqp",
-            ]
-            for s in all_sources:
+            # Enable only the included sources. Derived from the backend's
+            # canonical source list so a new source can't be silently dropped
+            # from an include-list product.
+            for s in SOURCE_KEYS:
                 payload[f"use_source_{s}"] = s in sources_spec["include"]
         elif sources_spec.get("exclude"):
             for s in sources_spec["exclude"]:
