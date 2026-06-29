@@ -301,6 +301,59 @@ def unify_source(config, source_key):
     return persister
 
 
+def unify_source_both(config, source_key):
+    """Unify a single source for BOTH summary and timeseries outputs while
+    fetching the source only once.
+
+    Each connector's ``get_records`` is mode-agnostic — summary and timeseries
+    both pull the same raw observations and differ only in how they are
+    transformed (see backend/source.py). Running ``unify_source`` twice would
+    therefore hit the API twice for identical data. This driver instead enables
+    the source's shared-fetch cache and runs the two transform passes over one
+    fetch, so a source needed by both a summary and a timeseries product is
+    pulled once.
+
+    Output is identical to calling ``unify_source`` twice (once per mode); only
+    the underlying fetch is shared. Returns ``(summary_persister,
+    timeseries_persister)``. Used by the orchestration shared source asset.
+    """
+    config.validate()
+
+    pair = config.source_pair(source_key)
+    if pair is None:
+        config.warn(
+            f"Source {source_key!r} does not provide parameter {config.parameter!r}"
+        )
+        return make_persister(config), make_persister(config)
+
+    site_source, parameter_source = pair
+    # Share the site list and observation fetch across the two passes. The
+    # passes issue identical requests (same parameter/scope/dates), so the
+    # second reuses the first's cached fetch instead of re-querying.
+    site_source._fetch_cache_enabled = True
+    parameter_source._fetch_cache_enabled = True
+
+    # Timeseries pass first so its fetch primes the cache; the summary pass then
+    # transforms the same cached observations. output_summary is read live by
+    # the transformer, so toggling it here switches the record klass/fields per
+    # pass without rebuilding the source.
+    config.output_summary = False
+    timeseries_persister = make_persister(config)
+    config._persister = timeseries_persister
+    _site_wrapper(
+        site_source, parameter_source, timeseries_persister, config, raise_errors=True
+    )
+
+    config.output_summary = True
+    summary_persister = make_persister(config)
+    config._persister = summary_persister
+    _site_wrapper(
+        site_source, parameter_source, summary_persister, config, raise_errors=True
+    )
+
+    return summary_persister, timeseries_persister
+
+
 def get_county_bounds(county):
     config = Config()
     config.county = county

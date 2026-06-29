@@ -80,8 +80,9 @@ def _products(products_config: dict) -> Iterator[dict]:
 
 def _build_graph(products_config: dict):
     """Build every asset once. Source assets are shared across products: each
-    distinct (parameter, mode, scope, source) tuple becomes one asset, so a
-    source two products both need is unified once, not twice.
+    distinct (parameter, scope, source) tuple becomes one asset, fetched once and
+    unified for both summary and timeseries, so a source two products both need
+    (in either mode) is fetched once, not twice.
 
     Returns ``(source_assets, pipeline_assets, specs_by_pid, all_specs)`` where
     ``specs_by_pid`` maps a product id to the source specs its combine consumes
@@ -105,22 +106,24 @@ def _build_graph(products_config: dict):
     return source_assets, pipeline_assets, specs_by_pid, all_specs
 
 
-def _cohort_key(specs) -> tuple[str, str, str]:
+def _cohort_key(specs) -> tuple[str, str]:
     """A cohort bundles the products that *can* share source assets — same
-    parameter group, unification mode, and spatial scope. Materializing a cohort
-    in one run is what lets each shared source unify once while every member's
-    full lineage (sources → combine → geoserver) stays visible in that run.
+    parameter group and spatial scope. Materializing a cohort in one run is what
+    lets each shared source unify once while every member's full lineage
+    (sources → combine → geoserver) stays visible in that run.
 
-    These three fields are constant within a product (all of a product's specs
-    carry the same mode/scope, and its parameters are all one group), so any
-    spec is representative."""
+    A shared source is now fetched once for *both* summary and timeseries, so a
+    summary product and a timeseries product over the same group/scope share
+    source assets and must run together — hence mode is not part of the key.
+    Both fields are constant within a product (its scope is fixed and its
+    parameters are all one group), so any spec is representative."""
     s = specs[0]
-    return (s.group, s.mode, s.scope)
+    return (s.group, s.scope)
 
 
-def _cohort_name(key: tuple[str, str, str]) -> str:
-    group, mode, scope = key
-    return f"{group}_{mode}_{scope}"
+def _cohort_name(key: tuple[str, str]) -> str:
+    group, scope = key
+    return f"{group}_{scope}"
 
 
 def _cron_sort_key(cron: str) -> tuple[int, int]:
@@ -133,7 +136,7 @@ def _cron_sort_key(cron: str) -> tuple[int, int]:
 
 
 def _build_cohorts(products_config: dict, specs_by_pid: dict) -> dict:
-    """Group products into cohorts keyed by (group, mode, scope). Returns
+    """Group products into cohorts keyed by (group, scope). Returns
     ``{cohort_name: {"members": [pid, ...], "cron": str}}``; the cohort cron is
     the earliest member schedule (members run together, so they share one)."""
     cohorts: dict = {}
