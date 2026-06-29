@@ -23,23 +23,6 @@ products:
     sources:
       exclude: []
 
-  # The bernco source (BernCoWaterLevelSource) is county-scoped by construction —
-  # all its wells are in Bernalillo — so a county filter is a no-op here. Using
-  # the state_NM scope (with include:[bernco]) yields identical output while
-  # sharing the statewide bernco source asset, so bernco unifies once instead of
-  # twice. (A county filter would only matter if the source returned wells
-  # outside Bernalillo, which it does not.)
-  - id: bernco_waterlevels_timeseries
-    parameter: waterlevels
-    output_type: ogc_timeseries
-    title: "Bernalillo County Water Level Time Series"
-    description: "Bernalillo County water level timeseries per well"
-    schedule: "0 8 * * *"
-    spatial_filter:
-      state: NM
-    sources:
-      include: [bernco]
-
   - id: nm_arsenic_summary
     parameter: arsenic
     output_type: ogc_summary

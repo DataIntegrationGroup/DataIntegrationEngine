@@ -235,17 +235,6 @@ products:
     sources:
       exclude: []
 
-  - id: bernco_waterlevels_timeseries
-    parameter: waterlevels
-    output_type: ogc_timeseries
-    title: "Bernalillo County Water Level Time Series"
-    description: "Bernalillo County water level timeseries per well"
-    schedule: "0 8 * * *"
-    spatial_filter:
-      county: Bernalillo
-    sources:
-      include: [bernco]
-
   - id: nm_arsenic_summary
     parameter: arsenic
     output_type: ogc_summary
