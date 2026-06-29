@@ -188,6 +188,9 @@ def get_analyte_search_param(parameter: str, mapping: dict) -> str:
 # Base source classes
 # =============================================================================
 
+_FETCH_UNSET = object()  # sentinel: site fetch not yet cached
+
+
 class BaseSource:
     transformer_klass = BaseTransformer  # deprecated: pass transformer= to __init__
 
@@ -198,6 +201,25 @@ class BaseSource:
         self.log = _l.log
         self.warn = _l.warn
         self.debug = _l.debug
+        # Opt-in shared-fetch cache. Off by default, so CLI/API behavior is
+        # unchanged. unify_source_both turns it on so a source unified for both
+        # summary and timeseries pulls the API only once (see
+        # backend/unifier.py:unify_source_both). The two passes issue identical
+        # fetches (same parameter/scope/dates), so the second reuses the first.
+        self._fetch_cache_enabled = False
+        self._records_cache: dict = {}      # site-id key -> get_records() result
+        self._sites_cache = _FETCH_UNSET    # BaseSiteSource.read() result
+
+    def _fetch_records(self, site_record):
+        """get_records() with optional caching (see _fetch_cache_enabled). Keyed
+        by the site ids requested so repeated chunks reuse the same fetch."""
+        if not self._fetch_cache_enabled:
+            return self.get_records(site_record)
+        sites = site_record if isinstance(site_record, list) else [site_record]
+        key = tuple(sorted(str(getattr(s, "id", s)) for s in sites))
+        if key not in self._records_cache:
+            self._records_cache[key] = self.get_records(site_record)
+        return self._records_cache[key]
 
     @property
     def tag(self):
@@ -296,13 +318,19 @@ class BaseSiteSource(BaseSource):
         return True
 
     def read(self, *args, **kw) -> List[SiteRecord] | None:
+        if self._fetch_cache_enabled and self._sites_cache is not _FETCH_UNSET:
+            return self._sites_cache
         self.log("Gathering site records")
         records = self.get_records()
         if records:
             self.log(f"total records={len(records)}")
-            return self._transform_sites(records)
-        self.warn("No site records returned")
-        return None
+            result: List[SiteRecord] | None = self._transform_sites(records)
+        else:
+            self.warn("No site records returned")
+            result = None
+        if self._fetch_cache_enabled:
+            self._sites_cache = result
+        return result
 
     def _transform_sites(self, records: list) -> List[SiteRecord]:
         transformed_records: List[SiteRecord] = []
@@ -350,7 +378,7 @@ class BaseParameterSource(BaseSource):
         else:
             self.log(f"{site_record.id}: Gathering {self.name} data")
 
-        all_records = self.get_records(site_record)
+        all_records = self._fetch_records(site_record)
         if not all_records:
             names = [str(r.id) for r in site_record] if isinstance(site_record, list) else [str(site_record.id)]
             self.warn(f"{','.join(names)}: No records found")
@@ -380,7 +408,7 @@ class BaseParameterSource(BaseSource):
         else:
             self.log(f"{site_record.id}: Gathering {self.name} data")
 
-        all_records = self.get_records(site_record)
+        all_records = self._fetch_records(site_record)
         if not all_records:
             names = [str(r.id) for r in site_record] if isinstance(site_record, list) else [str(site_record.id)]
             self.warn(f"{','.join(names)}: No records found")
