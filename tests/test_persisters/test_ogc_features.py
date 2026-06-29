@@ -419,3 +419,195 @@ class TestAnalyteTrend:
         assert props["parameter_name"] == "arsenic"
         assert props["slope_units"] == "mg/L/year"
         assert props["trend_category"] == "increasing"
+
+
+from backend.persisters.ogc_features import (
+    dump_hardness_collection,
+    dump_water_type_collection,
+    dump_data_density_collection,
+    dump_waterlevel_change_collection,
+)
+
+
+class TestHardnessCollection:
+    def test_computes_hardness_and_class(self, tmp_path):
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 80.0, well_depth=120.0),
+            _make_chem_record("WQP", "W1", "magnesium", 30.0),
+        ]
+        out = tmp_path / "h.geojson"
+        result = dump_hardness_collection(str(out), recs, {"id": "nm_hardness"})
+        props = result["features"][0]["properties"]
+        # 2.497*80 + 4.118*30 = 199.76 + 123.54 = 323.3
+        assert props["hardness_caco3"] == 323.3
+        assert props["hardness_class"] == "very hard"
+        assert props["calcium"] == 80.0
+        assert props["magnesium"] == 30.0
+        assert props["well_depth"] == 120.0
+        assert "hardness_method" in result
+
+    def test_class_boundaries(self, tmp_path):
+        # soft: Ca=10, Mg=0 -> 24.97; moderate: Ca=30 -> 74.91;
+        # hard: Ca=60 -> 149.82
+        cases = [
+            ("S", 10.0, "soft"),
+            ("M", 30.0, "moderate"),
+            ("H", 60.0, "hard"),
+        ]
+        recs = []
+        for rid, ca, _ in cases:
+            recs.append(_make_chem_record("WQP", rid, "calcium", ca))
+            recs.append(_make_chem_record("WQP", rid, "magnesium", 0.0))
+        out = tmp_path / "h.geojson"
+        result = dump_hardness_collection(str(out), recs, {"id": "nm_hardness"})
+        by_id = {f["id"]: f["properties"] for f in result["features"]}
+        for rid, _, expected in cases:
+            assert by_id[f"WQP:{rid}"]["hardness_class"] == expected
+
+    def test_missing_ion_is_insufficient(self, tmp_path):
+        recs = [_make_chem_record("WQP", "W1", "calcium", 80.0)]  # no magnesium
+        out = tmp_path / "h.geojson"
+        result = dump_hardness_collection(str(out), recs, {"id": "nm_hardness"})
+        props = result["features"][0]["properties"]
+        assert props["hardness_caco3"] is None
+        assert props["hardness_class"] == "insufficient"
+
+
+class TestWaterTypeCollection:
+    def test_classifies_ca_hco3(self, tmp_path):
+        # Ca-dominant cation, HCO3-dominant anion.
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 100.0),    # 4.99 meq
+            _make_chem_record("WQP", "W1", "magnesium", 1.0),    # 0.08 meq
+            _make_chem_record("WQP", "W1", "sodium", 1.0),       # 0.04 meq
+            _make_chem_record("WQP", "W1", "bicarbonate", 300.0),  # 4.92 meq
+            _make_chem_record("WQP", "W1", "chloride", 1.0),     # 0.03 meq
+            _make_chem_record("WQP", "W1", "sulfate", 1.0),      # 0.02 meq
+        ]
+        out = tmp_path / "wt.geojson"
+        result = dump_water_type_collection(str(out), recs, {"id": "nm_water_type"})
+        props = result["features"][0]["properties"]
+        assert props["dominant_cation"] == "Ca"
+        assert props["dominant_anion"] == "HCO3"
+        assert props["water_type"] == "Ca-HCO3"
+        assert props["ca_pct"] > 50
+        assert "water_type_method" in result
+
+    def test_mixed_when_no_majority(self, tmp_path):
+        # Cations split roughly evenly across Ca / Mg / Na+K -> mixed cation.
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 20.04),    # 1.0 meq
+            _make_chem_record("WQP", "W1", "magnesium", 12.15),  # 1.0 meq
+            _make_chem_record("WQP", "W1", "sodium", 22.99),     # 1.0 meq
+            _make_chem_record("WQP", "W1", "bicarbonate", 305.1),  # ~5 meq -> HCO3
+        ]
+        out = tmp_path / "wt.geojson"
+        result = dump_water_type_collection(str(out), recs, {"id": "nm_water_type"})
+        props = result["features"][0]["properties"]
+        assert props["dominant_cation"] == "mixed"
+        assert props["dominant_anion"] == "HCO3"
+        assert props["water_type"] == "mixed-HCO3"
+
+    def test_insufficient_when_no_anions(self, tmp_path):
+        recs = [_make_chem_record("WQP", "W1", "calcium", 100.0)]
+        out = tmp_path / "wt.geojson"
+        result = dump_water_type_collection(str(out), recs, {"id": "nm_water_type"})
+        props = result["features"][0]["properties"]
+        assert props["water_type"] == "insufficient"
+        assert props["ca_pct"] is None
+
+    def test_charge_balance_reported(self, tmp_path):
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 20.04),    # 1.0 meq cation
+            _make_chem_record("WQP", "W1", "chloride", 35.45),   # 1.0 meq anion
+        ]
+        out = tmp_path / "wt.geojson"
+        result = dump_water_type_collection(str(out), recs, {"id": "nm_water_type"})
+        props = result["features"][0]["properties"]
+        assert props["charge_balance_pct"] == 0.0
+
+
+class TestDataDensityCollection:
+    def test_counts_and_span(self, tmp_path):
+        site = _trend_site(rid="W1")
+        # 3 distinct days, one day with two readings -> 4 raw obs, 3 days.
+        obs = [
+            _trend_obs("2010-01-01", 50.0),
+            _trend_obs("2010-01-01", 51.0),
+            _trend_obs("2012-01-01", 52.0),
+            _trend_obs("2014-01-01", 53.0),
+        ]
+        out = tmp_path / "dd.geojson"
+        result = dump_data_density_collection(
+            str(out), [site], [obs], {"id": "nm_dd"}, parameter_name="waterlevels"
+        )
+        props = result["features"][0]["properties"]
+        assert props["observation_count"] == 4
+        assert props["record_count"] == 3
+        assert props["parameter_name"] == "waterlevels"
+        assert round(props["span_years"]) == 4
+        assert props["mean_interval_days"] is not None
+        assert "data_density_method" in result
+
+    def test_empty_well(self, tmp_path):
+        site = _trend_site(rid="W1")
+        out = tmp_path / "dd.geojson"
+        result = dump_data_density_collection(str(out), [site], [[]], {"id": "nm_dd"})
+        props = result["features"][0]["properties"]
+        assert props["observation_count"] == 0
+        assert props["record_count"] == 0
+        assert props["mean_interval_days"] is None
+        assert props["observations_per_year"] is None
+
+
+class TestWaterLevelChangeCollection:
+    def test_change_over_window(self, tmp_path):
+        site = _trend_site(rid="W1")
+        # Yearly readings 2010-2020; window 5yr -> start near 2015, end 2020.
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0 + i) for i in range(11)]
+        out = tmp_path / "ch.geojson"
+        result = dump_waterlevel_change_collection(
+            str(out), [site], [obs], {"id": "nm_change"}, window_years=5
+        )
+        props = result["features"][0]["properties"]
+        assert props["status"] == "ok"
+        assert props["dtw_end"] == 60.0       # 2020 value
+        assert props["dtw_start"] == 55.0     # 2015 value
+        assert props["change_ft"] == 5.0      # deeper -> declining
+        assert props["direction"] == "declining"
+        assert round(props["actual_window_years"]) == 5
+        assert "change_method" in result
+
+    def test_rising_water_table(self, tmp_path):
+        site = _trend_site(rid="W1")
+        obs = [_trend_obs(f"{2010 + i}-01-01", 60.0 - i) for i in range(11)]
+        out = tmp_path / "ch.geojson"
+        result = dump_waterlevel_change_collection(
+            str(out), [site], [obs], {"id": "nm_change"}, window_years=5
+        )
+        props = result["features"][0]["properties"]
+        assert props["change_ft"] == -5.0
+        assert props["direction"] == "rising"
+
+    def test_insufficient_when_no_start_in_window(self, tmp_path):
+        site = _trend_site(rid="W1")
+        # Only two readings 10 years apart; for a 5yr window the nearest start
+        # candidate (2010) is >half-window from the 2015 target -> insufficient.
+        obs = [_trend_obs("2010-01-01", 50.0), _trend_obs("2020-01-01", 60.0)]
+        out = tmp_path / "ch.geojson"
+        result = dump_waterlevel_change_collection(
+            str(out), [site], [obs], {"id": "nm_change"}, window_years=5
+        )
+        props = result["features"][0]["properties"]
+        assert props["status"] == "insufficient"
+        assert props["change_ft"] is None
+
+    def test_single_reading_insufficient(self, tmp_path):
+        site = _trend_site(rid="W1")
+        out = tmp_path / "ch.geojson"
+        result = dump_waterlevel_change_collection(
+            str(out), [site], [[_trend_obs("2020-01-01", 50.0)]],
+            {"id": "nm_change"}, window_years=5,
+        )
+        props = result["features"][0]["properties"]
+        assert props["status"] == "insufficient"

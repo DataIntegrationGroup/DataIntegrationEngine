@@ -124,3 +124,60 @@ products:
       state: NM
     sources:
       exclude: []
+
+  # One feature per well: total hardness as CaCO3 from latest calcium +
+  # magnesium, plus a soft/moderate/hard/very-hard class. Multi-analyte (no
+  # `parameter`); shares the analyte cohort's calcium/magnesium source fetches.
+  - id: nm_hardness
+    output_type: ogc_hardness
+    title: "NM Water Hardness"
+    description: "Per-well total hardness as CaCO3 (calcium + magnesium), all NM sources"
+    schedule: "0 11 * * *"
+    analytes: [calcium, magnesium]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: hydrochemical (Piper) water type from the latest
+  # major-ion chemistry (meq% of cations Ca/Mg/Na+K and anions HCO3+CO3/Cl/SO4).
+  # Multi-analyte; shares the analyte cohort's major-ion source fetches.
+  - id: nm_water_type
+    output_type: ogc_water_type
+    title: "NM Water Type"
+    description: "Per-well hydrochemical (Piper) water type from major-ion chemistry, all NM sources"
+    schedule: "0 11 * * *"
+    analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: measurement coverage (observation/day counts, span,
+  # mean interval, observations per year) for water levels. Timeseries-mode;
+  # shares the water-level cohort's source fetches.
+  - id: nm_waterlevel_data_density
+    parameter: waterlevels
+    output_type: ogc_data_density
+    title: "NM Water Level Data Density"
+    description: "Per-well water-level measurement coverage and frequency, all NM sources"
+    schedule: "0 7 * * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: depth-to-water change over the most recent
+  # `window_years` years (end minus start; positive = water table declined).
+  # Timeseries-mode; shares the water-level cohort's source fetches.
+  - id: nm_waterlevel_change
+    parameter: waterlevels
+    output_type: ogc_waterlevel_change
+    title: "NM Water Level Change"
+    description: "Per-well depth-to-water change over a trailing window, all NM sources"
+    schedule: "0 7 * * *"
+    window_years: 5
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []

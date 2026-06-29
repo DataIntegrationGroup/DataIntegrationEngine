@@ -65,6 +65,10 @@ _SUPPORTED_OUTPUT_TYPES = {
     "ogc_analyte_trend",
     "ogc_mcl_exceedance",
     "ogc_monitoring_recency",
+    "ogc_hardness",
+    "ogc_water_type",
+    "ogc_data_density",
+    "ogc_waterlevel_change",
 }
 
 

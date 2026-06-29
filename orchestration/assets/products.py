@@ -75,12 +75,16 @@ import geopandas as gpd
 from backend.config import PARAMETER_SOURCE_MAP, WATERLEVELS
 from backend.persisters.ogc_features import (
     ANALYTE_TREND_METHOD_DESCRIPTION,
+    dump_data_density_collection,
+    dump_hardness_collection,
     dump_major_chemistry_collection,
     dump_mcl_exceedance_collection,
     dump_monitoring_recency_collection,
     dump_summary_collection,
     dump_timeseries_collection,
     dump_trend_collection,
+    dump_water_type_collection,
+    dump_waterlevel_change_collection,
 )
 from backend.record import ParameterRecord, SiteRecord, SummaryRecord
 from backend.unifier import unify_source_both
@@ -125,9 +129,10 @@ def _product_params(product: dict) -> list[str]:
     output_type = product.get("output_type")
     if output_type == "ogc_major_chemistry":
         return list(_MAJOR_CHEMISTRY)
-    if output_type == "ogc_mcl_exceedance":
-        # Candidate analytes for the static asset graph; the MCL JSON is the
-        # source of truth for which actually have thresholds.
+    if output_type in ("ogc_mcl_exceedance", "ogc_hardness", "ogc_water_type"):
+        # Multi-analyte products with an explicit `analytes` list. (For MCL the
+        # candidate set for the static graph; the MCL JSON is the source of truth
+        # for which actually have thresholds.)
         return list(product["analytes"])
     return [product["parameter"]]
 
@@ -329,9 +334,29 @@ def _build_combine_asset(
                 thresholds = gcs.read_json(_MCL_KEY)
                 records = [SummaryRecord(p) for p in all_records]
                 dump_mcl_exceedance_collection(str(out), records, meta, thresholds)
+            elif output_type == "ogc_hardness":
+                # Pivots per-analyte summaries to one feature per well, using
+                # calcium + magnesium to compute total hardness as CaCO3.
+                records = [SummaryRecord(p) for p in all_records]
+                dump_hardness_collection(str(out), records, meta)
+            elif output_type == "ogc_water_type":
+                # Pivots the major-ion summaries to one feature per well and
+                # classifies the hydrochemical (Piper) water type.
+                records = [SummaryRecord(p) for p in all_records]
+                dump_water_type_collection(str(out), records, meta)
             elif output_type == "ogc_summary":
                 records = [SummaryRecord(p) for p in all_records]
                 dump_summary_collection(str(out), records, meta)
+            elif output_type == "ogc_data_density":
+                dump_data_density_collection(
+                    str(out), all_sites, all_timeseries, meta,
+                    parameter_name=product.get("parameter"),
+                )
+            elif output_type == "ogc_waterlevel_change":
+                dump_waterlevel_change_collection(
+                    str(out), all_sites, all_timeseries, meta,
+                    window_years=float(product.get("window_years", 5)),
+                )
             elif output_type == "ogc_waterlevel_trend":
                 # all_sites/all_timeseries are index-aligned payload dicts (see
                 # source asset); consumed as dicts to keep memory bounded.
