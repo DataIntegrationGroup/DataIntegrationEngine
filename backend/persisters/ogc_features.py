@@ -418,7 +418,8 @@ def dump_mcl_exceedance_collection(
             # larger). If the data basis is NO3, this flag is wrong unless the
             # mcl in config/mcl.json is the as-NO3 value (~44.3 mg/L). Confirm
             # DIE's normalized nitrate basis before trusting nitrate exceedances.
-            exceeds = value is not None and mcl is not None and value > mcl
+            num = _num(value)
+            exceeds = num is not None and mcl is not None and num > mcl
             props[f"{analyte}_exceeds"] = exceeds
             if exceeds:
                 exceeded.append(analyte)
