@@ -88,15 +88,6 @@ def county_bounds_handler():
     return make_cors_response({"wkt": bounds})
 
 
-# @app.route("/sources_in_polygon")
-# def sources_in_polygon_handler():
-#     from backend.unifier import get_sources_in_polygon
-#     polygon = request.args.get("wkt")
-#     sources = get_sources_in_polygon(polygon)
-#
-#     return make_cors_response({"sources": sources})
-
-
 @app.route("/unify_analytes", methods=["POST"])
 def unify_analytes_handler():
     from backend.unifier import unify_analytes

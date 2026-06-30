@@ -76,25 +76,30 @@ from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLeve
 from backend.logger import make_logger
 
 
+# Which sources report each parameter (empirical availability). A plain
+# parameter -> [source_key, ...] map; the waterlevels list mirrors the sources
+# with a waterlevel class in the SOURCES registry (asserted by
+# tests/test_source_registry.py), while the analyte lists are authored because
+# they encode which analytes each agency actually reports.
 PARAMETER_SOURCE_MAP = {
-    WATERLEVELS: {"agencies": ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]},
-    CARBONATE: {"agencies": ["nmbgmr_amp", "wqp"]},
-    ARSENIC: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]},
-    URANIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]},
-    SPECIFIC_CONDUCTANCE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    CONDUCTIVITY: {"agencies": ["bor", "nmose_isc_seven_rivers", "wqp"]},
-    BICARBONATE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    CALCIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    CHLORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    FLUORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    MAGNESIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    NITRATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    PH: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    POTASSIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    SILICA: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    SODIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    SULFATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    TDS: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    WATERLEVELS: ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"],
+    CARBONATE: ["nmbgmr_amp", "wqp"],
+    ARSENIC: ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"],
+    URANIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"],
+    SPECIFIC_CONDUCTANCE: ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    CONDUCTIVITY: ["bor", "nmose_isc_seven_rivers", "wqp"],
+    BICARBONATE: ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    CALCIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    CHLORIDE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    FLUORIDE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    MAGNESIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    NITRATE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    PH: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    POTASSIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    SILICA: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    SODIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    SULFATE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    TDS: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
 }
 
 @dataclass(frozen=True)
@@ -280,10 +285,9 @@ class Config:
             self.warn(f"Config file {path} not found")
 
     def get_config_and_false_agencies(self):
-        entry = PARAMETER_SOURCE_MAP.get(self.parameter)
-        if entry is None:
+        config_agencies = PARAMETER_SOURCE_MAP.get(self.parameter)
+        if config_agencies is None:
             raise ValueError(f"Unknown parameter {self.parameter!r}. Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}")
-        config_agencies = entry["agencies"]
         false_agencies = [a for a in SOURCE_KEYS if a not in config_agencies]
         return config_agencies, false_agencies
 
@@ -309,9 +313,6 @@ class Config:
                 source.set_config(self)
                 sources.append((source, None))
 
-        # pods = NMOSEPODSiteSource()
-        # pods.set_config(self)
-        # sources.append((pods, None))
         return sources
 
     def analyte_sources(self):

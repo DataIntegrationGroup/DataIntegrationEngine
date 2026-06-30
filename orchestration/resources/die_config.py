@@ -18,15 +18,13 @@ class DIEConfigResource(dg.ConfigurableResource):
         """Translate a products.yaml entry into a finalized DIE ``Config``.
 
         Mapping:
-        - ``output_type`` → ``output_summary`` / ``output_format``. Both
-          ``ogc_summary`` and ``ogc_major_chemistry`` run in summary mode (the
-          latter pivots per-analyte summaries into one feature per well).
         - ``spatial_filter.county`` → ``county``. ``spatial_filter.state`` sets
           ``wkt = None`` (statewide; DIE applies the NM extent downstream).
         - ``sources.include`` → enable only those sources (all others off).
           ``sources.exclude`` → disable those, leave the rest at their defaults.
-        - ``parameter`` is set on the Config, then ``finalize()`` validates and
-          resolves output units/paths.
+        - ``parameter`` is set on the Config, then ``finalize()`` resolves output
+          units/paths. No output mode is set: the source asset unifies both
+          summary and timeseries from one fetch (see unify_source_both).
 
         *parameter* overrides ``product["parameter"]`` — used by the
         major-chemistry product, which has no single parameter and calls this
@@ -41,20 +39,11 @@ class DIEConfigResource(dg.ConfigurableResource):
         spatial = product.get("spatial_filter", {})
         sources_spec = product.get("sources", {})
 
-        output_type = product.get("output_type", "ogc_summary")
-        is_summary = output_type in (
-            "ogc_summary",
-            "ogc_major_chemistry",
-            "ogc_mcl_exceedance",
-        )
-
-        payload: dict = {
-            "yes": True,
-            "output_summary": is_summary,
-            # backend only distinguishes summary vs timeseries; major-chemistry
-            # is a summary variant as far as unification is concerned.
-            "output_format": "ogc_summary" if is_summary else output_type,
-        }
+        # The source asset fetches a source once and unifies it for BOTH summary
+        # and timeseries (unify_source_both toggles output_summary itself), so
+        # the config need not carry an output mode — only the parameter and
+        # spatial filter, which select what a single source unifies.
+        payload: dict = {"yes": True}
 
         if spatial.get("county"):
             payload["county"] = spatial["county"]
