@@ -62,7 +62,7 @@ registry). Tiers are ordered by safety — Tier 1 is batchable into one no-risk 
 - **`config.validate()` `sys.exit(2)` → raise** — library code shouldn't exit the process; raise a `ConfigError` and let CLI translate to an exit code. (Affects callers; needs care.)
 - **Hoist connector `_extract_*` duplication** — `_extract_source_parameter_results/dates/units` repeat dict/list access across connectors; lift common shapes to a base.
 - **Spatial-filter precedence** — `bbox_bounding_points` (bbox first) vs `bounding_wkt` (wkt first) resolve multiple filters differently; #101 warns, but unify the precedence. Consider a small `Scope` value object and drop the `wkt=None`-means-statewide magic in `die_config`.
-- **Remove deprecated shims** — `transformer_klass`, `_SubclassValidatorShim`, `_validate_record` (`backend/source.py`). Verify no connector still relies on the override path first.
+- ✅ **Remove deprecated shims** (DONE) — removed `transformer_klass`, `_SubclassValidatorShim`, `_validate_record` (`backend/source.py`). Verified no connector overrides `_validate_record` or sets `transformer_klass`, and every concrete parameter source gets a real validator via `BaseAnalyteSource`/`BaseWaterLevelSource` (WQP through its mixin MRO). `transformer=None` now falls back to `BaseTransformer()` directly; `validator=None` is tolerated (validation skipped) for the test fake / mixin.
 
 ---
 
