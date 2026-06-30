@@ -76,32 +76,6 @@ from .connectors.wqp.source import WQPSiteSource, WQPAnalyteSource, WQPWaterLeve
 from backend.logger import make_logger
 
 
-# Which sources report each parameter (empirical availability). A plain
-# parameter -> [source_key, ...] map; the waterlevels list mirrors the sources
-# with a waterlevel class in the SOURCES registry (asserted by
-# tests/test_source_registry.py), while the analyte lists are authored because
-# they encode which analytes each agency actually reports.
-PARAMETER_SOURCE_MAP = {
-    WATERLEVELS: ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"],
-    CARBONATE: ["nmbgmr_amp", "wqp"],
-    ARSENIC: ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"],
-    URANIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"],
-    SPECIFIC_CONDUCTANCE: ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    CONDUCTIVITY: ["bor", "nmose_isc_seven_rivers", "wqp"],
-    BICARBONATE: ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    CALCIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    CHLORIDE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    FLUORIDE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    MAGNESIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    NITRATE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    PH: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    POTASSIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    SILICA: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    SODIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    SULFATE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-    TDS: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
-}
-
 @dataclass(frozen=True)
 class SourceDef:
     """One data source's class wiring, declared in a single place.
@@ -158,6 +132,33 @@ ANALYTE_SOURCE_PAIRS = {
 }
 WATERLEVEL_SOURCE_PAIRS = {
     s.key: (s.site, s.waterlevel) for s in SOURCES if s.waterlevel is not None
+}
+
+# Which sources report each parameter (empirical availability), parameter ->
+# [source_key, ...]. The waterlevels list is DERIVED from the registry (every
+# source with a waterlevel class). The analyte lists are authored because they
+# encode which analytes each agency actually reports — which can't be inferred
+# from the class wiring. tests/test_source_registry.py guards both against the
+# registry.
+PARAMETER_SOURCE_MAP = {
+    WATERLEVELS: [s.key for s in SOURCES if s.waterlevel is not None],
+    CARBONATE: ["nmbgmr_amp", "wqp"],
+    ARSENIC: ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"],
+    URANIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"],
+    SPECIFIC_CONDUCTANCE: ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    CONDUCTIVITY: ["bor", "nmose_isc_seven_rivers", "wqp"],
+    BICARBONATE: ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    CALCIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    CHLORIDE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    FLUORIDE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    MAGNESIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    NITRATE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    PH: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    POTASSIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    SILICA: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    SODIUM: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    SULFATE: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
+    TDS: ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"],
 }
 
 

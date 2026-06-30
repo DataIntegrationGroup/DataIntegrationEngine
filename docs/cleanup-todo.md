@@ -1,7 +1,8 @@
 # DIE Cleanup TODO
 
-> **Status:** Tier 1 (all) and **all of Tier 2 except 2.6** are **DONE**. 2.6 is
-> **deferred** (see note below). Remaining: 2.6, all of Tier 3, all of Tier 4.
+> **Status:** Tier 1 (all), all of Tier 2 except 2.6, and Tier 3 item 3.3 are
+> **DONE**. 2.6 is **deferred** (see note). Remaining: 2.6, Tier 3 items 3.1/3.2,
+> all of Tier 4.
 
 Prioritized cleanup backlog from a code-analysis sweep (backend + frontend +
 orchestration). Each item: location, effort (S/M/L), risk, and whether it
@@ -50,7 +51,7 @@ registry). Tiers are ordered by safety — Tier 1 is batchable into one no-risk 
 |---|----------|--------|--------|---|
 | 3.1 | `frontend/cli.py:36-121` (`--no-X` flags) + `cli.py:385-398` (hardcoded agency list in `sites()`) | Derive from `backend.config.SOURCE_KEYS` — the remaining hardcoded source list after #101/#102. Click flags are harder to generate dynamically; at minimum dedup the `sites()` list. | M | ✓ |
 | 3.2 | `orchestration/definitions.py:60-68` (`_SUPPORTED_OUTPUT_TYPES`) vs `products.py` combine `if/elif` chain | Single registry mapping `output_type → (dumper, is_summary)`; both the supported-set and the dispatch derive from it. Adding an output type → one entry. | M | |
-| 3.3 | `backend/config.py:79` `PARAMETER_SOURCE_MAP[WATERLEVELS]` | Derive the waterlevels agency list from the `SOURCES` registry (== sources with a waterlevel class; the desync test already asserts equality). Keep analyte entries authored. | S | ✓ |
+| 3.3 ✅ | `backend/config.py` `PARAMETER_SOURCE_MAP[WATERLEVELS]` | Derived from the `SOURCES` registry (`[s.key for s in SOURCES if s.waterlevel]`). Analyte entries stay authored. Map moved below the registry so it can reference `SOURCES`. | S | ✓ |
 
 ---
 
