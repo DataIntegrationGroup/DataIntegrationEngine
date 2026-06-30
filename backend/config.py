@@ -587,7 +587,7 @@ class Config:
 
     def _update_output_units(self):
         parameter = self.parameter.lower()
-        if parameter == "ph":
+        if parameter == PH:
             self.analyte_output_units = ""
         elif parameter in [CONDUCTIVITY, SPECIFIC_CONDUCTANCE]:
             self.analyte_output_units = MICROSIEMENS_PER_CENTIMETER

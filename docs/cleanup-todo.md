@@ -1,7 +1,7 @@
 # DIE Cleanup TODO
 
-> **Status:** Tier 1 (all), plus 2.1 and 2.2, are **DONE** (this PR). Remaining:
-> Tier 2 items 2.3–2.7, all of Tier 3, all of Tier 4.
+> **Status:** Tier 1 (all) and **all of Tier 2 except 2.6** are **DONE**. 2.6 is
+> **deferred** (see note below). Remaining: 2.6, all of Tier 3, all of Tier 4.
 
 Prioritized cleanup backlog from a code-analysis sweep (backend + frontend +
 orchestration). Each item: location, effort (S/M/L), risk, and whether it
@@ -36,11 +36,11 @@ registry). Tiers are ordered by safety — Tier 1 is batchable into one no-risk 
 |---|----------|--------|--------|----------|---|
 | **2.1 (requested) ✅** | `backend/config.py:79-97` + reads at `config.py`, `orchestration/assets/products.py:169`, 2 tests | **Flatten `PARAMETER_SOURCE_MAP`**: `param: {"agencies":[...]}` → `param: [...]`. `"agencies"` is the only key ever present; every read is `["agencies"]`. | S | none | ✓ |
 | 2.2 ✅ | `backend/unifier.py` | `type(site_records) == list` → `isinstance(...)` | S | none | ✓ |
-| 2.3 | `backend/config.py` (`parameter == "ph"`) | Use `PH` constant from `constants.py` | S | none | |
-| 2.4 | `backend/transformer.py:272`, `backend/record.py:70` | `record_type == "analytes"/"waterlevels"` string compares → constants | S | none | |
-| 2.5 | `frontend/api/app.py` | Hoist magic strings to constants: bucket `"die_cache"` (×3), queue `"die-queue"`, header casing | S | none | |
-| 2.6 | `frontend/api/app.py` `router_parameters()` | Derive parameter list from `PARAMETER_SOURCE_MAP` instead of hardcoded 2-item list | M | none | |
-| 2.7 | `orchestration/definitions.py:155,204` | Hoist default cron `"0 6 * * *"` + timezone `"America/Denver"` to constants | S | none | |
+| 2.3 ✅ | `backend/config.py` (`parameter == "ph"`) | Use `PH` constant from `constants.py` | S | none | |
+| 2.4 ✅ | `backend/transformer.py`, `backend/record.py` | `record_type == "analytes"/"waterlevels"` → `ANALYTES`/`WATERLEVELS` constants (added `ANALYTES` to `constants.py`) | S | none | |
+| 2.5 ✅ | `frontend/api/app.py` | Bucket `"die_cache"` (×3) + queue `"die-queue"` → `_CACHE_BUCKET` / `_TASK_QUEUE` module constants | S | none | |
+| 2.6 ⏸ DEFERRED | `frontend/api/app.py` `router_parameters()` | Derive parameter list from `PARAMETER_SOURCE_MAP`. **Deferred**: would force the lean API service to import the whole `backend.config` (all connectors + shapely) just for a display list, and changes the endpoint's response shape (`dtw`/`tds` → param keys). Needs a lightweight parameter registry or coordination with the frontend that consumes `/parameters`. | M | yes | |
+| 2.7 ✅ | `orchestration/definitions.py` | Default cron `"0 6 * * *"` + timezone `"America/Denver"` → `_DEFAULT_CRON` / `_SCHEDULE_TIMEZONE` constants | S | none | |
 
 ---
 

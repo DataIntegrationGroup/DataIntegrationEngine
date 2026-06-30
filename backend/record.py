@@ -22,6 +22,7 @@ from backend.constants import (
     CONVERSION_FACTOR,
     SOURCE_DATASTREAM_LINK,
     FEET,
+    WATERLEVELS,
 )
 
 
@@ -64,7 +65,7 @@ class BaseRecord:
 
         # both analyte and water level tables have the same fields, but the
         # rounding should only occur for water level tables
-        if self._payload.get("record_type") == "waterlevels":
+        if self._payload.get("record_type") == WATERLEVELS:
             field_sigfigs.append((PARAMETER_VALUE, 2))
 
         for field, sigfigs in field_sigfigs:
