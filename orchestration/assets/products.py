@@ -166,7 +166,7 @@ def _group_for_param(parameter: str) -> str:
 def _param_source_keys(product: dict, parameter: str) -> list[str]:
     """Source keys that apply to *parameter* for this product: the parameter's
     agencies filtered by the product's include/exclude list."""
-    agencies = list(PARAMETER_SOURCE_MAP[parameter]["agencies"])
+    agencies = list(PARAMETER_SOURCE_MAP[parameter])
     spec = product.get("sources", {}) or {}
     if spec.get("include"):
         return [a for a in agencies if a in spec["include"]]

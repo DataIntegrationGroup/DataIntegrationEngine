@@ -25,9 +25,6 @@ from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 from backend.logger import setup_logging
 
 
-# setup_logging()
-
-
 @click.group()
 def cli():
     pass

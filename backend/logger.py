@@ -72,7 +72,6 @@ def setup_logging(level=None, log_format=None, path=None):
     else:
         path = os.path.join(path, "die.log")
 
-    # shandler = logging.StreamHandler()
     rhandler = RotatingFileHandler(path, maxBytes=1e8, backupCount=50)
     _managed_handlers.append(rhandler)
 

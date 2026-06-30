@@ -35,7 +35,7 @@ def test_waterlevel_agencies_match_registry():
     # Every source the parameter map lists for waterlevels must have a
     # waterlevel source class — and vice versa.
     registry_wl = {s.key for s in SOURCES if s.waterlevel}
-    map_wl = set(PARAMETER_SOURCE_MAP[WATERLEVELS]["agencies"])
+    map_wl = set(PARAMETER_SOURCE_MAP[WATERLEVELS])
     assert map_wl == registry_wl
 
 
@@ -44,14 +44,14 @@ def test_analyte_agencies_have_analyte_source():
     # class in the registry (the map is a subset per analyte; the registry is
     # the universe of analyte-capable sources).
     analyte_keys = {s.key for s in SOURCES if s.analyte}
-    for parameter, entry in PARAMETER_SOURCE_MAP.items():
+    for parameter, agencies in PARAMETER_SOURCE_MAP.items():
         if parameter == WATERLEVELS:
             continue
-        missing = set(entry["agencies"]) - analyte_keys
+        missing = set(agencies) - analyte_keys
         assert not missing, f"{parameter}: agencies without an analyte source: {missing}"
 
 
 def test_every_map_agency_is_a_known_source():
-    for entry in PARAMETER_SOURCE_MAP.values():
-        for agency in entry["agencies"]:
+    for agencies in PARAMETER_SOURCE_MAP.values():
+        for agency in agencies:
             assert agency in SOURCE_DICT

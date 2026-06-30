@@ -55,6 +55,6 @@ class TestExclusivityGuards:
 class TestSourceKeysCanonical:
     def test_source_keys_cover_parameter_map(self):
         # every agency referenced by the parameter map is a real source key
-        for entry in PARAMETER_SOURCE_MAP.values():
-            for agency in entry["agencies"]:
+        for agencies in PARAMETER_SOURCE_MAP.values():
+            for agency in agencies:
                 assert agency in SOURCE_KEYS

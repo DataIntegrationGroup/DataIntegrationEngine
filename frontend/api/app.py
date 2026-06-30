@@ -50,42 +50,14 @@ class ConfigModel(BaseModel):
     wkt: str = ""
     site_limit: int = 0
     force: bool = False
-    sources: list = []
     output_name: str = ""
     output_summary: bool = True
     start_date: str = ""
     end_date: str = ""
 
 
-# def create_queue(project: str, location: str, queue_id: str) -> tasks_v2.Queue:
-#     """Create a queue.
-#     Args:
-#         project: The project ID to create the queue in.
-#         location: The location to create the queue in.
-#         queue_id: The ID to use for the new queue.
-#
-#     Returns:
-#         The newly created queue.
-#     """
-#
-#     # Create a client.
-#     client = tasks_v2.CloudTasksClient()
-#     queue_path = client.queue_path(project, location, queue_id)
-#     queue = client.get_queue(name=queue_path)
-#     if not queue:
-#         # Use the client to send a CreateQueueRequest.
-#         client.create_queue(
-#             tasks_v2.CreateQueueRequest(
-#                 parent=client.common_location_path(project, location),
-#                 queue=tasks_v2.Queue(name=queue_path),
-#             )
-#         )
-
-
 @app.post("/trigger_unify_waterlevels")
 def router_unify_waterlevels(item: ConfigModel):
-    print("unify waterlevels", item)
-
     exists = False
 
     cfgobj = item.model_dump()
@@ -98,9 +70,6 @@ def router_unify_waterlevels(item: ConfigModel):
             exists = bucket.blob(f"{itemhash}.csv").exists()
         else:
             bucket = storage_client.bucket("die_cache")
-            # combined_exists = bucket.blob(f"{itemhash}.combined.csv").exists()
-            # timeseries_exists = bucket.blob(f"{itemhash}_timeseries/sites.csv").exists()
-            # exists = combined_exists or timeseries_exists
             exists = bucket.blob(f"{itemhash}.zip").exists()
 
     response = None
@@ -111,14 +80,7 @@ def router_unify_waterlevels(item: ConfigModel):
         url = os.getenv("WORKER_URL")
         queue = "die-queue"
 
-        task_id = None
-
         cfgobj["output_name"] = itemhash
-        # Construct the task.
-        name = None
-        if task_id is not None:
-            name = client.task_path(project, location, queue, task_id)
-
         task = tasks_v2.Task(
             http_request=tasks_v2.HttpRequest(
                 http_method=tasks_v2.HttpMethod.POST,
@@ -126,7 +88,6 @@ def router_unify_waterlevels(item: ConfigModel):
                 headers={"Content-type": "application/json"},
                 body=json.dumps(cfgobj).encode(),
             ),
-            name=name,
         )
         response = client.create_task(
             tasks_v2.CreateTaskRequest(
@@ -136,15 +97,6 @@ def router_unify_waterlevels(item: ConfigModel):
                 task=task,
             )
         )
-        # parent = client.queue_path(project, location, queue)
-        # task = {
-        #     'app_engine_http_request': {
-        #         'http_method': 'POST',
-        #         'relative_uri': f'{url}/unify_waterlevels',
-        #         'body': jcfg
-        #     }
-        # }
-        # response = client.create_task(parent=parent, task=task)
 
         response = {"name": response.name, "dispatch_count": response.dispatch_count}
 

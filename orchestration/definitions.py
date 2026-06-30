@@ -88,9 +88,9 @@ def _build_graph(products_config: dict):
     unified for both summary and timeseries, so a source two products both need
     (in either mode) is fetched once, not twice.
 
-    Returns ``(source_assets, pipeline_assets, specs_by_pid, all_specs)`` where
-    ``specs_by_pid`` maps a product id to the source specs its combine consumes
-    and ``all_specs`` is the deduped set of source specs."""
+    Returns ``(source_assets, pipeline_assets, specs_by_pid)`` where
+    ``specs_by_pid`` maps a product id to the source specs its combine
+    consumes."""
     specs_by_pid: dict[str, list] = {}
     all_specs: dict = {}  # SourceSpec -> SourceSpec (dedup; namedtuple is hashable)
     for product in _products(products_config):
@@ -107,7 +107,7 @@ def _build_graph(products_config: dict):
             build_product_pipeline_assets(product, specs_by_pid[product["id"]])
         )
 
-    return source_assets, pipeline_assets, specs_by_pid, all_specs
+    return source_assets, pipeline_assets, specs_by_pid
 
 
 def _cohort_key(specs) -> tuple[str, str]:
@@ -208,7 +208,7 @@ def _build_schedules(
 
 
 _products_config = _load_products()
-_source_assets, _pipeline_assets, _specs_by_pid, _all_specs = _build_graph(_products_config)
+_source_assets, _pipeline_assets, _specs_by_pid = _build_graph(_products_config)
 _assets = _source_assets + _pipeline_assets
 _cohorts = _build_cohorts(_products_config, _specs_by_pid)
 _cohort_jobs = _build_cohort_jobs(_cohorts, _specs_by_pid)

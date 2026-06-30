@@ -50,9 +50,6 @@ class BaseRecord:
         self._payload.update(kw)
 
     def _get_sigfig_formatted_value(self, attr):
-        # v = self._payload.get(attr)
-        # if v is None and self.defaults:
-        #     v = self.defaults.get(attr)
         v = self.__getattr__(attr)
 
         field_sigfigs = [
