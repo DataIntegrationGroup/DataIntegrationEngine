@@ -69,18 +69,6 @@ class WaterLevelRecordValidator(RecordValidator):
                 raise ValueError(f"Invalid record. Missing {k}")
 
 
-class _SubclassValidatorShim(RecordValidator):
-    """Shim: delegates to source._validate_record() for subclasses that override it."""
-    def __init__(self, source):
-        self._source = source
-
-    def set_config(self, config) -> None:
-        pass  # source._validate_record uses self.config directly
-
-    def validate(self, record: dict) -> None:
-        self._source._validate_record(record)
-
-
 # =============================================================================
 # Record summarization strategy
 # =============================================================================
@@ -192,10 +180,8 @@ _FETCH_UNSET = object()  # sentinel: site fetch not yet cached
 
 
 class BaseSource:
-    transformer_klass = BaseTransformer  # deprecated: pass transformer= to __init__
-
     def __init__(self, transformer: Optional[BaseTransformer] = None, http_client: httpx.Client | None = None):
-        self.transformer = transformer if transformer is not None else self.transformer_klass()
+        self.transformer = transformer if transformer is not None else BaseTransformer()
         self._http_client = http_client if http_client is not None else httpx.Client(timeout=900)
         _l = make_logger(self.__class__.__name__)
         self.log = _l.log
@@ -228,7 +214,7 @@ class BaseSource:
     def set_config(self, config):
         self.config = config
         self.transformer.set_config(config)
-        if hasattr(self, "_validator"):
+        if getattr(self, "_validator", None) is not None:
             self._validator.set_config(config)
 
     def check(self, *args, **kw):
@@ -356,7 +342,7 @@ class BaseParameterSource(BaseSource):
 
     def __init__(self, transformer=None, validator: Optional[RecordValidator] = None, http_client: httpx.Client | None = None):
         super().__init__(transformer=transformer, http_client=http_client)
-        self._validator = validator if validator is not None else _SubclassValidatorShim(self)
+        self._validator = validator
         self._summarizer = RecordSummarizer(self)
 
     def _extract_earliest_record(self, records: list) -> dict:
@@ -483,15 +469,12 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter(self, record: dict) -> dict:
         record = self._extract_parameter_record(record)
-        self._validator.validate(record)
+        if self._validator is not None:
+            self._validator.validate(record)
         return record
 
     def _sort_func(self, x):
         return x.date_measured
-
-    # deprecated: override via validator= __init__ arg instead
-    def _validate_record(self, record: dict) -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} Must implement _validate_record")
 
 
 class BaseAnalyteSource(BaseParameterSource):
