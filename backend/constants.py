@@ -18,6 +18,8 @@ LATEST = "latest"
 
 
 WATERLEVELS = "waterlevels"
+# Record-type / parameter-group label for the non-waterlevel parameters.
+ANALYTES = "analytes"
 ARSENIC = "arsenic"
 BICARBONATE = "bicarbonate"
 CALCIUM = "calcium"

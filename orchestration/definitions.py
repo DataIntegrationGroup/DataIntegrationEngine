@@ -71,6 +71,11 @@ _SUPPORTED_OUTPUT_TYPES = {
     "ogc_waterlevel_change",
 }
 
+# Cohort scheduling defaults: cron used when a product has no `schedule`, and the
+# timezone all cohort schedules run in.
+_DEFAULT_CRON = "0 6 * * *"
+_SCHEDULE_TIMEZONE = "America/Denver"
+
 
 def _load_products() -> dict:
     return yaml.safe_load(_PRODUCTS_PATH.read_text())
@@ -152,7 +157,7 @@ def _build_cohorts(products_config: dict, specs_by_pid: dict) -> dict:
         name = _cohort_name(_cohort_key(specs))
         cohort = cohorts.setdefault(name, {"members": [], "cron": None})
         cohort["members"].append(pid)
-        cron = product.get("schedule", "0 6 * * *")
+        cron = product.get("schedule", _DEFAULT_CRON)
         if cohort["cron"] is None or _cron_sort_key(cron) < _cron_sort_key(cohort["cron"]):
             cohort["cron"] = cron
     return cohorts
@@ -201,7 +206,7 @@ def _build_schedules(
             name=f"schedule_{name}",
             job=cohort_jobs[name],
             cron_schedule=cohort["cron"],
-            execution_timezone="America/Denver",
+            execution_timezone=_SCHEDULE_TIMEZONE,
         )
         for name, cohort in cohorts.items()
     ]

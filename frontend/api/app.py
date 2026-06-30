@@ -36,6 +36,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# GCS bucket holding cached API outputs; Cloud Tasks queue the trigger endpoints
+# enqueue worker jobs onto.
+_CACHE_BUCKET = "die_cache"
+_TASK_QUEUE = "die-queue"
+
 
 class BboxModel(BaseModel):
     minLat: float
@@ -66,10 +71,10 @@ def router_unify_waterlevels(item: ConfigModel):
     if not item.force:
         storage_client = storage.Client()
         if item.output_summary:
-            bucket = storage_client.bucket("die_cache")
+            bucket = storage_client.bucket(_CACHE_BUCKET)
             exists = bucket.blob(f"{itemhash}.csv").exists()
         else:
-            bucket = storage_client.bucket("die_cache")
+            bucket = storage_client.bucket(_CACHE_BUCKET)
             exists = bucket.blob(f"{itemhash}.zip").exists()
 
     response = None
@@ -78,7 +83,7 @@ def router_unify_waterlevels(item: ConfigModel):
         project = os.getenv("PROJECT_ID")
         location = os.getenv("LOCATION")
         url = os.getenv("WORKER_URL")
-        queue = "die-queue"
+        queue = _TASK_QUEUE
 
         cfgobj["output_name"] = itemhash
         task = tasks_v2.Task(
@@ -132,7 +137,7 @@ def router_status(task_id: str):
 def router_download_unified_waterlevels(downloadhash: str, output_summary: bool):
 
     storage_client = storage.Client()
-    bucket = storage_client.bucket("die_cache")
+    bucket = storage_client.bucket(_CACHE_BUCKET)
 
     if output_summary:
         blob = bucket.blob(f"{downloadhash}.csv")

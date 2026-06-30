@@ -26,6 +26,8 @@ from backend.constants import (
     DTW,
     EARLIEST,
     LATEST,
+    WATERLEVELS,
+    ANALYTES,
 )
 from backend.geo_utils import datum_transform, ALLOWED_DATUMS
 from backend.logger import make_logger
@@ -209,7 +211,7 @@ class BaseTransformer:
                 return None
             klassed_record = self._apply_elevation_transform(klassed_record)
             klassed_record = self._apply_well_depth_transform(klassed_record)
-        elif klassed_record.record_type in ("analytes", "waterlevels"):
+        elif klassed_record.record_type in (ANALYTES, WATERLEVELS):
             klassed_record = self._apply_unit_conversion(klassed_record)
         return klassed_record
 
@@ -269,7 +271,7 @@ class BaseTransformer:
     def _apply_unit_conversion(self, klassed_record):
         output_units = (
             self.config.analyte_output_units
-            if klassed_record.record_type == "analytes"
+            if klassed_record.record_type == ANALYTES
             else self.config.waterlevel_output_units
         )
         source_result = klassed_record.parameter_value
@@ -538,7 +540,7 @@ class WaterLevelTransformer(ParameterTransformer):
         return SummaryRecord if self.config.output_summary else ParameterRecord
 
     def _get_record_type(self) -> str:
-        return "waterlevels"
+        return WATERLEVELS
 
     def _get_parameter_name_and_units(self) -> tuple:
         """
@@ -557,7 +559,7 @@ class AnalyteTransformer(ParameterTransformer):
         return SummaryRecord if self.config.output_summary else ParameterRecord
 
     def _get_record_type(self) -> str:
-        return "analytes"
+        return ANALYTES
 
     def _get_parameter_name_and_units(self) -> tuple:
         """
