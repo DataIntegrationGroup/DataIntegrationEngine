@@ -11,6 +11,8 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
+from backend.constants import TDS
+
 # Trend statistics live in backend/trend_stats.py (analysis, not serialization).
 # Re-exported here so existing importers (and dump_trend_collection's default
 # method arg) keep working.
@@ -75,10 +77,32 @@ def _dump_collection(
     return collection
 
 
+TDS_CLASS_METHOD_DESCRIPTION = (
+    "TDS classification (USGS): fresh (<1,000 mg/L), brackish (1,000-10,000 "
+    "mg/L), saline (10,000-35,000 mg/L), brine (>=35,000 mg/L); 'insufficient' "
+    "when the well has no latest TDS value."
+)
+
+
+def _tds_class(value: Optional[float]) -> str:
+    if value is None:
+        return "insufficient"
+    if value < 1000:
+        return "fresh"
+    if value < 10000:
+        return "brackish"
+    if value < 35000:
+        return "saline"
+    return "brine"
+
+
 def _make_feature(record, collection_id: str) -> dict:
     """Build one OGC-compliant Feature from a SummaryRecord or SiteRecord."""
     props = {k: getattr(record, k) for k in record.keys
              if k not in ("latitude", "longitude", "elevation")}
+
+    if getattr(record, "parameter_name", None) == TDS:
+        props["tds_class"] = _tds_class(_num(getattr(record, "latest_value", None)))
 
     return {
         "type": "Feature",
@@ -178,7 +202,10 @@ def dump_summary_collection(path: str, records: list, meta: dict) -> dict:
     """
     collection_id = meta.get("id", "collection")
     features = [_make_feature(r, collection_id) for r in records]
-    return _dump_collection(path, collection_id, features, meta)
+    extra = None
+    if any(getattr(r, "parameter_name", None) == TDS for r in records):
+        extra = {"tds_class_method": TDS_CLASS_METHOD_DESCRIPTION}
+    return _dump_collection(path, collection_id, features, meta, extra=extra)
 
 
 def dump_major_chemistry_collection(path: str, records: list, meta: dict) -> dict:
@@ -368,10 +395,11 @@ def dump_mcl_exceedance_collection(
     {"mcl": <number, same units as the data (mg/L)>, "type": "primary"|"secondary"}
     and is the source of truth for which analytes have an MCL.
 
-    Per analyte present on a well: ``<analyte>`` (latest value), ``<analyte>_mcl``,
-    ``<analyte>_mcl_type``, and ``<analyte>_exceeds`` (value > mcl). Plus
-    ``any_exceedance`` (bool), ``exceedance_count`` (int), and
-    ``exceeded_analytes`` (list). The collection carries ``mcl_thresholds``.
+    Per analyte present on a well: ``<analyte>`` (latest value), ``<analyte>_date``
+    (sample/analysis date of that value), ``<analyte>_mcl``, ``<analyte>_mcl_type``,
+    and ``<analyte>_exceeds`` (value > mcl). Plus ``any_exceedance`` (bool),
+    ``exceedance_count`` (int), and ``exceeded_analytes`` (list). The collection
+    carries ``mcl_thresholds``.
     """
     collection_id = meta.get("id", "collection")
 
@@ -394,7 +422,10 @@ def dump_mcl_exceedance_collection(
             wells[key] = well
         analyte = getattr(r, "parameter_name", None)
         if analyte:
-            well["values"][analyte] = getattr(r, "latest_value", None)
+            well["values"][analyte] = {
+                "value": getattr(r, "latest_value", None),
+                "date": getattr(r, "latest_date", None),
+            }
 
     features = []
     for (source, rid), well in wells.items():
@@ -404,8 +435,10 @@ def dump_mcl_exceedance_collection(
             "well_depth_units": well["well_depth_units"],
         }
         exceeded = []
-        for analyte, value in well["values"].items():
+        for analyte, entry in well["values"].items():
+            value = entry["value"]
             props[analyte] = value
+            props[f"{analyte}_date"] = entry["date"]
             limit = thresholds.get(analyte)
             if not limit:
                 continue

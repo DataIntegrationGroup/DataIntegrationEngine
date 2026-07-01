@@ -10,7 +10,11 @@ from backend.persisters.ogc_features import (
 from backend.record import SummaryRecord, SiteRecord, ParameterRecord
 
 
-def _make_summary_record(source="nmbgmr_amp", rid="RA-1234", lat=35.0, lon=-106.5):
+def _make_summary_record(
+    source="nmbgmr_amp", rid="RA-1234", lat=35.0, lon=-106.5,
+    parameter_name="waterlevels", parameter_units="ft", latest_value=220.0,
+    latest_units="ft",
+):
     return SummaryRecord({
         "source": source,
         "id": rid,
@@ -24,8 +28,8 @@ def _make_summary_record(source="nmbgmr_amp", rid="RA-1234", lat=35.0, lon=-106.
         "elevation_units": "ft",
         "well_depth": None,
         "well_depth_units": "ft",
-        "parameter_name": "waterlevels",
-        "parameter_units": "ft",
+        "parameter_name": parameter_name,
+        "parameter_units": parameter_units,
         "nrecords": 10,
         "min": 200.0,
         "max": 250.0,
@@ -36,8 +40,8 @@ def _make_summary_record(source="nmbgmr_amp", rid="RA-1234", lat=35.0, lon=-106.
         "earliest_units": "ft",
         "latest_date": "2024-01-01",
         "latest_time": "00:00:00",
-        "latest_value": 220.0,
-        "latest_units": "ft",
+        "latest_value": latest_value,
+        "latest_units": latest_units,
     })
 
 
@@ -125,6 +129,39 @@ class TestDumpSummaryCollection:
         result = dump_summary_collection(str(out), [], {"id": "empty"})
         assert result["numberReturned"] == 0
         assert result["features"] == []
+
+    def test_non_tds_parameter_has_no_tds_class(self, tmp_path):
+        records = [_make_summary_record()]
+        out = tmp_path / "summary.geojson"
+        result = dump_summary_collection(str(out), records, {"id": "nm_waterlevels"})
+
+        assert "tds_class" not in result["features"][0]["properties"]
+        assert "tds_class_method" not in result
+
+    def test_tds_class_boundaries(self, tmp_path):
+        cases = [
+            (999.0, "fresh"),
+            (1000.0, "brackish"),
+            (9999.0, "brackish"),
+            (10000.0, "saline"),
+            (34999.0, "saline"),
+            (35000.0, "brine"),
+            (None, "insufficient"),
+        ]
+        records = [
+            _make_summary_record(
+                rid=f"RA-{i}", parameter_name="tds", parameter_units="mg/L",
+                latest_value=value, latest_units="mg/L",
+            )
+            for i, (value, _) in enumerate(cases)
+        ]
+        out = tmp_path / "tds_summary.geojson"
+        result = dump_summary_collection(str(out), records, {"id": "nm_tds_summary"})
+
+        by_id = {f["id"]: f["properties"] for f in result["features"]}
+        for i, (_, expected) in enumerate(cases):
+            assert by_id[f"nmbgmr_amp:RA-{i}"]["tds_class"] == expected
+        assert "tds_class_method" in result
 
 
 class TestDumpTimeseriesCollection:
@@ -343,20 +380,21 @@ from backend.persisters.ogc_features import (
 )
 
 
-def _mcl_record(source, rid, analyte, value):
+def _mcl_record(source, rid, analyte, value, date="2024-05-01"):
     return SummaryRecord({
         "source": source, "id": rid, "name": f"Well {rid}",
         "latitude": 34.0, "longitude": -106.0, "elevation": None,
         "well_depth": None, "well_depth_units": "ft",
         "parameter_name": analyte, "latest_value": value,
+        "latest_date": date,
     })
 
 
 class TestMCLExceedanceCollection:
     def test_flags_exceedances(self, tmp_path):
         recs = [
-            _mcl_record("WQP", "W1", "arsenic", 0.02),   # > 0.01 -> exceeds
-            _mcl_record("WQP", "W1", "nitrate", 5.0),    # < 10 -> ok
+            _mcl_record("WQP", "W1", "arsenic", 0.02, date="2024-03-10"),   # > 0.01 -> exceeds
+            _mcl_record("WQP", "W1", "nitrate", 5.0, date="2024-06-20"),    # < 10 -> ok
         ]
         thresholds = {"arsenic": {"mcl": 0.01, "type": "primary"},
                       "nitrate": {"mcl": 10.0, "type": "primary"}}
@@ -364,7 +402,9 @@ class TestMCLExceedanceCollection:
         result = dump_mcl_exceedance_collection(str(out), recs, {"id": "nm_mcl"}, thresholds)
         props = result["features"][0]["properties"]
         assert props["arsenic_exceeds"] is True
+        assert props["arsenic_date"] == "2024-03-10"
         assert props["nitrate_exceeds"] is False
+        assert props["nitrate_date"] == "2024-06-20"
         assert props["any_exceedance"] is True
         assert props["exceedance_count"] == 1
         assert props["exceeded_analytes"] == ["arsenic"]
