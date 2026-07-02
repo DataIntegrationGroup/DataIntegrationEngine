@@ -346,7 +346,7 @@ def dump_trend_collection(
             "last_observation_datetime": _iso_utc(xs[-1]) if record_count else None,
             "span_years": round(span_years, 3),
             "slope_per_year": (
-                None if slope_per_year is None else round(slope_per_year, 4)
+                None if slope_per_year is None else round(slope_per_year, 2)
             ),
             "slope_units": slope_units,
             "trend_category": trend_category,
@@ -927,15 +927,15 @@ def dump_waterlevel_change_collection(
 
         if len(pairs) >= 2:
             end_e, dtw_end = pairs[-1]
-            dtw_end = round(dtw_end, 3)
+            dtw_end = round(dtw_end, 2)
             target = end_e - target_span
             # Closest daily point to the window-start target, excluding the end.
             cand_epoch, cand_val = min(
                 pairs[:-1], key=lambda p: abs(p[0] - target)
             )
             if abs(cand_epoch - target) <= tolerance:
-                start_e, dtw_start = cand_epoch, round(cand_val, 3)
-                change_ft = round(dtw_end - dtw_start, 3)
+                start_e, dtw_start = cand_epoch, round(cand_val, 2)
+                change_ft = round(dtw_end - dtw_start, 2)
                 actual_window_years = round(
                     (end_e - start_e) / _SECONDS_PER_YEAR, 3
                 )
