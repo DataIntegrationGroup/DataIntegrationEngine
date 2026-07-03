@@ -69,6 +69,12 @@ _SUPPORTED_OUTPUT_TYPES = {
     "ogc_water_type",
     "ogc_data_density",
     "ogc_waterlevel_change",
+    "ogc_sar",
+    "ogc_ion_balance",
+    "ogc_wqi",
+    "ogc_waterlevel_status",
+    "ogc_seasonal_amplitude",
+    "ogc_depletion_projection",
 }
 
 

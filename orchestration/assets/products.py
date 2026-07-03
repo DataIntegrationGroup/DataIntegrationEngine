@@ -76,15 +76,21 @@ from backend.config import PARAMETER_SOURCE_MAP, WATERLEVELS
 from backend.persisters.ogc_features import (
     ANALYTE_TREND_METHOD_DESCRIPTION,
     dump_data_density_collection,
+    dump_depletion_projection_collection,
     dump_hardness_collection,
+    dump_ion_balance_collection,
     dump_major_chemistry_collection,
     dump_mcl_exceedance_collection,
     dump_monitoring_recency_collection,
+    dump_sar_collection,
+    dump_seasonal_amplitude_collection,
     dump_summary_collection,
     dump_timeseries_collection,
     dump_trend_collection,
     dump_water_type_collection,
     dump_waterlevel_change_collection,
+    dump_waterlevel_status_collection,
+    dump_wqi_collection,
 )
 from backend.record import ParameterRecord, SiteRecord, SummaryRecord
 from backend.unifier import unify_source_both
@@ -129,7 +135,14 @@ def _product_params(product: dict) -> list[str]:
     output_type = product.get("output_type")
     if output_type == "ogc_major_chemistry":
         return list(_MAJOR_CHEMISTRY)
-    if output_type in ("ogc_mcl_exceedance", "ogc_hardness", "ogc_water_type"):
+    if output_type in (
+        "ogc_mcl_exceedance",
+        "ogc_hardness",
+        "ogc_water_type",
+        "ogc_sar",
+        "ogc_ion_balance",
+        "ogc_wqi",
+    ):
         # Multi-analyte products with an explicit `analytes` list. (For MCL the
         # candidate set for the static graph; the MCL JSON is the source of truth
         # for which actually have thresholds.)
@@ -366,6 +379,22 @@ def _build_combine_asset(
                 # classifies the hydrochemical (Piper) water type.
                 records = [SummaryRecord(p) for p in all_records]
                 dump_water_type_collection(str(out), records, meta)
+            elif output_type == "ogc_sar":
+                # Pivots per-analyte summaries to one feature per well; sodium
+                # adsorption ratio from Na/Ca/Mg (irrigation suitability).
+                records = [SummaryRecord(p) for p in all_records]
+                dump_sar_collection(str(out), records, meta)
+            elif output_type == "ogc_ion_balance":
+                # Charge balance error per well from the major-ion suite — a QA
+                # screen on the chemistry-derived products.
+                records = [SummaryRecord(p) for p in all_records]
+                dump_ion_balance_collection(str(out), records, meta)
+            elif output_type == "ogc_wqi":
+                # CCME WQI per well against the MCL thresholds (same source of
+                # truth as ogc_mcl_exceedance) read from GCS.
+                thresholds = gcs.read_json(_MCL_KEY)
+                records = [SummaryRecord(p) for p in all_records]
+                dump_wqi_collection(str(out), records, meta, thresholds)
             elif output_type == "ogc_summary":
                 records = [SummaryRecord(p) for p in all_records]
                 dump_summary_collection(str(out), records, meta)
@@ -392,6 +421,19 @@ def _build_combine_asset(
                     slope_units="mg/L/year", reducer="mean",
                     method=ANALYTE_TREND_METHOD_DESCRIPTION,
                     parameter_name=product.get("parameter"),
+                )
+            elif output_type == "ogc_waterlevel_status":
+                dump_waterlevel_status_collection(
+                    str(out), all_sites, all_timeseries, meta,
+                )
+            elif output_type == "ogc_seasonal_amplitude":
+                dump_seasonal_amplitude_collection(
+                    str(out), all_sites, all_timeseries, meta,
+                    min_days_per_year=int(product.get("min_days_per_year", 4)),
+                )
+            elif output_type == "ogc_depletion_projection":
+                dump_depletion_projection_collection(
+                    str(out), all_sites, all_timeseries, meta,
                 )
             elif output_type == "ogc_monitoring_recency":
                 run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")

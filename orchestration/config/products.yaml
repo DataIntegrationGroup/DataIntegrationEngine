@@ -181,3 +181,89 @@ products:
       state: NM
     sources:
       exclude: []
+
+  # One feature per well: sodium adsorption ratio (Na/sqrt((Ca+Mg)/2), meq)
+  # with USDA irrigation hazard class. Multi-analyte; shares the analyte
+  # cohort's sodium/calcium/magnesium source fetches.
+  - id: nm_sar
+    output_type: ogc_sar
+    title: "NM Sodium Adsorption Ratio"
+    description: "Per-well sodium adsorption ratio and irrigation hazard class, all NM sources"
+    schedule: "0 11 * * *"
+    analytes: [sodium, calcium, magnesium]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: charge balance error from the latest major-ion
+  # chemistry — a QA screen on the chemistry-derived products. Multi-analyte;
+  # shares the analyte cohort's major-ion source fetches.
+  - id: nm_ion_balance
+    output_type: ogc_ion_balance
+    title: "NM Ion Balance"
+    description: "Per-well major-ion charge balance error (QA screen), all NM sources"
+    schedule: "0 11 * * *"
+    analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: CCME water quality index (0-100) scored against the
+  # drinking-water MCL thresholds in gs://<bucket>/config/mcl.json (same source
+  # of truth as nm_mcl_exceedance). Multi-analyte.
+  - id: nm_wqi
+    output_type: ogc_wqi
+    title: "NM Water Quality Index"
+    description: "Per-well CCME water quality index against drinking-water MCLs, all NM sources"
+    schedule: "0 15 * * *"
+    analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: latest depth-to-water as a percentile of the well's
+  # own record, with USGS-style above/below-normal status. Timeseries-mode;
+  # shares the water-level cohort's source fetches.
+  - id: nm_waterlevel_status
+    parameter: waterlevels
+    output_type: ogc_waterlevel_status
+    title: "NM Water Level Status"
+    description: "Per-well current water level vs the well's own record (percentile and status), all NM sources"
+    schedule: "0 7 * * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: within-year depth-to-water spread (max - min per
+  # qualifying calendar year), flagging pumping-stressed / strongly seasonal
+  # wells. Timeseries-mode; shares the water-level cohort's source fetches.
+  - id: nm_seasonal_amplitude
+    parameter: waterlevels
+    output_type: ogc_seasonal_amplitude
+    title: "NM Water Level Seasonal Amplitude"
+    description: "Per-well within-year depth-to-water amplitude, all NM sources"
+    schedule: "0 7 * * *"
+    min_days_per_year: 4
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: screening-level linear projection of when
+  # depth-to-water reaches the well's total depth, from the Theil-Sen trend
+  # slope. Only wells with a significant declining trend and a reported depth
+  # get a projection. Timeseries-mode; shares the water-level cohort's fetches.
+  - id: nm_depletion_projection
+    parameter: waterlevels
+    output_type: ogc_depletion_projection
+    title: "NM Well Depletion Projection"
+    description: "Per-well screening projection of years until depth-to-water reaches well depth, all NM sources"
+    schedule: "0 12 * * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []

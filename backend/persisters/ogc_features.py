@@ -8,6 +8,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 # ===============================================================================
 import json
+import math
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -807,6 +808,160 @@ def dump_water_type_collection(path: str, records: list, meta: dict) -> dict:
     )
 
 
+SAR_METHOD_DESCRIPTION = (
+    "Sodium adsorption ratio SAR = Na / sqrt((Ca + Mg) / 2) with each ion's "
+    "latest value converted from mg/L to meq/L by its equivalent weight. "
+    "Irrigation hazard class (USDA Handbook 60): low (S1, <10), medium (S2, "
+    "10-18), high (S3, 18-26), very high (S4, >=26); 'insufficient' when sodium "
+    "is missing, or calcium and magnesium are both missing or sum to zero. Ion "
+    "values are each the latest reported and may carry different dates."
+)
+
+
+def _sar_class(sar: Optional[float]) -> str:
+    if sar is None:
+        return "insufficient"
+    if sar < 10:
+        return "low"
+    if sar < 18:
+        return "medium"
+    if sar < 26:
+        return "high"
+    return "very high"
+
+
+def dump_sar_collection(path: str, records: list, meta: dict) -> dict:
+    """
+    Write an OGC FeatureCollection of per-well sodium adsorption ratio (SAR),
+    one Feature per well. *records* is a flat list of SummaryRecord (one per
+    well+analyte), pivoted by well; sodium, calcium, and magnesium are used.
+
+    Per well: the three ion values and dates, ``sar`` (dimensionless, None when
+    an input is missing), and ``sar_class`` (USDA S1-S4 as low/medium/high/very
+    high). The collection carries ``sar_method``.
+    """
+    collection_id = meta.get("id", "collection")
+    wells = _pivot_by_well(records)
+
+    features = []
+    for (source, rid), well in wells.items():
+        a = well["analytes"]
+        na = _num(a.get("sodium", {}).get("value"))
+        ca = _num(a.get("calcium", {}).get("value"))
+        mg = _num(a.get("magnesium", {}).get("value"))
+
+        sar = None
+        if na is not None and not (ca is None and mg is None):
+            na_meq = na / _EQUIVALENT_WEIGHTS["sodium"]
+            ca_meq = (ca or 0.0) / _EQUIVALENT_WEIGHTS["calcium"]
+            mg_meq = (mg or 0.0) / _EQUIVALENT_WEIGHTS["magnesium"]
+            denom = math.sqrt((ca_meq + mg_meq) / 2)
+            if denom > 0:
+                sar = round(na_meq / denom, 2)
+
+        props = {
+            "source": source,
+            "id": rid,
+            "name": well["name"],
+            "well_depth": well["well_depth"],
+            "well_depth_units": well["well_depth_units"],
+            "sodium": na,
+            "sodium_date": a.get("sodium", {}).get("date"),
+            "calcium": ca,
+            "calcium_date": a.get("calcium", {}).get("date"),
+            "magnesium": mg,
+            "magnesium_date": a.get("magnesium", {}).get("date"),
+            "sar": sar,
+            "sar_class": _sar_class(sar),
+        }
+        features.append(_well_feature(source, rid, well, props))
+
+    return _dump_collection(
+        path, collection_id, features, meta,
+        extra={"sar_method": SAR_METHOD_DESCRIPTION},
+    )
+
+
+ION_BALANCE_METHOD_DESCRIPTION = (
+    "Charge balance error from the latest major-ion chemistry. Each ion (mg/L) "
+    "is converted to meq/L by its equivalent weight; cations are Ca, Mg, Na, K, "
+    "anions are HCO3, CO3, Cl, SO4. charge_balance_pct = 100*(cations-anions)/"
+    "(cations+anions). Class: balanced (|CBE| <= 5%), acceptable (<= 10%), "
+    "suspect (> 10%); 'insufficient' when no cations or no anions are reported. "
+    "Suspect analyses likely have a missing or erroneous major ion; use as a QA "
+    "screen on the chemistry-derived products. Ion values are each the latest "
+    "reported and may carry different dates."
+)
+
+
+def _ion_balance_class(cbe: Optional[float]) -> str:
+    if cbe is None:
+        return "insufficient"
+    if abs(cbe) <= 5:
+        return "balanced"
+    if abs(cbe) <= 10:
+        return "acceptable"
+    return "suspect"
+
+
+_CATIONS = ("calcium", "magnesium", "sodium", "potassium")
+_ANIONS = ("bicarbonate", "carbonate", "chloride", "sulfate")
+
+
+def dump_ion_balance_collection(path: str, records: list, meta: dict) -> dict:
+    """
+    Write an OGC FeatureCollection of per-well charge balance error, one Feature
+    per well. *records* is a flat list of SummaryRecord (one per well+analyte),
+    pivoted by well; the eight major ions are used.
+
+    Per well: ``cation_meq_total``, ``anion_meq_total``, ``n_cations_reported``,
+    ``n_anions_reported``, ``charge_balance_pct`` (None when either side is
+    empty), and ``balance_class`` (balanced/acceptable/suspect/insufficient).
+    The collection carries ``ion_balance_method``.
+    """
+    collection_id = meta.get("id", "collection")
+    wells = _pivot_by_well(records)
+
+    features = []
+    for (source, rid), well in wells.items():
+        a = well["analytes"]
+        cation_total = sum(_meq(a, ion) for ion in _CATIONS)
+        anion_total = sum(_meq(a, ion) for ion in _ANIONS)
+        n_cations = sum(
+            1 for ion in _CATIONS if _num(a.get(ion, {}).get("value")) is not None
+        )
+        n_anions = sum(
+            1 for ion in _ANIONS if _num(a.get(ion, {}).get("value")) is not None
+        )
+
+        if cation_total <= 0 or anion_total <= 0:
+            cbe = None
+        else:
+            cbe = round(
+                100 * (cation_total - anion_total) / (cation_total + anion_total), 1
+            )
+
+        props = {
+            "source": source,
+            "id": rid,
+            "name": well["name"],
+            "well_depth": well["well_depth"],
+            "well_depth_units": well["well_depth_units"],
+            "cation_meq_total": round(cation_total, 3),
+            "anion_meq_total": round(anion_total, 3),
+            "n_cations_reported": n_cations,
+            "n_anions_reported": n_anions,
+            "charge_balance_pct": cbe,
+            "balance_class": _ion_balance_class(cbe),
+        }
+        features.append(_well_feature(source, rid, well, props))
+
+    return _dump_collection(
+        path, collection_id, features, meta,
+        extra={"ion_balance_method": ION_BALANCE_METHOD_DESCRIPTION},
+    )
+
+
 DATA_DENSITY_METHOD_DESCRIPTION = (
     "Per-well measurement coverage. observation_count is the raw count of valid "
     "numeric readings; record_count is the number of distinct calendar days with "
@@ -975,4 +1130,398 @@ def dump_waterlevel_change_collection(
                 window=window_years
             )
         },
+    )
+
+
+WATERLEVEL_STATUS_METHOD_DESCRIPTION = (
+    "Current water level relative to each well's own record. Observations are "
+    "downsampled to one point per calendar day (daily MINIMUM depth-to-water). "
+    "dtw_percentile is the midrank percentile of the latest daily depth-to-water "
+    "within the well's full daily record (100 = deepest ever). Status describes "
+    "the WATER LEVEL (inverse of depth): much below normal (dtw_percentile >= "
+    "90), below normal (>= 75), normal (25-75), above normal (<= 25), much above "
+    "normal (<= 10); 'insufficient' when the well has fewer than 10 daily "
+    "points. Check last_observation_datetime — a stale 'current' value reflects "
+    "the well's state at that time, not today."
+)
+
+_STATUS_MIN_RECORDS = 10
+
+
+def _waterlevel_status(dtw_percentile: float) -> str:
+    if dtw_percentile >= 90:
+        return "much below normal"
+    if dtw_percentile >= 75:
+        return "below normal"
+    if dtw_percentile <= 10:
+        return "much above normal"
+    if dtw_percentile <= 25:
+        return "above normal"
+    return "normal"
+
+
+def dump_waterlevel_status_collection(
+    path: str,
+    site_records: list,
+    timeseries_records: list,
+    meta: dict,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of per-well current water-level status, one
+    Feature per well. *site_records* and *timeseries_records* are index-aligned
+    payload dicts.
+
+    Per well: ``latest_dtw`` + ``latest_dtw_date``, the record's ``min_dtw``/
+    ``median_dtw``/``max_dtw``, ``dtw_percentile`` (midrank percentile of the
+    latest daily value within the well's own record), ``status`` (USGS-style
+    much above/above/normal/below/much below normal, describing the water
+    level), ``record_count``, ``observation_count``, ``span_years``, and
+    first/last observation datetimes. The collection carries ``status_method``.
+    """
+    collection_id = meta.get("id", "collection")
+
+    features = []
+    for site, obs_list in zip(site_records, timeseries_records):
+        observation_count, pairs = _daily_series(obs_list, "min")
+        record_count = len(pairs)
+
+        latest_e = latest_v = None
+        min_v = median_v = max_v = None
+        dtw_percentile = None
+        span_years = 0.0
+        status = "insufficient"
+
+        if record_count:
+            latest_e, latest_v = pairs[-1]
+            span_years = (latest_e - pairs[0][0]) / _SECONDS_PER_YEAR
+            values = sorted(v for _, v in pairs)
+            min_v, max_v = values[0], values[-1]
+            mid = record_count // 2
+            median_v = (
+                values[mid] if record_count % 2
+                else (values[mid - 1] + values[mid]) / 2
+            )
+            if record_count >= _STATUS_MIN_RECORDS:
+                less = sum(1 for v in values if v < latest_v)
+                equal = sum(1 for v in values if v == latest_v)
+                dtw_percentile = round(
+                    100 * (less + 0.5 * equal) / record_count, 1
+                )
+                status = _waterlevel_status(dtw_percentile)
+
+        props = {
+            "source": site.get("source") or "",
+            "id": site.get("id") or "",
+            "name": site.get("name"),
+            "parameter_name": "waterlevels",
+            "well_depth": site.get("well_depth"),
+            "well_depth_units": site.get("well_depth_units"),
+            "record_count": record_count,
+            "observation_count": observation_count,
+            "first_observation_datetime": _iso_utc(pairs[0][0]) if record_count else None,
+            "last_observation_datetime": _iso_utc(latest_e),
+            "span_years": round(span_years, 3),
+            "latest_dtw": None if latest_v is None else round(latest_v, 2),
+            "latest_dtw_date": _iso_utc(latest_e),
+            "min_dtw": None if min_v is None else round(min_v, 2),
+            "median_dtw": None if median_v is None else round(median_v, 2),
+            "max_dtw": None if max_v is None else round(max_v, 2),
+            "dtw_units": "ft",
+            "dtw_percentile": dtw_percentile,
+            "status": status,
+        }
+        features.append(_site_feature(site, props))
+
+    return _dump_collection(
+        path, collection_id, features, meta,
+        extra={"status_method": WATERLEVEL_STATUS_METHOD_DESCRIPTION},
+    )
+
+
+SEASONAL_AMPLITUDE_METHOD_TEMPLATE = (
+    "Within-year depth-to-water spread per well. Observations are downsampled "
+    "to one point per calendar day (daily MINIMUM depth-to-water) and grouped "
+    "by calendar year; a year qualifies when it has at least {min_days} daily "
+    "points, and its amplitude is that year's max minus min depth-to-water. "
+    "mean/max/min_amplitude_ft summarize the qualifying years. Large amplitudes "
+    "indicate pumping-stressed or strongly seasonal wells; 'insufficient' when "
+    "no year qualifies."
+)
+
+
+def dump_seasonal_amplitude_collection(
+    path: str,
+    site_records: list,
+    timeseries_records: list,
+    meta: dict,
+    *,
+    min_days_per_year: int = 4,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of per-well seasonal water-level amplitude,
+    one Feature per well. *site_records* and *timeseries_records* are
+    index-aligned payload dicts.
+
+    Per well: ``mean_amplitude_ft``, ``max_amplitude_ft`` (+ ``max_amplitude_year``),
+    ``min_amplitude_ft``, ``n_years_used`` (years with >= *min_days_per_year*
+    daily points), ``n_years_with_data``, ``record_count``, ``observation_count``,
+    and ``status`` (ok/insufficient). The collection carries
+    ``seasonal_amplitude_method``.
+    """
+    collection_id = meta.get("id", "collection")
+
+    features = []
+    for site, obs_list in zip(site_records, timeseries_records):
+        observation_count, pairs = _daily_series(obs_list, "min")
+
+        by_year: dict = {}
+        for epoch, value in pairs:
+            year = datetime.fromtimestamp(epoch, tz=timezone.utc).year
+            by_year.setdefault(year, []).append(value)
+
+        amplitudes = {
+            year: max(vals) - min(vals)
+            for year, vals in by_year.items()
+            if len(vals) >= min_days_per_year
+        }
+
+        if amplitudes:
+            max_year = max(amplitudes, key=lambda y: amplitudes[y])
+            mean_amp = sum(amplitudes.values()) / len(amplitudes)
+            props_amp = {
+                "mean_amplitude_ft": round(mean_amp, 2),
+                "max_amplitude_ft": round(amplitudes[max_year], 2),
+                "max_amplitude_year": max_year,
+                "min_amplitude_ft": round(min(amplitudes.values()), 2),
+                "status": "ok",
+            }
+        else:
+            props_amp = {
+                "mean_amplitude_ft": None,
+                "max_amplitude_ft": None,
+                "max_amplitude_year": None,
+                "min_amplitude_ft": None,
+                "status": "insufficient",
+            }
+
+        props = {
+            "source": site.get("source") or "",
+            "id": site.get("id") or "",
+            "name": site.get("name"),
+            "parameter_name": "waterlevels",
+            "well_depth": site.get("well_depth"),
+            "well_depth_units": site.get("well_depth_units"),
+            "record_count": len(pairs),
+            "observation_count": observation_count,
+            "n_years_with_data": len(by_year),
+            "n_years_used": len(amplitudes),
+            "amplitude_units": "ft",
+            **props_amp,
+        }
+        features.append(_site_feature(site, props))
+
+    return _dump_collection(
+        path, collection_id, features, meta,
+        extra={
+            "seasonal_amplitude_method": SEASONAL_AMPLITUDE_METHOD_TEMPLATE.format(
+                min_days=min_days_per_year
+            )
+        },
+    )
+
+
+DEPLETION_PROJECTION_METHOD_DESCRIPTION = (
+    "Screening-level projection of when depth-to-water would reach the well's "
+    "total depth if the current trend continued. The per-well trend is the "
+    "Theil-Sen slope of the daily-minimum depth-to-water series (same "
+    "qualification gate as the trend products); a projection is made only when "
+    "the Mann-Kendall test finds a significant INCREASING trend (declining "
+    "water table) and the well has a reported depth. years_to_depletion = "
+    "(well_depth - latest depth-to-water) / slope, from the latest observation "
+    "date. This is a linear extrapolation for screening/prioritization, NOT a "
+    "prediction: it ignores aquifer thickness, screen interval, pumping "
+    "changes, and recharge. Status: 'projected' (projection made), 'not "
+    "declining' (no significant declining trend), 'no well depth', 'dtw exceeds "
+    "well depth' (latest reading at/below the well bottom — suspect data or a "
+    "dry well), 'not enough data'."
+)
+
+
+def dump_depletion_projection_collection(
+    path: str,
+    site_records: list,
+    timeseries_records: list,
+    meta: dict,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of per-well depletion projections, one
+    Feature per well. *site_records* and *timeseries_records* are index-aligned
+    payload dicts.
+
+    Per well: ``slope_ft_per_year`` + ``trend_category`` (Mann-Kendall /
+    Theil-Sen on the daily-min series), ``latest_dtw`` + ``latest_dtw_date``,
+    ``well_depth``, ``remaining_ft`` (well_depth - latest_dtw),
+    ``years_to_depletion``, ``projected_depletion_year``, and ``status`` (see
+    method description). The collection carries ``depletion_method``.
+    """
+    collection_id = meta.get("id", "collection")
+
+    features = []
+    for site, obs_list in zip(site_records, timeseries_records):
+        observation_count, pairs = _daily_series(obs_list, "min")
+        record_count = len(pairs)
+        span_years = (
+            (pairs[-1][0] - pairs[0][0]) / _SECONDS_PER_YEAR
+            if record_count >= 2 else 0.0
+        )
+
+        latest_e = latest_v = None
+        slope = trend_category = None
+        well_depth = _num(site.get("well_depth"))
+        remaining = years_to_depletion = projected_year = None
+
+        if record_count:
+            latest_e, latest_v = pairs[-1]
+
+        if not _qualifies_for_trend(record_count, span_years):
+            status = "not enough data"
+        else:
+            years = [p[0] / _SECONDS_PER_YEAR for p in pairs]
+            values = [p[1] for p in pairs]
+            trend_category, slope, _, _ = _mann_kendall_trend(years, values)
+            slope = round(slope, 2)
+            if trend_category != "increasing" or slope <= 0:
+                status = "not declining"
+            elif well_depth is None:
+                status = "no well depth"
+            else:
+                remaining = round(well_depth - latest_v, 2)
+                if remaining <= 0:
+                    status = "dtw exceeds well depth"
+                else:
+                    years_to_depletion = round(remaining / slope, 1)
+                    latest_year = datetime.fromtimestamp(
+                        latest_e, tz=timezone.utc
+                    ).year
+                    projected_year = int(latest_year + years_to_depletion)
+                    status = "projected"
+
+        props = {
+            "source": site.get("source") or "",
+            "id": site.get("id") or "",
+            "name": site.get("name"),
+            "parameter_name": "waterlevels",
+            "well_depth": well_depth,
+            "well_depth_units": site.get("well_depth_units"),
+            "record_count": record_count,
+            "observation_count": observation_count,
+            "span_years": round(span_years, 3),
+            "trend_category": trend_category,
+            "slope_ft_per_year": slope,
+            "latest_dtw": None if latest_v is None else round(latest_v, 2),
+            "latest_dtw_date": _iso_utc(latest_e),
+            "remaining_ft": remaining,
+            "years_to_depletion": years_to_depletion,
+            "projected_depletion_year": projected_year,
+            "status": status,
+        }
+        features.append(_site_feature(site, props))
+
+    return _dump_collection(
+        path, collection_id, features, meta,
+        extra={"depletion_method": DEPLETION_PROJECTION_METHOD_DESCRIPTION},
+    )
+
+
+WQI_METHOD_DESCRIPTION = (
+    "CCME Water Quality Index computed from each well's latest value per "
+    "analyte against the drinking-water MCL thresholds (same source of truth "
+    "as the MCL exceedance product). F1 (scope) = % of tested analytes "
+    "exceeding; with one (latest) value per analyte F2 (frequency) equals F1. "
+    "F3 (amplitude) is from the normalized sum of excursions (value/MCL - 1). "
+    "WQI = 100 - sqrt(F1^2 + F2^2 + F3^2)/1.732, clamped to [0, 100]. Class "
+    "(CCME): excellent (>= 95), good (>= 80), fair (>= 65), marginal (>= 45), "
+    "poor (< 45); 'insufficient' when no tested analyte has an MCL. Scores from "
+    "few analytes are weak evidence — filter on n_analytes_tested."
+)
+
+
+def _wqi_class(wqi: Optional[float]) -> str:
+    if wqi is None:
+        return "insufficient"
+    if wqi >= 95:
+        return "excellent"
+    if wqi >= 80:
+        return "good"
+    if wqi >= 65:
+        return "fair"
+    if wqi >= 45:
+        return "marginal"
+    return "poor"
+
+
+def dump_wqi_collection(
+    path: str, records: list, meta: dict, thresholds: dict
+) -> dict:
+    """
+    Write an OGC FeatureCollection of per-well CCME water quality index, one
+    Feature per well. *records* is a flat list of SummaryRecord (one per
+    well+analyte), pivoted by well. *thresholds* maps analyte ->
+    {"mcl": <number>, "type": ...} (same file as the MCL exceedance product);
+    only analytes with an MCL are scored.
+
+    Per well: ``<analyte>`` + ``<analyte>_date`` for each tested analyte,
+    ``wqi`` (0-100), ``wqi_class``, ``n_analytes_tested``, ``n_exceeding``, and
+    ``exceeded_analytes``. The collection carries ``wqi_method`` and
+    ``mcl_thresholds``.
+    """
+    collection_id = meta.get("id", "collection")
+    wells = _pivot_by_well(records)
+
+    features = []
+    for (source, rid), well in wells.items():
+        props = {
+            "source": source,
+            "id": rid,
+            "name": well["name"],
+            "well_depth": well["well_depth"],
+            "well_depth_units": well["well_depth_units"],
+        }
+
+        tests = []  # (analyte, value, mcl)
+        for analyte, entry in well["analytes"].items():
+            value = _num(entry.get("value"))
+            limit = thresholds.get(analyte) or {}
+            mcl = _num(limit.get("mcl"))
+            if value is None or mcl is None or mcl <= 0:
+                continue
+            props[analyte] = value
+            props[f"{analyte}_date"] = entry.get("date")
+            tests.append((analyte, value, mcl))
+
+        if not tests:
+            wqi = None
+            exceeded = []
+        else:
+            exceeded = sorted(a for a, v, m in tests if v > m)
+            f1 = 100 * len(exceeded) / len(tests)
+            f2 = f1  # one (latest) value per analyte, so frequency == scope
+            excursions = sum(v / m - 1 for a, v, m in tests if v > m)
+            nse = excursions / len(tests)
+            f3 = nse / (0.01 * nse + 0.01)
+            wqi = 100 - math.sqrt(f1 * f1 + f2 * f2 + f3 * f3) / 1.732
+            wqi = round(min(100.0, max(0.0, wqi)), 1)
+
+        props.update({
+            "wqi": wqi,
+            "wqi_class": _wqi_class(wqi),
+            "n_analytes_tested": len(tests),
+            "n_exceeding": len(exceeded),
+            "exceeded_analytes": exceeded,
+        })
+        features.append(_well_feature(source, rid, well, props))
+
+    return _dump_collection(
+        path, collection_id, features, meta,
+        extra={"wqi_method": WQI_METHOD_DESCRIPTION, "mcl_thresholds": thresholds},
     )

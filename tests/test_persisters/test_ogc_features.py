@@ -651,3 +651,344 @@ class TestWaterLevelChangeCollection:
         )
         props = result["features"][0]["properties"]
         assert props["status"] == "insufficient"
+
+
+from backend.persisters.ogc_features import (
+    dump_sar_collection,
+    dump_ion_balance_collection,
+    dump_wqi_collection,
+    dump_waterlevel_status_collection,
+    dump_seasonal_amplitude_collection,
+    dump_depletion_projection_collection,
+)
+
+
+class TestSARCollection:
+    def test_computes_sar_and_class(self, tmp_path):
+        # Na=229.9 mg/L -> 10 meq; Ca=20.04 -> 1 meq; Mg=12.15 -> 1 meq.
+        # SAR = 10 / sqrt((1+1)/2) = 10 -> medium (S2 starts at 10).
+        recs = [
+            _make_chem_record("WQP", "W1", "sodium", 229.9, well_depth=90.0),
+            _make_chem_record("WQP", "W1", "calcium", 20.04),
+            _make_chem_record("WQP", "W1", "magnesium", 12.15),
+        ]
+        out = tmp_path / "sar.geojson"
+        result = dump_sar_collection(str(out), recs, {"id": "nm_sar"})
+        props = result["features"][0]["properties"]
+        assert props["sar"] == 10.0
+        assert props["sar_class"] == "medium"
+        assert props["sodium"] == 229.9
+        assert props["well_depth"] == 90.0
+        assert "sar_method" in result
+
+    def test_low_class(self, tmp_path):
+        # Na=22.99 -> 1 meq; Ca=80.16 -> 4 meq; Mg=24.3 -> 2 meq.
+        # SAR = 1 / sqrt(3) = 0.58 -> low.
+        recs = [
+            _make_chem_record("WQP", "W1", "sodium", 22.99),
+            _make_chem_record("WQP", "W1", "calcium", 80.16),
+            _make_chem_record("WQP", "W1", "magnesium", 24.3),
+        ]
+        out = tmp_path / "sar.geojson"
+        result = dump_sar_collection(str(out), recs, {"id": "nm_sar"})
+        props = result["features"][0]["properties"]
+        assert props["sar"] == 0.58
+        assert props["sar_class"] == "low"
+
+    def test_missing_sodium_insufficient(self, tmp_path):
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 20.04),
+            _make_chem_record("WQP", "W1", "magnesium", 12.15),
+        ]
+        out = tmp_path / "sar.geojson"
+        result = dump_sar_collection(str(out), recs, {"id": "nm_sar"})
+        props = result["features"][0]["properties"]
+        assert props["sar"] is None
+        assert props["sar_class"] == "insufficient"
+
+    def test_one_divalent_ion_suffices(self, tmp_path):
+        # Missing Mg treated as 0 when Ca present.
+        recs = [
+            _make_chem_record("WQP", "W1", "sodium", 229.9),   # 10 meq
+            _make_chem_record("WQP", "W1", "calcium", 40.08),  # 2 meq
+        ]
+        out = tmp_path / "sar.geojson"
+        result = dump_sar_collection(str(out), recs, {"id": "nm_sar"})
+        props = result["features"][0]["properties"]
+        assert props["sar"] == 10.0  # 10/sqrt(2/2)
+        assert props["magnesium"] is None
+
+    def test_zero_denominator_insufficient(self, tmp_path):
+        recs = [
+            _make_chem_record("WQP", "W1", "sodium", 229.9),
+            _make_chem_record("WQP", "W1", "calcium", 0.0),
+        ]
+        out = tmp_path / "sar.geojson"
+        result = dump_sar_collection(str(out), recs, {"id": "nm_sar"})
+        props = result["features"][0]["properties"]
+        assert props["sar"] is None
+        assert props["sar_class"] == "insufficient"
+
+
+class TestIonBalanceCollection:
+    def test_balanced(self, tmp_path):
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 20.04),   # 1 meq cation
+            _make_chem_record("WQP", "W1", "chloride", 35.45),  # 1 meq anion
+        ]
+        out = tmp_path / "ib.geojson"
+        result = dump_ion_balance_collection(str(out), recs, {"id": "nm_ib"})
+        props = result["features"][0]["properties"]
+        assert props["charge_balance_pct"] == 0.0
+        assert props["balance_class"] == "balanced"
+        assert props["n_cations_reported"] == 1
+        assert props["n_anions_reported"] == 1
+        assert "ion_balance_method" in result
+
+    def test_suspect_when_large_imbalance(self, tmp_path):
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 40.08),   # 2 meq cations
+            _make_chem_record("WQP", "W1", "chloride", 35.45),  # 1 meq anions
+        ]
+        out = tmp_path / "ib.geojson"
+        result = dump_ion_balance_collection(str(out), recs, {"id": "nm_ib"})
+        props = result["features"][0]["properties"]
+        # (2-1)/(2+1)*100 = 33.3 -> suspect
+        assert props["charge_balance_pct"] == 33.3
+        assert props["balance_class"] == "suspect"
+
+    def test_acceptable_boundary(self, tmp_path):
+        # cations 1.1, anions 0.9 -> 10.0% -> acceptable (<=10)
+        recs = [
+            _make_chem_record("WQP", "W1", "calcium", 20.04 * 1.1),
+            _make_chem_record("WQP", "W1", "chloride", 35.45 * 0.9),
+        ]
+        out = tmp_path / "ib.geojson"
+        result = dump_ion_balance_collection(str(out), recs, {"id": "nm_ib"})
+        props = result["features"][0]["properties"]
+        assert props["balance_class"] == "acceptable"
+
+    def test_insufficient_when_no_anions(self, tmp_path):
+        recs = [_make_chem_record("WQP", "W1", "calcium", 100.0)]
+        out = tmp_path / "ib.geojson"
+        result = dump_ion_balance_collection(str(out), recs, {"id": "nm_ib"})
+        props = result["features"][0]["properties"]
+        assert props["charge_balance_pct"] is None
+        assert props["balance_class"] == "insufficient"
+
+
+class TestWQICollection:
+    THRESHOLDS = {
+        "arsenic": {"mcl": 0.01, "type": "primary"},
+        "nitrate": {"mcl": 10.0, "type": "primary"},
+        "fluoride": {"mcl": 4.0, "type": "primary"},
+    }
+
+    def test_no_exceedance_scores_100(self, tmp_path):
+        recs = [
+            _mcl_record("WQP", "W1", "arsenic", 0.005),
+            _mcl_record("WQP", "W1", "nitrate", 2.0),
+        ]
+        out = tmp_path / "wqi.geojson"
+        result = dump_wqi_collection(str(out), recs, {"id": "nm_wqi"}, self.THRESHOLDS)
+        props = result["features"][0]["properties"]
+        assert props["wqi"] == 100.0
+        assert props["wqi_class"] == "excellent"
+        assert props["n_analytes_tested"] == 2
+        assert props["n_exceeding"] == 0
+        assert "wqi_method" in result
+        assert result["mcl_thresholds"] == self.THRESHOLDS
+
+    def test_exceedance_lowers_score(self, tmp_path):
+        # 1 of 3 exceeds, mildly: F1=F2=33.33; excursion=0.1 -> nse=0.0333
+        # F3 = 0.0333/(0.01*0.0333+0.01) = 3.23
+        # WQI = 100 - sqrt(33.33^2*2 + 3.23^2)/1.732 ~= 72.7 -> fair
+        recs = [
+            _mcl_record("WQP", "W1", "arsenic", 0.011),  # 1.1x MCL
+            _mcl_record("WQP", "W1", "nitrate", 2.0),
+            _mcl_record("WQP", "W1", "fluoride", 1.0),
+        ]
+        out = tmp_path / "wqi.geojson"
+        result = dump_wqi_collection(str(out), recs, {"id": "nm_wqi"}, self.THRESHOLDS)
+        props = result["features"][0]["properties"]
+        assert props["n_exceeding"] == 1
+        assert props["exceeded_analytes"] == ["arsenic"]
+        assert 70 < props["wqi"] < 75
+        assert props["wqi_class"] == "fair"
+
+    def test_severe_exceedance_poor(self, tmp_path):
+        recs = [_mcl_record("WQP", "W1", "arsenic", 1.0)]  # 100x MCL
+        out = tmp_path / "wqi.geojson"
+        result = dump_wqi_collection(str(out), recs, {"id": "nm_wqi"}, self.THRESHOLDS)
+        props = result["features"][0]["properties"]
+        assert props["wqi"] < 45
+        assert props["wqi_class"] == "poor"
+
+    def test_no_scored_analytes_insufficient(self, tmp_path):
+        recs = [_mcl_record("WQP", "W1", "calcium", 50.0)]  # no MCL
+        out = tmp_path / "wqi.geojson"
+        result = dump_wqi_collection(str(out), recs, {"id": "nm_wqi"}, self.THRESHOLDS)
+        props = result["features"][0]["properties"]
+        assert props["wqi"] is None
+        assert props["wqi_class"] == "insufficient"
+        assert props["n_analytes_tested"] == 0
+
+    def test_analyte_values_and_dates_carried(self, tmp_path):
+        recs = [_mcl_record("WQP", "W1", "arsenic", 0.02, date="2024-03-10")]
+        out = tmp_path / "wqi.geojson"
+        result = dump_wqi_collection(str(out), recs, {"id": "nm_wqi"}, self.THRESHOLDS)
+        props = result["features"][0]["properties"]
+        assert props["arsenic"] == 0.02
+        assert props["arsenic_date"] == "2024-03-10"
+
+
+class TestWaterLevelStatusCollection:
+    def test_much_below_normal_when_deepest(self, tmp_path):
+        site = _trend_site(rid="W1")
+        # 11 daily points 50..59, latest 100 (deepest ever).
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0 + i) for i in range(10)]
+        obs.append(_trend_obs("2021-01-01", 100.0))
+        out = tmp_path / "st.geojson"
+        result = dump_waterlevel_status_collection(str(out), [site], [obs], {"id": "nm_st"})
+        props = result["features"][0]["properties"]
+        assert props["latest_dtw"] == 100.0
+        assert props["dtw_percentile"] > 90
+        assert props["status"] == "much below normal"
+        assert props["min_dtw"] == 50.0
+        assert props["max_dtw"] == 100.0
+        assert "status_method" in result
+
+    def test_much_above_normal_when_shallowest(self, tmp_path):
+        site = _trend_site(rid="W1")
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0 + i) for i in range(10)]
+        obs.append(_trend_obs("2021-01-01", 10.0))  # shallowest ever
+        out = tmp_path / "st.geojson"
+        result = dump_waterlevel_status_collection(str(out), [site], [obs], {"id": "nm_st"})
+        props = result["features"][0]["properties"]
+        assert props["dtw_percentile"] < 10
+        assert props["status"] == "much above normal"
+
+    def test_normal_mid_record(self, tmp_path):
+        site = _trend_site(rid="W1")
+        # Values 50..60 then latest 55 -> mid-record.
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0 + i) for i in range(11)]
+        obs.append(_trend_obs("2021-06-01", 55.0))
+        out = tmp_path / "st.geojson"
+        result = dump_waterlevel_status_collection(str(out), [site], [obs], {"id": "nm_st"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "normal"
+
+    def test_insufficient_below_min_records(self, tmp_path):
+        site = _trend_site(rid="W1")
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0) for i in range(5)]
+        out = tmp_path / "st.geojson"
+        result = dump_waterlevel_status_collection(str(out), [site], [obs], {"id": "nm_st"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "insufficient"
+        assert props["dtw_percentile"] is None
+        assert props["latest_dtw"] == 50.0  # stats still reported
+
+    def test_empty_well(self, tmp_path):
+        site = _trend_site(rid="W1")
+        out = tmp_path / "st.geojson"
+        result = dump_waterlevel_status_collection(str(out), [site], [[]], {"id": "nm_st"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "insufficient"
+        assert props["latest_dtw"] is None
+        assert props["record_count"] == 0
+
+
+class TestSeasonalAmplitudeCollection:
+    def test_amplitude_per_qualifying_year(self, tmp_path):
+        site = _trend_site(rid="W1")
+        obs = []
+        # 2020: 4 readings spread 50..60 -> amplitude 10
+        for month, v in [(1, 50.0), (4, 55.0), (7, 60.0), (10, 52.0)]:
+            obs.append(_trend_obs(f"2020-{month:02d}-01", v))
+        # 2021: 4 readings 50..54 -> amplitude 4
+        for month, v in [(1, 50.0), (4, 51.0), (7, 54.0), (10, 50.0)]:
+            obs.append(_trend_obs(f"2021-{month:02d}-01", v))
+        # 2022: only 2 readings -> not qualifying
+        obs.append(_trend_obs("2022-01-01", 10.0))
+        obs.append(_trend_obs("2022-07-01", 90.0))
+        out = tmp_path / "sa.geojson"
+        result = dump_seasonal_amplitude_collection(
+            str(out), [site], [obs], {"id": "nm_sa"}, min_days_per_year=4
+        )
+        props = result["features"][0]["properties"]
+        assert props["n_years_with_data"] == 3
+        assert props["n_years_used"] == 2
+        assert props["max_amplitude_ft"] == 10.0
+        assert props["max_amplitude_year"] == 2020
+        assert props["min_amplitude_ft"] == 4.0
+        assert props["mean_amplitude_ft"] == 7.0
+        assert props["status"] == "ok"
+        assert "seasonal_amplitude_method" in result
+
+    def test_insufficient_when_no_year_qualifies(self, tmp_path):
+        site = _trend_site(rid="W1")
+        obs = [_trend_obs("2020-01-01", 50.0), _trend_obs("2021-01-01", 60.0)]
+        out = tmp_path / "sa.geojson"
+        result = dump_seasonal_amplitude_collection(
+            str(out), [site], [obs], {"id": "nm_sa"}, min_days_per_year=4
+        )
+        props = result["features"][0]["properties"]
+        assert props["status"] == "insufficient"
+        assert props["mean_amplitude_ft"] is None
+        assert props["n_years_with_data"] == 2
+        assert props["n_years_used"] == 0
+
+
+class TestDepletionProjectionCollection:
+    def test_projects_declining_well(self, tmp_path):
+        # DTW rising 1 ft/yr from 50; latest (2021) 61; depth 100 ->
+        # remaining 39 ft, ~39 years to depletion.
+        site = _trend_site(rid="W1", well_depth=100.0)
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0 + i) for i in range(12)]
+        out = tmp_path / "dp.geojson"
+        result = dump_depletion_projection_collection(str(out), [site], [obs], {"id": "nm_dp"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "projected"
+        assert props["trend_category"] == "increasing"
+        assert props["slope_ft_per_year"] == 1.0
+        assert props["latest_dtw"] == 61.0
+        assert props["remaining_ft"] == 39.0
+        assert props["years_to_depletion"] == 39.0
+        assert props["projected_depletion_year"] == 2021 + 39
+        assert "depletion_method" in result
+
+    def test_not_declining(self, tmp_path):
+        site = _trend_site(rid="W1", well_depth=100.0)
+        obs = [_trend_obs(f"{2010 + i}-01-01", 60.0 - i) for i in range(12)]
+        out = tmp_path / "dp.geojson"
+        result = dump_depletion_projection_collection(str(out), [site], [obs], {"id": "nm_dp"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "not declining"
+        assert props["years_to_depletion"] is None
+
+    def test_no_well_depth(self, tmp_path):
+        site = _trend_site(rid="W1", well_depth=None)
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0 + i) for i in range(12)]
+        out = tmp_path / "dp.geojson"
+        result = dump_depletion_projection_collection(str(out), [site], [obs], {"id": "nm_dp"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "no well depth"
+        assert props["slope_ft_per_year"] == 1.0  # trend still reported
+
+    def test_dtw_exceeds_well_depth(self, tmp_path):
+        site = _trend_site(rid="W1", well_depth=55.0)
+        obs = [_trend_obs(f"{2010 + i}-01-01", 50.0 + i) for i in range(12)]  # latest 61
+        out = tmp_path / "dp.geojson"
+        result = dump_depletion_projection_collection(str(out), [site], [obs], {"id": "nm_dp"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "dtw exceeds well depth"
+        assert props["years_to_depletion"] is None
+
+    def test_not_enough_data(self, tmp_path):
+        site = _trend_site(rid="W1", well_depth=100.0)
+        obs = [_trend_obs("2020-01-01", 50.0)]
+        out = tmp_path / "dp.geojson"
+        result = dump_depletion_projection_collection(str(out), [site], [obs], {"id": "nm_dp"})
+        props = result["features"][0]["properties"]
+        assert props["status"] == "not enough data"
+        assert props["trend_category"] is None
