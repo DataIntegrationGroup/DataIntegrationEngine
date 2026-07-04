@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 from collections import defaultdict
 from typing import Any, Iterable, Optional
 
@@ -89,7 +90,9 @@ _EARTH_RADIUS_M = 6371008.8
 
 CORRELATION_METHOD_DESCRIPTION = (
     "Cross-agency well correlation: wells are linked by explicit id references "
-    "(usgs_site_id / alternate_site_id, confidence 0.95) and by spatial "
+    "(usgs_site_id / alternate_site_id, confidence 0.95) — including USGS "
+    "15-digit station numbers transcribed with a space or embedded in a site "
+    "name, which are normalized to the canonical NWIS id — and by spatial "
     "proximity between agencies (default <=150 m). Spatial confidence starts low "
     "(0.35) and is raised by each corroborating attribute that agrees — well "
     "depth (<=50 ft), surface elevation (<=20 ft), a shared name/id token, and "
@@ -136,6 +139,33 @@ def _match_keys(value: Any) -> set[str]:
             stripped = norm[len(p) :].strip()
             if stripped:
                 keys.add(stripped)
+    return keys
+
+
+# A USGS groundwater site number is 15 digits derived from the well's DMS
+# coordinates: 6-digit latitude (DDMMSS) + 7-digit longitude (DDDMMSS) +
+# 2-digit sequence. NWIS records it spaceless (e.g. "USGS-330519104134001"),
+# but other agencies transcribe it with a space after the latitude
+# ("330519 104134001") or bury it in a name field, so it never matches the
+# canonical id. The 6-digit head then 8-9 digit tail (14-15 total) is
+# distinctive enough to recognize without colliding with shorter surface-water
+# gage numbers (e.g. "08313000").
+_USGS_STATION_RE = re.compile(r"(?<!\d)(\d{6})[ \t]?(\d{8,9})(?!\d)")
+
+
+def _usgs_station_keys(*values: Any) -> set[str]:
+    """Canonical spaceless USGS station numbers found in the given values,
+    tolerant of an embedded space and of being embedded in free text (e.g. a
+    site name). Used so a transcribed USGS number cross-references the NWIS
+    well whose id is that same number."""
+    keys: set[str] = set()
+    for value in values:
+        if value is None:
+            continue
+        for m in _USGS_STATION_RE.finditer(str(value)):
+            num = m.group(1) + m.group(2)
+            if 14 <= len(num) <= 15:
+                keys.add(num)
     return keys
 
 
@@ -271,6 +301,10 @@ def _explicit_links(sites: list[dict]) -> list[tuple[int, int, str, float]]:
             index[key].add(i)
         for key in _match_keys(s.get("usgs_site_id")):
             index[key].add(i)
+        # A USGS station number in this site's id / usgs_site_id / name is part
+        # of its identity, so index its canonical form too.
+        for key in _usgs_station_keys(s.get("id"), s.get("usgs_site_id"), s.get("name")):
+            index[key].add(i)
 
     edges: list[tuple[int, int, str, float]] = []
     for i, s in enumerate(sites):
@@ -280,14 +314,19 @@ def _explicit_links(sites: list[dict]) -> list[tuple[int, int, str, float]]:
         refs.extend(_parse_references(s.get("alternate_site_id")))
 
         seen: set[str] = set()
-        for ref in refs:
-            for key in _match_keys(ref):
-                if key in seen:
-                    continue
-                seen.add(key)
-                for j in index.get(key, ()):  # noqa: E501
-                    if j != i:
-                        edges.append((i, j, "explicit", _CONF_EXPLICIT))
+        # Match keys from ordinary references plus any USGS station number
+        # transcribed into usgs_site_id / alternate_site_id / name.
+        ref_keys = {k for ref in refs for k in _match_keys(ref)}
+        ref_keys |= _usgs_station_keys(
+            s.get("usgs_site_id"), s.get("alternate_site_id"), s.get("name")
+        )
+        for key in ref_keys:
+            if key in seen:
+                continue
+            seen.add(key)
+            for j in index.get(key, ()):
+                if j != i:
+                    edges.append((i, j, "explicit", _CONF_EXPLICIT))
     return edges
 
 

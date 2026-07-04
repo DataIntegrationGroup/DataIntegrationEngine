@@ -5,6 +5,7 @@ from backend.well_correlation import (
     _match_keys,
     _parse_references,
     _normalize_id,
+    _usgs_station_keys,
 )
 
 
@@ -38,6 +39,16 @@ class TestHelpers:
         d = haversine_m(34.0, -106.0, 35.0, -106.0)
         assert abs(d - 111_195) < 500
 
+    def test_usgs_station_keys_canonicalizes(self):
+        # Spaced, spaceless, and name-embedded forms all yield the canonical id.
+        assert _usgs_station_keys("330519 104134001") == {"330519104134001"}
+        assert _usgs_station_keys("330519104134001") == {"330519104134001"}
+        assert _usgs_station_keys("Smith Well 330519 104134001") == {"330519104134001"}
+        assert _usgs_station_keys("USGS-330519104134001") == {"330519104134001"}
+        # Shorter surface-water gage numbers must not be treated as stations.
+        assert _usgs_station_keys("08313000") == set()
+        assert _usgs_station_keys(None) == set()
+
 
 class TestExplicitLinking:
     def test_usgs_site_id_links_across_prefix(self):
@@ -54,6 +65,40 @@ class TestExplicitLinking:
         assert a["match_confidence"] == 0.95
         assert b["linked_site_ids"] == ["NMBGMR:WELL1"]
         assert a["linked_by_agency"]["USGS-NWIS"] == ["USGS-08313000"]
+
+    def test_usgs_station_number_in_name_links_to_nwis(self):
+        # NMBGMR records the USGS station number (spaced) in its name; NWIS
+        # stores the canonical spaceless id. They must link explicitly.
+        sites = [
+            _site("NMBGMR", "WELL1", name="330519 104134001"),
+            _site("USGS-NWIS", "USGS-330519104134001"),
+        ]
+        res = _by_key(correlate_wells(sites))
+        a = res["NMBGMR:WELL1"]
+        b = res["USGS-NWIS:USGS-330519104134001"]
+        assert a["cluster_id"] == b["cluster_id"]
+        assert a["cluster_size"] == 2
+        assert a["match_method"] == "explicit"
+        assert a["match_confidence"] == 0.95
+
+    def test_usgs_station_number_spaced_in_alternate_id_links(self):
+        sites = [
+            _site("NMBGMR", "W", alternate_site_id="330519 104134001"),
+            _site("USGS-NWIS", "USGS-330519104134001"),
+        ]
+        res = _by_key(correlate_wells(sites))
+        assert res["NMBGMR:W"]["cluster_size"] == 2
+        assert res["NMBGMR:W"]["match_method"] == "explicit"
+
+    def test_surface_gage_not_matched_as_station(self):
+        # An 8-digit gage in a name must not spuriously cluster with a well.
+        sites = [
+            _site("NMBGMR", "WELL1", name="near gage 08313000"),
+            _site("USGS-NWIS", "USGS-330519104134001"),
+        ]
+        res = _by_key(correlate_wells(sites))
+        assert res["NMBGMR:WELL1"]["cluster_size"] == 1
+        assert res["USGS-NWIS:USGS-330519104134001"]["cluster_size"] == 1
 
     def test_alternate_site_id_multi_token(self):
         sites = [
