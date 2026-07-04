@@ -328,7 +328,7 @@ class Config:
         if bbox is None:
             bbox = self.bbox
 
-        if isinstance(bbox, str):
+        if isinstance(bbox, str) and bbox.strip():
             p1, p2 = bbox.split(",")
             x1, y1 = [float(a) for a in p1.strip().split(" ")]
             x2, y2 = [float(a) for a in p2.strip().split(" ")]
