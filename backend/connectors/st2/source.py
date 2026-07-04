@@ -184,18 +184,12 @@ class NMOSERoswellWaterLevelSource(ST2WaterLevelSource):
     def __init__(self):
         super().__init__(transformer=NMOSERoswellWaterLevelTransformer())
 
-    def __repr__(self):
-        return "NMOSERoswellWaterLevelSource"
-
 
 class PVACDWaterLevelSource(ST2WaterLevelSource):
     agency = "PVACD"
 
     def __init__(self):
         super().__init__(transformer=PVACDWaterLevelTransformer())
-
-    def __repr__(self):
-        return "PVACDWaterLevelSource"
 
 
 class EBIDWaterLevelSource(ST2WaterLevelSource):
@@ -204,9 +198,6 @@ class EBIDWaterLevelSource(ST2WaterLevelSource):
     def __init__(self):
         super().__init__(transformer=EBIDWaterLevelTransformer())
 
-    def __repr__(self):
-        return "EBIDWaterLevelSource"
-
 
 class BernCoWaterLevelSource(ST2WaterLevelSource):
     agency = "BernCo"
@@ -214,18 +205,12 @@ class BernCoWaterLevelSource(ST2WaterLevelSource):
     def __init__(self):
         super().__init__(transformer=BernCoWaterLevelTransformer())
 
-    def __repr__(self):
-        return "BernCoWaterLevelSource"
-
 
 class CABQWaterLevelSource(ST2WaterLevelSource):
     agency = "CABQ"
 
     def __init__(self):
         super().__init__(transformer=CABQWaterLevelTransformer())
-
-    def __repr__(self):
-        return "CABQWaterLevelSource"
 
 
 # ============= EOF =============================================

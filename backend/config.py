@@ -152,6 +152,12 @@ class Config:
     site_limit: int = 0
     dry: bool = False
 
+    # Number of chunks fetched concurrently per source (network-bound I/O).
+    # 1 = serial (legacy behavior). Higher values speed up multi-chunk sources
+    # but issue more simultaneous requests, which can trip per-source API rate
+    # limits (e.g. USGS) — tune down if you see 429s.
+    fetch_workers: int = 4
+
     # date
     start_date: str = ""
     end_date: str = ""

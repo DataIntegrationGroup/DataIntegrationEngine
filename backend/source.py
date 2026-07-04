@@ -39,6 +39,10 @@ from backend.record import (
 from backend.transformer import BaseTransformer
 from backend.exceptions import PartialOrNoDataError
 
+# Client errors that will never succeed on retry — fail fast instead of
+# burning the full backoff schedule on them.
+_NON_RETRYABLE_STATUS = frozenset({400, 401, 403, 404, 405, 410, 422})
+
 
 # =============================================================================
 # Record validation strategies
@@ -196,7 +200,10 @@ class BaseSource:
 
     def __init__(self, transformer: Optional[BaseTransformer] = None, http_client: httpx.Client | None = None):
         self.transformer = transformer if transformer is not None else self.transformer_klass()
-        self._http_client = http_client if http_client is not None else httpx.Client(timeout=900)
+        self._http_client = http_client if http_client is not None else httpx.Client(
+            timeout=900,
+            limits=httpx.Limits(max_connections=32, max_keepalive_connections=8),
+        )
         _l = make_logger(self.__class__.__name__)
         self.log = _l.log
         self.warn = _l.warn
@@ -209,6 +216,9 @@ class BaseSource:
         self._fetch_cache_enabled = False
         self._records_cache: dict = {}      # site-id key -> get_records() result
         self._sites_cache = _FETCH_UNSET    # BaseSiteSource.read() result
+
+    def __repr__(self):
+        return self.__class__.__name__
 
     def _fetch_records(self, site_record):
         """get_records() with optional caching (see _fetch_cache_enabled). Keyed
@@ -248,13 +258,17 @@ class BaseSource:
                 if resp.status_code == 200:
                     return resp.text
                 last_err = f"status {resp.status_code}: {resp.text[:200]}"
+                if resp.status_code in _NON_RETRYABLE_STATUS:
+                    self.warn(f"Non-retryable status {resp.status_code} for {url}. Aborting.")
+                    raise PartialOrNoDataError(f"Non-retryable status {resp.status_code} for {url}. {last_err}")
                 self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_tries}")
             except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
                 elapsed = int((time.monotonic() - t0) * 1000)
                 last_err = str(e)
                 self.warn(f"Request error attempt={tries+1}/{max_tries} elapsed_ms={elapsed} url={url}: {e}")
             tries += 1
-            time.sleep(min(2 ** tries, 60))
+            if tries < max_tries:
+                time.sleep(min(2 ** tries, 60))
         self.warn(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
         raise PartialOrNoDataError(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
 
@@ -277,13 +291,17 @@ class BaseSource:
                         self.warn(f"Invalid JSON response attempt={tries+1}/{max_retries} url={url}: {last_err}")
                 else:
                     last_err = f"status {resp.status_code}: {resp.text[:200]}"
+                    if resp.status_code in _NON_RETRYABLE_STATUS:
+                        self.warn(f"Non-retryable status {resp.status_code} for {url}. Aborting.")
+                        raise PartialOrNoDataError(f"Non-retryable status {resp.status_code} for {url}. {last_err}")
                     self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_retries}")
             except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
                 elapsed = int((time.monotonic() - t0) * 1000)
                 last_err = str(e)
                 self.warn(f"Request error attempt={tries+1}/{max_retries} elapsed_ms={elapsed} url={url}: {e}")
             tries += 1
-            time.sleep(min(2 ** tries, 60))
+            if tries < max_retries:
+                time.sleep(min(2 ** tries, 60))
         self.warn(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
         raise PartialOrNoDataError(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
 

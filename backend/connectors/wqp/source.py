@@ -71,9 +71,6 @@ class WQPSiteSource(BaseSiteSource):
     def __init__(self):
         super().__init__(transformer=WQPSiteTransformer())
 
-    def __repr__(self):
-        return "WQPSiteSource"
-
     def health(self):
         try:
             r = self._http_client.get(
@@ -249,9 +246,6 @@ class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
     def __init__(self):
         super().__init__(transformer=WQPAnalyteTransformer())
 
-    def __repr__(self):
-        return "WQPAnalyteSource"
-
     def _parameter_units_hook(self):
         return self.config.analyte_output_units
 
@@ -260,9 +254,6 @@ class WQPAnalyteSource(WQPParameterSource, BaseAnalyteSource):
 class WQPWaterLevelSource(WQPParameterSource, BaseWaterLevelSource):
     def __init__(self):
         super().__init__(transformer=WQPWaterLevelTransformer())
-
-    def __repr__(self):
-        return "WQPWaterLevelSource"
 
     def _parameter_units_hook(self):
         return self.config.waterlevel_output_units

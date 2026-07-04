@@ -34,16 +34,12 @@ from backend.source import get_analyte_search_param, get_terminal_record
 URL = "https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/"
 
 
-
 class DWBSiteSource(STSiteSource):
     url = URL
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def __init__(self):
         super().__init__(transformer=DWBSiteTransformer())
-
-    def __repr__(self):
-        return "DWBSiteSource"
 
     def health(self):
         try:
@@ -114,9 +110,6 @@ class DWBAnalyteSource(STAnalyteSource):
 
     def __init__(self):
         super().__init__(transformer=DWBAnalyteTransformer())
-
-    def __repr__(self):
-        return "DWBAnalyteSource"
 
     def _parse_result(
         self, result, result_dt=None, result_id=None, result_location=None

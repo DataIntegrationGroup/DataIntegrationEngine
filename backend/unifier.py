@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import shapely
 
 from backend.config import Config, get_source
@@ -161,6 +163,9 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
         if config.sites_only:
             persister.sites.extend(sites)
         else:
+            # Build the chunk list up front with each chunk's advisory log
+            # indices (start_ind/end_ind feed only log messages downstream).
+            chunk_specs = []
             for site_records in site_source.chunks(sites):
                 if type(site_records) == list:
                     n = len(site_records)
@@ -168,75 +173,86 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
                         first_flag = False
                     else:
                         start_ind = end_ind + 1
-
                     end_ind += n
+                chunk_specs.append((site_records, start_ind, end_ind))
 
-                if use_summarize:
+            # Fetch chunks concurrently (network-bound), but keep results in
+            # chunk order so output and site_limit stay deterministic. The
+            # persister is mutated only below, on this thread.
+            def _fetch(spec):
+                records, s_ind, e_ind = spec
+                return parameter_source.read(records, use_summarize, s_ind, e_ind)
+
+            workers = max(int(getattr(config, "fetch_workers", 1) or 1), 1)
+            workers = min(workers, len(chunk_specs)) if chunk_specs else 1
+
+            results_by_chunk = [None] * len(chunk_specs)
+            aborted = False
+            if workers > 1:
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    futures = {executor.submit(_fetch, spec): i for i, spec in enumerate(chunk_specs)}
+                    for future in as_completed(futures):
+                        try:
+                            results_by_chunk[futures[future]] = future.result()
+                        except (USGSRateLimitError, PartialOrNoDataError):
+                            aborted = True
+                            break
+            else:
+                for i, spec in enumerate(chunk_specs):
                     try:
-                        summary_records = parameter_source.read(
-                            site_records, use_summarize, start_ind, end_ind
-                        )
-                    except USGSRateLimitError, PartialOrNoDataError:
-                        # remove partial records to prevent incomplete data from being saved
-                        persister.sites = persister.sites[:initial_sites_len]
-                        persister.timeseries = persister.timeseries[
-                            :initial_timeseries_len
-                        ]
-                        persister.records = persister.records[:initial_records_len]
-                        config.warn(incomplete_parameter_record_msg)
+                        results_by_chunk[i] = _fetch(spec)
+                    except (USGSRateLimitError, PartialOrNoDataError):
+                        aborted = True
                         break
-                    if summary_records:
-                        persister.records.extend(summary_records)
-                        sites_with_records_count += len(summary_records)
-                    else:
-                        continue
-                else:
-                    try:
-                        results = parameter_source.read(
-                            site_records, use_summarize, start_ind, end_ind
-                        )
-                    except USGSRateLimitError, PartialOrNoDataError:
-                        # remove partial records to prevent incomplete data from being saved
-                        persister.sites = persister.sites[:initial_sites_len]
-                        persister.timeseries = persister.timeseries[
-                            :initial_timeseries_len
-                        ]
-                        persister.records = persister.records[:initial_records_len]
-                        config.warn(incomplete_parameter_record_msg)
-                        break
-                    # no records are returned if there is no site record for parameter
-                    # or if the record isn't clean (doesn't have the correct fields)
-                    # don't count these sites to apply to site_limit
-                    if results is None or len(results) == 0:
-                        continue
-                    else:
-                        sites_with_records_count += len(results)
 
-                    for site, records in results:
-                        persister.timeseries.append(records)
-                        persister.sites.append(site)
-
-                if site_limit:
-                    if sites_with_records_count >= site_limit:
-                        # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
-                        num_sites_to_remove = sites_with_records_count - site_limit
-
-                        # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
-                        # and calling list[:0] will retur an empty list, so subtract
-                        # num_sites_to_remove from the length of the list
-                        # to remove the last num_sites_to_remove sites
-                        if use_summarize:
-                            persister.records = persister.records[
-                                : len(persister.records) - num_sites_to_remove
-                            ]
+            if aborted:
+                # remove partial records to prevent incomplete data from being saved
+                persister.sites = persister.sites[:initial_sites_len]
+                persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                persister.records = persister.records[:initial_records_len]
+                config.warn(incomplete_parameter_record_msg)
+            else:
+                for results in results_by_chunk:
+                    if use_summarize:
+                        if results:
+                            persister.records.extend(results)
+                            sites_with_records_count += len(results)
                         else:
-                            persister.timeseries = persister.timeseries[
-                                : len(persister.timeseries) - num_sites_to_remove
-                            ]
-                            persister.sites = persister.sites[
-                                : len(persister.sites) - num_sites_to_remove
-                            ]
-                        break
+                            continue
+                    else:
+                        # no records are returned if there is no site record for parameter
+                        # or if the record isn't clean (doesn't have the correct fields)
+                        # don't count these sites to apply to site_limit
+                        if results is None or len(results) == 0:
+                            continue
+                        else:
+                            sites_with_records_count += len(results)
+
+                        for site, records in results:
+                            persister.timeseries.append(records)
+                            persister.sites.append(site)
+
+                    if site_limit:
+                        if sites_with_records_count >= site_limit:
+                            # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
+                            num_sites_to_remove = sites_with_records_count - site_limit
+
+                            # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
+                            # and calling list[:0] will retur an empty list, so subtract
+                            # num_sites_to_remove from the length of the list
+                            # to remove the last num_sites_to_remove sites
+                            if use_summarize:
+                                persister.records = persister.records[
+                                    : len(persister.records) - num_sites_to_remove
+                                ]
+                            else:
+                                persister.timeseries = persister.timeseries[
+                                    : len(persister.timeseries) - num_sites_to_remove
+                                ]
+                                persister.sites = persister.sites[
+                                    : len(persister.sites) - num_sites_to_remove
+                                ]
+                            break
 
     except Exception:
         import traceback
