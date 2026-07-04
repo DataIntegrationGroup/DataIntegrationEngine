@@ -51,7 +51,11 @@ def _point_geometry(lat, lon, elev=None) -> dict:
 
 
 def _dump_collection(
-    path: str, collection_id: str, features: list, meta: dict, extra: Optional[dict] = None
+    path: str,
+    collection_id: str,
+    features: list,
+    meta: dict,
+    extra: Optional[dict] = None,
 ) -> dict:
     """Build the OGC FeatureCollection envelope around *features*, write it to
     *path*, and return it. *extra* injects collection-level keys (e.g.
@@ -69,7 +73,11 @@ def _dump_collection(
         "numberMatched": len(features),
         "numberReturned": len(features),
         "links": [
-            {"href": meta.get("href", ""), "rel": "self", "type": "application/geo+json"}
+            {
+                "href": meta.get("href", ""),
+                "rel": "self",
+                "type": "application/geo+json",
+            }
         ],
         "features": features,
     }
@@ -99,8 +107,11 @@ def _tds_class(value: Optional[float]) -> str:
 
 def _make_feature(record, collection_id: str) -> dict:
     """Build one OGC-compliant Feature from a SummaryRecord or SiteRecord."""
-    props = {k: getattr(record, k) for k in record.keys
-             if k not in ("latitude", "longitude", "elevation")}
+    props = {
+        k: getattr(record, k)
+        for k in record.keys
+        if k not in ("latitude", "longitude", "elevation")
+    }
 
     if getattr(record, "parameter_name", None) == TDS:
         props["tds_class"] = _tds_class(_num(getattr(record, "latest_value", None)))
@@ -123,7 +134,7 @@ def _num(value) -> Optional[float]:
         return None
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
@@ -272,12 +283,16 @@ def dump_major_chemistry_collection(path: str, records: list, meta: dict) -> dic
             props[f"{analyte}_units"] = vals["units"]
             props[f"{analyte}_date"] = vals["date"]
 
-        features.append({
-            "type": "Feature",
-            "id": _feature_id(source, rid),
-            "geometry": _point_geometry(well["latitude"], well["longitude"], well["elevation"]),
-            "properties": props,
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "id": _feature_id(source, rid),
+                "geometry": _point_geometry(
+                    well["latitude"], well["longitude"], well["elevation"]
+                ),
+                "properties": props,
+            }
+        )
 
     return _dump_collection(path, collection_id, features, meta)
 
@@ -368,16 +383,18 @@ def dump_trend_collection(
         if source_datastream_link:
             props["source_datastream_link"] = source_datastream_link
 
-        features.append({
-            "type": "Feature",
-            "id": _feature_id(props["source"], props["id"]),
-            "geometry": _point_geometry(
-                site.get("latitude"),
-                site.get("longitude"),
-                site.get("elevation"),
-            ),
-            "properties": props,
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "id": _feature_id(props["source"], props["id"]),
+                "geometry": _point_geometry(
+                    site.get("latitude"),
+                    site.get("longitude"),
+                    site.get("elevation"),
+                ),
+                "properties": props,
+            }
+        )
 
     return _dump_collection(
         path, collection_id, features, meta, extra={"trend_method": method}
@@ -412,7 +429,9 @@ def dump_mcl_exceedance_collection(
         well = wells.get(key)
         if well is None:
             well = {
-                "source": source, "id": rid, "name": getattr(r, "name", None),
+                "source": source,
+                "id": rid,
+                "name": getattr(r, "name", None),
                 "latitude": getattr(r, "latitude", None),
                 "longitude": getattr(r, "longitude", None),
                 "elevation": getattr(r, "elevation", None),
@@ -431,7 +450,9 @@ def dump_mcl_exceedance_collection(
     features = []
     for (source, rid), well in wells.items():
         props = {
-            "source": source, "id": rid, "name": well["name"],
+            "source": source,
+            "id": rid,
+            "name": well["name"],
             "well_depth": well["well_depth"],
             "well_depth_units": well["well_depth_units"],
         }
@@ -462,14 +483,16 @@ def dump_mcl_exceedance_collection(
         props["exceedance_count"] = len(exceeded)
         props["exceeded_analytes"] = sorted(exceeded)
 
-        features.append({
-            "type": "Feature",
-            "id": _feature_id(source, rid),
-            "geometry": _point_geometry(
-                well["latitude"], well["longitude"], well["elevation"]
-            ),
-            "properties": props,
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "id": _feature_id(source, rid),
+                "geometry": _point_geometry(
+                    well["latitude"], well["longitude"], well["elevation"]
+                ),
+                "properties": props,
+            }
+        )
 
     return _dump_collection(
         path, collection_id, features, meta, extra={"mcl_thresholds": thresholds}
@@ -501,10 +524,12 @@ def dump_monitoring_recency_collection(
     features = []
     for site, obs_list in zip(site_records, timeseries_records):
         epochs = [
-            e for e in (
+            e
+            for e in (
                 _parse_epoch_seconds(o.get("date_measured"), o.get("time_measured"))
                 for o in obs_list
-            ) if e is not None
+            )
+            if e is not None
         ]
         record_count = len(epochs)
         if record_count:
@@ -533,17 +558,22 @@ def dump_monitoring_recency_collection(
             "days_since_last": days_since_last,
             "status": status,
         }
-        features.append({
-            "type": "Feature",
-            "id": _feature_id(props["source"], props["id"]),
-            "geometry": _point_geometry(
-                site.get("latitude"), site.get("longitude"), site.get("elevation")
-            ),
-            "properties": props,
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "id": _feature_id(props["source"], props["id"]),
+                "geometry": _point_geometry(
+                    site.get("latitude"), site.get("longitude"), site.get("elevation")
+                ),
+                "properties": props,
+            }
+        )
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"stale_threshold_days": stale_days},
     )
 
@@ -604,12 +634,14 @@ def dump_timeseries_collection(
         props = {k: getattr(obs, k) for k in obs.keys}
         props["datetime"] = dt
 
-        features.append({
-            "type": "Feature",
-            "id": feature_id,
-            "geometry": geometry,
-            "properties": props,
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "id": feature_id,
+                "geometry": geometry,
+                "properties": props,
+            }
+        )
 
     return _dump_collection(path, collection_id, features, meta)
 
@@ -662,9 +694,7 @@ def dump_hardness_collection(path: str, records: list, meta: dict) -> dict:
         if ca is None or mg is None:
             hardness = None
         else:
-            hardness = round(
-                _HARDNESS_CA_FACTOR * ca + _HARDNESS_MG_FACTOR * mg, 1
-            )
+            hardness = round(_HARDNESS_CA_FACTOR * ca + _HARDNESS_MG_FACTOR * mg, 1)
 
         props = {
             "source": source,
@@ -683,7 +713,10 @@ def dump_hardness_collection(path: str, records: list, meta: dict) -> dict:
         features.append(_well_feature(source, rid, well, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"hardness_method": HARDNESS_METHOD_DESCRIPTION},
     )
 
@@ -765,14 +798,20 @@ def dump_water_type_collection(path: str, records: list, meta: dict) -> dict:
             "anion_meq_total": round(anion_total, 3),
         }
         if cation_total <= 0 or anion_total <= 0:
-            props.update({
-                "water_type": "insufficient",
-                "dominant_cation": None,
-                "dominant_anion": None,
-                "ca_pct": None, "mg_pct": None, "na_k_pct": None,
-                "hco3_pct": None, "cl_pct": None, "so4_pct": None,
-                "charge_balance_pct": None,
-            })
+            props.update(
+                {
+                    "water_type": "insufficient",
+                    "dominant_cation": None,
+                    "dominant_anion": None,
+                    "ca_pct": None,
+                    "mg_pct": None,
+                    "na_k_pct": None,
+                    "hco3_pct": None,
+                    "cl_pct": None,
+                    "so4_pct": None,
+                    "charge_balance_pct": None,
+                }
+            )
         else:
             ca_pct = 100 * ca / cation_total
             mg_pct = 100 * mg / cation_total
@@ -780,30 +819,34 @@ def dump_water_type_collection(path: str, records: list, meta: dict) -> dict:
             hco3_pct = 100 * hco3_co3 / anion_total
             cl_pct = 100 * cl / anion_total
             so4_pct = 100 * so4 / anion_total
-            dom_cation = _dominant(
-                {"Ca": ca_pct, "Mg": mg_pct, "Na+K": na_k_pct}
-            )
+            dom_cation = _dominant({"Ca": ca_pct, "Mg": mg_pct, "Na+K": na_k_pct})
             dom_anion = _dominant({"HCO3": hco3_pct, "Cl": cl_pct, "SO4": so4_pct})
-            props.update({
-                "water_type": f"{dom_cation}-{dom_anion}",
-                "dominant_cation": dom_cation,
-                "dominant_anion": dom_anion,
-                "ca_pct": round(ca_pct, 1),
-                "mg_pct": round(mg_pct, 1),
-                "na_k_pct": round(na_k_pct, 1),
-                "hco3_pct": round(hco3_pct, 1),
-                "cl_pct": round(cl_pct, 1),
-                "so4_pct": round(so4_pct, 1),
-                "charge_balance_pct": round(
-                    100 * (cation_total - anion_total)
-                    / (cation_total + anion_total),
-                    1,
-                ),
-            })
+            props.update(
+                {
+                    "water_type": f"{dom_cation}-{dom_anion}",
+                    "dominant_cation": dom_cation,
+                    "dominant_anion": dom_anion,
+                    "ca_pct": round(ca_pct, 1),
+                    "mg_pct": round(mg_pct, 1),
+                    "na_k_pct": round(na_k_pct, 1),
+                    "hco3_pct": round(hco3_pct, 1),
+                    "cl_pct": round(cl_pct, 1),
+                    "so4_pct": round(so4_pct, 1),
+                    "charge_balance_pct": round(
+                        100
+                        * (cation_total - anion_total)
+                        / (cation_total + anion_total),
+                        1,
+                    ),
+                }
+            )
         features.append(_well_feature(source, rid, well, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"water_type_method": WATER_TYPE_METHOD_DESCRIPTION},
     )
 
@@ -877,7 +920,10 @@ def dump_sar_collection(path: str, records: list, meta: dict) -> dict:
         features.append(_well_feature(source, rid, well, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"sar_method": SAR_METHOD_DESCRIPTION},
     )
 
@@ -957,7 +1003,10 @@ def dump_ion_balance_collection(path: str, records: list, meta: dict) -> dict:
         features.append(_well_feature(source, rid, well, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"ion_balance_method": ION_BALANCE_METHOD_DESCRIPTION},
     )
 
@@ -1004,7 +1053,8 @@ def dump_data_density_collection(
 
         mean_interval_days = (
             round((span_years * 365.25) / (record_count - 1), 1)
-            if record_count > 1 else None
+            if record_count > 1
+            else None
         )
         observations_per_year = (
             round(observation_count / span_years, 2) if span_years > 0 else None
@@ -1028,7 +1078,10 @@ def dump_data_density_collection(
         features.append(_site_feature(site, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"data_density_method": DATA_DENSITY_METHOD_DESCRIPTION},
     )
 
@@ -1085,18 +1138,15 @@ def dump_waterlevel_change_collection(
             dtw_end = round(dtw_end, 2)
             target = end_e - target_span
             # Closest daily point to the window-start target, excluding the end.
-            cand_epoch, cand_val = min(
-                pairs[:-1], key=lambda p: abs(p[0] - target)
-            )
+            cand_epoch, cand_val = min(pairs[:-1], key=lambda p: abs(p[0] - target))
             if abs(cand_epoch - target) <= tolerance:
                 start_e, dtw_start = cand_epoch, round(cand_val, 2)
                 change_ft = round(dtw_end - dtw_start, 2)
-                actual_window_years = round(
-                    (end_e - start_e) / _SECONDS_PER_YEAR, 3
-                )
+                actual_window_years = round((end_e - start_e) / _SECONDS_PER_YEAR, 3)
                 n_in_window = sum(1 for p in pairs if start_e <= p[0] <= end_e)
                 direction = (
-                    "declining" if change_ft > 0
+                    "declining"
+                    if change_ft > 0
                     else "rising" if change_ft < 0 else "stable"
                 )
                 status = "ok"
@@ -1124,7 +1174,10 @@ def dump_waterlevel_change_collection(
         features.append(_site_feature(site, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={
             "change_method": WATERLEVEL_CHANGE_METHOD_TEMPLATE.format(
                 window=window_years
@@ -1198,15 +1251,12 @@ def dump_waterlevel_status_collection(
             min_v, max_v = values[0], values[-1]
             mid = record_count // 2
             median_v = (
-                values[mid] if record_count % 2
-                else (values[mid - 1] + values[mid]) / 2
+                values[mid] if record_count % 2 else (values[mid - 1] + values[mid]) / 2
             )
             if record_count >= _STATUS_MIN_RECORDS:
                 less = sum(1 for v in values if v < latest_v)
                 equal = sum(1 for v in values if v == latest_v)
-                dtw_percentile = round(
-                    100 * (less + 0.5 * equal) / record_count, 1
-                )
+                dtw_percentile = round(100 * (less + 0.5 * equal) / record_count, 1)
                 status = _waterlevel_status(dtw_percentile)
 
         props = {
@@ -1218,7 +1268,9 @@ def dump_waterlevel_status_collection(
             "well_depth_units": site.get("well_depth_units"),
             "record_count": record_count,
             "observation_count": observation_count,
-            "first_observation_datetime": _iso_utc(pairs[0][0]) if record_count else None,
+            "first_observation_datetime": (
+                _iso_utc(pairs[0][0]) if record_count else None
+            ),
             "last_observation_datetime": _iso_utc(latest_e),
             "span_years": round(span_years, 3),
             "latest_dtw": None if latest_v is None else round(latest_v, 2),
@@ -1233,7 +1285,10 @@ def dump_waterlevel_status_collection(
         features.append(_site_feature(site, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"status_method": WATERLEVEL_STATUS_METHOD_DESCRIPTION},
     )
 
@@ -1321,7 +1376,10 @@ def dump_seasonal_amplitude_collection(
         features.append(_site_feature(site, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={
             "seasonal_amplitude_method": SEASONAL_AMPLITUDE_METHOD_TEMPLATE.format(
                 min_days=min_days_per_year
@@ -1372,7 +1430,8 @@ def dump_depletion_projection_collection(
         record_count = len(pairs)
         span_years = (
             (pairs[-1][0] - pairs[0][0]) / _SECONDS_PER_YEAR
-            if record_count >= 2 else 0.0
+            if record_count >= 2
+            else 0.0
         )
 
         latest_e = latest_v = None
@@ -1400,9 +1459,7 @@ def dump_depletion_projection_collection(
                     status = "dtw exceeds well depth"
                 else:
                     years_to_depletion = round(remaining / slope, 1)
-                    latest_year = datetime.fromtimestamp(
-                        latest_e, tz=timezone.utc
-                    ).year
+                    latest_year = datetime.fromtimestamp(latest_e, tz=timezone.utc).year
                     projected_year = int(latest_year + years_to_depletion)
                     status = "projected"
 
@@ -1428,7 +1485,10 @@ def dump_depletion_projection_collection(
         features.append(_site_feature(site, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"depletion_method": DEPLETION_PROJECTION_METHOD_DESCRIPTION},
     )
 
@@ -1460,9 +1520,7 @@ def _wqi_class(wqi: Optional[float]) -> str:
     return "poor"
 
 
-def dump_wqi_collection(
-    path: str, records: list, meta: dict, thresholds: dict
-) -> dict:
+def dump_wqi_collection(path: str, records: list, meta: dict, thresholds: dict) -> dict:
     """
     Write an OGC FeatureCollection of per-well CCME water quality index, one
     Feature per well. *records* is a flat list of SummaryRecord (one per
@@ -1512,16 +1570,129 @@ def dump_wqi_collection(
             wqi = 100 - math.sqrt(f1 * f1 + f2 * f2 + f3 * f3) / 1.732
             wqi = round(min(100.0, max(0.0, wqi)), 1)
 
-        props.update({
-            "wqi": wqi,
-            "wqi_class": _wqi_class(wqi),
-            "n_analytes_tested": len(tests),
-            "n_exceeding": len(exceeded),
-            "exceeded_analytes": exceeded,
-        })
+        props.update(
+            {
+                "wqi": wqi,
+                "wqi_class": _wqi_class(wqi),
+                "n_analytes_tested": len(tests),
+                "n_exceeding": len(exceeded),
+                "exceeded_analytes": exceeded,
+            }
+        )
         features.append(_well_feature(source, rid, well, props))
 
     return _dump_collection(
-        path, collection_id, features, meta,
+        path,
+        collection_id,
+        features,
+        meta,
         extra={"wqi_method": WQI_METHOD_DESCRIPTION, "mcl_thresholds": thresholds},
+    )
+
+
+def dump_well_correlation_collection(
+    path: str,
+    sites: list,
+    meta: dict,
+    *,
+    max_link_distance_m: float = None,
+    depth_tolerance_ft: float = None,
+    elevation_tolerance_ft: float = None,
+    pod_link_distance_m: float = None,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of the cross-agency well correlation layer,
+    one Feature per input well.
+
+    *sites* is a flat list of site payload dicts gathered from **every** source
+    (``source``, ``id``, ``latitude``, ``longitude``, ``well_depth``,
+    ``usgs_site_id``, ``alternate_site_id``, ...). They are correlated by
+    :func:`backend.well_correlation.correlate_wells`, which links wells across
+    agencies (explicit id references + spatial/depth agreement) and associates
+    each with any OSE POD.
+
+    Per well the feature carries: ``cluster_id``, ``cluster_size``,
+    ``n_agencies``, ``linked_site_ids`` (comma-joined "SOURCE:id" of the other
+    wells in the cluster), ``linked_by_agency`` (JSON string), ``n_linked``,
+    ``ose_pod_ids`` (comma-joined), ``ose_pod_link_method``, ``match_method``,
+    ``match_confidence``, and ``is_ose_pod``. Nested collections are serialized
+    to strings so the layer publishes cleanly to GeoPackage/GeoServer.
+
+    The collection carries ``correlation_method``.
+
+    §V: MUST include top-level id, type, numberReturned, timeStamp.
+    §V: Each Feature MUST have top-level id.
+    """
+    # Imported here (not at module top) to keep the correlation engine — pure
+    # stdlib — decoupled from the serialization layer's heavier imports.
+    from backend.well_correlation import (
+        CORRELATION_METHOD_DESCRIPTION,
+        DEFAULT_DEPTH_TOLERANCE_FT,
+        DEFAULT_ELEVATION_TOLERANCE_FT,
+        DEFAULT_MAX_LINK_DISTANCE_M,
+        DEFAULT_POD_LINK_DISTANCE_M,
+        correlate_wells,
+    )
+
+    collection_id = meta.get("id", "collection")
+    correlations = correlate_wells(
+        sites,
+        max_link_distance_m=(
+            DEFAULT_MAX_LINK_DISTANCE_M
+            if max_link_distance_m is None
+            else max_link_distance_m
+        ),
+        depth_tolerance_ft=(
+            DEFAULT_DEPTH_TOLERANCE_FT
+            if depth_tolerance_ft is None
+            else depth_tolerance_ft
+        ),
+        elevation_tolerance_ft=(
+            DEFAULT_ELEVATION_TOLERANCE_FT
+            if elevation_tolerance_ft is None
+            else elevation_tolerance_ft
+        ),
+        pod_link_distance_m=(
+            DEFAULT_POD_LINK_DISTANCE_M
+            if pod_link_distance_m is None
+            else pod_link_distance_m
+        ),
+    )
+
+    features = []
+    for c in correlations:
+        props = {
+            "source": c["source"],
+            "id": c["id"],
+            "name": c["name"],
+            "well_depth": c["well_depth"],
+            "cluster_id": c["cluster_id"],
+            "cluster_size": c["cluster_size"],
+            "n_agencies": c["n_agencies"],
+            "n_linked": len(c["linked_site_ids"]),
+            "linked_site_ids": ",".join(c["linked_site_ids"]),
+            "linked_by_agency": json.dumps(c["linked_by_agency"], default=str),
+            "ose_pod_ids": ",".join(c["ose_pod_ids"]),
+            "ose_pod_link_method": c["ose_pod_link_method"],
+            "match_method": c["match_method"],
+            "match_confidence": c["match_confidence"],
+            "is_ose_pod": c["is_ose_pod"],
+        }
+        features.append(
+            {
+                "type": "Feature",
+                "id": _feature_id(c["source"] or "", c["id"] or ""),
+                "geometry": _point_geometry(
+                    c["latitude"], c["longitude"], c["elevation"]
+                ),
+                "properties": props,
+            }
+        )
+
+    return _dump_collection(
+        path,
+        collection_id,
+        features,
+        meta,
+        extra={"correlation_method": CORRELATION_METHOD_DESCRIPTION},
     )

@@ -146,7 +146,7 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
 
         try:
             sites = site_source.read()
-        except (USGSRateLimitError, PartialOrNoDataError):
+        except USGSRateLimitError, PartialOrNoDataError:
             config.warn(incomplete_sites_record_msg)
             sites = []
 
@@ -176,10 +176,12 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
                         summary_records = parameter_source.read(
                             site_records, use_summarize, start_ind, end_ind
                         )
-                    except (USGSRateLimitError, PartialOrNoDataError):
+                    except USGSRateLimitError, PartialOrNoDataError:
                         # remove partial records to prevent incomplete data from being saved
                         persister.sites = persister.sites[:initial_sites_len]
-                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        persister.timeseries = persister.timeseries[
+                            :initial_timeseries_len
+                        ]
                         persister.records = persister.records[:initial_records_len]
                         config.warn(incomplete_parameter_record_msg)
                         break
@@ -193,10 +195,12 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
                         results = parameter_source.read(
                             site_records, use_summarize, start_ind, end_ind
                         )
-                    except (USGSRateLimitError, PartialOrNoDataError):
+                    except USGSRateLimitError, PartialOrNoDataError:
                         # remove partial records to prevent incomplete data from being saved
                         persister.sites = persister.sites[:initial_sites_len]
-                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                        persister.timeseries = persister.timeseries[
+                            :initial_timeseries_len
+                        ]
                         persister.records = persister.records[:initial_records_len]
                         config.warn(incomplete_parameter_record_msg)
                         break
@@ -352,6 +356,29 @@ def unify_source_both(config, source_key):
     )
 
     return summary_persister, timeseries_persister
+
+
+def collect_sites(config):
+    """Gather site records from **every** enabled source (sites only, no
+    parameter data) and return them as a flat list of ``_payload`` dicts.
+
+    Used by the cross-agency well-correlation product, which needs the location
+    of every well across all agencies — including OSE PODs, which carry no
+    parameter time series. Runs in ``sites_only`` mode over
+    ``all_site_sources()`` so a source that provides no parameter (e.g. the OSE
+    POD source) still contributes its sites. Errors on individual sources are
+    swallowed by ``_site_wrapper`` so one dead source does not abort the sweep.
+    """
+    config.validate()
+
+    config.sites_only = True
+    persister = make_persister(config)
+    config._persister = persister
+
+    for site_source, _ in config.all_site_sources():
+        _site_wrapper(site_source, None, persister, config)
+
+    return [s._payload for s in persister.sites]
 
 
 def get_county_bounds(county):
