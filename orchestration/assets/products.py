@@ -62,6 +62,7 @@ Known limitation — per-analyte source fetches (potential future optimization):
   the bulk of the remaining redundant API pulls for analyte products; it touches
   DIE core, not this asset graph, so it is intentionally out of scope here.
 """
+
 import tempfile
 import traceback
 from collections import namedtuple
@@ -90,10 +91,11 @@ from backend.persisters.ogc_features import (
     dump_water_type_collection,
     dump_waterlevel_change_collection,
     dump_waterlevel_status_collection,
+    dump_well_correlation_collection,
     dump_wqi_collection,
 )
 from backend.record import ParameterRecord, SiteRecord, SummaryRecord
-from backend.unifier import unify_source_both
+from backend.unifier import collect_sites, unify_source_both
 from orchestration.logging_bridge import forward_die_logs
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource
@@ -188,10 +190,28 @@ def _param_source_keys(product: dict, parameter: str) -> list[str]:
     return agencies
 
 
+# Products that are not built on the per-parameter shared-source graph. The well
+# correlation product needs the *sites* of every source (parameter-independent,
+# including the OSE POD source which has no parameter data), so its combine
+# gathers sites itself rather than reading per-parameter shared source assets.
+_STANDALONE_OUTPUT_TYPES = {"ogc_well_correlation"}
+
+
+def is_standalone(product: dict) -> bool:
+    """True for products whose combine gathers its own data (no shared source
+    assets, no parameter cohort)."""
+    return product.get("output_type") in _STANDALONE_OUTPUT_TYPES
+
+
 def product_source_specs(product: dict) -> list[SourceSpec]:
     """Every shared source asset this product depends on, one per
     (parameter, source) pair. ``scope`` is constant for a product; the parameter
-    and source vary. Returned in a stable order."""
+    and source vary. Returned in a stable order.
+
+    Standalone products (see :func:`is_standalone`) depend on no shared source
+    asset and return an empty list."""
+    if is_standalone(product):
+        return []
     scope = _spatial_scope(product)
     specs: list[SourceSpec] = []
     for param in _product_params(product):
@@ -400,45 +420,71 @@ def _build_combine_asset(
                 dump_summary_collection(str(out), records, meta)
             elif output_type == "ogc_data_density":
                 dump_data_density_collection(
-                    str(out), all_sites, all_timeseries, meta,
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
                     parameter_name=product.get("parameter"),
                 )
             elif output_type == "ogc_waterlevel_change":
                 dump_waterlevel_change_collection(
-                    str(out), all_sites, all_timeseries, meta,
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
                     window_years=float(product.get("window_years", 5)),
                 )
             elif output_type == "ogc_waterlevel_trend":
                 # all_sites/all_timeseries are index-aligned payload dicts (see
                 # source asset); consumed as dicts to keep memory bounded.
                 dump_trend_collection(
-                    str(out), all_sites, all_timeseries, meta,
-                    slope_units="ft/year", reducer="min",
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
+                    slope_units="ft/year",
+                    reducer="min",
                 )
             elif output_type == "ogc_analyte_trend":
                 dump_trend_collection(
-                    str(out), all_sites, all_timeseries, meta,
-                    slope_units="mg/L/year", reducer="mean",
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
+                    slope_units="mg/L/year",
+                    reducer="mean",
                     method=ANALYTE_TREND_METHOD_DESCRIPTION,
                     parameter_name=product.get("parameter"),
                 )
             elif output_type == "ogc_waterlevel_status":
                 dump_waterlevel_status_collection(
-                    str(out), all_sites, all_timeseries, meta,
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
                 )
             elif output_type == "ogc_seasonal_amplitude":
                 dump_seasonal_amplitude_collection(
-                    str(out), all_sites, all_timeseries, meta,
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
                     min_days_per_year=int(product.get("min_days_per_year", 4)),
                 )
             elif output_type == "ogc_depletion_projection":
                 dump_depletion_projection_collection(
-                    str(out), all_sites, all_timeseries, meta,
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
                 )
             elif output_type == "ogc_monitoring_recency":
                 run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
                 dump_monitoring_recency_collection(
-                    str(out), all_sites, all_timeseries, meta,
+                    str(out),
+                    all_sites,
+                    all_timeseries,
+                    meta,
                     run_date=run_date,
                     stale_days=int(product.get("stale_days", 365)),
                 )
@@ -474,6 +520,103 @@ def _build_combine_asset(
         return dg.MaterializeResult(metadata=metadata)
 
     return _combine_asset
+
+
+def _build_correlation_combine_asset(product: dict, group: str) -> dg.AssetsDefinition:
+    """Build the combine asset for the well-correlation product (keyed
+    ``[product_id]``).
+
+    Unlike the parameter products, this asset depends on **no** shared source
+    assets: correlation needs the location of every well from every source
+    (including OSE PODs, which carry no parameter data). It gathers all sites
+    itself via ``collect_sites`` (sites-only over ``all_site_sources``), runs the
+    cross-agency correlation, writes the OGC GeoJSON, and uploads it to GCS."""
+    pid = product["id"]
+
+    @dg.asset(
+        key=dg.AssetKey(pid),
+        group_name=group,
+        description=(
+            f"**{product.get('title', pid)}** — standalone combine asset "
+            f"(`ogc_well_correlation`). {product.get('description', '').rstrip('.')}. "
+            f"Gathers sites from every source (sites-only, incl. OSE PODs), "
+            f"correlates wells across agencies, links each to an OSE POD, and "
+            f"uploads the OGC GeoJSON to GCS. Depends on no shared source asset."
+        ),
+        check_specs=[dg.AssetCheckSpec(name=_CHECK_NAME, asset=dg.AssetKey(pid))],
+    )
+    def _combine_asset(
+        context: dg.AssetExecutionContext,
+        die_config: DIEConfigResource,
+        gcs: GCSResource,
+    ) -> Iterator[dg.Output | dg.AssetCheckResult]:
+        error = ""
+        feature_count = 0
+        info: dict = {}
+        try:
+            with forward_die_logs(context):
+                config = die_config.get_config(product)
+                sites = collect_sites(config)
+
+            meta = {
+                "id": pid,
+                "title": product.get("title", pid),
+                "description": product.get("description", ""),
+            }
+            with tempfile.TemporaryDirectory() as tmpdir:
+                out = Path(tmpdir) / "collection.geojson"
+                coll = dump_well_correlation_collection(
+                    str(out),
+                    sites,
+                    meta,
+                    max_link_distance_m=_num_opt(product.get("max_link_distance_m")),
+                    depth_tolerance_ft=_num_opt(product.get("depth_tolerance_ft")),
+                    elevation_tolerance_ft=_num_opt(
+                        product.get("elevation_tolerance_ft")
+                    ),
+                    pod_link_distance_m=_num_opt(product.get("pod_link_distance_m")),
+                )
+                feature_count = len(coll.get("features", []))
+                info = gcs.upload_product(str(out), pid)
+        except Exception:
+            error = traceback.format_exc()
+            context.log.error(f"Well correlation combine failed for {pid}:\n{error}")
+
+        metadata: dict = {"error": error}
+        if info:
+            metadata.update(
+                {
+                    "feature_count": dg.MetadataValue.int(
+                        info.get("feature_count", feature_count)
+                    ),
+                    "latest_uri": dg.MetadataValue.url(info.get("latest_uri", "")),
+                    "skipped_unchanged": dg.MetadataValue.bool(
+                        bool(info.get("skipped"))
+                    ),
+                }
+            )
+            if info.get("dated_uri"):
+                metadata["dated_uri"] = dg.MetadataValue.url(info["dated_uri"])
+
+        yield dg.Output(None, metadata=metadata)
+        yield dg.AssetCheckResult(
+            asset_key=dg.AssetKey(pid),
+            check_name=_CHECK_NAME,
+            passed=error == "" and feature_count > 0,
+            severity=dg.AssetCheckSeverity.WARN,
+            metadata={
+                "feature_count": feature_count,
+                "error": error or ("no features" if feature_count == 0 else ""),
+            },
+        )
+
+    return _combine_asset
+
+
+def _num_opt(value):
+    """None passes through; otherwise coerce to float (products.yaml overrides
+    for the correlation thresholds are optional)."""
+    return None if value is None else float(value)
 
 
 def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path):
@@ -577,8 +720,13 @@ def build_product_pipeline_assets(
     publish asset. The shared source assets it consumes (``specs``) are built
     once by :func:`build_shared_source_asset` in ``definitions.py``, not here, so
     products sharing a source share one asset. The combine's group follows its
-    parameter family (waterlevels vs analytes)."""
-    group = "waterlevels" if product.get("parameter") == WATERLEVELS else "analytes"
-    combine = _build_combine_asset(product, specs, group)
+    parameter family (waterlevels vs analytes); standalone products (well
+    correlation) get their own ``sites`` group and a self-contained combine."""
+    if is_standalone(product):
+        group = "sites"
+        combine = _build_correlation_combine_asset(product, group)
+    else:
+        group = "waterlevels" if product.get("parameter") == WATERLEVELS else "analytes"
+        combine = _build_combine_asset(product, specs, group)
     geoserver = _build_geoserver_asset(product, group)
     return [combine, geoserver]

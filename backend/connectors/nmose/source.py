@@ -39,13 +39,16 @@ class NMOSEPODSiteSource(BaseSiteSource):
         # if config.end_date:
         #     params["endDt"] = config.end_dt.date().isoformat()
 
+        # The OSE POD FeatureServer was renamed from "OSE_PODs" to
+        # "OSE_Points_of_Diversion" (the old name now 400s "Invalid URL").
         url: str = (
-            "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/OSE_PODs/FeatureServer/0/query"
+            "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/"
+            "OSE_Points_of_Diversion/FeatureServer/0/query"
         )
 
         params["where"] = "pod_status = 'ACT' AND pod_basin NOT IN ('SP', 'SD', 'LWD')"
         params["outFields"] = (
-            "OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county"
+            "OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county,"
             "pod_name,pod_nbr,pod_suffix,pod_file,depth_well,aquifer,elevation"
         )
 

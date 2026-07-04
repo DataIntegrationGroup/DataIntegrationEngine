@@ -13,9 +13,11 @@ from orchestration.resources.geoserver import GeoServerResource
 from orchestration.assets.products import (
     build_product_pipeline_assets,
     build_shared_source_asset,
+    is_standalone,
     product_source_specs,
     shared_source_key,
 )
+
 
 class _TolerantGCSPickleIOManager(GCSPickleIOManager):
     """GCS pickle IO manager that tolerates a missing source input.
@@ -39,7 +41,7 @@ class _TolerantGCSPickleIOManager(GCSPickleIOManager):
     def load_input(self, context: dg.InputContext):
         try:
             return super().load_input(context)
-        except (NotFound, FileNotFoundError):
+        except NotFound, FileNotFoundError:
             context.log.warning(
                 f"Source input {context.asset_key.to_user_string()!r} not found "
                 "in GCS; treating as empty. Run sources_job before the product "
@@ -75,6 +77,7 @@ _SUPPORTED_OUTPUT_TYPES = {
     "ogc_waterlevel_status",
     "ogc_seasonal_amplitude",
     "ogc_depletion_projection",
+    "ogc_well_correlation",
 }
 
 
@@ -141,7 +144,7 @@ def _cron_sort_key(cron: str) -> tuple[int, int]:
     parts = cron.split()
     try:
         return (int(parts[1]), int(parts[0]))
-    except (IndexError, ValueError):
+    except IndexError, ValueError:
         return (6, 0)
 
 
@@ -159,7 +162,9 @@ def _build_cohorts(products_config: dict, specs_by_pid: dict) -> dict:
         cohort = cohorts.setdefault(name, {"members": [], "cron": None})
         cohort["members"].append(pid)
         cron = product.get("schedule", "0 6 * * *")
-        if cohort["cron"] is None or _cron_sort_key(cron) < _cron_sort_key(cohort["cron"]):
+        if cohort["cron"] is None or _cron_sort_key(cron) < _cron_sort_key(
+            cohort["cron"]
+        ):
             cohort["cron"] = cron
     return cohorts
 
@@ -213,12 +218,56 @@ def _build_schedules(
     ]
 
 
+def _build_standalone_jobs_and_schedules(
+    products_config: dict,
+) -> tuple[dict[str, "UnresolvedAssetJobDefinition"], list[dg.ScheduleDefinition]]:
+    """Jobs and schedules for standalone products (see ``is_standalone``).
+
+    These products depend on no shared source asset, so they are not part of any
+    cohort. Each gets its own job (selecting just its combine + geoserver assets)
+    and its own schedule at the product's cron. The well correlation product runs
+    quarterly (see products.yaml)."""
+    jobs: dict[str, "UnresolvedAssetJobDefinition"] = {}
+    schedules: list[dg.ScheduleDefinition] = []
+    for product in _products(products_config):
+        if not is_standalone(product):
+            continue
+        pid = product["id"]
+        job_name = f"{pid}_job"
+        jobs[job_name] = dg.define_asset_job(
+            name=job_name,
+            selection=dg.AssetSelection.keys(
+                dg.AssetKey(pid), dg.AssetKey([pid, "geoserver"])
+            ),
+            description=(
+                f"Materialize the standalone {pid} product: gather all sites, "
+                f"correlate wells across agencies, publish to GeoServer."
+            ),
+        )
+        schedules.append(
+            dg.ScheduleDefinition(
+                name=f"schedule_{pid}",
+                job=jobs[job_name],
+                cron_schedule=product.get("schedule", "0 6 1 */3 *"),
+                execution_timezone="America/Denver",
+            )
+        )
+    return jobs, schedules
+
+
 _products_config = _load_products()
-_source_assets, _pipeline_assets, _specs_by_pid, _all_specs = _build_graph(_products_config)
+_source_assets, _pipeline_assets, _specs_by_pid, _all_specs = _build_graph(
+    _products_config
+)
 _assets = _source_assets + _pipeline_assets
 _cohorts = _build_cohorts(_products_config, _specs_by_pid)
 _cohort_jobs = _build_cohort_jobs(_cohorts, _specs_by_pid)
 _schedules = _build_schedules(_cohorts, _cohort_jobs)
+_standalone_jobs, _standalone_schedules = _build_standalone_jobs_and_schedules(
+    _products_config
+)
+_cohort_jobs.update(_standalone_jobs)
+_schedules += _standalone_schedules
 
 defs = dg.Definitions(
     assets=_assets,

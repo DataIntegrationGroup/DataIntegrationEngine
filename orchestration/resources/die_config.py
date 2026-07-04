@@ -72,6 +72,8 @@ class DIEConfigResource(dg.ConfigurableResource):
                 payload[f"use_source_{s}"] = False
 
         config = Config(payload=payload)
-        config.parameter = parameter or product["parameter"]
+        # An empty parameter is valid for sites-only flows (e.g. the well
+        # correlation product), so fall back to "" when the product has none.
+        config.parameter = parameter or product.get("parameter", "")
         config.finalize()
         return config

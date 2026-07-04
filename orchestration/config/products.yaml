@@ -267,3 +267,24 @@ products:
       state: NM
     sources:
       exclude: []
+
+  # One feature per well linking it to the same physical well at other agencies
+  # and, ultimately, to an OSE POD. Standalone product (no `parameter`): its
+  # combine gathers sites from EVERY source (sites-only, incl. the OSE POD
+  # source) and correlates them via backend/well_correlation.py — explicit id
+  # references (usgs_site_id / alternate_site_id) plus spatial+depth agreement,
+  # since coordinates are only approximate. Generated quarterly (1st of Jan/Apr/
+  # Jul/Oct, 06:00 America/Denver). Correlation thresholds are optional overrides
+  # (defaults live in backend/well_correlation.py).
+  - id: nm_well_correlation
+    output_type: ogc_well_correlation
+    title: "NM Cross-Agency Well Correlation"
+    description: "Per-well links to associated wells at other agencies and to OSE PODs, all NM sources"
+    schedule: "0 6 1 */3 *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+    # max_link_distance_m: 150
+    # depth_tolerance_ft: 50
+    # pod_link_distance_m: 150
