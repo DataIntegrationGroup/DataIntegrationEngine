@@ -6,7 +6,7 @@ products:
     output_type: ogc_summary
     title: "NM Unified Water Levels Summary"
     description: "Summary stats for water levels, all NM sources"
-    schedule: "0 6 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
@@ -17,7 +17,7 @@ products:
     output_type: ogc_timeseries
     title: "NM Water Levels Time Series"
     description: "Per-observation water level measurements, all NM sources"
-    schedule: "0 7 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
@@ -28,7 +28,7 @@ products:
     output_type: ogc_summary
     title: "NM Arsenic Summary"
     description: "Arsenic concentration summary stats, all NM sources"
-    schedule: "0 9 * * *"
+    schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
     sources:
@@ -39,7 +39,7 @@ products:
     output_type: ogc_summary
     title: "NM TDS Summary"
     description: "TDS concentration summary stats, all NM sources"
-    schedule: "0 10 * * *"
+    schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
     sources:
@@ -52,7 +52,7 @@ products:
     output_type: ogc_major_chemistry
     title: "NM Major Chemistry"
     description: "Wells with major-ion chemistry (latest value per analyte), well depth, all NM sources"
-    schedule: "0 11 * * *"
+    schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
     sources:
@@ -67,7 +67,7 @@ products:
     output_type: ogc_waterlevel_trend
     title: "NM Water Level Trends"
     description: "Per-well depth-to-water trend (slope and category), all NM sources"
-    schedule: "0 12 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
@@ -80,7 +80,7 @@ products:
     output_type: ogc_analyte_trend
     title: "NM Arsenic Trends"
     description: "Per-well arsenic concentration trend (slope and category), all NM sources"
-    schedule: "0 13 * * *"
+    schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
     sources:
@@ -91,7 +91,7 @@ products:
     output_type: ogc_analyte_trend
     title: "NM Nitrate Trends"
     description: "Per-well nitrate concentration trend (slope and category), all NM sources"
-    schedule: "0 14 * * *"
+    schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
     sources:
@@ -104,7 +104,7 @@ products:
     output_type: ogc_mcl_exceedance
     title: "NM MCL Exceedances"
     description: "Wells flagged against drinking-water MCLs, all NM sources"
-    schedule: "0 15 * * *"
+    schedule: "0 6 25 * *"
     analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
     spatial_filter:
       state: NM
@@ -118,7 +118,7 @@ products:
     output_type: ogc_monitoring_recency
     title: "NM Monitoring Recency"
     description: "Per-well water-level monitoring recency and status, all NM sources"
-    schedule: "0 16 * * *"
+    schedule: "0 6 15 * *"
     stale_days: 365
     spatial_filter:
       state: NM
@@ -132,7 +132,7 @@ products:
     output_type: ogc_hardness
     title: "NM Water Hardness"
     description: "Per-well total hardness as CaCO3 (calcium + magnesium), all NM sources"
-    schedule: "0 11 * * *"
+    schedule: "0 6 25 * *"
     analytes: [calcium, magnesium]
     spatial_filter:
       state: NM
@@ -146,7 +146,7 @@ products:
     output_type: ogc_water_type
     title: "NM Water Type"
     description: "Per-well hydrochemical (Piper) water type from major-ion chemistry, all NM sources"
-    schedule: "0 11 * * *"
+    schedule: "0 6 25 * *"
     analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
     spatial_filter:
       state: NM
@@ -161,7 +161,7 @@ products:
     output_type: ogc_data_density
     title: "NM Water Level Data Density"
     description: "Per-well water-level measurement coverage and frequency, all NM sources"
-    schedule: "0 7 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
@@ -175,7 +175,7 @@ products:
     output_type: ogc_waterlevel_change
     title: "NM Water Level Change"
     description: "Per-well depth-to-water change over a trailing window, all NM sources"
-    schedule: "0 7 * * *"
+    schedule: "0 6 15 * *"
     window_years: 5
     spatial_filter:
       state: NM
@@ -189,7 +189,7 @@ products:
     output_type: ogc_sar
     title: "NM Sodium Adsorption Ratio"
     description: "Per-well sodium adsorption ratio and irrigation hazard class, all NM sources"
-    schedule: "0 11 * * *"
+    schedule: "0 6 25 * *"
     analytes: [sodium, calcium, magnesium]
     spatial_filter:
       state: NM
@@ -203,7 +203,7 @@ products:
     output_type: ogc_ion_balance
     title: "NM Ion Balance"
     description: "Per-well major-ion charge balance error (QA screen), all NM sources"
-    schedule: "0 11 * * *"
+    schedule: "0 6 25 * *"
     analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
     spatial_filter:
       state: NM
@@ -217,7 +217,7 @@ products:
     output_type: ogc_wqi
     title: "NM Water Quality Index"
     description: "Per-well CCME water quality index against drinking-water MCLs, all NM sources"
-    schedule: "0 15 * * *"
+    schedule: "0 6 25 * *"
     analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
     spatial_filter:
       state: NM
@@ -232,7 +232,7 @@ products:
     output_type: ogc_waterlevel_status
     title: "NM Water Level Status"
     description: "Per-well current water level vs the well's own record (percentile and status), all NM sources"
-    schedule: "0 7 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
@@ -246,7 +246,7 @@ products:
     output_type: ogc_seasonal_amplitude
     title: "NM Water Level Seasonal Amplitude"
     description: "Per-well within-year depth-to-water amplitude, all NM sources"
-    schedule: "0 7 * * *"
+    schedule: "0 6 15 * *"
     min_days_per_year: 4
     spatial_filter:
       state: NM
@@ -262,7 +262,7 @@ products:
     output_type: ogc_depletion_projection
     title: "NM Well Depletion Projection"
     description: "Per-well screening projection of years until depth-to-water reaches well depth, all NM sources"
-    schedule: "0 12 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
@@ -273,14 +273,14 @@ products:
   # combine gathers sites from EVERY source (sites-only, incl. the OSE POD
   # source) and correlates them via backend/well_correlation.py — explicit id
   # references (usgs_site_id / alternate_site_id) plus spatial+depth agreement,
-  # since coordinates are only approximate. Generated quarterly (1st of Jan/Apr/
-  # Jul/Oct, 06:00 America/Denver). Correlation thresholds are optional overrides
+  # since coordinates are only approximate. Generated monthly (1st, 06:00
+  # America/Denver). Correlation thresholds are optional overrides
   # (defaults live in backend/well_correlation.py).
   - id: nm_well_correlation
     output_type: ogc_well_correlation
     title: "NM Cross-Agency Well Correlation"
     description: "Per-well links to associated wells at other agencies and to OSE PODs, all NM sources"
-    schedule: "0 6 1 */3 *"
+    schedule: "0 6 1 * *"
     spatial_filter:
       state: NM
     sources:

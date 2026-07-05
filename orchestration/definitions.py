@@ -226,7 +226,7 @@ def _build_standalone_jobs_and_schedules(
     These products depend on no shared source asset, so they are not part of any
     cohort. Each gets its own job (selecting just its combine + geoserver assets)
     and its own schedule at the product's cron. The well correlation product runs
-    quarterly (see products.yaml)."""
+    monthly (see products.yaml)."""
     jobs: dict[str, "UnresolvedAssetJobDefinition"] = {}
     schedules: list[dg.ScheduleDefinition] = []
     for product in _products(products_config):
