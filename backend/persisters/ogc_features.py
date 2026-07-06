@@ -1866,3 +1866,273 @@ def dump_basin_well_density_collection(
             "unassigned_well_count": unassigned,
         },
     )
+
+
+POD_AGE_COUNTY_METHOD_DESCRIPTION = (
+    "OSE points of diversion (wells) completed in the trailing N years, binned "
+    "by completion year (finish_dat) and aggregated per NM county. Each POD is "
+    "deduped by source+id and assigned to the first county polygon covering its "
+    "point; PODs outside every county polygon count toward unassigned_pod_count "
+    "instead of any feature. Per county: year_YYYY completion counts, "
+    "total_recent_pods, peak_year, and trend_pods_per_year (least-squares slope "
+    "of the yearly counts, wells/year). The collection names the "
+    "fastest_growing_county (largest slope) and carries statewide yearly_totals. "
+    "Only NMOSEPOD sites carry a completion date, so this product ignores wells "
+    "from other agencies."
+)
+
+POD_AGE_POINTS_METHOD_DESCRIPTION = (
+    "One point feature per OSE point of diversion (well) completed in the "
+    "trailing N years, deduped by source+id and carrying its completion_year "
+    "(from finish_dat) and spatially-assigned county. The collection carries "
+    "yearly_totals, total_recent_pods, and the fastest_growing_county (largest "
+    "least-squares slope of per-county yearly counts, wells/year). Only NMOSEPOD "
+    "sites carry a completion date, so wells from other agencies are ignored."
+)
+
+
+def _pod_completion_year(payload: dict) -> Optional[int]:
+    """Year from a site payload's ``well_completion_date`` (ISO ``YYYY-MM-DD``),
+    or None when absent/unparseable."""
+    value = payload.get("well_completion_date")
+    if not value:
+        return None
+    try:
+        return int(str(value)[:4])
+    except ValueError:
+        return None
+
+
+def _recent_pod_records(site_records: list, year_range: list) -> list:
+    """OSE PODs (``source == "NMOSEPOD"``) with valid coordinates and a
+    completion year within *year_range*, deduped by ``(source, id)``. Returns a
+    list of ``(shapely Point, completion_year, payload)`` tuples."""
+    lo, hi = year_range[0], year_range[-1]
+    seen = set()
+    out = []
+    for site in site_records:
+        if (site.get("source") or "") != "NMOSEPOD":
+            continue
+        key = (site.get("source"), site.get("id"))
+        if key in seen:
+            continue
+        seen.add(key)
+        lat, lon = site.get("latitude"), site.get("longitude")
+        if lat is None or lon is None:
+            continue
+        year = _pod_completion_year(site)
+        if year is None or year < lo or year > hi:
+            continue
+        out.append((Point(lon, lat), year, site))
+    return out
+
+
+def _assign_pods_to_counties(counties: list, recent_pods: list) -> list:
+    """Index of the first county polygon covering each pod (None if outside every
+    county). Returned list is aligned to *recent_pods*."""
+    idxs = []
+    for point, _year, _payload in recent_pods:
+        found = None
+        for i, county in enumerate(counties):
+            if county["geometry"].covers(point):
+                found = i
+                break
+        idxs.append(found)
+    return idxs
+
+
+def _linear_slope(values: list) -> Optional[float]:
+    """Least-squares slope of *values* against ``0..n-1`` (per-step change).
+    None when fewer than two points or x-variance is zero."""
+    n = len(values)
+    if n < 2:
+        return None
+    mean_x = (n - 1) / 2
+    mean_y = sum(values) / n
+    num = sum((i - mean_x) * (v - mean_y) for i, v in enumerate(values))
+    den = sum((i - mean_x) ** 2 for i in range(n))
+    if den == 0:
+        return None
+    return num / den
+
+
+def dump_pod_age_by_county_collection(
+    path: str,
+    counties: list,
+    site_records: list,
+    meta: dict,
+    years_back: int = 10,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of OSE-POD age distribution per NM county,
+    one Feature per county **polygon** (not per POD).
+
+    *counties* is a list of ``{"name", "fips", "geometry" (shapely Polygon,
+    WGS84), "area_sq_km"}`` (see
+    :func:`backend.bounding_polygons.get_state_county_polygons`).
+    *site_records* is a flat list of site payload dicts; only NMOSEPOD sites with
+    a completion year in the trailing *years_back* window are counted (deduped by
+    ``(source, id)`` and assigned to the first covering county polygon).
+
+    Per county Feature: ``county``, ``fips``, ``area_sq_km``,
+    ``total_recent_pods``, per-year ``year_YYYY`` counts, ``peak_year``,
+    ``trend_pods_per_year`` (least-squares slope, wells/year), and
+    ``latest_year_count``. The collection carries ``pod_age_method``,
+    ``year_range``, ``yearly_totals``, ``total_recent_pods``,
+    ``unassigned_pod_count``, and ``fastest_growing_county`` /
+    ``fastest_growing_pods_per_year`` (the county with the largest slope).
+    """
+    collection_id = meta.get("id", "collection")
+    current_year = datetime.now(timezone.utc).year
+    year_range = list(range(current_year - years_back + 1, current_year + 1))
+    recent = _recent_pod_records(site_records, year_range)
+    idxs = _assign_pods_to_counties(counties, recent)
+
+    # yearly_totals counts every recent POD (statewide), including any not
+    # assigned to a county; per_county bins hold only the assigned ones. So
+    # sum(per-county totals) + unassigned == sum(yearly_totals) == total, and the
+    # county product's yearly_totals matches the points product's.
+    per_county = [{y: 0 for y in year_range} for _ in counties]
+    yearly_totals = {y: 0 for y in year_range}
+    unassigned = 0
+    for (_point, year, _payload), ci in zip(recent, idxs):
+        yearly_totals[year] += 1
+        if ci is None:
+            unassigned += 1
+            continue
+        per_county[ci][year] += 1
+
+    features = []
+    fastest_name, fastest_slope, fastest_total = None, None, -1
+    for county, bins in zip(counties, per_county):
+        counts = [bins[y] for y in year_range]
+        total = sum(counts)
+        slope = _linear_slope(counts)
+        peak_year = max(year_range, key=lambda y: bins[y]) if total else None
+        props = {
+            "county": county["name"],
+            "fips": county["fips"],
+            "area_sq_km": county["area_sq_km"],
+            "total_recent_pods": total,
+            **{f"year_{y}": bins[y] for y in year_range},
+            "trend_pods_per_year": round(slope, 3) if slope is not None else None,
+            "peak_year": peak_year,
+            "latest_year_count": bins[current_year],
+        }
+        features.append(
+            {
+                "type": "Feature",
+                "id": f"county:{county['fips'] or county['name']}",
+                "geometry": mapping(county["geometry"]),
+                "properties": props,
+            }
+        )
+        if slope is not None and (
+            fastest_slope is None
+            or slope > fastest_slope
+            or (slope == fastest_slope and total > fastest_total)
+        ):
+            fastest_name, fastest_slope, fastest_total = county["name"], slope, total
+
+    return _dump_collection(
+        path,
+        collection_id,
+        features,
+        meta,
+        extra={
+            "pod_age_method": POD_AGE_COUNTY_METHOD_DESCRIPTION,
+            "year_range": year_range,
+            "yearly_totals": yearly_totals,
+            "total_recent_pods": len(recent),
+            "unassigned_pod_count": unassigned,
+            "fastest_growing_county": fastest_name,
+            "fastest_growing_pods_per_year": (
+                round(fastest_slope, 3) if fastest_slope is not None else None
+            ),
+        },
+    )
+
+
+def dump_pod_age_points_collection(
+    path: str,
+    site_records: list,
+    counties: list,
+    meta: dict,
+    years_back: int = 10,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of OSE PODs completed in the trailing
+    *years_back* years, one **point** Feature per well.
+
+    *site_records* is a flat list of site payload dicts; only NMOSEPOD sites with
+    a completion year in the window are emitted (deduped by ``(source, id)``).
+    *counties* (see :func:`dump_pod_age_by_county_collection`) is used only to
+    tag each point with its spatially-assigned county name and to compute the
+    collection-level fastest-growing county.
+
+    Per POD Feature: ``source``, ``id``, ``completion_year``,
+    ``completion_date``, ``county`` (None if outside every county polygon),
+    ``aquifer``, ``well_depth``. The collection carries ``pod_age_method``,
+    ``year_range``, ``yearly_totals``, ``total_recent_pods``, and
+    ``fastest_growing_county`` / ``fastest_growing_pods_per_year``.
+    """
+    collection_id = meta.get("id", "collection")
+    current_year = datetime.now(timezone.utc).year
+    year_range = list(range(current_year - years_back + 1, current_year + 1))
+    recent = _recent_pod_records(site_records, year_range)
+    idxs = _assign_pods_to_counties(counties, recent)
+
+    per_county = [{y: 0 for y in year_range} for _ in counties]
+    yearly_totals = {y: 0 for y in year_range}
+    features = []
+    for (point, year, payload), ci in zip(recent, idxs):
+        yearly_totals[year] += 1
+        county_name = counties[ci]["name"] if ci is not None else None
+        if ci is not None:
+            per_county[ci][year] += 1
+        props = {
+            "source": payload.get("source"),
+            "id": payload.get("id"),
+            "completion_year": year,
+            "completion_date": payload.get("well_completion_date"),
+            "county": county_name,
+            "aquifer": payload.get("aquifer"),
+            "well_depth": payload.get("well_depth"),
+            "well_depth_units": payload.get("well_depth_units"),
+        }
+        features.append(
+            {
+                "type": "Feature",
+                "id": _feature_id(payload.get("source"), payload.get("id")),
+                "geometry": mapping(point),
+                "properties": props,
+            }
+        )
+
+    fastest_name, fastest_slope = None, None
+    for county, bins in zip(counties, per_county):
+        counts = [bins[y] for y in year_range]
+        if not any(counts):
+            continue
+        slope = _linear_slope(counts)
+        if slope is None:
+            continue
+        if fastest_slope is None or slope > fastest_slope:
+            fastest_name, fastest_slope = county["name"], slope
+
+    return _dump_collection(
+        path,
+        collection_id,
+        features,
+        meta,
+        extra={
+            "pod_age_method": POD_AGE_POINTS_METHOD_DESCRIPTION,
+            "year_range": year_range,
+            "yearly_totals": yearly_totals,
+            "total_recent_pods": len(features),
+            "fastest_growing_county": fastest_name,
+            "fastest_growing_pods_per_year": (
+                round(fastest_slope, 3) if fastest_slope is not None else None
+            ),
+        },
+    )

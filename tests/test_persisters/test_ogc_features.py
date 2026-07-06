@@ -1387,3 +1387,178 @@ class TestBasinWellDensityCollection:
         assert result["type"] == "FeatureCollection"
         assert result["id"] == "nm_bd"
         assert "timeStamp" in result
+
+
+from datetime import datetime, timezone
+
+from backend.persisters.ogc_features import (
+    dump_pod_age_by_county_collection,
+    dump_pod_age_points_collection,
+)
+
+# Completion years are relative to "now" so the trailing-10-year window (and
+# these tests) stay valid over time rather than pinning a calendar year.
+_CY = datetime.now(timezone.utc).year
+
+
+def _pod_site(rid, lon, lat, year=None, source="NMOSEPOD", **extra):
+    """A POD site payload as collect_sites would emit it. *year* becomes an ISO
+    ``well_completion_date``; None means the well has no recorded date."""
+    site = {
+        "source": source,
+        "id": rid,
+        "latitude": lat,
+        "longitude": lon,
+        "well_completion_date": f"{year}-06-15" if year is not None else None,
+    }
+    site.update(extra)
+    return site
+
+
+class TestPodAgeByCountyCollection:
+    def test_bins_recent_pods_by_year_per_county(self, tmp_path):
+        counties = [
+            _square_county("A", "001", 0, 0),
+            _square_county("B", "003", 10, 10),
+        ]
+        sites = [
+            _pod_site("P1", 0.5, 0.5, _CY),       # A, this year
+            _pod_site("P2", 0.2, 0.8, _CY - 1),   # A, last year
+            _pod_site("P3", 10.5, 10.5, _CY),     # B, this year
+        ]
+        out = tmp_path / "pod.geojson"
+        result = dump_pod_age_by_county_collection(
+            str(out), counties, sites, {"id": "nm_pod"}, years_back=10
+        )
+        assert result["numberReturned"] == 2  # one feature per county
+        by_name = {f["properties"]["county"]: f["properties"] for f in result["features"]}
+        assert by_name["A"]["total_recent_pods"] == 2
+        assert by_name["A"][f"year_{_CY}"] == 1
+        assert by_name["A"][f"year_{_CY - 1}"] == 1
+        assert by_name["B"]["total_recent_pods"] == 1
+        assert result["total_recent_pods"] == 3
+        assert result["yearly_totals"][_CY] == 2  # both A- and B-this-year wells
+        assert result["unassigned_pod_count"] == 0
+        assert "pod_age_method" in result
+
+    def test_excludes_pods_outside_window_and_non_pod_sources(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _pod_site("P1", 0.5, 0.5, _CY),            # in window
+            _pod_site("P2", 0.5, 0.5, _CY - 20),       # too old
+            _pod_site("P3", 0.5, 0.5, None),           # no date
+            _pod_site("P4", 0.5, 0.5, _CY, source="NMBGMR"),  # not a POD source
+        ]
+        out = tmp_path / "pod.geojson"
+        result = dump_pod_age_by_county_collection(
+            str(out), counties, sites, {"id": "nm_pod"}, years_back=10
+        )
+        assert result["total_recent_pods"] == 1
+        assert result["features"][0]["properties"]["total_recent_pods"] == 1
+
+    def test_dedupes_by_source_and_id(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _pod_site("P1", 0.5, 0.5, _CY),
+            _pod_site("P1", 0.5, 0.5, _CY),  # duplicate
+        ]
+        out = tmp_path / "pod.geojson"
+        result = dump_pod_age_by_county_collection(
+            str(out), counties, sites, {"id": "nm_pod"}, years_back=10
+        )
+        assert result["total_recent_pods"] == 1
+
+    def test_unassigned_when_outside_every_polygon(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _pod_site("P1", 0.5, 0.5, _CY),     # inside
+            _pod_site("P2", 99.0, 99.0, _CY),   # outside
+        ]
+        out = tmp_path / "pod.geojson"
+        result = dump_pod_age_by_county_collection(
+            str(out), counties, sites, {"id": "nm_pod"}, years_back=10
+        )
+        assert result["unassigned_pod_count"] == 1
+        assert result["features"][0]["properties"]["total_recent_pods"] == 1
+        # invariant: per-county totals + unassigned == collection total
+        assigned = sum(
+            f["properties"]["total_recent_pods"] for f in result["features"]
+        )
+        assert assigned + result["unassigned_pod_count"] == result["total_recent_pods"]
+
+    def test_fastest_growing_county_is_steepest_positive_slope(self, tmp_path):
+        counties = [
+            _square_county("Flat", "001", 0, 0),
+            _square_county("Rising", "003", 10, 10),
+        ]
+        # Flat: one well two years ago. Rising: increasing 1->2->3 over last 3 yrs.
+        sites = [
+            _pod_site("F1", 0.5, 0.5, _CY - 2),
+            _pod_site("R1", 10.5, 10.5, _CY - 2),
+            _pod_site("R2", 10.5, 10.5, _CY - 1),
+            _pod_site("R3", 10.6, 10.5, _CY - 1),
+            _pod_site("R4", 10.5, 10.5, _CY),
+            _pod_site("R5", 10.6, 10.5, _CY),
+            _pod_site("R6", 10.7, 10.5, _CY),
+        ]
+        out = tmp_path / "pod.geojson"
+        result = dump_pod_age_by_county_collection(
+            str(out), counties, sites, {"id": "nm_pod"}, years_back=10
+        )
+        assert result["fastest_growing_county"] == "Rising"
+        assert result["fastest_growing_pods_per_year"] > 0
+
+    def test_feature_geometry_is_polygon(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        out = tmp_path / "pod.geojson"
+        result = dump_pod_age_by_county_collection(
+            str(out), counties, [], {"id": "nm_pod"}, years_back=10
+        )
+        assert result["features"][0]["geometry"]["type"] == "Polygon"
+        assert result["total_recent_pods"] == 0
+
+
+class TestPodAgePointsCollection:
+    def test_one_point_feature_per_recent_pod(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _pod_site("P1", 0.5, 0.5, _CY, aquifer="Santa Fe", well_depth=100),
+            _pod_site("P2", 0.6, 0.6, _CY - 1),
+            _pod_site("P3", 0.5, 0.5, _CY - 20),  # too old, excluded
+        ]
+        out = tmp_path / "pts.geojson"
+        result = dump_pod_age_points_collection(
+            str(out), sites, counties, {"id": "nm_pod_pts"}, years_back=10
+        )
+        assert result["numberReturned"] == 2
+        assert result["total_recent_pods"] == 2
+        geom_types = {f["geometry"]["type"] for f in result["features"]}
+        assert geom_types == {"Point"}
+        props = {f["properties"]["id"]: f["properties"] for f in result["features"]}
+        assert props["P1"]["completion_year"] == _CY
+        assert props["P1"]["county"] == "A"
+        assert props["P1"]["aquifer"] == "Santa Fe"
+
+    def test_point_outside_counties_has_null_county(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [_pod_site("P1", 99.0, 99.0, _CY)]
+        out = tmp_path / "pts.geojson"
+        result = dump_pod_age_points_collection(
+            str(out), sites, counties, {"id": "nm_pod_pts"}, years_back=10
+        )
+        assert result["features"][0]["properties"]["county"] is None
+        assert result["total_recent_pods"] == 1
+
+    def test_dedupes_and_yearly_totals(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _pod_site("P1", 0.5, 0.5, _CY),
+            _pod_site("P1", 0.5, 0.5, _CY),  # duplicate
+            _pod_site("P2", 0.5, 0.5, _CY - 1),
+        ]
+        out = tmp_path / "pts.geojson"
+        result = dump_pod_age_points_collection(
+            str(out), sites, counties, {"id": "nm_pod_pts"}, years_back=10
+        )
+        assert result["total_recent_pods"] == 2
+        assert sum(result["yearly_totals"].values()) == 2

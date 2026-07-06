@@ -47,9 +47,13 @@ class NMOSEPODSiteSource(BaseSiteSource):
         )
 
         params["where"] = "pod_status = 'ACT' AND pod_basin NOT IN ('SP', 'SD', 'LWD')"
+        # start_date/finish_dat carry the well drilling start/completion dates
+        # (epoch ms); finish_dat is what the POD-age products bin by year. The
+        # extra columns are harmless to other consumers, which ignore them.
         params["outFields"] = (
             "OBJECTID,pod_basin,pod_status,easting,northing,datum,utm_accura,status,county,"
-            "pod_name,pod_nbr,pod_suffix,pod_file,depth_well,aquifer,elevation"
+            "pod_name,pod_nbr,pod_suffix,pod_file,depth_well,aquifer,elevation,"
+            "start_date,finish_dat"
         )
 
         params["outSR"] = 4326

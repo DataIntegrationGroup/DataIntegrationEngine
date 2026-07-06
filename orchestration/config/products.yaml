@@ -383,3 +383,38 @@ products:
       state: NM
     sources:
       exclude: []
+
+  # One feature per NM county polygon: OSE PODs (wells) completed in the last 10
+  # years, binned by completion year (finish_dat). Per-county year counts, trend
+  # slope (wells/year) and peak year; collection-level fastest-growing county and
+  # statewide yearly totals. Standalone product (no `parameter`): its combine
+  # gathers sites from EVERY source (sites-only, incl. the OSE POD source, the
+  # only one carrying completion dates). Counties fetched from geoconnex.us
+  # (cached). Generated monthly (22nd, 06:00 America/Denver), staggered off the
+  # density products.
+  - id: nm_pod_age_by_county
+    output_type: ogc_pod_age_by_county
+    title: "NM Recent Well (POD) Age Distribution by County"
+    description: "OSE PODs completed in the last 10 years, binned by year per NM county, with per-county growth trends"
+    schedule: "0 6 22 * *"
+    years_back: 10
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One point feature per OSE POD (well) completed in the last 10 years, each
+  # carrying its completion year and spatially-assigned county; collection-level
+  # yearly totals and fastest-growing county. Standalone companion to
+  # nm_pod_age_by_county (same data, per-well points instead of county polygons).
+  # Generated monthly (23rd, 06:00 America/Denver).
+  - id: nm_pod_age_points
+    output_type: ogc_pod_age_points
+    title: "NM Recent Wells (PODs) — Last 10 Years"
+    description: "Point layer of OSE PODs completed in the last 10 years, each tagged with completion year and county"
+    schedule: "0 6 23 * *"
+    years_back: 10
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []

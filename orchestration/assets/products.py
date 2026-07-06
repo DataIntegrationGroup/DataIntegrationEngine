@@ -87,6 +87,8 @@ from backend.persisters.ogc_features import (
     dump_major_chemistry_collection,
     dump_mcl_exceedance_collection,
     dump_monitoring_recency_collection,
+    dump_pod_age_by_county_collection,
+    dump_pod_age_points_collection,
     dump_sar_collection,
     dump_seasonal_amplitude_collection,
     dump_summary_collection,
@@ -200,7 +202,11 @@ def _param_source_keys(product: dict, parameter: str) -> list[str]:
 # correlation product needs the *sites* of every source (parameter-independent,
 # including the OSE POD source which has no parameter data), so its combine
 # gathers sites itself rather than reading per-parameter shared source assets.
-_STANDALONE_OUTPUT_TYPES = {"ogc_well_correlation"}
+_STANDALONE_OUTPUT_TYPES = {
+    "ogc_well_correlation",
+    "ogc_pod_age_by_county",
+    "ogc_pod_age_points",
+}
 
 
 def is_standalone(product: dict) -> bool:
@@ -634,6 +640,99 @@ def _build_correlation_combine_asset(product: dict, group: str) -> dg.AssetsDefi
     return _combine_asset
 
 
+def _build_pod_age_combine_asset(product: dict, group: str) -> dg.AssetsDefinition:
+    """Build the combine asset for a POD-age product (keyed ``[product_id]``).
+
+    Like the correlation product, this is standalone: it gathers every source's
+    sites itself via ``collect_sites`` (sites-only, incl. the OSE POD source,
+    which is not part of any parameter cohort), then bins the OSE PODs completed
+    in the trailing ``years_back`` years by completion year — either aggregated
+    per county polygon (``ogc_pod_age_by_county``) or as one point per well
+    (``ogc_pod_age_points``). County polygons come from geoconnex.us (cached)."""
+    pid = product["id"]
+    output_type = product["output_type"]
+    years_back = int(product.get("years_back", 10))
+    state = product.get("spatial_filter", {}).get("state", "NM")
+
+    @dg.asset(
+        key=dg.AssetKey(pid),
+        group_name=group,
+        description=(
+            f"**{product.get('title', pid)}** — standalone combine asset "
+            f"(`{output_type}`). {product.get('description', '').rstrip('.')}. "
+            f"Gathers sites from every source (sites-only, incl. OSE PODs), bins "
+            f"OSE PODs completed in the last {years_back} years by completion "
+            f"year, and uploads the OGC GeoJSON to GCS. Depends on no shared "
+            f"source asset."
+        ),
+        check_specs=[dg.AssetCheckSpec(name=_CHECK_NAME, asset=dg.AssetKey(pid))],
+    )
+    def _combine_asset(
+        context: dg.AssetExecutionContext,
+        die_config: DIEConfigResource,
+        gcs: GCSResource,
+    ) -> Iterator[dg.Output | dg.AssetCheckResult]:
+        error = ""
+        feature_count = 0
+        info: dict = {}
+        try:
+            with forward_die_logs(context):
+                config = die_config.get_config(product)
+                sites = collect_sites(config)
+                counties = get_state_county_polygons(state)
+
+            meta = {
+                "id": pid,
+                "title": product.get("title", pid),
+                "description": product.get("description", ""),
+            }
+            with tempfile.TemporaryDirectory() as tmpdir:
+                out = Path(tmpdir) / "collection.geojson"
+                if output_type == "ogc_pod_age_by_county":
+                    coll = dump_pod_age_by_county_collection(
+                        str(out), counties, sites, meta, years_back=years_back
+                    )
+                else:
+                    coll = dump_pod_age_points_collection(
+                        str(out), sites, counties, meta, years_back=years_back
+                    )
+                feature_count = len(coll.get("features", []))
+                info = gcs.upload_product(str(out), pid)
+        except Exception:
+            error = traceback.format_exc()
+            context.log.error(f"POD age combine failed for {pid}:\n{error}")
+
+        metadata: dict = {"error": error}
+        if info:
+            metadata.update(
+                {
+                    "feature_count": dg.MetadataValue.int(
+                        info.get("feature_count", feature_count)
+                    ),
+                    "latest_uri": dg.MetadataValue.url(info.get("latest_uri", "")),
+                    "skipped_unchanged": dg.MetadataValue.bool(
+                        bool(info.get("skipped"))
+                    ),
+                }
+            )
+            if info.get("dated_uri"):
+                metadata["dated_uri"] = dg.MetadataValue.url(info["dated_uri"])
+
+        yield dg.Output(None, metadata=metadata)
+        yield dg.AssetCheckResult(
+            asset_key=dg.AssetKey(pid),
+            check_name=_CHECK_NAME,
+            passed=error == "" and feature_count > 0,
+            severity=dg.AssetCheckSeverity.WARN,
+            metadata={
+                "feature_count": feature_count,
+                "error": error or ("no features" if feature_count == 0 else ""),
+            },
+        )
+
+    return _combine_asset
+
+
 def _num_opt(value):
     """None passes through; otherwise coerce to float (products.yaml overrides
     for the correlation thresholds are optional)."""
@@ -745,7 +844,10 @@ def build_product_pipeline_assets(
     correlation) get their own ``sites`` group and a self-contained combine."""
     if is_standalone(product):
         group = "sites"
-        combine = _build_correlation_combine_asset(product, group)
+        if product.get("output_type") == "ogc_well_correlation":
+            combine = _build_correlation_combine_asset(product, group)
+        else:
+            combine = _build_pod_age_combine_asset(product, group)
     else:
         group = "waterlevels" if product.get("parameter") == WATERLEVELS else "analytes"
         combine = _build_combine_asset(product, specs, group)
