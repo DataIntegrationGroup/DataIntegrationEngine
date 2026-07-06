@@ -12,6 +12,8 @@ import math
 from datetime import datetime, timezone
 from typing import Optional
 
+from shapely.geometry import Point, mapping
+
 from backend.constants import TDS
 
 # Trend statistics live in backend/trend_stats.py (analysis, not serialization).
@@ -1695,4 +1697,172 @@ def dump_well_correlation_collection(
         features,
         meta,
         extra={"correlation_method": CORRELATION_METHOD_DESCRIPTION},
+    )
+
+
+WELL_DENSITY_METHOD_DESCRIPTION = (
+    "Well count and density per NM county. Each well (deduped by source+id) is "
+    "assigned to the first county polygon that covers its point; wells whose "
+    "coordinates fall outside every county polygon are counted in the "
+    "collection-level unassigned_well_count instead of any feature. "
+    "wells_per_sq_km = well_count / county area (from a UTM zone 13N "
+    "reprojection, not raw WGS84 degrees)."
+)
+
+
+def _dedupe_well_points(site_records: list) -> list:
+    """Distinct (source, id) wells from *site_records* with valid coordinates,
+    as shapely Points — shared by the region-density dumpers below."""
+    seen = set()
+    points = []
+    for site in site_records:
+        key = (site.get("source") or "", site.get("id") or "")
+        if key in seen:
+            continue
+        seen.add(key)
+        lat, lon = site.get("latitude"), site.get("longitude")
+        if lat is None or lon is None:
+            continue
+        points.append(Point(lon, lat))
+    return points
+
+
+def _assign_points_to_regions(regions: list, points: list) -> tuple[list, int]:
+    """Assign each point to the first region polygon that covers it (regions
+    are ``{"geometry": shapely Polygon/MultiPolygon, ...}`` dicts). Returns
+    (counts aligned to *regions*, unassigned_count) — points outside every
+    region's polygon count toward the latter, never a feature."""
+    counts = [0] * len(regions)
+    unassigned = 0
+    for point in points:
+        for i, region in enumerate(regions):
+            if region["geometry"].covers(point):
+                counts[i] += 1
+                break
+        else:
+            unassigned += 1
+    return counts, unassigned
+
+
+def dump_well_density_collection(
+    path: str,
+    counties: list,
+    site_records: list,
+    meta: dict,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of per-county well density, one Feature per
+    county **polygon** (not per well — the first polygon-geometry product).
+
+    *counties* is a list of ``{"name", "fips", "geometry" (shapely Polygon,
+    WGS84), "area_sq_km"}`` (see
+    :func:`backend.bounding_polygons.get_state_county_polygons`).
+    *site_records* is a flat list of site payload dicts (deduped here by
+    ``(source, id)``); each well is assigned to the first county polygon
+    covering its point.
+
+    Per county Feature: ``county``, ``fips``, ``area_sq_km``, ``well_count``,
+    ``wells_per_sq_km``. The collection carries ``well_density_method`` and
+    ``unassigned_well_count`` (wells whose point fell outside every county
+    polygon — bad/imprecise coordinates, or a spatial_filter scope mismatch).
+    """
+    collection_id = meta.get("id", "collection")
+    points = _dedupe_well_points(site_records)
+    counts, unassigned = _assign_points_to_regions(counties, points)
+
+    features = []
+    for county, well_count in zip(counties, counts):
+        area = county["area_sq_km"]
+        props = {
+            "county": county["name"],
+            "fips": county["fips"],
+            "area_sq_km": area,
+            "well_count": well_count,
+            "wells_per_sq_km": round(well_count / area, 4) if area else None,
+        }
+        features.append(
+            {
+                "type": "Feature",
+                "id": f"county:{county['fips'] or county['name']}",
+                "geometry": mapping(county["geometry"]),
+                "properties": props,
+            }
+        )
+
+    return _dump_collection(
+        path,
+        collection_id,
+        features,
+        meta,
+        extra={
+            "well_density_method": WELL_DENSITY_METHOD_DESCRIPTION,
+            "unassigned_well_count": unassigned,
+        },
+    )
+
+
+BASIN_DENSITY_METHOD_DESCRIPTION = (
+    "Well count and density per OSE-declared groundwater basin. Each well "
+    "(deduped by source+id) is assigned to the first basin polygon that "
+    "covers its point; wells outside every declared basin (private/domestic "
+    "wells outside a declared basin's jurisdiction, or bad coordinates) are "
+    "counted in the collection-level unassigned_well_count instead of any "
+    "feature. wells_per_sq_km = well_count / basin area (UTM zone 13N "
+    "reprojection, not raw WGS84 degrees). Basin boundaries are OSE's legal "
+    "approximations, not surveyed lines."
+)
+
+
+def dump_basin_well_density_collection(
+    path: str,
+    basins: list,
+    site_records: list,
+    meta: dict,
+) -> dict:
+    """
+    Write an OGC FeatureCollection of per-basin well density, one Feature per
+    OSE-declared-groundwater-basin **polygon** (not per well).
+
+    *basins* is a list of ``{"name", "geometry" (shapely Polygon/MultiPolygon,
+    WGS84), "area_sq_km"}`` (see
+    :func:`backend.bounding_polygons.get_nm_groundwater_basin_polygons`).
+    *site_records* is a flat list of site payload dicts (deduped here by
+    ``(source, id)``); each well is assigned to the first basin polygon
+    covering its point.
+
+    Per basin Feature: ``basin``, ``area_sq_km``, ``well_count``,
+    ``wells_per_sq_km``. The collection carries ``basin_density_method`` and
+    ``unassigned_well_count`` (wells outside every declared basin).
+    """
+    collection_id = meta.get("id", "collection")
+    points = _dedupe_well_points(site_records)
+    counts, unassigned = _assign_points_to_regions(basins, points)
+
+    features = []
+    for basin, well_count in zip(basins, counts):
+        area = basin["area_sq_km"]
+        props = {
+            "basin": basin["name"],
+            "area_sq_km": area,
+            "well_count": well_count,
+            "wells_per_sq_km": round(well_count / area, 4) if area else None,
+        }
+        features.append(
+            {
+                "type": "Feature",
+                "id": f"basin:{basin['name']}",
+                "geometry": mapping(basin["geometry"]),
+                "properties": props,
+            }
+        )
+
+    return _dump_collection(
+        path,
+        collection_id,
+        features,
+        meta,
+        extra={
+            "basin_density_method": BASIN_DENSITY_METHOD_DESCRIPTION,
+            "unassigned_well_count": unassigned,
+        },
     )

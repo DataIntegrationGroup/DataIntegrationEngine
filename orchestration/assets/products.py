@@ -73,6 +73,10 @@ from pathlib import Path
 import dagster as dg
 import geopandas as gpd
 
+from backend.bounding_polygons import (
+    get_nm_groundwater_basin_polygons,
+    get_state_county_polygons,
+)
 from backend.config import PARAMETER_SOURCE_MAP, WATERLEVELS
 from backend.persisters.ogc_features import (
     ANALYTE_TREND_METHOD_DESCRIPTION,
@@ -92,6 +96,8 @@ from backend.persisters.ogc_features import (
     dump_waterlevel_change_collection,
     dump_waterlevel_status_collection,
     dump_well_correlation_collection,
+    dump_basin_well_density_collection,
+    dump_well_density_collection,
     dump_wqi_collection,
 )
 from backend.record import ParameterRecord, SiteRecord, SummaryRecord
@@ -478,6 +484,21 @@ def _build_combine_asset(
                     all_timeseries,
                     meta,
                 )
+            elif output_type == "ogc_well_density":
+                # One feature per NM county polygon (not per well); counties
+                # fetched from geoconnex.us (cached to disk by
+                # bounding_polygons, same pattern as county spatial_filter).
+                counties = get_state_county_polygons(
+                    product.get("spatial_filter", {}).get("state", "NM")
+                )
+                dump_well_density_collection(str(out), counties, all_sites, meta)
+            elif output_type == "ogc_basin_well_density":
+                # One feature per OSE-declared groundwater basin polygon (not
+                # per well); basins fetched from OSE's ArcGIS FeatureServer
+                # (cached to disk by bounding_polygons, same pattern as
+                # ogc_well_density's county fetch).
+                basins = get_nm_groundwater_basin_polygons()
+                dump_basin_well_density_collection(str(out), basins, all_sites, meta)
             elif output_type == "ogc_monitoring_recency":
                 run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
                 dump_monitoring_recency_collection(

@@ -78,6 +78,8 @@ _SUPPORTED_OUTPUT_TYPES = {
     "ogc_seasonal_amplitude",
     "ogc_depletion_projection",
     "ogc_well_correlation",
+    "ogc_well_density",
+    "ogc_basin_well_density",
 }
 
 

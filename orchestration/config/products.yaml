@@ -97,6 +97,72 @@ products:
     sources:
       exclude: []
 
+  - id: nm_fluoride_trend
+    parameter: fluoride
+    output_type: ogc_analyte_trend
+    title: "NM Fluoride Trends"
+    description: "Per-well fluoride concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_uranium_trend
+    parameter: uranium
+    output_type: ogc_analyte_trend
+    title: "NM Uranium Trends"
+    description: "Per-well uranium concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_sulfate_trend
+    parameter: sulfate
+    output_type: ogc_analyte_trend
+    title: "NM Sulfate Trends"
+    description: "Per-well sulfate concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_chloride_trend
+    parameter: chloride
+    output_type: ogc_analyte_trend
+    title: "NM Chloride Trends"
+    description: "Per-well chloride concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_fluoride_summary
+    parameter: fluoride
+    output_type: ogc_summary
+    title: "NM Fluoride Summary"
+    description: "Fluoride concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_uranium_summary
+    parameter: uranium
+    output_type: ogc_summary
+    title: "NM Uranium Summary"
+    description: "Uranium concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
   # One feature per well flagging drinking-water MCL exceedances. Thresholds are
   # read at run time from gs://<bucket>/config/mcl.json (source of truth);
   # `analytes` lists the candidates gathered for comparison.
@@ -288,3 +354,32 @@ products:
     # max_link_distance_m: 150
     # depth_tolerance_ft: 50
     # pod_link_distance_m: 150
+
+  # One feature per NM county polygon (not per well): well count and density
+  # for the water-level monitoring network. Counties fetched from geoconnex.us
+  # (cached). Timeseries-mode; shares the water-level cohort's source fetches.
+  - id: nm_well_density_by_county
+    parameter: waterlevels
+    output_type: ogc_well_density
+    title: "NM Water-Level Well Density by County"
+    description: "Per-county water-level well count and density, all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per OSE-declared groundwater basin polygon (not per well):
+  # well count and density for the water-level monitoring network. Basins
+  # fetched from OSE's ArcGIS FeatureServer (cached). Timeseries-mode; shares
+  # the water-level cohort's source fetches.
+  - id: nm_well_density_by_basin
+    parameter: waterlevels
+    output_type: ogc_basin_well_density
+    title: "NM Water-Level Well Density by Groundwater Basin"
+    description: "Per-basin water-level well count and density, all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []

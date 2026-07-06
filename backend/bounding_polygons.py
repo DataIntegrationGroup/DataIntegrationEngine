@@ -23,6 +23,82 @@ from shapely.geometry import shape
 from backend.geo_utils import transform_srid, SRID_WGS84, SRID_UTM_ZONE_13N
 
 
+def get_state_county_polygons(state="NM"):
+    """Every county polygon for *state*, one geoconnex fetch (cached, same
+    endpoint/cache file as :func:`get_county_polygon`'s per-name lookups).
+
+    Returns a list of ``{"name", "fips", "geometry" (shapely Polygon, WGS84),
+    "area_sq_km"}`` dicts, one per county. Area is computed by reprojecting to
+    UTM zone 13N (NM's zone; adequate for any NM county) so it is in real
+    units, not raw WGS84-degree units.
+    """
+    statefp = _statelookup(state)
+    if not statefp:
+        _warning(f"Invalid state. {state}")
+        return []
+
+    obj = _get_cached_object(
+        f"{state}.counties",
+        f"{state} counties",
+        f"https://reference.geoconnex.us"
+        f"/collections/counties/items?statefp={statefp}&f=json",
+    )
+
+    counties = []
+    for f in obj["features"]:
+        props = f["properties"]
+        name = props.get("name") or props.get("NAME")
+        fips = props.get("countyfp") or props.get("COUNTYFP")
+        if name is None:
+            continue
+        geom = _make_shape(f, as_wkt=False)
+        area_sq_km = transform_srid(geom, SRID_WGS84, SRID_UTM_ZONE_13N).area / 1e6
+        counties.append({
+            "name": name,
+            "fips": fips,
+            "geometry": geom,
+            "area_sq_km": round(area_sq_km, 2),
+        })
+    return counties
+
+
+def get_nm_groundwater_basin_polygons():
+    """Every OSE-declared groundwater basin polygon (NM only; the state
+    engineer's jurisdiction has no equivalent in other states). One cached
+    fetch requesting GeoJSON directly from the FeatureServer (``f=geojson``),
+    which sidesteps hand-rolling Esri JSON ring-orientation (exterior vs hole)
+    handling — ``shape()`` consumes it the same as the geoconnex GeoJSON used
+    for counties/state.
+
+    Returns a list of ``{"name", "geometry" (shapely Polygon/MultiPolygon,
+    WGS84), "area_sq_km"}`` dicts, one per basin. Not simplified (unlike
+    :func:`get_state_county_polygons`) — some basins are long and narrow, where
+    even a small simplify tolerance risks distorting containment tests. Area is
+    computed by reprojecting to UTM zone 13N.
+    """
+    obj = _get_cached_object(
+        "NM.groundwater_basins",
+        "NM declared groundwater basins",
+        "https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services/"
+        "DeclaredGroundwaterBasins/FeatureServer/0/query"
+        "?where=1%3D1&outFields=Basin&outSR=4326&f=geojson",
+    )
+
+    basins = []
+    for f in obj["features"]:
+        name = f["properties"].get("Basin")
+        if name is None:
+            continue
+        geom = shape(f["geometry"])
+        area_sq_km = transform_srid(geom, SRID_WGS84, SRID_UTM_ZONE_13N).area / 1e6
+        basins.append({
+            "name": name,
+            "geometry": geom,
+            "area_sq_km": round(area_sq_km, 2),
+        })
+    return basins
+
+
 def get_county_polygon(name, as_wkt=True):
     if ":" in name:
         state, county = name.split(":")

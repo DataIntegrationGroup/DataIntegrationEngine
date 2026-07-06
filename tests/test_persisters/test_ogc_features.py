@@ -1204,3 +1204,186 @@ class TestWellCorrelationCollection:
         )
         assert coll["numberReturned"] == 0
         assert coll["features"] == []
+
+
+from shapely.geometry import Polygon
+
+from backend.persisters.ogc_features import dump_well_density_collection
+
+
+def _square_county(name, fips, x0, y0, side=1.0):
+    """A simple axis-aligned square 'county' polygon in WGS84 degrees, sized so
+    area_sq_km is trivial to reason about (not real-world accurate — tests
+    check assignment/counting logic, not geodesy)."""
+    poly = Polygon([
+        (x0, y0), (x0 + side, y0), (x0 + side, y0 + side), (x0, y0 + side),
+    ])
+    return {"name": name, "fips": fips, "geometry": poly, "area_sq_km": 100.0}
+
+
+def _density_site(source, rid, lon, lat):
+    return {"source": source, "id": rid, "latitude": lat, "longitude": lon}
+
+
+class TestWellDensityCollection:
+    def test_assigns_wells_to_covering_county(self, tmp_path):
+        counties = [
+            _square_county("A", "001", 0, 0),
+            _square_county("B", "003", 10, 10),
+        ]
+        sites = [
+            _density_site("NMBGMR", "W1", 0.5, 0.5),   # inside A
+            _density_site("NMBGMR", "W2", 0.2, 0.8),   # inside A
+            _density_site("USGS", "W3", 10.5, 10.5),   # inside B
+        ]
+        out = tmp_path / "wd.geojson"
+        result = dump_well_density_collection(str(out), counties, sites, {"id": "nm_wd"})
+
+        assert result["numberReturned"] == 2  # one feature per county
+        by_name = {f["properties"]["county"]: f["properties"] for f in result["features"]}
+        assert by_name["A"]["well_count"] == 2
+        assert by_name["B"]["well_count"] == 1
+        assert by_name["A"]["wells_per_sq_km"] == 0.02
+        assert result["unassigned_well_count"] == 0
+        assert "well_density_method" in result
+
+    def test_unassigned_when_outside_every_polygon(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _density_site("NMBGMR", "W1", 0.5, 0.5),   # inside
+            _density_site("NMBGMR", "W2", 99.0, 99.0),  # outside
+        ]
+        out = tmp_path / "wd.geojson"
+        result = dump_well_density_collection(str(out), counties, sites, {"id": "nm_wd"})
+        assert result["features"][0]["properties"]["well_count"] == 1
+        assert result["unassigned_well_count"] == 1
+
+    def test_dedupes_by_source_and_id(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _density_site("NMBGMR", "W1", 0.5, 0.5),
+            _density_site("NMBGMR", "W1", 0.5, 0.5),  # duplicate, same source+id
+        ]
+        out = tmp_path / "wd.geojson"
+        result = dump_well_density_collection(str(out), counties, sites, {"id": "nm_wd"})
+        assert result["features"][0]["properties"]["well_count"] == 1
+
+    def test_missing_coordinates_skipped(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        sites = [
+            _density_site("NMBGMR", "W1", None, None),
+            _density_site("NMBGMR", "W2", 0.5, 0.5),
+        ]
+        out = tmp_path / "wd.geojson"
+        result = dump_well_density_collection(str(out), counties, sites, {"id": "nm_wd"})
+        assert result["features"][0]["properties"]["well_count"] == 1
+        assert result["unassigned_well_count"] == 0
+
+    def test_feature_geometry_is_polygon_not_point(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0)]
+        out = tmp_path / "wd.geojson"
+        result = dump_well_density_collection(str(out), counties, [], {"id": "nm_wd"})
+        assert result["features"][0]["geometry"]["type"] == "Polygon"
+
+    def test_zero_area_county_density_none(self, tmp_path):
+        county = _square_county("A", "001", 0, 0)
+        county["area_sq_km"] = 0.0
+        out = tmp_path / "wd.geojson"
+        result = dump_well_density_collection(
+            str(out), [county], [_density_site("NMBGMR", "W1", 0.5, 0.5)], {"id": "nm_wd"}
+        )
+        assert result["features"][0]["properties"]["wells_per_sq_km"] is None
+
+    def test_ogc_required_fields(self, tmp_path):
+        out = tmp_path / "wd.geojson"
+        result = dump_well_density_collection(
+            str(out), [_square_county("A", "001", 0, 0)], [], {"id": "nm_wd"}
+        )
+        assert result["type"] == "FeatureCollection"
+        assert result["id"] == "nm_wd"
+        assert "timeStamp" in result
+
+
+from backend.persisters.ogc_features import dump_basin_well_density_collection
+
+
+def _square_basin(name, x0, y0, side=1.0):
+    poly = Polygon([
+        (x0, y0), (x0 + side, y0), (x0 + side, y0 + side), (x0, y0 + side),
+    ])
+    return {"name": name, "geometry": poly, "area_sq_km": 100.0}
+
+
+class TestBasinWellDensityCollection:
+    def test_assigns_wells_to_covering_basin(self, tmp_path):
+        basins = [
+            _square_basin("Estancia", 0, 0),
+            _square_basin("Mimbres", 10, 10),
+        ]
+        sites = [
+            _density_site("NMBGMR", "W1", 0.5, 0.5),   # inside Estancia
+            _density_site("NMBGMR", "W2", 0.2, 0.8),   # inside Estancia
+            _density_site("USGS", "W3", 10.5, 10.5),   # inside Mimbres
+        ]
+        out = tmp_path / "bd.geojson"
+        result = dump_basin_well_density_collection(str(out), basins, sites, {"id": "nm_bd"})
+
+        assert result["numberReturned"] == 2  # one feature per basin
+        by_name = {f["properties"]["basin"]: f["properties"] for f in result["features"]}
+        assert by_name["Estancia"]["well_count"] == 2
+        assert by_name["Mimbres"]["well_count"] == 1
+        assert by_name["Estancia"]["wells_per_sq_km"] == 0.02
+        assert result["unassigned_well_count"] == 0
+        assert "basin_density_method" in result
+
+    def test_unassigned_outside_every_declared_basin(self, tmp_path):
+        basins = [_square_basin("Estancia", 0, 0)]
+        sites = [
+            _density_site("NMBGMR", "W1", 0.5, 0.5),   # inside
+            _density_site("NMBGMR", "W2", 99.0, 99.0),  # undeclared area
+        ]
+        out = tmp_path / "bd.geojson"
+        result = dump_basin_well_density_collection(str(out), basins, sites, {"id": "nm_bd"})
+        assert result["features"][0]["properties"]["well_count"] == 1
+        assert result["unassigned_well_count"] == 1
+
+    def test_dedupes_by_source_and_id(self, tmp_path):
+        basins = [_square_basin("Estancia", 0, 0)]
+        sites = [
+            _density_site("NMBGMR", "W1", 0.5, 0.5),
+            _density_site("NMBGMR", "W1", 0.5, 0.5),
+        ]
+        out = tmp_path / "bd.geojson"
+        result = dump_basin_well_density_collection(str(out), basins, sites, {"id": "nm_bd"})
+        assert result["features"][0]["properties"]["well_count"] == 1
+
+    def test_feature_geometry_is_polygon_not_point(self, tmp_path):
+        basins = [_square_basin("Estancia", 0, 0)]
+        out = tmp_path / "bd.geojson"
+        result = dump_basin_well_density_collection(str(out), basins, [], {"id": "nm_bd"})
+        assert result["features"][0]["geometry"]["type"] == "Polygon"
+
+    def test_zero_area_basin_density_none(self, tmp_path):
+        basin = _square_basin("Estancia", 0, 0)
+        basin["area_sq_km"] = 0.0
+        out = tmp_path / "bd.geojson"
+        result = dump_basin_well_density_collection(
+            str(out), [basin], [_density_site("NMBGMR", "W1", 0.5, 0.5)], {"id": "nm_bd"}
+        )
+        assert result["features"][0]["properties"]["wells_per_sq_km"] is None
+
+    def test_no_fips_property(self, tmp_path):
+        # Basins have no FIPS (county-only concept) — property shouldn't leak.
+        basins = [_square_basin("Estancia", 0, 0)]
+        out = tmp_path / "bd.geojson"
+        result = dump_basin_well_density_collection(str(out), basins, [], {"id": "nm_bd"})
+        assert "fips" not in result["features"][0]["properties"]
+
+    def test_ogc_required_fields(self, tmp_path):
+        out = tmp_path / "bd.geojson"
+        result = dump_basin_well_density_collection(
+            str(out), [_square_basin("Estancia", 0, 0)], [], {"id": "nm_bd"}
+        )
+        assert result["type"] == "FeatureCollection"
+        assert result["id"] == "nm_bd"
+        assert "timeStamp" in result
