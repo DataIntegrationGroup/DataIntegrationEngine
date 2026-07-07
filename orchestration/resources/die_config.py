@@ -27,7 +27,7 @@ class DIEConfigResource(dg.ConfigurableResource):
             all_sources = [
                 "bernco", "bor", "cabq", "ebid", "nmbgmr_amp",
                 "nmed_dwb", "nmose_isc_seven_rivers", "nmose_pod",
-                "nmose_roswell", "nwis", "pvacd", "wqp",
+                "nmose_roswell", "nwis", "ocotillo", "pvacd", "wqp",
             ]
             for s in all_sources:
                 payload[f"use_source_{s}"] = s in sources_spec["include"]
