@@ -64,9 +64,6 @@ class NMBGMRSiteSource(BaseSiteSource):
     def __init__(self):
         super().__init__(transformer=NMBGMRSiteTransformer())
 
-    def __repr__(self):
-        return "NMBGMRSiteSource"
-
     def health(self):
         try:
             resp = self._execute_json_request(
@@ -121,9 +118,6 @@ class NMBGMRSiteSource(BaseSiteSource):
 class NMBGMRAnalyteSource(BaseAnalyteSource):
     def __init__(self):
         super().__init__(transformer=NMBGMRAnalyteTransformer())
-
-    def __repr__(self):
-        return "NMBGMRAnalyteSource"
 
     def get_records(self, site_record):
         analyte = get_analyte_search_param(
@@ -184,9 +178,6 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
 class NMBGMRWaterLevelSource(BaseWaterLevelSource):
     def __init__(self):
         super().__init__(transformer=NMBGMRWaterLevelTransformer())
-
-    def __repr__(self):
-        return "NMBGMRWaterLevelSource"
 
     def _clean_records(self, records):
         # remove records with no depth to water value

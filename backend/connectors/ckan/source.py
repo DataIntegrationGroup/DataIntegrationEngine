@@ -98,9 +98,6 @@ class OSERoswellSiteSource(OSERoswellSource, BaseSiteSource):
         elif resource_id == ROSWELL_RESOURCE_ID:
             self.bounding_polygon = OSE_ROSWELL_ROSWELL_BOUNDING_POLYGON
 
-    def __repr__(self):
-        return "NMOSERoswellSiteSource"
-
     def health(self):
         params = self._get_params()
         params["limit"] = 1
@@ -122,9 +119,6 @@ class OSERoswellWaterLevelSource(OSERoswellSource, BaseWaterLevelSource):
     def __init__(self, resource_id=None, **kw):
         kw.setdefault("transformer", OSERoswellWaterLevelTransformer())
         super().__init__(resource_id, **kw)
-
-    def __repr__(self):
-        return "NMOSERoswellWaterLevelSource"
 
     def get_records(self, site_record):
         return self._parse_response(site_record, self.get_response())

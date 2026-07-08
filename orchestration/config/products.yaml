@@ -6,7 +6,7 @@ products:
     output_type: ogc_summary
     title: "NM Unified Water Levels Summary"
     description: "Summary stats for water levels, all NM sources"
-    schedule: "0 6 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
@@ -17,29 +17,18 @@ products:
     output_type: ogc_timeseries
     title: "NM Water Levels Time Series"
     description: "Per-observation water level measurements, all NM sources"
-    schedule: "0 7 * * *"
+    schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
     sources:
       exclude: []
-
-  - id: bernco_waterlevels_timeseries
-    parameter: waterlevels
-    output_type: ogc_timeseries
-    title: "Bernalillo County Water Level Time Series"
-    description: "Bernalillo County water level timeseries per well"
-    schedule: "0 8 * * *"
-    spatial_filter:
-      county: Bernalillo
-    sources:
-      include: [bernco]
 
   - id: nm_arsenic_summary
     parameter: arsenic
     output_type: ogc_summary
     title: "NM Arsenic Summary"
     description: "Arsenic concentration summary stats, all NM sources"
-    schedule: "0 9 * * *"
+    schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
     sources:
@@ -50,7 +39,381 @@ products:
     output_type: ogc_summary
     title: "NM TDS Summary"
     description: "TDS concentration summary stats, all NM sources"
-    schedule: "0 10 * * *"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well; each major-ion analyte's latest value/units/date,
+  # plus well depth, stored as properties. Analyte set is fixed in
+  # assets/products.py (_MAJOR_CHEMISTRY), so no `parameter` here.
+  - id: nm_major_chemistry
+    output_type: ogc_major_chemistry
+    title: "NM Major Chemistry"
+    description: "Wells with major-ion chemistry (latest value per analyte), well depth, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well with a depth-to-water trend (slope_ft_per_year +
+  # category) computed from each well's water-level timeseries. The collection
+  # carries a trend_method description. Algorithm ported from the Ocotillo API
+  # ogc_depth_to_water_trend_wells materialized view (see ogc_features.py).
+  - id: nm_waterlevel_trends
+    parameter: waterlevels
+    output_type: ogc_waterlevel_trend
+    title: "NM Water Level Trends"
+    description: "Per-well depth-to-water trend (slope and category), all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # Per-well analyte concentration trend (Mann-Kendall + Theil-Sen, daily mean).
+  # One product per analyte, driven by `parameter`.
+  - id: nm_arsenic_trend
+    parameter: arsenic
+    output_type: ogc_analyte_trend
+    title: "NM Arsenic Trends"
+    description: "Per-well arsenic concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_nitrate_trend
+    parameter: nitrate
+    output_type: ogc_analyte_trend
+    title: "NM Nitrate Trends"
+    description: "Per-well nitrate concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_fluoride_trend
+    parameter: fluoride
+    output_type: ogc_analyte_trend
+    title: "NM Fluoride Trends"
+    description: "Per-well fluoride concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_uranium_trend
+    parameter: uranium
+    output_type: ogc_analyte_trend
+    title: "NM Uranium Trends"
+    description: "Per-well uranium concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_sulfate_trend
+    parameter: sulfate
+    output_type: ogc_analyte_trend
+    title: "NM Sulfate Trends"
+    description: "Per-well sulfate concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_chloride_trend
+    parameter: chloride
+    output_type: ogc_analyte_trend
+    title: "NM Chloride Trends"
+    description: "Per-well chloride concentration trend (slope and category), all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_fluoride_summary
+    parameter: fluoride
+    output_type: ogc_summary
+    title: "NM Fluoride Summary"
+    description: "Fluoride concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_uranium_summary
+    parameter: uranium
+    output_type: ogc_summary
+    title: "NM Uranium Summary"
+    description: "Uranium concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well flagging drinking-water MCL exceedances. Thresholds are
+  # read at run time from gs://<bucket>/config/mcl.json (source of truth);
+  # `analytes` lists the candidates gathered for comparison.
+  - id: nm_mcl_exceedance
+    output_type: ogc_mcl_exceedance
+    title: "NM MCL Exceedances"
+    description: "Wells flagged against drinking-water MCLs, all NM sources"
+    schedule: "0 6 25 * *"
+    analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: how recently it was measured (water levels), to surface
+  # dead/lagging monitoring points. status = active/stale at stale_days.
+  - id: nm_monitoring_recency
+    parameter: waterlevels
+    output_type: ogc_monitoring_recency
+    title: "NM Monitoring Recency"
+    description: "Per-well water-level monitoring recency and status, all NM sources"
+    schedule: "0 6 15 * *"
+    stale_days: 365
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: total hardness as CaCO3 from latest calcium +
+  # magnesium, plus a soft/moderate/hard/very-hard class. Multi-analyte (no
+  # `parameter`); shares the analyte cohort's calcium/magnesium source fetches.
+  - id: nm_hardness
+    output_type: ogc_hardness
+    title: "NM Water Hardness"
+    description: "Per-well total hardness as CaCO3 (calcium + magnesium), all NM sources"
+    schedule: "0 6 25 * *"
+    analytes: [calcium, magnesium]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: hydrochemical (Piper) water type from the latest
+  # major-ion chemistry (meq% of cations Ca/Mg/Na+K and anions HCO3+CO3/Cl/SO4).
+  # Multi-analyte; shares the analyte cohort's major-ion source fetches.
+  - id: nm_water_type
+    output_type: ogc_water_type
+    title: "NM Water Type"
+    description: "Per-well hydrochemical (Piper) water type from major-ion chemistry, all NM sources"
+    schedule: "0 6 25 * *"
+    analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: measurement coverage (observation/day counts, span,
+  # mean interval, observations per year) for water levels. Timeseries-mode;
+  # shares the water-level cohort's source fetches.
+  - id: nm_waterlevel_data_density
+    parameter: waterlevels
+    output_type: ogc_data_density
+    title: "NM Water Level Data Density"
+    description: "Per-well water-level measurement coverage and frequency, all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: depth-to-water change over the most recent
+  # `window_years` years (end minus start; positive = water table declined).
+  # Timeseries-mode; shares the water-level cohort's source fetches.
+  - id: nm_waterlevel_change
+    parameter: waterlevels
+    output_type: ogc_waterlevel_change
+    title: "NM Water Level Change"
+    description: "Per-well depth-to-water change over a trailing window, all NM sources"
+    schedule: "0 6 15 * *"
+    window_years: 5
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: sodium adsorption ratio (Na/sqrt((Ca+Mg)/2), meq)
+  # with USDA irrigation hazard class. Multi-analyte; shares the analyte
+  # cohort's sodium/calcium/magnesium source fetches.
+  - id: nm_sar
+    output_type: ogc_sar
+    title: "NM Sodium Adsorption Ratio"
+    description: "Per-well sodium adsorption ratio and irrigation hazard class, all NM sources"
+    schedule: "0 6 25 * *"
+    analytes: [sodium, calcium, magnesium]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: charge balance error from the latest major-ion
+  # chemistry — a QA screen on the chemistry-derived products. Multi-analyte;
+  # shares the analyte cohort's major-ion source fetches.
+  - id: nm_ion_balance
+    output_type: ogc_ion_balance
+    title: "NM Ion Balance"
+    description: "Per-well major-ion charge balance error (QA screen), all NM sources"
+    schedule: "0 6 25 * *"
+    analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: CCME water quality index (0-100) scored against the
+  # drinking-water MCL thresholds in gs://<bucket>/config/mcl.json (same source
+  # of truth as nm_mcl_exceedance). Multi-analyte.
+  - id: nm_wqi
+    output_type: ogc_wqi
+    title: "NM Water Quality Index"
+    description: "Per-well CCME water quality index against drinking-water MCLs, all NM sources"
+    schedule: "0 6 25 * *"
+    analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: latest depth-to-water as a percentile of the well's
+  # own record, with USGS-style above/below-normal status. Timeseries-mode;
+  # shares the water-level cohort's source fetches.
+  - id: nm_waterlevel_status
+    parameter: waterlevels
+    output_type: ogc_waterlevel_status
+    title: "NM Water Level Status"
+    description: "Per-well current water level vs the well's own record (percentile and status), all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: within-year depth-to-water spread (max - min per
+  # qualifying calendar year), flagging pumping-stressed / strongly seasonal
+  # wells. Timeseries-mode; shares the water-level cohort's source fetches.
+  - id: nm_seasonal_amplitude
+    parameter: waterlevels
+    output_type: ogc_seasonal_amplitude
+    title: "NM Water Level Seasonal Amplitude"
+    description: "Per-well within-year depth-to-water amplitude, all NM sources"
+    schedule: "0 6 15 * *"
+    min_days_per_year: 4
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well: screening-level linear projection of when
+  # depth-to-water reaches the well's total depth, from the Theil-Sen trend
+  # slope. Only wells with a significant declining trend and a reported depth
+  # get a projection. Timeseries-mode; shares the water-level cohort's fetches.
+  - id: nm_depletion_projection
+    parameter: waterlevels
+    output_type: ogc_depletion_projection
+    title: "NM Well Depletion Projection"
+    description: "Per-well screening projection of years until depth-to-water reaches well depth, all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per well linking it to the same physical well at other agencies
+  # and, ultimately, to an OSE POD. Standalone product (no `parameter`): its
+  # combine gathers sites from EVERY source (sites-only, incl. the OSE POD
+  # source) and correlates them via backend/well_correlation.py — explicit id
+  # references (usgs_site_id / alternate_site_id) plus spatial+depth agreement,
+  # since coordinates are only approximate. Generated monthly (1st, 06:00
+  # America/Denver). Correlation thresholds are optional overrides
+  # (defaults live in backend/well_correlation.py).
+  - id: nm_well_correlation
+    output_type: ogc_well_correlation
+    title: "NM Cross-Agency Well Correlation"
+    description: "Per-well links to associated wells at other agencies and to OSE PODs, all NM sources"
+    schedule: "0 6 1 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+    # max_link_distance_m: 150
+    # depth_tolerance_ft: 50
+    # pod_link_distance_m: 150
+
+  # One feature per NM county polygon (not per well): well count and density
+  # for the water-level monitoring network. Counties fetched from geoconnex.us
+  # (cached). Timeseries-mode; shares the water-level cohort's source fetches.
+  - id: nm_well_density_by_county
+    parameter: waterlevels
+    output_type: ogc_well_density
+    title: "NM Water-Level Well Density by County"
+    description: "Per-county water-level well count and density, all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per OSE-declared groundwater basin polygon (not per well):
+  # well count and density for the water-level monitoring network. Basins
+  # fetched from OSE's ArcGIS FeatureServer (cached). Timeseries-mode; shares
+  # the water-level cohort's source fetches.
+  - id: nm_well_density_by_basin
+    parameter: waterlevels
+    output_type: ogc_basin_well_density
+    title: "NM Water-Level Well Density by Groundwater Basin"
+    description: "Per-basin water-level well count and density, all NM sources"
+    schedule: "0 6 15 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One feature per NM county polygon: OSE PODs (wells) completed in the last 10
+  # years, binned by completion year (finish_dat). Per-county year counts, trend
+  # slope (wells/year) and peak year; collection-level fastest-growing county and
+  # statewide yearly totals. Standalone product (no `parameter`): its combine
+  # gathers sites from EVERY source (sites-only, incl. the OSE POD source, the
+  # only one carrying completion dates). Counties fetched from geoconnex.us
+  # (cached). Generated monthly (22nd, 06:00 America/Denver), staggered off the
+  # density products.
+  - id: nm_pod_age_by_county
+    output_type: ogc_pod_age_by_county
+    title: "NM Recent Well (POD) Age Distribution by County"
+    description: "OSE PODs completed in the last 10 years, binned by year per NM county, with per-county growth trends"
+    schedule: "0 6 22 * *"
+    years_back: 10
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # One point feature per OSE POD (well) completed in the last 10 years, each
+  # carrying its completion year and spatially-assigned county; collection-level
+  # yearly totals and fastest-growing county. Standalone companion to
+  # nm_pod_age_by_county (same data, per-well points instead of county polygons).
+  # Generated monthly (23rd, 06:00 America/Denver).
+  - id: nm_pod_age_points
+    output_type: ogc_pod_age_points
+    title: "NM Recent Wells (PODs) — Last 10 Years"
+    description: "Point layer of OSE PODs completed in the last 10 years, each tagged with completion year and county"
+    schedule: "0 6 23 * *"
+    years_back: 10
     spatial_filter:
       state: NM
     sources:

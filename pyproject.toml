@@ -9,7 +9,7 @@ description = "New Mexico Water Data Integration Engine"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Jake Ross" }]
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -21,6 +21,7 @@ dependencies = [
     "geopandas",
     "httpx",
     "pandas",
+    "pymannkendall",
     "pyyaml",
     "types-pyyaml",
     "urllib3>=2.2.0,<3.0.0",
@@ -42,10 +43,22 @@ packages = ["frontend", "backend"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-norecursedirs = ["tests/archived"]
+# tests/test_sources hit live provider APIs over the network (slow, flaky);
+# excluded from default collection. Run them explicitly when needed:
+#   uv run pytest tests/test_sources --override-ini="norecursedirs="
+norecursedirs = ["tests/archived", "tests/test_sources"]
 
 [tool.mypy]
 ignore_missing_imports = true
 # Archived tests are excluded from pytest (norecursedirs) and reference an old
 # CLI API; don't type-check them either.
 exclude = ["tests/archived/"]
+
+[tool.dg]
+directory_type = "project"
+
+[tool.dg.cli]
+suppress_warnings = ["project_and_activated_venv_mismatch"]
+
+[tool.dg.project]
+root_module = "orchestration"

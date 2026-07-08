@@ -69,9 +69,6 @@ class ISCSevenRiversSiteSource(BaseSiteSource):
     def __init__(self):
         super().__init__(transformer=ISCSevenRiversSiteTransformer())
 
-    def __repr__(self):
-        return "ISCSevenRiversSiteSource"
-
     def health(self):
         try:
             resp = self.get_records()
@@ -93,9 +90,6 @@ class ISCSevenRiversAnalyteSource(BaseAnalyteSource):
 
     def __init__(self):
         super().__init__(transformer=ISCSevenRiversAnalyteTransformer())
-
-    def __repr__(self):
-        return "ISCSevenRiversAnalyteSource"
 
     def _get_analyte_id_and_name(self, analyte):
         """ """

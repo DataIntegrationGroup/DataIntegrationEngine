@@ -39,6 +39,10 @@ from backend.record import (
 from backend.transformer import BaseTransformer
 from backend.exceptions import PartialOrNoDataError
 
+# Client errors that will never succeed on retry — fail fast instead of
+# burning the full backoff schedule on them.
+_NON_RETRYABLE_STATUS = frozenset({400, 401, 403, 404, 405, 410, 422})
+
 
 # =============================================================================
 # Record validation strategies
@@ -142,6 +146,7 @@ class RecordSummarizer:
             "latest_source_units": latest_result["source_parameter_units"],
             "latest_source_name": latest_result["source_parameter_name"],
         }
+        rec.update(s._summary_extra(cleaned))
         return s.transformer.do_transform(rec, site)
 
 
@@ -187,16 +192,44 @@ def get_analyte_search_param(parameter: str, mapping: dict) -> str:
 # Base source classes
 # =============================================================================
 
+_FETCH_UNSET = object()  # sentinel: site fetch not yet cached
+
+
 class BaseSource:
     transformer_klass = BaseTransformer  # deprecated: pass transformer= to __init__
 
     def __init__(self, transformer: Optional[BaseTransformer] = None, http_client: httpx.Client | None = None):
         self.transformer = transformer if transformer is not None else self.transformer_klass()
-        self._http_client = http_client if http_client is not None else httpx.Client(timeout=900)
+        self._http_client = http_client if http_client is not None else httpx.Client(
+            timeout=900,
+            limits=httpx.Limits(max_connections=32, max_keepalive_connections=8),
+        )
         _l = make_logger(self.__class__.__name__)
         self.log = _l.log
         self.warn = _l.warn
         self.debug = _l.debug
+        # Opt-in shared-fetch cache. Off by default, so CLI/API behavior is
+        # unchanged. unify_source_both turns it on so a source unified for both
+        # summary and timeseries pulls the API only once (see
+        # backend/unifier.py:unify_source_both). The two passes issue identical
+        # fetches (same parameter/scope/dates), so the second reuses the first.
+        self._fetch_cache_enabled = False
+        self._records_cache: dict = {}      # site-id key -> get_records() result
+        self._sites_cache = _FETCH_UNSET    # BaseSiteSource.read() result
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+    def _fetch_records(self, site_record):
+        """get_records() with optional caching (see _fetch_cache_enabled). Keyed
+        by the site ids requested so repeated chunks reuse the same fetch."""
+        if not self._fetch_cache_enabled:
+            return self.get_records(site_record)
+        sites = site_record if isinstance(site_record, list) else [site_record]
+        key = tuple(sorted(str(getattr(s, "id", s)) for s in sites))
+        if key not in self._records_cache:
+            self._records_cache[key] = self.get_records(site_record)
+        return self._records_cache[key]
 
     @property
     def tag(self):
@@ -225,13 +258,17 @@ class BaseSource:
                 if resp.status_code == 200:
                     return resp.text
                 last_err = f"status {resp.status_code}: {resp.text[:200]}"
+                if resp.status_code in _NON_RETRYABLE_STATUS:
+                    self.warn(f"Non-retryable status {resp.status_code} for {url}. Aborting.")
+                    raise PartialOrNoDataError(f"Non-retryable status {resp.status_code} for {url}. {last_err}")
                 self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_tries}")
             except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
                 elapsed = int((time.monotonic() - t0) * 1000)
                 last_err = str(e)
                 self.warn(f"Request error attempt={tries+1}/{max_tries} elapsed_ms={elapsed} url={url}: {e}")
             tries += 1
-            time.sleep(min(2 ** tries, 60))
+            if tries < max_tries:
+                time.sleep(min(2 ** tries, 60))
         self.warn(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
         raise PartialOrNoDataError(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
 
@@ -254,13 +291,17 @@ class BaseSource:
                         self.warn(f"Invalid JSON response attempt={tries+1}/{max_retries} url={url}: {last_err}")
                 else:
                     last_err = f"status {resp.status_code}: {resp.text[:200]}"
+                    if resp.status_code in _NON_RETRYABLE_STATUS:
+                        self.warn(f"Non-retryable status {resp.status_code} for {url}. Aborting.")
+                        raise PartialOrNoDataError(f"Non-retryable status {resp.status_code} for {url}. {last_err}")
                     self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_retries}")
             except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
                 elapsed = int((time.monotonic() - t0) * 1000)
                 last_err = str(e)
                 self.warn(f"Request error attempt={tries+1}/{max_retries} elapsed_ms={elapsed} url={url}: {e}")
             tries += 1
-            time.sleep(min(2 ** tries, 60))
+            if tries < max_retries:
+                time.sleep(min(2 ** tries, 60))
         self.warn(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
         raise PartialOrNoDataError(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
 
@@ -295,13 +336,19 @@ class BaseSiteSource(BaseSource):
         return True
 
     def read(self, *args, **kw) -> List[SiteRecord] | None:
+        if self._fetch_cache_enabled and self._sites_cache is not _FETCH_UNSET:
+            return self._sites_cache
         self.log("Gathering site records")
         records = self.get_records()
         if records:
             self.log(f"total records={len(records)}")
-            return self._transform_sites(records)
-        self.warn("No site records returned")
-        return None
+            result: List[SiteRecord] | None = self._transform_sites(records)
+        else:
+            self.warn("No site records returned")
+            result = None
+        if self._fetch_cache_enabled:
+            self._sites_cache = result
+        return result
 
     def _transform_sites(self, records: list) -> List[SiteRecord]:
         transformed_records: List[SiteRecord] = []
@@ -349,7 +396,7 @@ class BaseParameterSource(BaseSource):
         else:
             self.log(f"{site_record.id}: Gathering {self.name} data")
 
-        all_records = self.get_records(site_record)
+        all_records = self._fetch_records(site_record)
         if not all_records:
             names = [str(r.id) for r in site_record] if isinstance(site_record, list) else [str(site_record.id)]
             self.warn(f"{','.join(names)}: No records found")
@@ -379,7 +426,7 @@ class BaseParameterSource(BaseSource):
         else:
             self.log(f"{site_record.id}: Gathering {self.name} data")
 
-        all_records = self.get_records(site_record)
+        all_records = self._fetch_records(site_record)
         if not all_records:
             names = [str(r.id) for r in site_record] if isinstance(site_record, list) else [str(site_record.id)]
             self.warn(f"{','.join(names)}: No records found")
@@ -427,6 +474,12 @@ class BaseParameterSource(BaseSource):
 
     def _clean_records(self, records: list) -> list:
         return records
+
+    def _summary_extra(self, cleaned: list) -> dict:
+        """Extra fields to merge into a site's summary record. Default none;
+        sources with a non-normalized source-series link (e.g. st2 SensorThings)
+        override to add a source_datastream_link."""
+        return {}
 
     def _extract_terminal_record(self, records, position: str):
         raise NotImplementedError(f"{self.__class__.__name__} Must implement _extract_terminal_record")

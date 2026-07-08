@@ -46,6 +46,7 @@ from backend.constants import (
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    SOURCE_DATASTREAM_LINK,
 )
 
 URL = "https://st2.newmexicowaterdata.org/FROST-Server/v1.1"
@@ -113,7 +114,26 @@ class ST2WaterLevelSource(STWaterLevelSource):
         record[DT_MEASURED] = record["observation"].phenomenon_time
         record[SOURCE_PARAMETER_NAME] = record["datastream"].name
         record[SOURCE_PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
+        # Link to the raw, non-normalized SensorThings datastream these
+        # observations came from, so consumers can trace a feature back to the
+        # provider's original series (before DIE normalization).
+        record[SOURCE_DATASTREAM_LINK] = self._datastream_link(record["datastream"])
         return record
+
+    def _datastream_link(self, datastream):
+        ds_id = getattr(datastream, "id", None)
+        if ds_id is None:
+            return None
+        return f"{self.url}/Datastreams({ds_id})"
+
+    def _summary_extra(self, cleaned: list) -> dict:
+        # All of a well's observations come from the same datastream; link the
+        # summary feature back to it.
+        for r in cleaned:
+            link = self._datastream_link(r.get("datastream"))
+            if link:
+                return {SOURCE_DATASTREAM_LINK: link}
+        return {}
 
     def _extract_source_parameter_results(self, records):
         return [r["observation"].result for r in records]
@@ -164,18 +184,12 @@ class NMOSERoswellWaterLevelSource(ST2WaterLevelSource):
     def __init__(self):
         super().__init__(transformer=NMOSERoswellWaterLevelTransformer())
 
-    def __repr__(self):
-        return "NMOSERoswellWaterLevelSource"
-
 
 class PVACDWaterLevelSource(ST2WaterLevelSource):
     agency = "PVACD"
 
     def __init__(self):
         super().__init__(transformer=PVACDWaterLevelTransformer())
-
-    def __repr__(self):
-        return "PVACDWaterLevelSource"
 
 
 class EBIDWaterLevelSource(ST2WaterLevelSource):
@@ -184,9 +198,6 @@ class EBIDWaterLevelSource(ST2WaterLevelSource):
     def __init__(self):
         super().__init__(transformer=EBIDWaterLevelTransformer())
 
-    def __repr__(self):
-        return "EBIDWaterLevelSource"
-
 
 class BernCoWaterLevelSource(ST2WaterLevelSource):
     agency = "BernCo"
@@ -194,18 +205,12 @@ class BernCoWaterLevelSource(ST2WaterLevelSource):
     def __init__(self):
         super().__init__(transformer=BernCoWaterLevelTransformer())
 
-    def __repr__(self):
-        return "BernCoWaterLevelSource"
-
 
 class CABQWaterLevelSource(ST2WaterLevelSource):
     agency = "CABQ"
 
     def __init__(self):
         super().__init__(transformer=CABQWaterLevelTransformer())
-
-    def __repr__(self):
-        return "CABQWaterLevelSource"
 
 
 # ============= EOF =============================================

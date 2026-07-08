@@ -38,9 +38,6 @@ class BORSiteSource(BaseSiteSource):
     def __init__(self):
         super().__init__(transformer=BORSiteTransformer())
 
-    def __repr__(self):
-        return "BORSiteSource"
-
     def health(self):
         try:
             resp = self.get_records()
@@ -65,9 +62,6 @@ class BORAnalyteSource(BaseAnalyteSource):
     def __init__(self):
         super().__init__(transformer=BORAnalyteTransformer())
     _source_parameter_name = None
-
-    def __repr__(self):
-        return "BORAnalyteSource"
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = self.config.parameter

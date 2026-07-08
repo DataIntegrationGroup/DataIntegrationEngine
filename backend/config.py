@@ -160,6 +160,12 @@ class Config:
     site_limit: int = 0
     dry: bool = False
 
+    # Number of chunks fetched concurrently per source (network-bound I/O).
+    # 1 = serial (legacy behavior). Higher values speed up multi-chunk sources
+    # but issue more simultaneous requests, which can trip per-source API rate
+    # limits (e.g. USGS) — tune down if you see 429s.
+    fetch_workers: int = 4
+
     # date
     start_date: str = ""
     end_date: str = ""
@@ -337,7 +343,7 @@ class Config:
         if bbox is None:
             bbox = self.bbox
 
-        if isinstance(bbox, str):
+        if isinstance(bbox, str) and bbox.strip():
             p1, p2 = bbox.split(",")
             x1, y1 = [float(a) for a in p1.strip().split(" ")]
             x2, y2 = [float(a) for a in p2.strip().split(" ")]
@@ -447,6 +453,54 @@ class Config:
         if not self._validate_date(self.end_date):
             self.warn(f"Invalid end date {self.end_date}")
             sys.exit(2)
+
+        if not self._validate_parameter():
+            self.warn(
+                f"Unknown parameter {self.parameter!r}. "
+                f"Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}"
+            )
+            sys.exit(2)
+
+        # Advisory only: these states are accepted (the code picks one) but are
+        # almost always a mistake, so surface them instead of failing silently.
+        self._warn_spatial_exclusivity()
+        self._warn_output_mode_exclusivity()
+
+    def _validate_parameter(self):
+        # An empty parameter is valid: sites-only flows don't need one. A set
+        # parameter must be one the source map knows, otherwise no source can
+        # ever be resolved for it.
+        if self.parameter:
+            return self.parameter in PARAMETER_SOURCE_MAP
+        return True
+
+    def _warn_spatial_exclusivity(self):
+        # bbox/county/wkt are resolved with inconsistent precedence across
+        # bbox_bounding_points (bbox first) and bounding_wkt (wkt first), so
+        # setting more than one silently does different things in different code
+        # paths. Exactly one (or none, meaning statewide) is intended.
+        set_filters = [n for n in ("bbox", "county", "wkt") if getattr(self, n)]
+        if len(set_filters) > 1:
+            self.warn(
+                f"Multiple spatial filters set ({', '.join(set_filters)}); set "
+                "exactly one — resolution precedence differs between code paths."
+            )
+
+    def _warn_output_mode_exclusivity(self):
+        modes = [
+            n
+            for n in (
+                "output_summary",
+                "output_timeseries_unified",
+                "output_timeseries_separated",
+            )
+            if getattr(self, n)
+        ]
+        if len(modes) > 1:
+            self.warn(
+                f"Multiple output modes set ({', '.join(modes)}); only the first "
+                "is used at dump time. Set exactly one."
+            )
 
     def _extract_date(self, d):
         if d:

@@ -60,6 +60,13 @@ SOURCE_PARAMETER_NAME = "source_parameter_name"
 SOURCE_PARAMETER_UNITS = "source_parameter_units"
 CONVERSION_FACTOR = "conversion_factor"
 
+# Link (e.g. SensorThings Datastream URL) to the raw, NON-NORMALIZED source
+# series a record came from — the provider's original observations before DIE
+# applies unit/datum normalization. Named with the source_ prefix like
+# source_parameter_name/source_parameter_units (same "as provided by source"
+# meaning). Set by connectors that expose one (currently st2); None otherwise.
+SOURCE_DATASTREAM_LINK = "source_datastream_link"
+
 USGS_PCODE_30210 = "30210"
 USGS_PCODE_70300 = "70300"
 USGS_PCODE_70301 = "70301"

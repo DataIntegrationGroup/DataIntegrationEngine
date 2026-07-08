@@ -20,6 +20,7 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     CONVERSION_FACTOR,
+    SOURCE_DATASTREAM_LINK,
     FEET,
 )
 
@@ -79,7 +80,17 @@ class BaseRecord:
         return v
 
     def __getattr__(self, attr):
-        v = self._payload.get(attr)
+        # Guard against recursion when the instance has no _payload yet — e.g.
+        # during unpickling, when pickle probes getattr(obj, "__setstate__")
+        # before __dict__ is restored. Reading via __dict__ (not self._payload)
+        # avoids re-entering __getattr__, and dunder lookups raise cleanly so
+        # pickle falls back to its default state restore.
+        if attr.startswith("__") and attr.endswith("__"):
+            raise AttributeError(attr)
+        payload = self.__dict__.get("_payload")
+        if payload is None:
+            raise AttributeError(attr)
+        v = payload.get(attr)
         if v is None and self.defaults:
             v = self.defaults.get(attr)
         return v
@@ -135,6 +146,7 @@ class SummaryRecord(BaseRecord):
         "latest_time",
         "latest_value",
         "latest_units",
+        SOURCE_DATASTREAM_LINK,
     )
     defaults: dict = {}
 

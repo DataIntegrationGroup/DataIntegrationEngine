@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import shapely
 
 from backend.config import Config, get_source
@@ -146,7 +148,7 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
 
         try:
             sites = site_source.read()
-        except (USGSRateLimitError, PartialOrNoDataError):
+        except USGSRateLimitError, PartialOrNoDataError:
             config.warn(incomplete_sites_record_msg)
             sites = []
 
@@ -161,6 +163,9 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
         if config.sites_only:
             persister.sites.extend(sites)
         else:
+            # Build the chunk list up front with each chunk's advisory log
+            # indices (start_ind/end_ind feed only log messages downstream).
+            chunk_specs = []
             for site_records in site_source.chunks(sites):
                 if type(site_records) == list:
                     n = len(site_records)
@@ -168,71 +173,86 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
                         first_flag = False
                     else:
                         start_ind = end_ind + 1
-
                     end_ind += n
+                chunk_specs.append((site_records, start_ind, end_ind))
 
-                if use_summarize:
+            # Fetch chunks concurrently (network-bound), but keep results in
+            # chunk order so output and site_limit stay deterministic. The
+            # persister is mutated only below, on this thread.
+            def _fetch(spec):
+                records, s_ind, e_ind = spec
+                return parameter_source.read(records, use_summarize, s_ind, e_ind)
+
+            workers = max(int(getattr(config, "fetch_workers", 1) or 1), 1)
+            workers = min(workers, len(chunk_specs)) if chunk_specs else 1
+
+            results_by_chunk = [None] * len(chunk_specs)
+            aborted = False
+            if workers > 1:
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    futures = {executor.submit(_fetch, spec): i for i, spec in enumerate(chunk_specs)}
+                    for future in as_completed(futures):
+                        try:
+                            results_by_chunk[futures[future]] = future.result()
+                        except (USGSRateLimitError, PartialOrNoDataError):
+                            aborted = True
+                            break
+            else:
+                for i, spec in enumerate(chunk_specs):
                     try:
-                        summary_records = parameter_source.read(
-                            site_records, use_summarize, start_ind, end_ind
-                        )
+                        results_by_chunk[i] = _fetch(spec)
                     except (USGSRateLimitError, PartialOrNoDataError):
-                        # remove partial records to prevent incomplete data from being saved
-                        persister.sites = persister.sites[:initial_sites_len]
-                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
-                        persister.records = persister.records[:initial_records_len]
-                        config.warn(incomplete_parameter_record_msg)
+                        aborted = True
                         break
-                    if summary_records:
-                        persister.records.extend(summary_records)
-                        sites_with_records_count += len(summary_records)
-                    else:
-                        continue
-                else:
-                    try:
-                        results = parameter_source.read(
-                            site_records, use_summarize, start_ind, end_ind
-                        )
-                    except (USGSRateLimitError, PartialOrNoDataError):
-                        # remove partial records to prevent incomplete data from being saved
-                        persister.sites = persister.sites[:initial_sites_len]
-                        persister.timeseries = persister.timeseries[:initial_timeseries_len]
-                        persister.records = persister.records[:initial_records_len]
-                        config.warn(incomplete_parameter_record_msg)
-                        break
-                    # no records are returned if there is no site record for parameter
-                    # or if the record isn't clean (doesn't have the correct fields)
-                    # don't count these sites to apply to site_limit
-                    if results is None or len(results) == 0:
-                        continue
-                    else:
-                        sites_with_records_count += len(results)
 
-                    for site, records in results:
-                        persister.timeseries.append(records)
-                        persister.sites.append(site)
-
-                if site_limit:
-                    if sites_with_records_count >= site_limit:
-                        # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
-                        num_sites_to_remove = sites_with_records_count - site_limit
-
-                        # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
-                        # and calling list[:0] will retur an empty list, so subtract
-                        # num_sites_to_remove from the length of the list
-                        # to remove the last num_sites_to_remove sites
-                        if use_summarize:
-                            persister.records = persister.records[
-                                : len(persister.records) - num_sites_to_remove
-                            ]
+            if aborted:
+                # remove partial records to prevent incomplete data from being saved
+                persister.sites = persister.sites[:initial_sites_len]
+                persister.timeseries = persister.timeseries[:initial_timeseries_len]
+                persister.records = persister.records[:initial_records_len]
+                config.warn(incomplete_parameter_record_msg)
+            else:
+                for results in results_by_chunk:
+                    if use_summarize:
+                        if results:
+                            persister.records.extend(results)
+                            sites_with_records_count += len(results)
                         else:
-                            persister.timeseries = persister.timeseries[
-                                : len(persister.timeseries) - num_sites_to_remove
-                            ]
-                            persister.sites = persister.sites[
-                                : len(persister.sites) - num_sites_to_remove
-                            ]
-                        break
+                            continue
+                    else:
+                        # no records are returned if there is no site record for parameter
+                        # or if the record isn't clean (doesn't have the correct fields)
+                        # don't count these sites to apply to site_limit
+                        if results is None or len(results) == 0:
+                            continue
+                        else:
+                            sites_with_records_count += len(results)
+
+                        for site, records in results:
+                            persister.timeseries.append(records)
+                            persister.sites.append(site)
+
+                    if site_limit:
+                        if sites_with_records_count >= site_limit:
+                            # remove any extra sites that were gathered. removes 0 if site_limit is not exceeded
+                            num_sites_to_remove = sites_with_records_count - site_limit
+
+                            # if sites_with_records_count == sit_limit then num_sites_to_remove = 0
+                            # and calling list[:0] will retur an empty list, so subtract
+                            # num_sites_to_remove from the length of the list
+                            # to remove the last num_sites_to_remove sites
+                            if use_summarize:
+                                persister.records = persister.records[
+                                    : len(persister.records) - num_sites_to_remove
+                                ]
+                            else:
+                                persister.timeseries = persister.timeseries[
+                                    : len(persister.timeseries) - num_sites_to_remove
+                                ]
+                                persister.sites = persister.sites[
+                                    : len(persister.sites) - num_sites_to_remove
+                                ]
+                            break
 
     except Exception:
         import traceback
@@ -299,6 +319,82 @@ def unify_source(config, source_key):
     site_source, parameter_source = pair
     _site_wrapper(site_source, parameter_source, persister, config, raise_errors=True)
     return persister
+
+
+def unify_source_both(config, source_key):
+    """Unify a single source for BOTH summary and timeseries outputs while
+    fetching the source only once.
+
+    Each connector's ``get_records`` is mode-agnostic — summary and timeseries
+    both pull the same raw observations and differ only in how they are
+    transformed (see backend/source.py). Running ``unify_source`` twice would
+    therefore hit the API twice for identical data. This driver instead enables
+    the source's shared-fetch cache and runs the two transform passes over one
+    fetch, so a source needed by both a summary and a timeseries product is
+    pulled once.
+
+    Output is identical to calling ``unify_source`` twice (once per mode); only
+    the underlying fetch is shared. Returns ``(summary_persister,
+    timeseries_persister)``. Used by the orchestration shared source asset.
+    """
+    config.validate()
+
+    pair = config.source_pair(source_key)
+    if pair is None:
+        config.warn(
+            f"Source {source_key!r} does not provide parameter {config.parameter!r}"
+        )
+        return make_persister(config), make_persister(config)
+
+    site_source, parameter_source = pair
+    # Share the site list and observation fetch across the two passes. The
+    # passes issue identical requests (same parameter/scope/dates), so the
+    # second reuses the first's cached fetch instead of re-querying.
+    site_source._fetch_cache_enabled = True
+    parameter_source._fetch_cache_enabled = True
+
+    # Timeseries pass first so its fetch primes the cache; the summary pass then
+    # transforms the same cached observations. output_summary is read live by
+    # the transformer, so toggling it here switches the record klass/fields per
+    # pass without rebuilding the source.
+    config.output_summary = False
+    timeseries_persister = make_persister(config)
+    config._persister = timeseries_persister
+    _site_wrapper(
+        site_source, parameter_source, timeseries_persister, config, raise_errors=True
+    )
+
+    config.output_summary = True
+    summary_persister = make_persister(config)
+    config._persister = summary_persister
+    _site_wrapper(
+        site_source, parameter_source, summary_persister, config, raise_errors=True
+    )
+
+    return summary_persister, timeseries_persister
+
+
+def collect_sites(config):
+    """Gather site records from **every** enabled source (sites only, no
+    parameter data) and return them as a flat list of ``_payload`` dicts.
+
+    Used by the cross-agency well-correlation product, which needs the location
+    of every well across all agencies — including OSE PODs, which carry no
+    parameter time series. Runs in ``sites_only`` mode over
+    ``all_site_sources()`` so a source that provides no parameter (e.g. the OSE
+    POD source) still contributes its sites. Errors on individual sources are
+    swallowed by ``_site_wrapper`` so one dead source does not abort the sweep.
+    """
+    config.validate()
+
+    config.sites_only = True
+    persister = make_persister(config)
+    config._persister = persister
+
+    for site_source, _ in config.all_site_sources():
+        _site_wrapper(site_source, None, persister, config)
+
+    return [s._payload for s in persister.sites]
 
 
 def get_county_bounds(county):
