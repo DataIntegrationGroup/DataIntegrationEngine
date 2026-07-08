@@ -112,7 +112,7 @@ def _num(value: Any) -> Optional[float]:
         return None
     try:
         return float(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return None
 
 
