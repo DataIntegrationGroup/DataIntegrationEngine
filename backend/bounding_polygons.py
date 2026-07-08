@@ -83,8 +83,13 @@ def get_state_polygon(state: str, buffer: int | None = None):
 
 # private helpers ============================
 def _make_shape(obj, as_wkt):
+    # Use the full-resolution source geometry. Do NOT simplify: adjacent
+    # counties share exact boundary vertices in the source data, so any
+    # per-county simplification moves those shared vertices independently and
+    # makes neighboring county borders overlap (or gap). Keeping full
+    # resolution guarantees shared borders stay coincident. See fix for the
+    # "well density by county" overlap artifact.
     poly = shape(obj["geometry"])
-    poly = poly.simplify(0.1)
     if as_wkt:
         return poly.wkt
     return poly
