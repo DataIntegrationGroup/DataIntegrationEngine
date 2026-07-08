@@ -163,6 +163,17 @@ products:
     sources:
       exclude: []
 
+  - id: nm_specific_conductance_summary
+    parameter: specific_conductance
+    output_type: ogc_summary
+    title: "NM Specific Conductance Summary"
+    description: "Specific conductance summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
   # One feature per well flagging drinking-water MCL exceedances. Thresholds are
   # read at run time from gs://<bucket>/config/mcl.json (source of truth);
   # `analytes` lists the candidates gathered for comparison.
