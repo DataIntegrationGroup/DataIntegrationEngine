@@ -186,7 +186,28 @@ class NWISSiteSource(BaseSiteSource):
         records: list = data.get("features", [])
         self._requester.check_truncation(data, "site")
 
-        return records
+        # combined-metadata returns one feature per time series (data_type /
+        # statistic), so a location with multiple series (e.g. field
+        # measurements + daily mean/max/min) appears several times with the
+        # same monitoring_location_id and identical site metadata. Left as-is,
+        # read_timeseries iterates each duplicate site and re-emits that well's
+        # readings once per series, producing exact-duplicate observations
+        # downstream. Keep the first feature per location; readings come only
+        # from the field-measurements collection regardless of series.
+        deduped: list = []
+        seen: set = set()
+        for feature in records:
+            site_id = feature.get("properties", {}).get("monitoring_location_id")
+            if site_id in seen:
+                continue
+            seen.add(site_id)
+            deduped.append(feature)
+
+        removed = len(records) - len(deduped)
+        if removed:
+            self.warn(f"Dropped {removed} duplicate site time-series features ({len(deduped)} unique locations)")
+
+        return deduped
 
 
 class NWISWaterLevelSource(BaseWaterLevelSource):
