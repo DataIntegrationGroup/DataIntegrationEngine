@@ -19,7 +19,13 @@ class NMOSEPODSiteSource(BaseSiteSource):
     It is used to fetch site data from the NMOSEPOD API.
     """
 
-    chunk_size: int = 5000
+    # The OSE FeatureServer caps a single page at its maxRecordCount (2000).
+    # chunk_size must not exceed it: the pagination loop below stops when a page
+    # comes back smaller than chunk_size, so a chunk_size larger than the server
+    # cap makes every full 2000-row page look "short" and breaks after page 1 --
+    # silently fetching only the first 2000 (oldest, OBJECTID-ordered) PODs and
+    # dropping every recent well the POD-age products need.
+    chunk_size: int = 2000
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def __init__(self):
