@@ -26,6 +26,11 @@ from .connectors.nmbgmr.source import (
     NMBGMRWaterLevelSource,
     NMBGMRAnalyteSource,
 )
+from .connectors.ocotillo.source import (
+    OcotilloSiteSource,
+    OcotilloWaterLevelSource,
+    OcotilloAnalyteSource,
+)
 from .connectors.bor.source import BORSiteSource, BORAnalyteSource
 from .connectors.nmenv.source import DWBSiteSource, DWBAnalyteSource
 from .connectors.nmose.source import NMOSEPODSiteSource
@@ -76,24 +81,24 @@ from backend.logger import make_logger
 
 
 PARAMETER_SOURCE_MAP = {
-    WATERLEVELS: {"agencies": ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "pvacd", "wqp"]},
-    CARBONATE: {"agencies": ["nmbgmr_amp", "wqp"]},
-    ARSENIC: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]},
-    URANIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "wqp"]},
-    SPECIFIC_CONDUCTANCE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    WATERLEVELS: {"agencies": ["bernco", "cabq", "ebid", "nmbgmr_amp", "nmose_isc_seven_rivers", "nmose_roswell", "nwis", "ocotillo", "pvacd", "wqp"]},
+    CARBONATE: {"agencies": ["nmbgmr_amp", "ocotillo", "wqp"]},
+    ARSENIC: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "ocotillo", "wqp"]},
+    URANIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "ocotillo", "wqp"]},
+    SPECIFIC_CONDUCTANCE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
     CONDUCTIVITY: {"agencies": ["bor", "nmose_isc_seven_rivers", "wqp"]},
-    BICARBONATE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    CALCIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    CHLORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    FLUORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    MAGNESIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    NITRATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    PH: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    POTASSIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    SILICA: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    SODIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    SULFATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
-    TDS: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "wqp"]},
+    BICARBONATE: {"agencies": ["nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    CALCIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    CHLORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    FLUORIDE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    MAGNESIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    NITRATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    PH: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    POTASSIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    SILICA: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    SODIUM: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    SULFATE: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
+    TDS: {"agencies": ["bor", "nmbgmr_amp", "nmed_dwb", "nmose_isc_seven_rivers", "ocotillo", "wqp"]},
 }
 
 SOURCE_DICT = {
@@ -107,6 +112,7 @@ SOURCE_DICT = {
     "nmose_pod": NMOSEPODSiteSource,
     "nmose_roswell": NMOSERoswellSiteSource,
     "nwis": NWISSiteSource,
+    "ocotillo": OcotilloSiteSource,
     "pvacd": PVACDSiteSource,
     "wqp": WQPSiteSource,
 }
@@ -123,6 +129,7 @@ ANALYTE_SOURCE_PAIRS = {
     "nmose_isc_seven_rivers": (ISCSevenRiversSiteSource, ISCSevenRiversAnalyteSource),
     "nmbgmr_amp": (NMBGMRSiteSource, NMBGMRAnalyteSource),
     "nmed_dwb": (DWBSiteSource, DWBAnalyteSource),
+    "ocotillo": (OcotilloSiteSource, OcotilloAnalyteSource),
 }
 
 WATERLEVEL_SOURCE_PAIRS = {
@@ -134,6 +141,7 @@ WATERLEVEL_SOURCE_PAIRS = {
     "bernco": (BernCoSiteSource, BernCoWaterLevelSource),
     "ebid": (EBIDSiteSource, EBIDWaterLevelSource),
     "cabq": (CABQSiteSource, CABQWaterLevelSource),
+    "ocotillo": (OcotilloSiteSource, OcotilloWaterLevelSource),
     "wqp": (WQPSiteSource, WQPWaterLevelSource),
 }
 
@@ -180,6 +188,7 @@ class Config:
     use_source_nmose_pod: bool = True
     use_source_nmose_roswell: bool = True
     use_source_nwis: bool = True
+    use_source_ocotillo: bool = True
     use_source_pvacd: bool = True
     use_source_wqp: bool = True
 
