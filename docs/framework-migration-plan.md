@@ -135,5 +135,5 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
 2. **GeoServer publish from the GeoDataFrame** — geoserver asset writes GPKG straight from the combine's GeoDataFrame (`write_geopackage`), skipping the GeoJSON→GeoPackage round-trip.
 3. **Retire CLI-path bespoke persistence** — `persister.py` byte assembly + `strategies.py` (lower priority; CLI is out of scope).
 
-### Cleanup note
-The 5 `dump_*_collection_gpd` twins in `geodataframe.py` are now redundant with the routed legacy dumpers (they double-route harmlessly); they remain as item-based-API verification. Prune or keep as regression guards — low priority.
+### ✅ Cleanup — twins pruned
+The 5 `dump_*_collection_gpd` twins (and their twin-only helpers) were removed once `_dump_collection` routing made the legacy dumpers GeoPandas-backed. `geodataframe.py` now holds only the used primitives: the routing hook, the records/features → GeoDataFrame builders, the GeoParquet handoff helpers, and `write_geopackage`. Tests cover the primitives directly; product byte-parity stays guarded by `test_ogc_features.py`. (399 passed.)
