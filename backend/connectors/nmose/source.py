@@ -1,3 +1,4 @@
+import json
 from typing import List, Dict, Any
 
 from shapely import wkt
@@ -69,7 +70,10 @@ class NMOSEPODSiteSource(BaseSiteSource):
 
         if config.has_bounds():
             wkt = config.bounding_wkt()
-            params["geometry"] = wkt_to_arcgis_json(wkt)
+            # ArcGIS expects the geometry as a JSON *string*. httpx used to
+            # serialize a dict param value into acceptable JSON; requests (via
+            # dlt's RESTClient) does not, so encode it explicitly.
+            params["geometry"] = json.dumps(wkt_to_arcgis_json(wkt))
             params["geometryType"] = "esriGeometryPolygon"
 
         records: List = []

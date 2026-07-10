@@ -46,6 +46,32 @@ def fetch_text(url: str, params: Optional[dict] = None, timeout: int = 30) -> st
     return resp.text
 
 
+def fetch_json(
+    url: str,
+    params: Optional[dict] = None,
+    tag: Optional[str] = None,
+    headers: Optional[dict] = None,
+    timeout: int = 900,
+) -> object:
+    """Single GET returning parsed JSON — the dlt replacement for the base
+    ``_execute_json_request``. When *tag* is given and the payload is a dict,
+    returns ``payload[tag]`` (e.g. ``"data"`` / ``"features"``). dlt's session
+    retries transient errors; a final failure or bad JSON → ``PartialOrNoDataError``
+    so the unifier still skips the source gracefully."""
+    client = RESTClient(base_url="")
+    try:
+        resp = client.get(url, params=params, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+        obj = resp.json()
+    except requests.RequestException as e:
+        raise PartialOrNoDataError(f"Request failed for {url}: {e}")
+    except ValueError as e:  # includes requests' JSONDecodeError
+        raise PartialOrNoDataError(f"Invalid JSON from {url}: {e}")
+    if tag and isinstance(obj, dict):
+        return obj[tag]
+    return obj
+
+
 def fetch_json_records(
     url: str,
     params: Optional[dict] = None,

@@ -17,7 +17,6 @@ import json
 import os
 
 import click
-import httpx
 from shapely.geometry import shape
 
 from backend.geo_utils import transform_srid, SRID_WGS84, SRID_UTM_ZONE_13N
@@ -211,8 +210,9 @@ def _get_cached_object(name, msg, url):
         if callable(url):
             obj = url()
         else:
-            resp = httpx.get(url, timeout=30)
-            obj = resp.json()
+            from backend.connectors._dlt import fetch_json
+
+            obj = fetch_json(url, timeout=30)
         with open(path, "w") as wfile:
             json.dump(obj, wfile)
     else:

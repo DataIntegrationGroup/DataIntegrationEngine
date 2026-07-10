@@ -20,7 +20,6 @@ dependencies = [
     "dlt>=1.28.1",
     "frost_sta_client",
     "geopandas",
-    "httpx",
     "pandas",
     "pymannkendall",
     "pyyaml",
