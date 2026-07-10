@@ -16,15 +16,19 @@ from shapely.geometry import Polygon
 
 from backend.persisters.ogc_features import dump_summary_collection, _dump_collection
 from backend.persisters.geodataframe import (
+    dicts_to_parquet_bytes,
     features_to_geodataframe,
     geodataframe_to_features,
     gdf_to_parquet_bytes,
+    parquet_bytes_to_dicts,
     parquet_bytes_to_gdf,
+    parquet_bytes_to_timeseries,
     records_to_geodataframe,
     route_feature_dicts_through_gdf,
+    timeseries_to_parquet_bytes,
     write_geopackage,
 )
-from backend.record import SummaryRecord
+from backend.record import SummaryRecord, SiteRecord, ParameterRecord
 
 
 def _make_summary_record(
@@ -107,6 +111,84 @@ class TestGeoParquetHandoff:
         back = parquet_bytes_to_gdf(gdf_to_parquet_bytes(gdf))
         assert list(back.index) == ["wqp:X", "nmbgmr_amp:RA-2"]
         assert back.crs == gdf.crs
+
+
+def _site_payload(source="nmbgmr_amp", rid="RA-1", lat=35.0, lon=-106.5):
+    return SiteRecord(
+        {
+            "source": source, "id": rid, "name": "W", "latitude": lat, "longitude": lon,
+            "elevation": 1650.0, "elevation_units": "ft", "horizontal_datum": "WGS84",
+            "vertical_datum": "", "usgs_site_id": "", "alternate_site_id": "",
+            "formation": "", "aquifer": "", "well_depth": None, "well_depth_units": "ft",
+        }
+    )._payload
+
+
+def _obs_payload(source="nmbgmr_amp", rid="RA-1", date="2024-01-15", value=212.4):
+    return ParameterRecord(
+        {
+            "source": source, "id": rid, "parameter_name": "waterlevels",
+            "parameter_value": value, "parameter_units": "ft", "date_measured": date,
+            "time_measured": "00:00:00", "source_parameter_name": "dtw",
+            "source_parameter_units": "ft", "conversion_factor": 1.0,
+            "record_type": "waterlevels",
+        }
+    )._payload
+
+
+class TestPayloadParquetHandoff:
+    """The Dagster source-asset payload {records, sites, timeseries} must survive
+    Parquet serialization unchanged — this is what the IO manager relies on to
+    replace the pickle handoff."""
+
+    def test_records_roundtrip(self):
+        pytest.importorskip("pyarrow")
+        records = [
+            _make_summary_record(rid="RA-1")._payload,
+            _make_summary_record(rid="RA-2", well_depth=300.0)._payload,
+        ]
+        back = parquet_bytes_to_dicts(dicts_to_parquet_bytes(records))
+        assert back == records
+
+    def test_sites_roundtrip(self):
+        pytest.importorskip("pyarrow")
+        sites = [_site_payload(rid="RA-1"), _site_payload(rid="RA-2", lat=34.1)]
+        back = parquet_bytes_to_dicts(dicts_to_parquet_bytes(sites))
+        assert back == sites
+
+    def test_timeseries_roundtrip_preserves_grouping(self):
+        pytest.importorskip("pyarrow")
+        timeseries = [
+            [_obs_payload(rid="RA-1", date="2024-01-15"),
+             _obs_payload(rid="RA-1", date="2024-02-15")],
+            [_obs_payload(rid="RA-2", date="2024-03-01")],
+        ]
+        back = parquet_bytes_to_timeseries(timeseries_to_parquet_bytes(timeseries))
+        assert back == timeseries
+
+    def test_empty_payload_roundtrip(self):
+        pytest.importorskip("pyarrow")
+        assert parquet_bytes_to_dicts(dicts_to_parquet_bytes([])) == []
+        assert parquet_bytes_to_timeseries(timeseries_to_parquet_bytes([])) == []
+
+    def test_full_payload_roundtrip(self):
+        """Simulate the whole source-asset payload through the handoff."""
+        pytest.importorskip("pyarrow")
+        payload = {
+            "records": [_make_summary_record(rid="RA-1")._payload],
+            "sites": [_site_payload(rid="RA-1"), _site_payload(rid="RA-2", lat=34.1)],
+            "timeseries": [[_obs_payload(rid="RA-1")], [_obs_payload(rid="RA-2")]],
+        }
+        rebuilt = {
+            "records": parquet_bytes_to_dicts(dicts_to_parquet_bytes(payload["records"])),
+            "sites": parquet_bytes_to_dicts(dicts_to_parquet_bytes(payload["sites"])),
+            "timeseries": parquet_bytes_to_timeseries(
+                timeseries_to_parquet_bytes(payload["timeseries"])
+            ),
+        }
+        assert rebuilt == payload
+        # sites[i] <-> timeseries[i] alignment preserved
+        assert len(rebuilt["sites"]) == len(rebuilt["timeseries"])
 
 
 class TestRouting:

@@ -4,12 +4,11 @@ from typing import TYPE_CHECKING
 
 import dagster as dg
 import yaml
-from dagster_gcp.gcs import GCSPickleIOManager
-from google.api_core.exceptions import NotFound
 
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource, AuthedGCSResource
 from orchestration.resources.geoserver import GeoServerResource
+from orchestration.resources.geodataframe_io import PayloadParquetIOManager
 from orchestration.assets.products import (
     build_product_pipeline_assets,
     build_shared_source_asset,
@@ -17,38 +16,6 @@ from orchestration.assets.products import (
     product_source_specs,
     shared_source_key,
 )
-
-
-class _TolerantGCSPickleIOManager(GCSPickleIOManager):
-    """GCS pickle IO manager that tolerates a missing source input.
-
-    Combine assets load their shared source inputs via ``ins``, and that load
-    happens *before* the asset body runs — so a missing pickle can't be caught
-    inside the combine. A cohort job materializes a combine's sources in the
-    same run, so the blob is normally present; but an **ad-hoc** materialization
-    of just a combine (e.g. re-publish from the Assets UI without re-running the
-    upstream sources), or a brand-new shared source never yet materialized,
-    leaves the blob absent and the stock manager would fail the combine hard.
-
-    Returning an empty payload instead degrades that product to an empty
-    collection (the geoserver asset already soft-fails on 0 features) rather
-    than crashing the run. A source asset always writes a payload when it
-    actually runs (it soft-fails to an empty payload, never to *no* output), so
-    a missing blob only ever means "never materialized", never "ran and lost
-    its data" — which is why swallowing NotFound here can't mask a real error.
-    """
-
-    def load_input(self, context: dg.InputContext):
-        try:
-            return super().load_input(context)
-        except NotFound, FileNotFoundError:
-            context.log.warning(
-                f"Source input {context.asset_key.to_user_string()!r} not found "
-                "in GCS; treating as empty. Run sources_job before the product "
-                "jobs (it is scheduled ahead of them, but must run once on a "
-                "fresh deploy)."
-            )
-            return {}
 
 
 if TYPE_CHECKING:
@@ -291,14 +258,15 @@ defs = dg.Definitions(
         # Persist asset I/O to GCS instead of the serverless run's ephemeral
         # /tmp. A cohort run materializes a shared source once and every member
         # combine reads it back through this manager (so the source unifies once
-        # even though multiple combines consume it). The tolerant subclass
-        # returns an empty payload when a source's blob is absent, so an ad-hoc
-        # combine-only materialization (or a never-yet-run new source) degrades
-        # to an empty collection instead of hard-failing.
-        "io_manager": _TolerantGCSPickleIOManager(
+        # even though multiple combines consume it). The source payload
+        # {records, sites, timeseries} crosses as Parquet blobs (replacing the
+        # pickle handoff); a missing blob degrades to an empty payload, so an
+        # ad-hoc combine-only materialization (or a never-yet-run new source)
+        # yields an empty collection instead of hard-failing.
+        "io_manager": PayloadParquetIOManager(
             gcs=AuthedGCSResource(),
             gcs_bucket=_products_config.get("gcs_bucket", "dataservices-die-products"),
-            gcs_prefix="dagster-io",
+            gcs_prefix="dagster-parquet",
         ),
     },
 )

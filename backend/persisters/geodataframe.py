@@ -175,6 +175,69 @@ def parquet_bytes_to_gdf(data: bytes) -> gpd.GeoDataFrame:
     return gpd.read_parquet(io.BytesIO(data))
 
 
+# ---------------------------------------------------------------------------
+# Source-asset payload handoff (Parquet) — replaces the pickled {records, sites,
+# timeseries} dict crossing the Dagster IO manager. records/sites/observations
+# are flat scalar payload dicts (SummaryRecord/SiteRecord/ParameterRecord
+# _payloads), so a columnar Parquet table is the natural, typed handoff; the
+# combine rebuilds record objects from the dicts exactly as before. Geometry is
+# built later, in the dumpers — so these are plain Parquet, not GeoParquet.
+# ---------------------------------------------------------------------------
+
+# Marks which site-group each flattened observation belongs to, so the aligned
+# list-of-per-site-lists (sites[i] ↔ timeseries[i]) survives the round-trip.
+_SITE_IDX = "__site_idx"
+
+
+def _clean_nans(records: list[dict]) -> list[dict]:
+    """pandas reads missing cells back as NaN; restore them to None so the
+    rebuilt payload dicts match what was written (record classes expect None)."""
+    return [{k: (None if pd.isna(v) else v) for k, v in row.items()} for row in records]
+
+
+def dicts_to_parquet_bytes(dicts: list[dict]) -> bytes:
+    """Serialize a flat list of payload dicts (records or sites) to Parquet.
+    object dtype keeps exact types; a uniform column set is fine — the record
+    classes tolerate extra null-valued keys on rebuild."""
+    buf = io.BytesIO()
+    pd.DataFrame(dicts, dtype=object).to_parquet(buf, index=False)
+    return buf.getvalue()
+
+
+def parquet_bytes_to_dicts(data: bytes) -> list[dict]:
+    """Inverse of :func:`dicts_to_parquet_bytes`."""
+    df = pd.read_parquet(io.BytesIO(data))
+    return _clean_nans(df.to_dict("records"))
+
+
+def timeseries_to_parquet_bytes(timeseries: list[list[dict]]) -> bytes:
+    """Flatten the aligned list-of-per-site-lists to one Parquet table, tagging
+    each observation with its site-group index so the grouping is recoverable."""
+    rows: list[dict] = []
+    for site_idx, site_ts in enumerate(timeseries):
+        for obs in site_ts:
+            rows.append({**obs, _SITE_IDX: site_idx})
+    buf = io.BytesIO()
+    pd.DataFrame(rows, dtype=object).to_parquet(buf, index=False)
+    return buf.getvalue()
+
+
+def parquet_bytes_to_timeseries(data: bytes) -> list[list[dict]]:
+    """Inverse of :func:`timeseries_to_parquet_bytes` — regroup observations back
+    into the aligned list-of-per-site-lists by ``__site_idx``. Group order is the
+    site-group order (every persisted site carries ≥1 observation, so groups are
+    contiguous 0..N-1)."""
+    df = pd.read_parquet(io.BytesIO(data))
+    if df.empty:
+        return []
+    n_groups = int(df[_SITE_IDX].max()) + 1
+    groups: list[list[dict]] = [[] for _ in range(n_groups)]
+    for row in _clean_nans(df.to_dict("records")):
+        idx = int(row.pop(_SITE_IDX))
+        groups[idx].append(row)
+    return groups
+
+
 def write_geopackage(gdf: gpd.GeoDataFrame, path: str, layer: str) -> None:
     """Write the canonical GeoDataFrame straight to a GeoPackage layer.
 
