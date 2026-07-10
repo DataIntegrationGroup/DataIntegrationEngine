@@ -157,8 +157,12 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
 - ✅ `GeoServerPersister` dropped (dead CLI PostGIS path)
 - ✅ Inter-asset handoff → Parquet (pickle retired)
 - ✅ GeoServer GPKG conversion → tested backend helper
-- ✅ Phase B: WQP + **USGS** fetch → dlt (2/8 connectors)
-- ▶ Remaining connectors: bor, isc_seven_rivers, nmbgmr_amp, nmose_pod (ArcGIS), FROST fleet (nmed_dwb + st2); deploy-env verification pending; httpx removal after all connectors migrate
+- ✅ Phase B: **all REST connectors on dlt; httpx removed**
+  - WQP + USGS migrated directly (USGS truncation bug fixed).
+  - bor, isc_seven_rivers, nmbgmr_amp, nmose_pod migrated **transitively** — the base `_execute_json_request` now delegates to dlt's `fetch_json`, so these connectors moved without per-connector edits (nmose needed a `json.dumps` on its ArcGIS geometry param — requests doesn't serialize a dict param like httpx did).
+  - Base `BaseSource._http_client` is now a dlt `RESTClient`; the manual retry loop + `_execute_text_request` + `_NON_RETRYABLE_STATUS` are gone. `bounding_polygons` geoconnex fetch on `fetch_json`.
+  - **httpx dependency dropped** (relock removed httpx + httpcore + h11). Verified live end-to-end via every REST connector.
+  - FROST fleet (nmed_dwb + st2) stays on `frost_sta_client` — its own client lib, never used httpx. Optional future: move it to dlt `@iot.nextLink` too.
 
 ### ✅ USGS on dlt — pagination truncation FIXED
 - Both fetches paginate via `JSONLinkPaginator` on the OGC `rel=next` cursor: site GET (combined-metadata) and water-level **POST CQL** (field-measurements). `fetch_json_records` gained method/json_data/headers + error mapping (429 → `USGSRateLimitError`, else `PartialOrNoDataError`).
