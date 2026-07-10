@@ -346,9 +346,22 @@ def unify_source_multi(config, source_key, parameters):
     orchestration/assets/products.py) — WQP's ~13 analyte assets collapse to one
     fetch.
 
-    Returns ``{parameter: (summary_persister, timeseries_persister)}``. Requires a
-    source whose site + parameter sources implement ``set_parameters`` (currently
-    WQP). Analytes only — do not pass ``waterlevels``.
+    Returns ``{parameter: (summary_persister, timeseries_persister)}``. Analytes
+    only — do not pass ``waterlevels``.
+
+    Two regimes, chosen by whether the source's API can return several analytes
+    in one query (``set_parameters`` present):
+
+    - **WQP** — one station/result query carries every analyte, so the source is
+      fetched once and each analyte's pass filters that shared fetch. Real API
+      saving (~13 analyte fetches → 1).
+    - **BOR / AMP / ISC / DWB** — the provider API is analyte-scoped (one query
+      per analyte), so the fetch cannot collapse. Fall back to a per-analyte
+      unify with a **fresh** source pair each time (these connectors cache
+      analyte-specific state — BOR's catalog index, ISC's analyte ids — that a
+      reused instance would carry into the next analyte). Same API calls as
+      before; the payoff is one multi-analyte asset instead of many (Dagster
+      graph consolidation), not fewer fetches.
     """
     config.validate()
     if not parameters:
@@ -365,23 +378,26 @@ def unify_source_multi(config, source_key, parameters):
         return {p: (make_persister(config), make_persister(config)) for p in parameters}
 
     site_source, parameter_source = pair
-    if not (
-        hasattr(site_source, "set_parameters")
-        and hasattr(parameter_source, "set_parameters")
-    ):
-        raise ValueError(
-            f"Source {source_key!r} does not support multi-analyte unification"
-        )
+    shared_fetch = hasattr(site_source, "set_parameters") and hasattr(
+        parameter_source, "set_parameters"
+    )
 
+    if not shared_fetch:
+        # Analyte-scoped API: per-analyte unify with a fresh pair each time.
+        result: dict = {}
+        for p in parameters:
+            config.parameter = p
+            result[p] = unify_source_both(config, source_key)
+        return result
+
+    # Shared-fetch (WQP): fetch once for all analytes; each pass filters it to
+    # its own analyte (see WQPParameterSource._extract_site_records).
     site_source.set_parameters(parameters)
     parameter_source.set_parameters(parameters)
-    # Share the union site list and the single multi-analyte observation fetch
-    # across every per-analyte pass; each pass filters the cached fetch to its
-    # own analyte (see WQPParameterSource._extract_site_records).
     site_source._fetch_cache_enabled = True
     parameter_source._fetch_cache_enabled = True
 
-    result: dict = {}
+    result = {}
     for p in parameters:
         config.parameter = p
 
