@@ -24,6 +24,7 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     DT_MEASURED,
+    APPROVAL_STATUS,
 )
 
 from backend.source import (
@@ -72,6 +73,8 @@ class BORAnalyteSource(BaseAnalyteSource):
         record[SOURCE_PARAMETER_UNITS] = record["attributes"]["resultAttributes"][
             "units"
         ]
+        # RISE result status (approval); no separate qualifier field
+        record[APPROVAL_STATUS] = record["attributes"].get("status")
         return record
 
     def _extract_source_parameter_results(self, rs):
