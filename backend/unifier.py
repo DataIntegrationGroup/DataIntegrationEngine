@@ -83,44 +83,6 @@ def unify_sites(config):
     return True
 
 
-# def _perister_factory(config):
-#     """
-#     Determines the type of persister to use based on the configuration. The
-#     persister types are:
-
-#     - CSVPersister
-#     - CloudStoragePersister
-#     - GeoJSONPersister
-
-#     Parameters
-#     -------
-#     config: Config
-#         The configuration object
-
-#     Returns
-#     -------
-#     Persister
-#         The persister object to use
-#     """
-#     persister_klass = CSVPersister
-#     if config.use_cloud_storage:
-#         persister_klass = CloudStoragePersister
-#     elif config.output_format == OutputFormat.CSV:
-#         persister_klass = CSVPersister
-#     elif config.output_format == OutputFormat.GEOJSON:
-#         persister_klass = GeoJSONPersister
-#     elif config.output_format == OutputFormat.GEOSERVER:
-#         persister_klass = GeoServerPersister
-
-#     return persister_klass(config)
-
-
-# def _unify_wrapper(config, func):
-#     persister = _perister_factory(config)
-#     func(persister)
-#     persister.save(config.output_path)
-
-
 def _site_wrapper(site_source, parameter_source, persister, config, raise_errors=False):
 
     try:
