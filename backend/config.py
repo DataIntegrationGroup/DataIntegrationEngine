@@ -18,7 +18,6 @@ from datetime import datetime, timedelta
 import shapely.wkt
 import yaml
 
-from . import OutputFormat
 from .exceptions import ConfigError
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
@@ -150,7 +149,6 @@ def get_source(source):
 
 class Config:
     site_limit: int = 0
-    dry: bool = False
 
     # Number of chunks fetched concurrently per source (network-bound I/O).
     # 1 = serial (legacy behavior). Higher values speed up multi-chunk sources
@@ -186,25 +184,16 @@ class Config:
     # parameter
     parameter: str = ""
 
-    # output
-    use_cloud_storage: bool = False
-    output_dir: str = "."
-    output_name: str = "output"
+    # output — transform-facing units/datum + summary-vs-timeseries mode.
+    # output_summary is toggled by unify_source_both and read live by the
+    # transformer to pick SummaryRecord vs ParameterRecord.
     output_horizontal_datum: str = WGS84
     output_elevation_units: str = FEET
     output_well_depth_units: str = FEET
     output_summary: bool = False
-    output_timeseries_unified: bool = False
-    output_timeseries_separated: bool = False
-
-    latest_water_level_only: bool = False
 
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
-
-    output_format: str = OutputFormat.CSV.value
-
-    yes: bool = False
 
     def __init__(self, model=None, payload=None, path=None):
         _l = make_logger(self.__class__.__name__)
@@ -242,17 +231,9 @@ class Config:
                 "county",
                 "bbox",
                 "output_summary",
-                "output_timeseries_unified",
-                "output_timeseries_separated",
                 "start_date",
                 "end_date",
                 "parameter",
-                "output_name",
-                "dry",
-                "latest_water_level_only",
-                "output_format",
-                "use_cloud_storage",
-                "yes",
             ):
                 if attr in payload:
                     setattr(self, attr, payload[attr])
@@ -282,10 +263,10 @@ class Config:
         return s, ss
 
     def finalize(self):
+        # Resolve the parameter-dependent output units (ph -> "", conductivity ->
+        # uS/cm) the converter needs. The old output-name/dir setup served the
+        # removed CLI file output.
         self._update_output_units()
-        self.update_output_name()
-        self.make_output_directory()
-        self.make_output_path()
 
     def all_site_sources(self):
         sources = []
@@ -376,56 +357,6 @@ class Config:
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
 
-    def report(self):
-        def _report_attributes(title, attrs):
-            s = f"---- {title} --------------------------------------------------"
-            self.log(s)
-
-            for k in attrs:
-                v = getattr(self, k)
-                s = f"{k}: {v}"
-                self.log(s)
-
-            s = ""
-            self.log(s)
-
-        s = "---- Begin configuration -------------------------------------\n"
-        self.log(s)
-
-        sources = [f"use_source_{s}" for s in SOURCE_KEYS]
-        attrs = [
-            "start_date",
-            "end_date",
-            "county",
-            "bbox",
-            "wkt",
-            "parameter",
-            "site_limit",
-        ] + sources
-        # inputs
-        _report_attributes(
-            "Inputs",
-            attrs,
-        )
-
-        # outputs
-        _report_attributes(
-            "Outputs",
-            (
-                "output_path",
-                "output_summary",
-                "output_timeseries_unified",
-                "output_timeseries_separated",
-                "output_horizontal_datum",
-                "output_elevation_units",
-                "use_cloud_storage",
-                "output_format",
-            ),
-        )
-
-        s = "---- End configuration -------------------------------------\n"
-        self.log(s)
-
     def validate(self):
         # Raise (don't sys.exit) so callers control failure: the CLI converts
         # this to exit(2); a Dagster asset catches it and soft-fails just that
@@ -448,10 +379,9 @@ class Config:
                 f"Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}"
             )
 
-        # Advisory only: these states are accepted (the code picks one) but are
-        # almost always a mistake, so surface them instead of failing silently.
+        # Advisory only: multiple spatial filters are accepted (the code picks
+        # one) but almost always a mistake, so surface it.
         self._warn_spatial_exclusivity()
-        self._warn_output_mode_exclusivity()
 
     def _validate_parameter(self):
         # An empty parameter is valid: sites-only flows don't need one. A set
@@ -471,22 +401,6 @@ class Config:
             self.warn(
                 f"Multiple spatial filters set ({', '.join(set_filters)}); set "
                 "exactly one — resolution precedence differs between code paths."
-            )
-
-    def _warn_output_mode_exclusivity(self):
-        modes = [
-            n
-            for n in (
-                "output_summary",
-                "output_timeseries_unified",
-                "output_timeseries_separated",
-            )
-            if getattr(self, n)
-        ]
-        if len(modes) > 1:
-            self.warn(
-                f"Multiple output modes set ({', '.join(modes)}); only the first "
-                "is used at dump time. Set exactly one."
             )
 
     def _extract_date(self, d):
@@ -522,52 +436,6 @@ class Config:
 
         return True
 
-    def make_output_directory(self):
-        """
-        Create the output directory if it doesn't exist.
-        """
-        if not os.path.exists(self.output_dir):
-            os.mkdir(self.output_dir)
-
-    def update_output_name(self):
-        """
-        Generate a unique output name based on existing directories in the output directory.
-
-        If there are no directories with the string "output" in their name, the output name will be "output".
-
-        If there is a directory called "output", then output_name will be "output_1".
-
-        If there are directories called "output_{n}" where n is an integer, then output_name will be "output_{m+1}"
-        where m is the highest integer in the existing directories.
-        """
-        output_name = self.output_name
-
-        # find if there are already directories with the string "output" their names
-        output_names = [
-            name
-            for name in os.listdir(self.output_dir)
-            if os.path.isdir(name) and output_name in name
-        ]
-
-        if len(output_names) > 0:
-            max_count = 0
-            # find the highest number appended to directories with "output" in their name
-            counts = [
-                name.split("_")[-1]
-                for name in output_names
-                if name.split("_")[-1].isdigit()
-            ]
-            counts = [int(count) for count in counts]
-            if len(counts) > 0:
-                max_count = max(counts)
-            output_name = f"{output_name}_{max_count + 1}"
-
-        self.output_name = output_name
-
-    def make_output_path(self):
-        if not os.path.exists(self.output_path):
-            os.mkdir(self.output_path)
-
     def _update_output_units(self):
         parameter = self.parameter.lower()
         if parameter == "ph":
@@ -582,10 +450,6 @@ class Config:
     @property
     def end_dt(self):
         return self._extract_date(self.end_date)
-
-    @property
-    def output_path(self):
-        return os.path.join(self.output_dir, f"{self.output_name}")
 
     def get(self, attr):
         if self._payload:

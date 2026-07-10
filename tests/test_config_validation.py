@@ -51,11 +51,7 @@ class TestExclusivityGuards:
         # advisory only — does not raise/exit
         c._warn_spatial_exclusivity()
 
-    def test_multiple_output_modes_advisory(self):
-        c = _cfg(output_summary=True, output_timeseries_unified=True)
-        c._warn_output_mode_exclusivity()  # advisory, no raise
-
-    def test_validate_passes_with_one_mode(self):
+    def test_validate_passes_with_summary_mode(self):
         c = _cfg(parameter="waterlevels", output_summary=True)
         c.validate()
 
