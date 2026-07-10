@@ -13,11 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import httpx
 import os
-import time
-import json
-from typing import Callable
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
 from backend.constants import (
@@ -33,7 +29,13 @@ from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
     NWISWaterLevelTransformer,
 )
-from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
+from dlt.sources.helpers.rest_client.paginators import (
+    JSONLinkPaginator,
+    SinglePagePaginator,
+)
+from jsonpath_ng.ext import parse
+
+from backend.connectors._dlt import fetch_json_records
 from backend.source import (
     BaseWaterLevelSource,
     BaseSiteSource,
@@ -42,8 +44,18 @@ from backend.source import (
 )
 
 LIMIT = 50000
-TIMEOUT=15*60  # 15 minutes, to allow for retries and large requests
-MAX_RETRIES = 7
+
+# The USGS OGC API paginates with a cursor exposed as a `rel="next"` link.
+# dlt's JSONLinkPaginator follows it across every page — this is what fixes the
+# old silent truncation (the code used to *refuse* any response advertising a
+# next page). Compiled once; the filter selects the href of the next link.
+_NEXT_LINK = parse("links[?rel='next'].href")
+
+
+def _new_paginator() -> JSONLinkPaginator:
+    # A paginator instance is stateful (tracks the cursor), so build a fresh one
+    # per fetch — do not share across requests.
+    return JSONLinkPaginator(next_url_path=_NEXT_LINK)
 
 
 def _usgs_headers(extra: dict | None = None) -> dict:
@@ -57,86 +69,11 @@ def _usgs_headers(extra: dict | None = None) -> dict:
     return headers
 
 
-class USGSRequester:
-    """Handles USGS API requests: retry/backoff, rate limiting, and truncation
-    checks. Composed into the USGS sources, which inject their http client and
-    warn callable."""
-
-    def __init__(self, http_client: httpx.Client, warn: Callable[[str], None]):
-        self._http_client = http_client
-        self._warn = warn
-
-    def request(self, url: str, *, params: dict, context: str,
-                json_data: dict | None = None, headers: dict | None = None) -> dict:
-        """Retry an httpx request against the USGS API and return the parsed JSON.
-
-        A GET is issued unless ``json_data`` is given, in which case a POST
-        carries it. ``context`` labels the data in warnings (e.g. "site
-        records"). Raises USGSRateLimitError on a 429 and PartialOrNoDataError
-        when nothing is retrieved after MAX_RETRIES."""
-        data: dict = {}
-        tries: int = 0
-
-        while tries < MAX_RETRIES:
-            try:
-                if json_data is None:
-                    response = self._http_client.get(
-                        url=url, params=params, timeout=TIMEOUT, headers=_usgs_headers(headers)
-                    )
-                else:
-                    response = self._http_client.post(
-                        url=url, json=json_data, params=params, timeout=TIMEOUT,
-                        headers=_usgs_headers(headers),
-                    )
-
-                if response.status_code == 200:
-                    data = response.json()
-                    break
-                elif response.status_code == 429:
-                    raise USGSRateLimitError()
-                elif 400 <= response.status_code < 500:
-                    self._warn(f"Non-retryable status {response.status_code} retrieving {context}. Aborting.")
-                    raise PartialOrNoDataError(f"Non-retryable status {response.status_code} retrieving {context}.")
-                else:
-                    self._warn(f"Received status code {response.status_code}. Retrying... {tries + 1}/{MAX_RETRIES}")
-
-            except USGSRateLimitError:
-                self._warn("Rate limit exceeded. Please provide a valid USGS API key via the --usgs-api-key flag to increase your rate limit and try again.")
-                raise USGSRateLimitError("Rate limit exceeded")
-            except json.JSONDecodeError as e:
-                self._warn(f"Failed to decode JSON response: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
-            except Exception as e:
-                self._warn(f"Error retrieving {context}: {e}. Retrying... {tries + 1}/{MAX_RETRIES}")
-
-            tries += 1
-            if tries < MAX_RETRIES:
-                time.sleep(min(2 ** tries, 60))
-
-        if data == {}:
-            self._warn(f"Failed to retrieve {context} after multiple attempts.")
-            raise PartialOrNoDataError(f"Failed to retrieve {context} after multiple attempts.")
-
-        return data
-
-    def check_truncation(self, data: dict, context: str) -> None:
-        """Refuse silently-truncated USGS responses. Raises PartialOrNoDataError
-        when the response links advertise a "next" page (pagination unsupported)."""
-        links: list[dict] = data.get("links", [])
-        if any(link.get("rel") == "next" for link in links):
-            self._warn(
-                f"USGS {context} response indicates additional pages of data are available, but pagination is not currently supported for this query. Refusing to return a silently truncated dataset."
-            )
-            raise PartialOrNoDataError(
-                f"USGS {context} response was truncated; additional pages are available."
-            )
-
-
 class NWISSiteSource(BaseSiteSource):
     chunk_size = 500
 
     def __init__(self):
         super().__init__(transformer=NWISSiteTransformer())
-        self._requester = USGSRequester(self._http_client, self.warn)
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
     sites_url: str = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/combined-metadata/items"
 
@@ -146,15 +83,15 @@ class NWISSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            response = self._http_client.get(
-                url=self.sites_url,
+            fetch_json_records(
+                self.sites_url,
                 params={"limit": 1, "parameter_code": "72019", "site_type_code": "GW", "state_code": "35"},
-                timeout=30,
-                headers=_usgs_headers()
+                data_selector="features",
+                paginator=SinglePagePaginator(),
+                headers=_usgs_headers(),
             )
-            response.raise_for_status()
             return True
-        except httpx.HTTPError:
+        except Exception:
             return False
 
     def get_records(self):
@@ -181,10 +118,15 @@ class NWISSiteSource(BaseSiteSource):
         if not self.config.sites_only:
             params["parameter_code"] = "72019"
 
-        data: dict = self._requester.request(self.sites_url, params=params, context="site records")
-
-        records: list = data.get("features", [])
-        self._requester.check_truncation(data, "site")
+        # dlt follows the OGC `rel=next` cursor across every page, so the full
+        # result set is returned instead of the old first-page-then-refuse.
+        records: list = fetch_json_records(
+            self.sites_url,
+            params=params,
+            data_selector="features",
+            paginator=_new_paginator(),
+            headers=_usgs_headers(),
+        )
 
         # combined-metadata returns one feature per time series (data_type /
         # statistic), so a location with multiple series (e.g. field
@@ -213,10 +155,10 @@ class NWISSiteSource(BaseSiteSource):
 class NWISWaterLevelSource(BaseWaterLevelSource):
     def __init__(self):
         super().__init__(transformer=NWISWaterLevelTransformer())
-        self._requester = USGSRequester(self._http_client, self.warn)
     # USGS complex queries allow up to 250 sites to be queried at once
     # https://api.waterdata.usgs.gov/docs/ogcapi/complex-queries
     num_sites = 250
+    field_measurements_url = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items"
 
     def get_records(self, site_record):
         params: dict = {
@@ -263,16 +205,18 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
                 ]
             }
 
-            data: dict = self._requester.request(
-                "https://api.waterdata.usgs.gov/ogcapi/v0/collections/field-measurements/items",
+            # POST CQL complex query, paginated: dlt follows the `rel=next`
+            # cursor across every page per batch (the old code refused a paged
+            # response, truncating large batches).
+            features: list[dict] = fetch_json_records(
+                self.field_measurements_url,
                 params=params,
                 json_data=json_data,
-                headers={"Content-Type": "application/query-cql-json"},
-                context="water level records",
+                method="POST",
+                data_selector="features",
+                paginator=_new_paginator(),
+                headers=_usgs_headers({"Content-Type": "application/query-cql-json"}),
             )
-
-            features: list[dict] = data.get("features", [])
-            self._requester.check_truncation(data, "water-level")
 
             standard_features: list[dict] = [self._standardize_record(feature) for feature in features]
             records.extend(standard_features)

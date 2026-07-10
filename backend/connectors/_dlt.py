@@ -25,7 +25,7 @@ import requests
 from dlt.sources.helpers.rest_client import RESTClient
 from dlt.sources.helpers.rest_client.paginators import BasePaginator
 
-from backend.exceptions import PartialOrNoDataError
+from backend.exceptions import PartialOrNoDataError, USGSRateLimitError
 
 
 def fetch_text(url: str, params: Optional[dict] = None, timeout: int = 30) -> str:
@@ -46,20 +46,45 @@ def fetch_text(url: str, params: Optional[dict] = None, timeout: int = 30) -> st
     return resp.text
 
 
-def fetch_json_pages(
+def fetch_json_records(
     url: str,
     params: Optional[dict] = None,
+    json_data: Optional[dict] = None,
+    method: str = "GET",
     data_selector: Optional[str] = None,
     paginator: Optional[BasePaginator] = None,
-    timeout: int = 30,
-):
-    """Yield each page of records from a paginated JSON endpoint.
+    headers: Optional[dict] = None,
+) -> list:
+    """Fetch **all** records from a paginated JSON endpoint, following the
+    paginator across every page, and return them as one flat list.
 
-    Unused by the WQP spike (WQP is single-shot TSV) — provided for the
-    paginated-JSON connectors (USGS OGC API, ArcGIS offset) where dlt's
-    paginators are the actual win. ``data_selector`` picks the records array
-    (e.g. ``"features"``); ``paginator`` follows the next link / offset."""
+    This is where dlt earns its keep: ``paginator`` (e.g. a ``JSONLinkPaginator``
+    on the OGC ``rel=next`` link) makes the client *follow* pagination instead of
+    the old code refusing a truncated response. ``data_selector`` picks the
+    records array (e.g. ``"features"``). ``method="POST"`` with ``json_data``
+    carries a CQL body (USGS complex queries).
+
+    Error mapping matches the connectors' expectations so the unifier degrades
+    gracefully: a 429 → ``USGSRateLimitError``, any other request failure →
+    ``PartialOrNoDataError``."""
     client = RESTClient(base_url="")
-    yield from client.paginate(
-        url, params=params, data_selector=data_selector, paginator=paginator
-    )
+    records: list = []
+    try:
+        for page in client.paginate(
+            url,
+            method=method,
+            params=params,
+            json=json_data,
+            data_selector=data_selector,
+            paginator=paginator,
+            headers=headers,
+        ):
+            records.extend(page)
+    except requests.HTTPError as e:
+        status = e.response.status_code if e.response is not None else None
+        if status == 429:
+            raise USGSRateLimitError("Rate limit exceeded")
+        raise PartialOrNoDataError(f"Request failed for {url}: {e}")
+    except requests.RequestException as e:
+        raise PartialOrNoDataError(f"Request failed for {url}: {e}")
+    return records
