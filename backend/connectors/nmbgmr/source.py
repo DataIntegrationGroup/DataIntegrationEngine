@@ -32,6 +32,8 @@ from backend.constants import (
     PARAMETER_VALUE,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    APPROVAL_STATUS,
+    QUALIFIER,
 )
 from backend.source import (
     BaseWaterLevelSource,
@@ -171,6 +173,10 @@ class NMBGMRAnalyteSource(BaseAnalyteSource):
         record[DT_MEASURED] = record["info"]["CollectionDate"]
         record[SOURCE_PARAMETER_NAME] = record["AnalyteMeaning"]
         record[SOURCE_PARAMETER_UNITS] = record["Units"]
+        # Symbol is the result qualifier (e.g. "<" below detection); PublicRelease
+        # (release/approval flag) lives on the nested sample info.
+        record[APPROVAL_STATUS] = (record.get("info") or {}).get("PublicRelease")
+        record[QUALIFIER] = record.get("Symbol") or None
 
         return record
 
@@ -194,6 +200,10 @@ class NMBGMRWaterLevelSource(BaseWaterLevelSource):
         record[DT_MEASURED] = (record["DateMeasured"], record["TimeMeasured"])
         record[SOURCE_PARAMETER_NAME] = "DepthToWaterBGS"
         record[SOURCE_PARAMETER_UNITS] = record["DepthToWaterBGSUnits"]
+        # LevelStatus is the measurement-condition qualifier; PublicRelease is
+        # the release/approval flag.
+        record[APPROVAL_STATUS] = record.get("PublicRelease")
+        record[QUALIFIER] = record.get("LevelStatus")
         return record
 
     def _extract_terminal_record(self, records, position):

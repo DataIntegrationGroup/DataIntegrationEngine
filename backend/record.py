@@ -20,6 +20,9 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     CONVERSION_FACTOR,
+    APPROVAL_STATUS,
+    APPROVAL_STATUS_NORMALIZED,
+    QUALIFIER,
     SOURCE_DATASTREAM_LINK,
     FEET,
 )
@@ -105,6 +108,12 @@ class ParameterRecord(BaseRecord):
         SOURCE_PARAMETER_NAME,
         SOURCE_PARAMETER_UNITS,
         CONVERSION_FACTOR,
+        # per-observation source quality metadata: the provider's raw status,
+        # its normalized form (approved/provisional/unknown), and the qualifier.
+        # None/unknown when a source doesn't report it.
+        APPROVAL_STATUS,
+        APPROVAL_STATUS_NORMALIZED,
+        QUALIFIER,
     )
 
     defaults: dict = {}
