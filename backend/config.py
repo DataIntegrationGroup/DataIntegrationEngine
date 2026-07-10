@@ -13,13 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import os
-import sys
 from datetime import datetime, timedelta
 import shapely.wkt
-import yaml
 
-from . import OutputFormat
+from .exceptions import ConfigError
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
     NMBGMRSiteSource,
@@ -150,7 +147,6 @@ def get_source(source):
 
 class Config:
     site_limit: int = 0
-    dry: bool = False
 
     # Number of chunks fetched concurrently per source (network-bound I/O).
     # 1 = serial (legacy behavior). Higher values speed up multi-chunk sources
@@ -186,94 +182,35 @@ class Config:
     # parameter
     parameter: str = ""
 
-    # output
-    use_cloud_storage: bool = False
-    output_dir: str = "."
-    output_name: str = "output"
+    # output — transform-facing units/datum + summary-vs-timeseries mode.
+    # output_summary is toggled by unify_source_both and read live by the
+    # transformer to pick SummaryRecord vs ParameterRecord.
     output_horizontal_datum: str = WGS84
     output_elevation_units: str = FEET
     output_well_depth_units: str = FEET
     output_summary: bool = False
-    output_timeseries_unified: bool = False
-    output_timeseries_separated: bool = False
-
-    latest_water_level_only: bool = False
 
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    output_format: str = OutputFormat.CSV.value
-
-    yes: bool = False
-
-    def __init__(self, model=None, payload=None, path=None):
+    def __init__(self, payload=None):
         _l = make_logger(self.__class__.__name__)
         self.log = _l.log
         self.warn = _l.warn
         self.debug = _l.debug
 
-        if path:
-            payload = self._load_from_yaml(path)
-
-        self._payload = payload
-
-        if model:
-            if model.wkt:
-                self.wkt = model.wkt
-            else:
-                self.county = model.county
-                if not self.county:
-                    if model.bbox:
-                        self.bbox = model.bbox.model_dump()
-
-            if model.sources:
-                for s in SOURCE_KEYS:
-                    setattr(self, f"use_source_{s}", s in model.sources)
-        elif payload:
-            sources = payload.get("sources", [])
-            if sources:
-                for sk in SOURCE_KEYS:
-                    value = sources.get(sk)
-                    if value is not None:
-                        setattr(self, f"use_source_{sk}", value)
-
+        if payload:
             for attr in (
                 "wkt",
                 "county",
                 "bbox",
                 "output_summary",
-                "output_timeseries_unified",
-                "output_timeseries_separated",
                 "start_date",
                 "end_date",
                 "parameter",
-                "output_name",
-                "dry",
-                "latest_water_level_only",
-                "output_format",
-                "use_cloud_storage",
-                "yes",
             ):
                 if attr in payload:
                     setattr(self, attr, payload[attr])
-
-    def _load_from_yaml(self, path):
-        path = os.path.abspath(path)
-        if os.path.exists(path):
-            self.log(f"Loading config from {path}")
-            with open(path, "r") as f:
-                data = yaml.safe_load(f)
-            return data
-        else:
-            self.warn(f"Config file {path} not found")
-
-    def get_config_and_false_agencies(self):
-        entry = PARAMETER_SOURCE_MAP.get(self.parameter)
-        if entry is None:
-            raise ValueError(f"Unknown parameter {self.parameter!r}. Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}")
-        config_agencies = entry["agencies"]
-        false_agencies = [a for a in SOURCE_KEYS if a not in config_agencies]
-        return config_agencies, false_agencies
 
     def _build_source_pair(self, site_klass, param_klass):
         s, ss = site_klass(), param_klass()
@@ -282,10 +219,10 @@ class Config:
         return s, ss
 
     def finalize(self):
+        # Resolve the parameter-dependent output units (ph -> "", conductivity ->
+        # uS/cm) the converter needs. The old output-name/dir setup served the
+        # removed CLI file output.
         self._update_output_units()
-        self.update_output_name()
-        self.make_output_directory()
-        self.make_output_path()
 
     def all_site_sources(self):
         sources = []
@@ -376,84 +313,31 @@ class Config:
         # return current time in milliseconds
         return int((datetime.now() - td).timestamp() * 1000)
 
-    def report(self):
-        def _report_attributes(title, attrs):
-            s = f"---- {title} --------------------------------------------------"
-            self.log(s)
-
-            for k in attrs:
-                v = getattr(self, k)
-                s = f"{k}: {v}"
-                self.log(s)
-
-            s = ""
-            self.log(s)
-
-        s = "---- Begin configuration -------------------------------------\n"
-        self.log(s)
-
-        sources = [f"use_source_{s}" for s in SOURCE_KEYS]
-        attrs = [
-            "start_date",
-            "end_date",
-            "county",
-            "bbox",
-            "wkt",
-            "parameter",
-            "site_limit",
-        ] + sources
-        # inputs
-        _report_attributes(
-            "Inputs",
-            attrs,
-        )
-
-        # outputs
-        _report_attributes(
-            "Outputs",
-            (
-                "output_path",
-                "output_summary",
-                "output_timeseries_unified",
-                "output_timeseries_separated",
-                "output_horizontal_datum",
-                "output_elevation_units",
-                "use_cloud_storage",
-                "output_format",
-            ),
-        )
-
-        s = "---- End configuration -------------------------------------\n"
-        self.log(s)
-
     def validate(self):
+        # Raise (don't sys.exit) so callers control failure: the CLI converts
+        # this to exit(2); a Dagster asset catches it and soft-fails just that
+        # source. sys.exit() here would kill the whole run's process.
         if not self._validate_bbox():
-            self.warn("Invalid bounding box")
-            sys.exit(2)
+            raise ConfigError("Invalid bounding box")
 
         if not self._validate_county():
-            self.warn("Invalid county")
-            sys.exit(2)
+            raise ConfigError("Invalid county")
 
         if not self._validate_date(self.start_date):
-            self.warn(f"Invalid start date {self.start_date}")
-            sys.exit(2)
+            raise ConfigError(f"Invalid start date {self.start_date}")
 
         if not self._validate_date(self.end_date):
-            self.warn(f"Invalid end date {self.end_date}")
-            sys.exit(2)
+            raise ConfigError(f"Invalid end date {self.end_date}")
 
         if not self._validate_parameter():
-            self.warn(
+            raise ConfigError(
                 f"Unknown parameter {self.parameter!r}. "
                 f"Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}"
             )
-            sys.exit(2)
 
-        # Advisory only: these states are accepted (the code picks one) but are
-        # almost always a mistake, so surface them instead of failing silently.
+        # Advisory only: multiple spatial filters are accepted (the code picks
+        # one) but almost always a mistake, so surface it.
         self._warn_spatial_exclusivity()
-        self._warn_output_mode_exclusivity()
 
     def _validate_parameter(self):
         # An empty parameter is valid: sites-only flows don't need one. A set
@@ -473,22 +357,6 @@ class Config:
             self.warn(
                 f"Multiple spatial filters set ({', '.join(set_filters)}); set "
                 "exactly one — resolution precedence differs between code paths."
-            )
-
-    def _warn_output_mode_exclusivity(self):
-        modes = [
-            n
-            for n in (
-                "output_summary",
-                "output_timeseries_unified",
-                "output_timeseries_separated",
-            )
-            if getattr(self, n)
-        ]
-        if len(modes) > 1:
-            self.warn(
-                f"Multiple output modes set ({', '.join(modes)}); only the first "
-                "is used at dump time. Set exactly one."
             )
 
     def _extract_date(self, d):
@@ -524,52 +392,6 @@ class Config:
 
         return True
 
-    def make_output_directory(self):
-        """
-        Create the output directory if it doesn't exist.
-        """
-        if not os.path.exists(self.output_dir):
-            os.mkdir(self.output_dir)
-
-    def update_output_name(self):
-        """
-        Generate a unique output name based on existing directories in the output directory.
-
-        If there are no directories with the string "output" in their name, the output name will be "output".
-
-        If there is a directory called "output", then output_name will be "output_1".
-
-        If there are directories called "output_{n}" where n is an integer, then output_name will be "output_{m+1}"
-        where m is the highest integer in the existing directories.
-        """
-        output_name = self.output_name
-
-        # find if there are already directories with the string "output" their names
-        output_names = [
-            name
-            for name in os.listdir(self.output_dir)
-            if os.path.isdir(name) and output_name in name
-        ]
-
-        if len(output_names) > 0:
-            max_count = 0
-            # find the highest number appended to directories with "output" in their name
-            counts = [
-                name.split("_")[-1]
-                for name in output_names
-                if name.split("_")[-1].isdigit()
-            ]
-            counts = [int(count) for count in counts]
-            if len(counts) > 0:
-                max_count = max(counts)
-            output_name = f"{output_name}_{max_count + 1}"
-
-        self.output_name = output_name
-
-    def make_output_path(self):
-        if not os.path.exists(self.output_path):
-            os.mkdir(self.output_path)
-
     def _update_output_units(self):
         parameter = self.parameter.lower()
         if parameter == "ph":
@@ -584,14 +406,5 @@ class Config:
     @property
     def end_dt(self):
         return self._extract_date(self.end_date)
-
-    @property
-    def output_path(self):
-        return os.path.join(self.output_dir, f"{self.output_name}")
-
-    def get(self, attr):
-        if self._payload:
-            return self._payload.get(attr)
-
 
 # ============= EOF =============================================

@@ -15,89 +15,15 @@
 # ===============================================================================
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import shapely
-
-from backend.config import Config, get_source
-from backend.logger import make_logger
-
-_log = make_logger("unifier")
-from backend.constants import WATERLEVELS
 from backend.persisters.factory import make_persister
-from backend.source import BaseSiteSource
 from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
-
-
-def health_check(source: BaseSiteSource) -> bool | None:
-    """
-    Determines if data can be returned from the source (if it is healthy)
-
-    Parameters
-    -------
-    source: BaseSiteSource
-        The site source to check, specific to the source being queried
-
-    Returns
-    -------
-    bool
-        True if the source is healthy, else False
-    """
-    source = get_source(source)
-    if source:
-        return bool(source.health())
-    else:
-        return None
-
-
-def unify_analytes(config):
-    _log.log("Unifying analytes")
-    # config.report() -- report is done in cli.py, no need to do it twice
-    config.validate()
-
-    if not config.dry:
-        _unify_parameter(config, config.analyte_sources())
-
-    return True
-
-
-def unify_waterlevels(config):
-    _log.log("Unifying waterlevels")
-
-    # config.report() -- report is done in cli.py, no need to do it twice
-    config.validate()
-
-    if not config.dry:
-        _unify_parameter(config, config.water_level_sources())
-
-    return True
-
-
-def unify_sites(config):
-    _log.log("Unifying sites only")
-
-    # config.report() -- report is done in cli.py, no need to do it twice
-    config.validate()
-
-    if not config.dry:
-        _unify_parameter(config, config.all_site_sources())
-
-    return True
 
 
 def _site_wrapper(site_source, parameter_source, persister, config, raise_errors=False):
 
     try:
-        # TODO: fully develop checks/discoveries below
-        # if not site_source.check():
-        #     print(f"Skipping {site_source}. check failed")
-
-        # schemas = site_source.discover()
-        # if not schemas:
-        #     print(f"No schemas found for {site_source}")
-
-        # in the future make discover required
-        # return
-
-        # used to revert back to initial state if a rate limit error is hit, so there aren't partial records
+        # snapshot lengths to roll back to on a rate-limit / partial-data abort,
+        # so a source never contributes partial records
         initial_sites_len = len(persister.sites)
         initial_timeseries_len = len(persister.timeseries)
         initial_records_len = len(persister.records)
@@ -225,38 +151,6 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
             raise
 
 
-def _unify_parameter(
-    config,
-    sources,
-):
-
-    persister = make_persister(config)
-    # Expose the persister so callers (e.g. the Dagster assets) can read the
-    # collected records/sites/timeseries after unification.
-    config._persister = persister
-
-    for site_source, parameter_source in sources:
-        _site_wrapper(
-            site_source,
-            parameter_source,
-            persister,
-            config,
-        )
-
-    if config.output_summary:
-        persister.dump_summary(config.output_path)
-    elif config.output_timeseries_unified:
-        persister.dump_timeseries_unified(config.output_path)
-        persister.dump_sites(config.output_path)
-    elif config.sites_only:
-        persister.dump_sites(config.output_path)
-    else:  # config.output_timeseries_separated
-        persister.dump_timeseries_separated(config.output_path)
-        persister.dump_sites(config.output_path)
-
-    persister.finalize(config.output_name)
-
-
 def unify_source(config, source_key):
     """Run unification for a single source and return its persister.
 
@@ -336,6 +230,90 @@ def unify_source_both(config, source_key):
     return summary_persister, timeseries_persister
 
 
+def unify_source_multi(config, source_key, parameters):
+    """Unify a single source for MULTIPLE analytes with **one** fetch.
+
+    The provider (e.g. WQP) returns every requested analyte in a single query, so
+    instead of sweeping the same wells once per analyte, the source is fetched
+    once and each analyte's summary + timeseries is produced by filtering that
+    shared fetch. This is the fix for the per-analyte refetch redundancy (see
+    orchestration/assets/products.py) — WQP's ~13 analyte assets collapse to one
+    fetch.
+
+    Returns ``{parameter: (summary_persister, timeseries_persister)}``. Analytes
+    only — do not pass ``waterlevels``.
+
+    Two regimes, chosen by whether the source's API can return several analytes
+    in one query (``set_parameters`` present):
+
+    - **WQP** — one station/result query carries every analyte, so the source is
+      fetched once and each analyte's pass filters that shared fetch. Real API
+      saving (~13 analyte fetches → 1).
+    - **BOR / AMP / ISC / DWB** — the provider API is analyte-scoped (one query
+      per analyte), so the fetch cannot collapse. Fall back to a per-analyte
+      unify with a **fresh** source pair each time (these connectors cache
+      analyte-specific state — BOR's catalog index, ISC's analyte ids — that a
+      reused instance would carry into the next analyte). Same API calls as
+      before; the payoff is one multi-analyte asset instead of many (Dagster
+      graph consolidation), not fewer fetches.
+    """
+    config.validate()
+    if not parameters:
+        return {}
+
+    # source_pair selects the analyte table from config.parameter; any analyte
+    # in the group resolves the same (site, analyte) source pair.
+    config.parameter = parameters[0]
+    pair = config.source_pair(source_key)
+    if pair is None:
+        config.warn(
+            f"Source {source_key!r} does not provide the requested analytes"
+        )
+        return {p: (make_persister(config), make_persister(config)) for p in parameters}
+
+    site_source, parameter_source = pair
+    shared_fetch = hasattr(site_source, "set_parameters") and hasattr(
+        parameter_source, "set_parameters"
+    )
+
+    if not shared_fetch:
+        # Analyte-scoped API: per-analyte unify with a fresh pair each time.
+        result: dict = {}
+        for p in parameters:
+            config.parameter = p
+            result[p] = unify_source_both(config, source_key)
+        return result
+
+    # Shared-fetch (WQP): fetch once for all analytes; each pass filters it to
+    # its own analyte (see WQPParameterSource._extract_site_records).
+    site_source.set_parameters(parameters)
+    parameter_source.set_parameters(parameters)
+    site_source._fetch_cache_enabled = True
+    parameter_source._fetch_cache_enabled = True
+
+    result = {}
+    for p in parameters:
+        config.parameter = p
+
+        config.output_summary = False
+        ts_persister = make_persister(config)
+        config._persister = ts_persister
+        _site_wrapper(
+            site_source, parameter_source, ts_persister, config, raise_errors=True
+        )
+
+        config.output_summary = True
+        summary_persister = make_persister(config)
+        config._persister = summary_persister
+        _site_wrapper(
+            site_source, parameter_source, summary_persister, config, raise_errors=True
+        )
+
+        result[p] = (summary_persister, ts_persister)
+
+    return result
+
+
 def collect_sites(config):
     """Gather site records from **every** enabled source (sites only, no
     parameter data) and return them as a flat list of ``_payload`` dicts.
@@ -357,55 +335,6 @@ def collect_sites(config):
         _site_wrapper(site_source, None, persister, config)
 
     return [s._payload for s in persister.sites]
-
-
-def get_county_bounds(county):
-    config = Config()
-    config.county = county
-    bp = config.bounding_wkt()
-    return bp
-
-
-def get_source_bounds(sourcekeys, as_str=False):
-    config = Config()
-    sourcekeys = sourcekeys.lower().replace("_", "")
-
-    rets = []
-    for sourcekey in sourcekeys.split(","):
-        for sources in (config.analyte_sources(), config.water_level_sources()):
-            for source, _ in sources:
-                if source.__class__.__name__.lower().startswith(sourcekey):
-                    bp = source.bounding_polygon
-                    if bp and bp not in rets:
-                        rets.append(bp)
-
-    if rets:
-        if len(rets) > 1:
-            rets = shapely.GeometryCollection(rets)
-        else:
-            rets = rets[0]
-        if as_str:
-            rets = rets.wkt
-        return rets
-
-
-def get_sources(config=None):
-    if config is None:
-        config = Config()
-
-    sources = []
-    if config.parameter == WATERLEVELS:
-        allsources = config.water_level_sources()
-    else:
-        allsources = config.analyte_sources()
-
-    for source, _ in allsources:
-        if config.wkt or config.bbox or config.county:
-            if source.intersects(config.bounding_wkt()):
-                sources.append(source)
-        else:
-            sources.append(source)
-    return sources
 
 
 # ============= EOF =============================================

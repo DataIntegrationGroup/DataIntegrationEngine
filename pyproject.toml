@@ -17,9 +17,8 @@ classifiers = [
 dependencies = [
     "click>=8.2.1",
     "python-dotenv",
-    "frost_sta_client",
+    "dlt>=1.28.1",
     "geopandas",
-    "httpx",
     "pandas",
     "pymannkendall",
     "pyyaml",
@@ -37,11 +36,8 @@ parquet = [
     "pyarrow>=24.0.0",
 ]
 
-[project.scripts]
-die = "frontend.cli:cli"
-
 [tool.hatch.build.targets.wheel]
-packages = ["frontend", "backend"]
+packages = ["backend"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

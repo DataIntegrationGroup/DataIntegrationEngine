@@ -1,26 +1,54 @@
 # New Mexico Unified Water Data: Data Integration Engine
 [![Format code](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/format_code.yml/badge.svg?branch=main)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/format_code.yml)
-[![Publish Python 🐍 distributions 📦 to PyPI and TestPyPI](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/publish-to-pypi.yml)
 [![CI/CD](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/cicd.yml/badge.svg)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/cicd.yml)
 [![Dependabot Updates](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/DataIntegrationGroup/DataIntegrationEngine/actions/workflows/dependabot/dependabot-updates)
 
 ![NMWDI](https://newmexicowaterdata.org/wp-content/uploads/2023/11/newmexicowaterdatalogoNov2023.png)
 ![NMBGMR](https://waterdata.nmt.edu/static/nmbgmr_logo_resized.png)
 
+The Data Integration Engine (DIE) integrates New Mexico groundwater data — water
+levels and water quality — from a dozen heterogeneous agency APIs into
+standardized, geospatial data products.
 
-This package provides a command line interface to New Mexico Water Data Initiaive's Data Integration Engine. This tool is used to integrate the water data from multiple sources.
+It runs as a scheduled **Dagster** asset graph: each product is fetched from its
+sources, harmonized (datum, units, datetimes), combined into an OGC GeoJSON
+FeatureCollection, uploaded to GCS, and published as a GeoServer layer.
 
-## Installation
-```bash
-pip install nmuwd
+## Architecture
+
+```
+ fetch (dlt)              transform                 products                publish
+ per-agency APIs   ──▶   datum / units /     ──▶   OGC FeatureCollections ──▶  GCS +
+ retry + paginate        geo-filter / summarize    (GeoPandas)                 GeoServer
 ```
 
+- **`backend/`** — the integration engine (`nmuwd` package)
+  - `connectors/` — one connector per agency; HTTP via [dlt](https://dlthub.com)'s
+    REST client (`connectors/_dlt.py`), SensorThings/FROST via
+    `connectors/_sensorthings.py`
+  - `transformer.py`, `converter.py`, `geo_utils.py` — harmonization (datum
+    reprojection, unit conversion, datetime standardization, spatial filtering)
+  - `unifier.py` — drives a source through fetch → transform for summary and/or
+    timeseries output (`unify_source_both`, `unify_source_multi`)
+  - `persisters/` — GeoPandas-backed serialization: OGC GeoJSON product dumpers
+    (`ogc_features.py`), GeoDataFrame/GeoParquet/GeoPackage helpers
+    (`geodataframe.py`)
+- **`orchestration/`** — the Dagster code location: products are declared in
+  `orchestration/config/products.yaml` and expand into a
+  `sources → combine → geoserver` asset graph with schedules. See
+  [orchestration/AGENTS.md](orchestration/AGENTS.md) for how to run, validate,
+  and deploy it.
+
 ## Sources
-Data comes from the following sources. We are continuously adding new sources as we learn of them and they become available. If you have data that you would like to be part of the Data Integration Engine please get in touch at newmexicowaterdata@nmt.edu.
+
+Data comes from the following sources. We are continuously adding new sources as
+we learn of them and they become available. If you have data that you would like
+to be part of the Data Integration Engine please get in touch at
+newmexicowaterdata@nmt.edu.
 
 - [Bernalillo County (BernCo)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27BernCo%27)
   - Available data: `water levels`
-- [Bureau of Reclamation (BoR)](https://data.usbr.gov/) 
+- [Bureau of Reclamation (BoR)](https://data.usbr.gov/)
   - Available data: `water quality`
 - [City of Albuquerque (CABQ)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27CABQ%27)
   - Available data: `water levels`
@@ -30,33 +58,24 @@ Data comes from the following sources. We are continuously adding new sources as
   - Available data: `water levels`, `water quality`
 - [New Mexico Environment Department Drinking Water Bureau (NMED DWB)](https://nmenv.newmexicowaterdata.org/FROST-Server/v1.1/)
   - Available data: `water quality`
-- [New Mexico Office of the State Engineer Points of Diversions (NMOSEPODs)](https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/ArcGIS/rest/services/OSE_PODs/FeatureServer/0)
-  - Available data: `None`
+- [New Mexico Office of the State Engineer Points of Diversions (NMOSE PODs)](https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/ArcGIS/rest/services/OSE_Points_of_Diversion/FeatureServer/0)
+  - Available data: site/well information only
 - [New Mexico Office of the State Engineer ISC Seven Rivers (NMOSE ISC Seven Rivers)](https://nmisc-wf.gladata.com/api/getMonitoringPoints.ashx)
   - Available data: `water levels`, `water quality`
-- [New Mexico Office of the State Engineer Roswell District Office (NMOSE Roswell)](https://catalog.newmexicowaterdata.org/dataset/pecos_region_manual_groundwater_levels)
+- [New Mexico Office of the State Engineer Roswell District Office (NMOSE Roswell)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27OSE-Roswell%27)
   - Available data: `water levels`
 - [Pecos Valley Artesian Conservancy District (PVACD)](https://st2.newmexicowaterdata.org/FROST-Server/v1.1/Locations?$filter=properties/agency%20eq%20%27PVACD%27)
   - Available data: `water levels`
 - [USGS (NWIS)](https://api.waterdata.usgs.gov/docs/)
   - Available data: `water levels`
-  - **IMPORTANT:** The USGS now uses API keys. To prevent yourself from hitting the rate limit please [acquire an API key](https://api.waterdata.usgs.gov/signup/), save it, and provide it via the `--usgs-api-key` flag when gathering water level or site data from the USGS.
+  - **IMPORTANT:** the USGS water data API is heavily rate-limited without an
+    API key. [Acquire one](https://api.waterdata.usgs.gov/signup/) and provide
+    it via the `USGS_API_KEY` environment variable.
 - [Water Quality Portal (WQP)](https://www.waterqualitydata.us/)
   - Available data: `water levels`, `water quality`
 
-## Usage
+### Available Parameters
 
-### Parameter Data
-
-To obtain parameter summary or time series data, use
-```
-die weave {parameter}
-```
-
-where `{parameter}` is the name of the parameter whose data is to be retrieved, followed by the desired output type, excluded data sources, date filters, and geographic filters. `{parameter}` is case-insensitive.
-
-
-#### Available Parameters
 |                            | waterlevels | arsenic | bicarbonate | conductivity | calcium | carbonate | chloride | fluoride | magnesium | nitrate | ph  | potassium | silica | sodium | specific conductance | sulfate | tds | uranium |
 | -------------------------- | ----------- | ------- | ----------- | ------------ | ------- | --------- | -------- | -------- | --------- | ------- | --- | --------- | ------ | ------ | -------------------- |-------- | --- | ------- |
 | **bernco**                 | X           | -       | -           | -            | -       | -         | -        | -        | -         | -       | -   | -         | -      | -      | -                    | -       | -   | -       |
@@ -76,39 +95,65 @@ where `{parameter}` is the name of the parameter whose data is to be retrieved, 
 
 <sup>**While conductivity and specific conductance are often used interchangeably, they are distinguished here by the methods with which they are determined. A record is defined as `specific conductance` if it was determined at the standard 25&deg;C (e.g. [EPA method 120.1](https://www.epa.gov/sites/default/files/2015-08/documents/method_120-1_1982.pdf)), otherwise it is defined as `conductivity`</sup>
 
-### Output Type
-The `--output-type` option is required and used to set the output type:
+## Data Products
 
+Products are declared in
+[orchestration/config/products.yaml](orchestration/config/products.yaml); each
+becomes a scheduled Dagster job that publishes an OGC GeoJSON FeatureCollection
+to GCS and a GeoServer layer. Product families include:
+
+- **summaries** — per-well summary statistics for a parameter (see field
+  reference below)
+- **timeseries** — flat one-feature-per-observation collections
+- **chemistry-derived** — major-ion chemistry, MCL exceedance, hardness,
+  hydrochemical (Piper) water type, SAR, ion balance, CCME WQI
+- **water-level analytics** — trends (Mann-Kendall/Theil-Sen), change, status,
+  seasonal amplitude, depletion projection, monitoring recency, data density
+- **infrastructure** — cross-agency well correlation, well density by
+  county/basin, OSE POD age
+
+## Running
+
+Local development uses [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync                      # install
+uv run pytest                # unit tests (fast, no network)
 ```
---output-type summary
+
+The live per-connector integration harness (network, excluded from the default
+run):
+
+```bash
+uv run pytest tests/test_sources --override-ini="norecursedirs="
 ```
-- A summary table consisting of location information as well as summary statistics for the parameter of interest for every location that has observations.
 
+Dagster (from `orchestration/`):
+
+```bash
+uv run dg dev                                    # local dev UI
+uv run dg list defs                              # list assets/jobs/schedules
+uv run dg launch --assets '*<product_id>/geoserver'   # run one product
 ```
---output-type timeseries_unified
-```
-- A single table consisting of time series data for all locations for the parameter of interest.
-- A single table of site data that contains information such as latitude, longitude, and elevation
 
-```
---output-type timeseries_separated
-```
-- Separate time series tables for all locations for the parameter of interest.
-- A single table of site data that contains information such as latitude, longitude, and elevation
+See [orchestration/AGENTS.md](orchestration/AGENTS.md) for validation, deploy
+(Dagster+ serverless), and the required environment variables
+(`USGS_API_KEY`, `GCP_SERVICE_ACCOUNT_KEY`, `GEOSERVER_*`).
 
-The data is saved to a directory titled `output` in the current working directory. If the directory `output` already exists, then the output directory will be called `output_1`. If enumerated output directories already exist, then the output directory will be called `output_{n}` where `n` is equal to the greatest existing integer suffix +1.
+## Record Field Reference
 
-A log of the inputs and processes, called `die.log`, is also saved to the output directory.
+The standardized record schemas that flow through the engine and into the
+products:
 
-#### Summary Table
+### Summary
 
-| field/header | description | data type | always present |
-| :----------- | :---------- | :-------- | :------------- |
+| field | description | data type | always present |
+| :---- | :---------- | :-------- | :------------- |
 | source | the organization/source for the site | string | Y |
 | id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
 | name | the colloquial name for the site | string | Y |
 | usgs_site_id | USGS site id | string | N |
-| alternate_site_id | alternate site id | string | N | 
+| alternate_site_id | alternate site id | string | N |
 | latitude | latitude in decimal degrees | float | Y |
 | longitude | longitude in decimal degrees | float | Y |
 | horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
@@ -116,52 +161,52 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | well_depth | depth of well | float | N |
 | well_depth_units | units of well depth. Defaults to ft | string | N |
-| parameter_name | the name of the parameter whose measurements are reported in the table | string | Y |
+| parameter_name | the name of the parameter whose measurements are reported | string | Y |
 | parameter_units | units of the observation | string | Y |
 | nrecords | number of records at the site for the parameter | integer | Y |
 | min | the minimum observation | float | Y |
 | max | the maximum observation | float | Y |
 | mean | the mean value of the observations | float | Y |
-| earliest_date| date of the earliest record in YYYY-MM-DD | string | Y |
+| earliest_date | date of the earliest record in YYYY-MM-DD | string | Y |
 | earliest_time | time of the earliest record in HH:MM:SS or HH:MM:SS.mmm | string | N |
-| earliest_value | value of the earliest recent record  | float | Y |
+| earliest_value | value of the earliest record | float | Y |
 | earliest_units | units of the earliest record | string | Y |
-| latest_date| date of the latest record in YYYY-MM-DD | string | Y |
+| latest_date | date of the latest record in YYYY-MM-DD | string | Y |
 | latest_time | time of the latest record in HH:MM:SS or HH:MM:SS.mmm | string | N |
-| latest_value | value of the latest recent record  | float | Y |
+| latest_value | value of the latest record | float | Y |
 | latest_units | units of the latest record | string | Y |
 
 <sup>*CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
 
-#### Sites Table
+### Site
 
-| field/header | description | data type | always present |
-| :----------- | :---------- | :-------- | :------------- |
+| field | description | data type | always present |
+| :---- | :---------- | :-------- | :------------- |
 | source | the organization/source for the site | string | Y |
 | id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
 | name | the colloquial name for the site | string | Y |
 | latitude | latitude in decimal degrees | float | Y |
 | longitude | longitude in decimal degrees | float | Y |
-| elevation<sup>**</sup> | ground surface elevation of the site | float | Y |
+| elevation<sup>*</sup> | ground surface elevation of the site | float | Y |
 | elevation_units | the units of the ground surface elevation. Defaults to ft | string | Y |
 | horizontal_datum | horizontal datum of the latitude and longitude. Defaults to WGS84 | string | Y |
 | vertical_datum | vertical datum of the elevation | string | N |
 | usgs_site_id | USGS site id | string | N |
-| alternate_site_id | alternate site id | string | N | 
+| alternate_site_id | alternate site id | string | N |
 | formation | geologic formation in which the well terminates | string | N |
 | aquifer | aquifer from which the well draws water | string | N |
 | well_depth | depth of well | float | N |
 | well_depth_units | units of well depth. Defaults to ft | string | N |
 
-<sup>**CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
+<sup>*CABQ elevation is calculated as [elevation at top of casing] - [stickup height]; if stickup height < 0 the measuring point is assumed to be beneath the ground surface</sup>
 
-#### Time Series Table(s)
+### Time Series Observation
 
-| field/header | description | data type | always present |
-| :----------- | :---------- | :-------- | :------------- |
+| field | description | data type | always present |
+| :---- | :---------- | :-------- | :------------- |
 | source | the organization/source for the site | string | Y |
 | id | the id of the site. The id is used as the key to join the site and timeseries tables | string | Y |
-| parameter_name | the name of the parameter whose measurements are reported in the table | string | Y |
+| parameter_name | the name of the parameter whose measurements are reported | string | Y |
 | parameter_value | value of the observation | float | Y |
 | parameter_units | units of the observation | string | Y |
 | date_measured | date of measurement in YYYY-MM-DD | string | Y |
@@ -170,99 +215,4 @@ A log of the inputs and processes, called `die.log`, is also saved to the output
 | source_parameter_units | the unit of measurement from the source | string | Y |
 | conversion_factor | the factor applied to the result to convert the measurement to standardized units | float or int | Y |
 
-### Output Format
-
-The `--output-format` option is used to determine the file format for the summary and sites tables. The available options are `csv` and `geojson`. If not specified, it defaults to `csv`.
-
-### Source Inclusion & Exclusion
-The Data Integration Engine enables the user to obtain groundwater level and groundwater quality data from a variety of sources. Data from sources are automatically included in the output if available unless specifically excluded. The following flags are available to exclude specific data sources:
-
-- `--no-bernco` to exclude Bernalillo County (BernCo) data
-- `--no-bor` to exclude Bureau of of Reclamation (Bor) data
-- `--no-cabq` to exclude City of Albuquerque (CABQ) data
-- `--no-ebid` to exclude Elephant Butte Irrigation District (EBID) data
-- `--no-nmbgmr-amp` to exclude New Mexico Bureau of Geology and Mineral Resources (NMBGMR) Aquifer Mapping Program (AMP) data
-- `--no-nmed-dwb` to exclude New Mexico Environment Department (NMED) Drinking Water Bureau (DWB) data
-- `--no-nmose-isc-seven-rivers` to exclude New Mexico Office of State Engineer (NMOSE) Interstate Stream Commission (ISC) Seven Rivers data
-- `--no-nmose-pod` to exclude New Mexico Office of State Engineer (NMOSE) Point of Diversion (POD) data (though none except for well information is currently available)
-- `--no-nmose-roswell` to exclude New Mexico Office of State Engineer (NMOSE) Roswell data
-- `--no-nwis` to exclude USGS NWIS data
-- `--no-pvacd` to exclude Pecos Valley Artesian Convservancy District (PVACD) data
-- `--no-wqp` to exclude Water Quality Portal (WQP) data
-
-### USGS API Keys
-
-The USGS now uses [API keys](https://api.waterdata.usgs.gov/signup/) to increase the query rate limit for their APIs. If you intend to include USGS water level data in your output please acquire an API key, save it somewhere, and provide it via the `--usgs-api-key` flag. For example:
-
-```
-die weave waterlevels --output-type timeseries_unified --usgs-api-key FAKE_API_KEY
-```
-
-or
-
-```
-die sites --usgs-api-key FAKE_API_KEY
-```
-
-### Encoding
-
-The exported files are encoded with `utf-8`. When opening the files in Python or another programming language ensure that they are opened with the same `utf-8` encoding.
-
-#### Working in Excel
-
-Because the csv files are not encoded with `utf-8-sig`, when opened in Excel special characters may be displayed incorrectly (such as μ appearing garbled). `utf-8-sig` includes a Byte Order Mark (BOM) that tells Excel the file is `utf-8` encoded. To view the characters properly, follow these steps:
-
-1. Go to the `Data` tab and click on `Get Data`
-2. Choose `Text/CSV` and select the file to open
-3. Under `File origin` select `65001: Unicode (UTF-8)`
-4. Under `Delimiter` select `Comma`
-5. Load the data
-
-
-### Geographic Filters [In Development]
-
-The following flags can be used to geographically filter data:
-
-```
--- county {county name}
-```
-
-```
--- bbox 'x1 y1, x2 y2'
-```
-
-```
--- wkt {wkt polygon or multipolygon}
-```
-
-### Date Filters [In Development]
-
-The following flags can be used to filter by dates:
-
-```
---start-date YYYY-MM-DD 
-```
-
-```
---end-date YYYY-MM-DD
-```
-
-### Source Enumeration [In Development]
-
-Use
-
-```
-die sources {parameter}
-```
-
-to print the sources that report that parameter to the terminal.
-
-### Sites
-
-Use
-
-```
-die sites
-```
-
-to export site information only
+Unit-conversion rules are documented in [UNIT_CONVERSIONS.md](UNIT_CONVERSIONS.md).

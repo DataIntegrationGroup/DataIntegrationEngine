@@ -2,6 +2,7 @@
 import pytest
 
 from backend.config import Config, PARAMETER_SOURCE_MAP, SOURCE_KEYS
+from backend.exceptions import ConfigError
 
 
 def _cfg(**attrs):
@@ -21,9 +22,16 @@ class TestParameterValidation:
         c = _cfg(parameter="")
         c.validate()
 
-    def test_unknown_parameter_exits(self):
+    def test_unknown_parameter_raises_configerror(self):
+        # Must raise (not sys.exit) so a Dagster asset soft-fails the source
+        # instead of killing the run process.
         c = _cfg(parameter="not_a_real_parameter")
-        with pytest.raises(SystemExit):
+        with pytest.raises(ConfigError):
+            c.validate()
+
+    def test_invalid_bbox_raises_configerror(self):
+        c = _cfg(parameter="waterlevels", bbox="not-a-bbox")
+        with pytest.raises(ConfigError):
             c.validate()
 
     def test_validate_parameter_helper(self):
@@ -43,11 +51,7 @@ class TestExclusivityGuards:
         # advisory only — does not raise/exit
         c._warn_spatial_exclusivity()
 
-    def test_multiple_output_modes_advisory(self):
-        c = _cfg(output_summary=True, output_timeseries_unified=True)
-        c._warn_output_mode_exclusivity()  # advisory, no raise
-
-    def test_validate_passes_with_one_mode(self):
+    def test_validate_passes_with_summary_mode(self):
         c = _cfg(parameter="waterlevels", output_summary=True)
         c.validate()
 

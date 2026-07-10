@@ -145,12 +145,32 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
 1. **Deploy-env verification** — run a Dagster branch deployment / one cohort job to exercise `PayloadParquetIOManager` + the geoserver asset (dagster/GCS absent from the DIE venv). Required before merge.
 2. **Retire CLI-path bespoke persistence** — `persister.py` byte assembly + `strategies.py` (lower priority; CLI is out of scope).
 
+### ✅ Phase B started — WQP fetch on dlt (spike)
+- `backend/connectors/_dlt.py`: `fetch_text` (single-shot) + `fetch_json_pages` (paginated, for USGS/ArcGIS next), wrapping dlt's `RESTClient`. Final failure → `PartialOrNoDataError` (unifier still skips gracefully).
+- WQP site + result `get_records` and `health()` fetch via `fetch_text`. **Live-verified byte-identical** to the httpx path; end-to-end `WQPSiteSource` returns the same sites. WQP no longer references httpx.
+- `dlt` is now a **core** dep (backend imports the WQP connector).
+- **Finding**: WQP is a single-shot **TSV** download, not paginated JSON — this spike validates dlt/requests coexisting with httpx + the delegation pattern, but does NOT exercise pagination. **USGS** (paginated OGC JSON, POST CQL, the 2000-well truncation bug) is the meaningful next target for `fetch_json_pages`.
+- **httpx not yet removable**: still used by the base `BaseSource.__init__` (client built for every source) + USGS + `bounding_polygons`. Removal only after all connectors migrate.
+
 ### Migration status
 - ✅ Product dumpers → GeoPandas (all 22, one hook)
 - ✅ `GeoServerPersister` dropped (dead CLI PostGIS path)
 - ✅ Inter-asset handoff → Parquet (pickle retired)
 - ✅ GeoServer GPKG conversion → tested backend helper
-- ▶ Deploy-env verification pending; CLI-path persister/strategies cleanup optional
+- ✅ Phase B: **all REST connectors on dlt; httpx removed**
+  - WQP + USGS migrated directly (USGS truncation bug fixed).
+  - bor, isc_seven_rivers, nmbgmr_amp, nmose_pod migrated **transitively** — the base `_execute_json_request` now delegates to dlt's `fetch_json`, so these connectors moved without per-connector edits (nmose needed a `json.dumps` on its ArcGIS geometry param — requests doesn't serialize a dict param like httpx did).
+  - Base `BaseSource._http_client` is now a dlt `RESTClient`; the manual retry loop + `_execute_text_request` + `_NON_RETRYABLE_STATUS` are gone. `bounding_polygons` geoconnex fetch on `fetch_json`.
+  - **httpx dependency dropped** (relock removed httpx + httpcore + h11). Verified live end-to-end via every REST connector.
+  - ✅ **FROST fleet migrated too — frost_sta_client removed.** `backend/connectors/_sensorthings.py::sta_query` builds the OData query and follows `@iot.nextLink` via dlt; the 6 FROST sources (nmed_dwb + st2 fleet) read the JSON dicts directly. frost issued bare `requests.request` (no retry/backoff/pooling); dlt's session gives all three. Relock dropped frost-sta-client + 7 transitive deps. Live-verified: PVACD 13,829 obs, CABQ 159 sites (stickup-height path), DWB 3,617 sites.
+
+### ✅ Phase B COMPLETE — one HTTP stack (dlt), httpx + frost_sta_client both gone
+Every connector (all 8) fetches through dlt now. No `httpx`, no `frost_sta_client`. `backend/connectors/_dlt.py` (`fetch_text`/`fetch_json`/`fetch_json_records`) + `_sensorthings.py` (`sta_query`) are the whole transport layer. Retry/backoff/pooling uniform across sources; USGS truncation bug fixed as a bonus.
+
+### ✅ USGS on dlt — pagination truncation FIXED
+- Both fetches paginate via `JSONLinkPaginator` on the OGC `rel=next` cursor: site GET (combined-metadata) and water-level **POST CQL** (field-measurements). `fetch_json_records` gained method/json_data/headers + error mapping (429 → `USGSRateLimitError`, else `PartialOrNoDataError`).
+- Removed `USGSRequester` + `check_truncation`. The old code **refused** any paged response, so statewide USGS queries returned nothing. Live after the change: **30,097** statewide GW sites (was: refused), **3,465** WL records for 250 sites (paginated POST). Verified live against the API.
+- USGS off httpx (health + both get_records).
 
 ### ✅ Cleanup — twins pruned
 The 5 `dump_*_collection_gpd` twins (and their twin-only helpers) were removed once `_dump_collection` routing made the legacy dumpers GeoPandas-backed. `geodataframe.py` now holds only the used primitives: the routing hook, the records/features → GeoDataFrame builders, the GeoParquet handoff helpers, and `write_geopackage`. Tests cover the primitives directly; product byte-parity stays guarded by `test_ogc_features.py`. (399 passed.)

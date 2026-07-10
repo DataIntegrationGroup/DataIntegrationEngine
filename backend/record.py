@@ -50,9 +50,6 @@ class BaseRecord:
         self._payload.update(kw)
 
     def _get_sigfig_formatted_value(self, attr):
-        # v = self._payload.get(attr)
-        # if v is None and self.defaults:
-        #     v = self.defaults.get(attr)
         v = self.__getattr__(attr)
 
         field_sigfigs = [
@@ -100,11 +97,6 @@ class ParameterRecord(BaseRecord):
     keys: tuple = (
         "source",
         "id",
-        # "location",
-        # "latitude",
-        # "longitude",
-        # "surface_elevation_ft",
-        # "well_depth_ft_below_ground_surface",
         PARAMETER_NAME,
         PARAMETER_VALUE,
         PARAMETER_UNITS,

@@ -13,13 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-from json import JSONDecodeError
 from typing import Any, Optional, Union, List, Callable, Dict, cast
 
-import httpx
 import shapely.wkt
 from shapely import MultiPoint
-import time
+from dlt.sources.helpers.rest_client import RESTClient
 
 from backend.constants import (
     FEET,
@@ -38,10 +36,6 @@ from backend.record import (
 )
 from backend.transformer import BaseTransformer
 from backend.exceptions import PartialOrNoDataError
-
-# Client errors that will never succeed on retry — fail fast instead of
-# burning the full backoff schedule on them.
-_NON_RETRYABLE_STATUS = frozenset({400, 401, 403, 404, 405, 410, 422})
 
 
 # =============================================================================
@@ -198,12 +192,14 @@ _FETCH_UNSET = object()  # sentinel: site fetch not yet cached
 class BaseSource:
     transformer_klass = BaseTransformer  # deprecated: pass transformer= to __init__
 
-    def __init__(self, transformer: Optional[BaseTransformer] = None, http_client: httpx.Client | None = None):
+    def __init__(self, transformer: Optional[BaseTransformer] = None, http_client=None):
         self.transformer = transformer if transformer is not None else self.transformer_klass()
-        self._http_client = http_client if http_client is not None else httpx.Client(
-            timeout=900,
-            limits=httpx.Limits(max_connections=32, max_keepalive_connections=8),
-        )
+        # dlt's RESTClient (requests-based) replaces the httpx client; its .get()
+        # returns a requests.Response with the same .json()/.status_code/.text
+        # interface. base_url="" so callers pass full URLs. Retry is handled by
+        # the client's session, so the connectors' _execute_json_request no
+        # longer needs a manual backoff loop.
+        self._http_client = http_client if http_client is not None else RESTClient(base_url="")
         _l = make_logger(self.__class__.__name__)
         self.log = _l.log
         self.warn = _l.warn
@@ -247,63 +243,24 @@ class BaseSource:
     def discover(self, *args, **kw):
         return []
 
-    def _execute_text_request(self, url: str, params: dict | None = None, max_tries: int = 7, **kw) -> str:
-        tries, last_err = 0, ""
-        while tries < max_tries:
-            t0 = time.monotonic()
-            try:
-                resp = self._http_client.get(url, params=params, **kw)
-                elapsed = int((time.monotonic() - t0) * 1000)
-                self.log(f"HTTP GET source={self.tag} status={resp.status_code} attempt={tries+1}/{max_tries} elapsed_ms={elapsed} url={url}")
-                if resp.status_code == 200:
-                    return resp.text
-                last_err = f"status {resp.status_code}: {resp.text[:200]}"
-                if resp.status_code in _NON_RETRYABLE_STATUS:
-                    self.warn(f"Non-retryable status {resp.status_code} for {url}. Aborting.")
-                    raise PartialOrNoDataError(f"Non-retryable status {resp.status_code} for {url}. {last_err}")
-                self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_tries}")
-            except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
-                elapsed = int((time.monotonic() - t0) * 1000)
-                last_err = str(e)
-                self.warn(f"Request error attempt={tries+1}/{max_tries} elapsed_ms={elapsed} url={url}: {e}")
-            tries += 1
-            if tries < max_tries:
-                time.sleep(min(2 ** tries, 60))
-        self.warn(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
-        raise PartialOrNoDataError(f"Failed to retrieve records after {max_tries} attempts. Last error: {last_err}")
-
     def _execute_json_request(self, url: str, params: dict | None = None, tag: str | None = None, max_retries: int = 7, **kw) -> dict:
-        tries, last_err = 0, ""
-        while tries < max_retries:
-            t0 = time.monotonic()
-            try:
-                resp = self._http_client.get(url, params=params, **kw)
-                elapsed = int((time.monotonic() - t0) * 1000)
-                self.log(f"HTTP GET source={self.tag} status={resp.status_code} attempt={tries+1}/{max_retries} elapsed_ms={elapsed} url={url}")
-                if resp.status_code == 200:
-                    try:
-                        obj = resp.json()
-                        if tag and isinstance(obj, dict):
-                            return obj[tag]
-                        return obj
-                    except JSONDecodeError as e:
-                        last_err = f"JSONDecodeError: {e}. Response: {resp.text[:200]}"
-                        self.warn(f"Invalid JSON response attempt={tries+1}/{max_retries} url={url}: {last_err}")
-                else:
-                    last_err = f"status {resp.status_code}: {resp.text[:200]}"
-                    if resp.status_code in _NON_RETRYABLE_STATUS:
-                        self.warn(f"Non-retryable status {resp.status_code} for {url}. Aborting.")
-                        raise PartialOrNoDataError(f"Non-retryable status {resp.status_code} for {url}. {last_err}")
-                    self.warn(f"Received status code {resp.status_code}. Retrying... {tries+1}/{max_retries}")
-            except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RequestError) as e:
-                elapsed = int((time.monotonic() - t0) * 1000)
-                last_err = str(e)
-                self.warn(f"Request error attempt={tries+1}/{max_retries} elapsed_ms={elapsed} url={url}: {e}")
-            tries += 1
-            if tries < max_retries:
-                time.sleep(min(2 ** tries, 60))
-        self.warn(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
-        raise PartialOrNoDataError(f"Failed to retrieve records after {max_retries} attempts. Last error: {last_err}")
+        """Single GET returning parsed JSON (or ``obj[tag]``), via dlt.
+
+        Retry/backoff now lives in dlt's ``RESTClient`` session, so this is a
+        thin delegate to ``fetch_json`` (lazy-imported to avoid a
+        source ↔ connectors import cycle). ``max_retries`` is accepted for
+        backward compatibility but unused; ``**kw`` may carry ``timeout`` /
+        ``headers``. A final failure raises ``PartialOrNoDataError`` as before."""
+        from backend.connectors._dlt import fetch_json
+
+        self.log(f"HTTP GET source={self.tag} url={url}")
+        return fetch_json(
+            url,
+            params=params,
+            tag=tag,
+            headers=kw.get("headers"),
+            timeout=kw.get("timeout", 900),
+        )
 
     def read(self, *args, **kw) -> list | None:
         raise NotImplementedError(f"read not implemented by {self.__class__.__name__}")
@@ -372,7 +329,7 @@ class BaseSiteSource(BaseSource):
 class BaseParameterSource(BaseSource):
     name = ""
 
-    def __init__(self, transformer=None, validator: Optional[RecordValidator] = None, http_client: httpx.Client | None = None):
+    def __init__(self, transformer=None, validator: Optional[RecordValidator] = None, http_client=None):
         super().__init__(transformer=transformer, http_client=http_client)
         self._validator = validator if validator is not None else _SubclassValidatorShim(self)
         self._summarizer = RecordSummarizer(self)
@@ -515,7 +472,7 @@ class BaseParameterSource(BaseSource):
 class BaseAnalyteSource(BaseParameterSource):
     name = "analyte"
 
-    def __init__(self, transformer=None, http_client: httpx.Client | None = None):
+    def __init__(self, transformer=None, http_client=None):
         super().__init__(transformer=transformer, validator=AnalyteRecordValidator(), http_client=http_client)
 
     def _get_output_units(self):
@@ -525,7 +482,7 @@ class BaseAnalyteSource(BaseParameterSource):
 class BaseWaterLevelSource(BaseParameterSource):
     name = "water levels"
 
-    def __init__(self, transformer=None, http_client: httpx.Client | None = None):
+    def __init__(self, transformer=None, http_client=None):
         super().__init__(transformer=transformer, validator=WaterLevelRecordValidator(), http_client=http_client)
 
     def _get_output_units(self):
