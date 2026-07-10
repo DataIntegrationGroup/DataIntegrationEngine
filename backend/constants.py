@@ -61,10 +61,13 @@ SOURCE_PARAMETER_UNITS = "source_parameter_units"
 CONVERSION_FACTOR = "conversion_factor"
 
 # Per-observation quality metadata from the source. Optional: None for sources
-# that don't report it. APPROVAL_STATUS distinguishes provisional (revisable)
-# from approved data; QUALIFIER carries provider flags/notes (estimated,
-# ice-affected, pumping, etc.).
+# that don't report it. APPROVAL_STATUS is the provider's RAW status value (str
+# or bool — heterogeneous across sources); APPROVAL_STATUS_NORMALIZED maps it to
+# a common vocabulary (see backend/quality.py) so consumers can filter uniformly
+# while the raw value is preserved. QUALIFIER carries provider flags/notes
+# (estimated, ice-affected, pumping, below-detection, etc.).
 APPROVAL_STATUS = "approval_status"
+APPROVAL_STATUS_NORMALIZED = "approval_status_normalized"
 QUALIFIER = "qualifier"
 
 # Link (e.g. SensorThings Datastream URL) to the raw, NON-NORMALIZED source

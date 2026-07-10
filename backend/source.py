@@ -25,9 +25,12 @@ from backend.constants import (
     PARAMETER_NAME,
     PARAMETER_UNITS,
     PARAMETER_VALUE,
+    APPROVAL_STATUS,
+    APPROVAL_STATUS_NORMALIZED,
     EARLIEST,
     LATEST,
 )
+from backend.quality import normalize_approval_status
 from backend.logger import make_logger
 from backend.record import (
     ParameterRecord,
@@ -458,6 +461,12 @@ class BaseParameterSource(BaseSource):
 
     def _extract_parameter(self, record: dict) -> dict:
         record = self._extract_parameter_record(record)
+        # Derive the cross-source normalized approval status from whatever raw
+        # value the connector set (str, bool, or absent). Done here, once, so
+        # every connector gets it without duplicating the mapping.
+        record[APPROVAL_STATUS_NORMALIZED] = normalize_approval_status(
+            record.get(APPROVAL_STATUS)
+        )
         self._validator.validate(record)
         return record
 
