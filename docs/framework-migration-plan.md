@@ -136,9 +136,21 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
 - **Deploy-env verify pending**: the IO manager + `definitions.py` are syntax-checked only (no dagster/GCS in the DIE venv). Must run a Dagster branch deployment / one cohort job before merge. Note the GCS prefix changed (`dagster-io` → `dagster-parquet`), so the first run re-materializes sources (old pickle blobs are ignored, not read).
 - Records/sites carry lat/lon as columns → plain Parquet (geometry is built later in the dumpers), not GeoParquet.
 
-### ▶ Next
-1. **GeoServer publish from the GeoDataFrame** — geoserver asset writes GPKG straight from the combine's GeoDataFrame (`write_geopackage`), skipping the GeoJSON→GeoPackage round-trip.
+### ✅ GeoServer publish — GeoPackage conversion consolidated into backend
+- `write_geopackage(gdf, path, layer)` now returns 2D EPSG:4326 bounds and handles empty/CRS/3D-flatten; `geojson_to_geopackage(geojson_path, layer, out_dir)` reads the product GeoJSON and writes the GPKG via it.
+- `products.py` deletes its duplicate `_geojson_to_geopackage`, imports the backend helper, drops the now-unused `geopandas` import. Tested (bounds + 2D flatten). 406 passed.
+- Not done: a true combine→geoserver **GeoDataFrame** handoff (skip re-reading the GeoJSON from GCS). The GeoJSON is the published deliverable and geoserver depends on combine via GCS, not a data edge — skipping the read is a larger asset rewire, deferred. Consolidating the conversion is the low-risk win.
+
+### ▶ Remaining
+1. **Deploy-env verification** — run a Dagster branch deployment / one cohort job to exercise `PayloadParquetIOManager` + the geoserver asset (dagster/GCS absent from the DIE venv). Required before merge.
 2. **Retire CLI-path bespoke persistence** — `persister.py` byte assembly + `strategies.py` (lower priority; CLI is out of scope).
+
+### Migration status
+- ✅ Product dumpers → GeoPandas (all 22, one hook)
+- ✅ `GeoServerPersister` dropped (dead CLI PostGIS path)
+- ✅ Inter-asset handoff → Parquet (pickle retired)
+- ✅ GeoServer GPKG conversion → tested backend helper
+- ▶ Deploy-env verification pending; CLI-path persister/strategies cleanup optional
 
 ### ✅ Cleanup — twins pruned
 The 5 `dump_*_collection_gpd` twins (and their twin-only helpers) were removed once `_dump_collection` routing made the legacy dumpers GeoPandas-backed. `geodataframe.py` now holds only the used primitives: the routing hook, the records/features → GeoDataFrame builders, the GeoParquet handoff helpers, and `write_geopackage`. Tests cover the primitives directly; product byte-parity stays guarded by `test_ogc_features.py`. (399 passed.)
