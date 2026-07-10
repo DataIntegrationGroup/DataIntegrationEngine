@@ -24,6 +24,8 @@ from backend.constants import (
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    APPROVAL_STATUS,
+    QUALIFIER,
     DT_MEASURED,
     TDS,
     WATERLEVELS,
@@ -152,6 +154,10 @@ class WQPParameterSource(_WQPMultiAnalyte, BaseParameterSource):
         )
         record[SOURCE_PARAMETER_NAME] = record["CharacteristicName"]
         record[SOURCE_PARAMETER_UNITS] = record["ResultMeasure/MeasureUnitCode"]
+        # provider result status (Preliminary/Accepted/Final/Historical/...) and
+        # measure qualifier code; WQP TSV uses "" for missing -> normalize to None
+        record[APPROVAL_STATUS] = record.get("ResultStatusIdentifier") or None
+        record[QUALIFIER] = record.get("MeasureQualifierCode") or None
         return record
 
     def _extract_site_records(self, records, site_record):
