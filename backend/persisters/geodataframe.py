@@ -59,6 +59,41 @@ def _point(lat, lon, elev):
     return Point(lon, lat, elev)
 
 
+def point_geometry(lat, lon, elev):
+    """Public alias for the geometry rule (2D unless elevation present, None when
+    coordinates missing) so per-product dumpers build geometry the same way."""
+    return _point(lat, lon, elev)
+
+
+def features_to_geodataframe(items) -> gpd.GeoDataFrame:
+    """Build a GeoDataFrame from an iterable of ``(feature_id, geometry, props)``
+    where *geometry* is a shapely geometry or ``None`` and *props* is a dict.
+
+    The generic path every ``dump_*`` uses: it turns a product's computed
+    features into the canonical persistence object. Property columns are held as
+    ``object`` dtype so ``to_json`` preserves exact int/float/None types, and the
+    feature id becomes the index (→ GeoJSON feature ``id`` via
+    ``to_json(drop_id=False)``).
+
+    Note: a GeoDataFrame has a *uniform* column set, so a product whose features
+    carry ragged property keys (e.g. per-well analyte pivots) will gain explicit
+    null columns here — a deliberate schema change, not byte-parity. Products
+    with a uniform feature schema (summary, timeseries, density, …) round-trip
+    byte-identically.
+    """
+    ids: list = []
+    geoms: list = []
+    rows: list[dict] = []
+    for feature_id, geom, props in items:
+        ids.append(feature_id)
+        geoms.append(geom)
+        rows.append(props)
+    frame = pd.DataFrame(rows, dtype=object)
+    gdf = gpd.GeoDataFrame(frame, geometry=geoms, crs="EPSG:4326")
+    gdf.index = ids
+    return gdf
+
+
 def records_to_geodataframe(records: list) -> gpd.GeoDataFrame:
     """Build the canonical persistence GeoDataFrame from Summary/Site records.
 
@@ -122,6 +157,65 @@ def dump_summary_collection_gpd(path: str, records: list, meta: dict) -> dict:
     if any(getattr(r, "parameter_name", None) == TDS for r in records):
         extra = {"tds_class_method": TDS_CLASS_METHOD_DESCRIPTION}
     return _dump_collection(path, collection_id, features, meta, extra=extra)
+
+
+def _timeseries_items(site_records, timeseries_records, site_lookup):
+    """Yield ``(feature_id, geometry, props)`` per observation — the same id /
+    geometry / datetime rules as ogc_features.dump_timeseries_collection."""
+    if site_lookup is None:
+        site_lookup = {}
+        for sr in site_records:
+            key = getattr(sr, "id", None)
+            if key:
+                site_lookup[key] = sr
+
+    for obs in timeseries_records:
+        site_id = getattr(obs, "id", None)
+        site = site_lookup.get(site_id)
+        if site:
+            geom = _point(
+                getattr(site, "latitude", None),
+                getattr(site, "longitude", None),
+                getattr(site, "elevation", None),
+            )
+        else:
+            geom = None
+
+        date = getattr(obs, "date_measured", None)
+        time = getattr(obs, "time_measured", None)
+        if date and time:
+            dt = f"{date}T{time}Z"
+        elif date:
+            dt = f"{date}T00:00:00Z"
+        else:
+            dt = None
+
+        source = getattr(obs, "source", "")
+        feature_id = f"{source}:{site_id}:{date}" if date else f"{source}:{site_id}"
+
+        props = {k: getattr(obs, k) for k in obs.keys}
+        props["datetime"] = dt
+        yield feature_id, geom, props
+
+
+def dump_timeseries_collection_gpd(
+    path: str,
+    site_records: list,
+    timeseries_records: list,
+    meta: dict,
+    site_lookup=None,
+) -> dict:
+    """GeoPandas-backed replacement for ogc_features.dump_timeseries_collection.
+
+    One flat feature per observation, features sourced from a GeoDataFrame; OGC
+    envelope still from ``_dump_collection``. Observation properties are a fixed
+    key set (ParameterRecord.keys + datetime), so output is byte-identical to the
+    legacy dumper."""
+    collection_id = meta.get("id", "collection")
+    items = list(_timeseries_items(site_records, timeseries_records, site_lookup))
+    gdf = features_to_geodataframe(items)
+    features = geodataframe_to_features(gdf)
+    return _dump_collection(path, collection_id, features, meta)
 
 
 def gdf_to_parquet_bytes(gdf: gpd.GeoDataFrame) -> bytes:
