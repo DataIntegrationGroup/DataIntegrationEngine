@@ -196,13 +196,38 @@ def _clean_nans(records: list[dict]) -> list[dict]:
     return [{k: (None if pd.isna(v) else v) for k, v in row.items()} for row in records]
 
 
+def _frame_to_parquet_bytes(df: pd.DataFrame) -> bytes:
+    """Serialize *df* to Parquet, stringifying any object column that mixes
+    numeric values with non-numeric strings.
+
+    pyarrow infers one logical type per column and raises ArrowInvalid if an
+    object column holds both — e.g. a WQP analyte's parameter_value column
+    carrying floats *and* the non-detect marker 'ND' (numeric results convert to
+    float in _apply_unit_conversion, qualitative ones stay strings). Casting such
+    a column to str lets the qualitative markers survive the round-trip; every
+    downstream consumer already float()-coerces and skips non-numeric values
+    (see backend.trend_stats.daily_series)."""
+    for col in df.columns:
+        vals = [v for v in df[col] if not _is_null(v)]
+        has_num = any(isinstance(v, (int, float)) and not isinstance(v, bool) for v in vals)
+        has_str = any(isinstance(v, str) for v in vals)
+        if has_num and has_str:
+            df[col] = [None if _is_null(v) else str(v) for v in df[col]]
+    buf = io.BytesIO()
+    df.to_parquet(buf, index=False)
+    return buf.getvalue()
+
+
+def _is_null(v) -> bool:
+    """None or a float NaN. Scalar-only — payload columns are flat scalars."""
+    return v is None or (isinstance(v, float) and v != v)
+
+
 def dicts_to_parquet_bytes(dicts: list[dict]) -> bytes:
     """Serialize a flat list of payload dicts (records or sites) to Parquet.
     object dtype keeps exact types; a uniform column set is fine — the record
     classes tolerate extra null-valued keys on rebuild."""
-    buf = io.BytesIO()
-    pd.DataFrame(dicts, dtype=object).to_parquet(buf, index=False)
-    return buf.getvalue()
+    return _frame_to_parquet_bytes(pd.DataFrame(dicts, dtype=object))
 
 
 def parquet_bytes_to_dicts(data: bytes) -> list[dict]:
@@ -218,9 +243,7 @@ def timeseries_to_parquet_bytes(timeseries: list[list[dict]]) -> bytes:
     for site_idx, site_ts in enumerate(timeseries):
         for obs in site_ts:
             rows.append({**obs, _SITE_IDX: site_idx})
-    buf = io.BytesIO()
-    pd.DataFrame(rows, dtype=object).to_parquet(buf, index=False)
-    return buf.getvalue()
+    return _frame_to_parquet_bytes(pd.DataFrame(rows, dtype=object))
 
 
 def parquet_bytes_to_timeseries(data: bytes) -> list[list[dict]]:
