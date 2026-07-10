@@ -20,6 +20,7 @@ import click
 from backend import OutputFormat
 from backend.config import Config
 from backend.constants import PARAMETER_OPTIONS
+from backend.exceptions import ConfigError
 from backend.unifier import unify_sites, unify_waterlevels, unify_analytes
 
 from backend.logger import setup_logging
@@ -333,10 +334,14 @@ def weave(
             if not click.confirm("Do you want to continue?", default=True):
                 return
 
-        if parameter.lower() == "waterlevels":
-            unify_waterlevels(config)
-        else:
-            unify_analytes(config)
+        try:
+            if parameter.lower() == "waterlevels":
+                unify_waterlevels(config)
+            else:
+                unify_analytes(config)
+        except ConfigError as e:
+            click.secho(str(e), fg="red")
+            raise SystemExit(2)
     return config
 
 
@@ -414,7 +419,11 @@ def sites(
         if not click.confirm("Do you want to continue?", default=True):
             return
 
-    unify_sites(config)
+    try:
+        unify_sites(config)
+    except ConfigError as e:
+        click.secho(str(e), fg="red")
+        raise SystemExit(2)
 
 
 @cli.command()

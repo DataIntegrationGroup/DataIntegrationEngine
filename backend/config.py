@@ -14,12 +14,12 @@
 # limitations under the License.
 # ===============================================================================
 import os
-import sys
 from datetime import datetime, timedelta
 import shapely.wkt
 import yaml
 
 from . import OutputFormat
+from .exceptions import ConfigError
 from .bounding_polygons import get_county_polygon
 from .connectors.nmbgmr.source import (
     NMBGMRSiteSource,
@@ -427,28 +427,26 @@ class Config:
         self.log(s)
 
     def validate(self):
+        # Raise (don't sys.exit) so callers control failure: the CLI converts
+        # this to exit(2); a Dagster asset catches it and soft-fails just that
+        # source. sys.exit() here would kill the whole run's process.
         if not self._validate_bbox():
-            self.warn("Invalid bounding box")
-            sys.exit(2)
+            raise ConfigError("Invalid bounding box")
 
         if not self._validate_county():
-            self.warn("Invalid county")
-            sys.exit(2)
+            raise ConfigError("Invalid county")
 
         if not self._validate_date(self.start_date):
-            self.warn(f"Invalid start date {self.start_date}")
-            sys.exit(2)
+            raise ConfigError(f"Invalid start date {self.start_date}")
 
         if not self._validate_date(self.end_date):
-            self.warn(f"Invalid end date {self.end_date}")
-            sys.exit(2)
+            raise ConfigError(f"Invalid end date {self.end_date}")
 
         if not self._validate_parameter():
-            self.warn(
+            raise ConfigError(
                 f"Unknown parameter {self.parameter!r}. "
                 f"Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}"
             )
-            sys.exit(2)
 
         # Advisory only: these states are accepted (the code picks one) but are
         # almost always a mistake, so surface them instead of failing silently.
