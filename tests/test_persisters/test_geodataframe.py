@@ -19,6 +19,7 @@ from backend.persisters.geodataframe import (
     dicts_to_parquet_bytes,
     features_to_geodataframe,
     geodataframe_to_features,
+    geojson_to_geopackage,
     gdf_to_parquet_bytes,
     parquet_bytes_to_dicts,
     parquet_bytes_to_gdf,
@@ -282,10 +283,43 @@ class TestGeoDataFrameBuilders:
         import geopandas as gpd
 
         gdf = records_to_geodataframe(
-            [_make_summary_record(rid="RA-1"), _make_summary_record(rid="RA-2")]
+            [_make_summary_record(rid="RA-1", lon=-106.5, lat=35.0),
+             _make_summary_record(rid="RA-2", lon=-107.0, lat=34.0)]
         )
         out = tmp_path / "summary.gpkg"
-        write_geopackage(gdf, str(out), layer="summary")
+        bbox = write_geopackage(gdf, str(out), layer="summary")
         assert out.exists()
         back = gpd.read_file(out)
         assert len(back) == 2
+        # 2D bounds, EPSG:4326, spanning both points
+        assert bbox == (-107.0, 34.0, -106.5, 35.0)
+        assert back.geometry.iloc[0].has_z is False
+
+    def test_write_geopackage_empty_raises(self, tmp_path):
+        import geopandas as gpd
+
+        empty = gpd.GeoDataFrame(geometry=[], crs="EPSG:4326")
+        with pytest.raises(ValueError):
+            write_geopackage(empty, str(tmp_path / "e.gpkg"), layer="e")
+
+
+class TestGeojsonToGeopackage:
+    """The GeoServer publish path: GeoJSON file → GeoPackage + bounds."""
+
+    def test_converts_product_geojson(self, tmp_path):
+        import geopandas as gpd
+
+        records = [
+            _make_summary_record(rid="RA-1", lon=-106.5, lat=35.0),
+            _make_summary_record(rid="RA-2", lon=-107.0, lat=34.0),
+        ]
+        geojson = tmp_path / "collection.geojson"
+        dump_summary_collection(str(geojson), records, {"id": "nm_wl"})
+
+        gpkg_path, bbox = geojson_to_geopackage(geojson, "nm_wl", tmp_path)
+        assert gpkg_path.exists()
+        assert gpkg_path.name == "nm_wl.gpkg"
+        assert bbox == (-107.0, 34.0, -106.5, 35.0)
+        back = gpd.read_file(gpkg_path)
+        assert len(back) == 2
+        assert back.geometry.iloc[0].has_z is False  # flattened for GeoServer

@@ -71,7 +71,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import dagster as dg
-import geopandas as gpd
 
 from backend.bounding_polygons import (
     get_nm_groundwater_basin_polygons,
@@ -102,6 +101,7 @@ from backend.persisters.ogc_features import (
     dump_well_density_collection,
     dump_wqi_collection,
 )
+from backend.persisters.geodataframe import geojson_to_geopackage
 from backend.record import ParameterRecord, SiteRecord, SummaryRecord
 from backend.unifier import collect_sites, unify_source_both
 from orchestration.logging_bridge import forward_die_logs
@@ -739,32 +739,6 @@ def _num_opt(value):
     return None if value is None else float(value)
 
 
-def _geojson_to_geopackage(geojson_path: Path, layer_name: str, out_dir: Path):
-    """Convert a GeoJSON file to a GeoPackage whose layer (table) is named
-    *layer_name* (so the published GeoServer layer is named *layer_name*).
-    GeoPackage is a single file with no field-name length limit, unlike the
-    zipped ESRI Shapefile this replaces. Returns (gpkg_path, bbox) where bbox is
-    (minx, miny, maxx, maxy) in EPSG:4326."""
-    gdf = gpd.read_file(geojson_path)
-    if gdf.empty:
-        raise ValueError(f"{layer_name}: GeoJSON has no features; nothing to publish")
-    if gdf.crs is None:
-        gdf = gdf.set_crs("EPSG:4326")
-
-    # Sites with an elevation get 3D point geometry in the GeoJSON. GeoServer's
-    # GeoPackage reader rejects a 3D CRS ("WGS 84 has 3 dimensions") when
-    # computing bounds, so flatten to 2D — elevation remains an attribute.
-    gdf["geometry"] = gdf.geometry.force_2d()
-
-    # Bounds are passed to GeoServer explicitly so it never calls getBounds on
-    # the gpkg store (which still trips the 3D-CRS bug at publish time).
-    minx, miny, maxx, maxy = (float(v) for v in gdf.total_bounds)
-
-    gpkg_path = out_dir / f"{layer_name}.gpkg"
-    gdf.to_file(gpkg_path, driver="GPKG", layer=layer_name)
-    return gpkg_path, (minx, miny, maxx, maxy)
-
-
 def _build_geoserver_asset(product: dict, group: str) -> dg.AssetsDefinition:
     """Build the GeoServer publish asset (keyed ``[product_id, "geoserver"]``).
 
@@ -801,7 +775,7 @@ def _build_geoserver_asset(product: dict, group: str) -> dg.AssetsDefinition:
             with tempfile.TemporaryDirectory() as tmpdir:
                 geojson = Path(tmpdir) / f"{pid}.geojson"
                 gcs.download_latest(pid, str(geojson))
-                gpkg_path, bbox = _geojson_to_geopackage(geojson, pid, Path(tmpdir))
+                gpkg_path, bbox = geojson_to_geopackage(geojson, pid, Path(tmpdir))
                 actions = geoserver.publish_geopackage(
                     pid,
                     str(gpkg_path),

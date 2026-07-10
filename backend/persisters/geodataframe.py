@@ -24,6 +24,7 @@ numberReturned and product-level extras) is a product concern that stays in
 
 import io
 import json
+from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
@@ -238,14 +239,33 @@ def parquet_bytes_to_timeseries(data: bytes) -> list[list[dict]]:
     return groups
 
 
-def write_geopackage(gdf: gpd.GeoDataFrame, path: str, layer: str) -> None:
-    """Write the canonical GeoDataFrame straight to a GeoPackage layer.
+def write_geopackage(gdf: gpd.GeoDataFrame, path: str, layer: str) -> tuple:
+    """Write a GeoDataFrame to a GeoPackage layer named *layer* and return its
+    2D bounds ``(minx, miny, maxx, maxy)`` in EPSG:4326.
 
-    The payoff of the migration: the same in-memory object that produces the
-    product GeoJSON also writes GPKG (for GeoServer) with one call, replacing the
-    GeoJSON→GeoPackage round-trip in the geoserver asset. Geometry is flattened to
-    2D for GeoServer's GPKG reader (same reason as
-    orchestration/assets/products._geojson_to_geopackage)."""
+    The single GeoPackage writer for the GeoServer publish path. Sets a default
+    CRS when absent, and flattens geometry to 2D — GeoServer's GeoPackage reader
+    rejects a 3D CRS ("WGS 84 has 3 dimensions") when computing bounds, so
+    elevation stays an attribute only. Bounds are returned so the caller can hand
+    them to GeoServer explicitly (avoids a getBounds call that trips the same
+    3D-CRS bug). Raises on an empty frame (nothing to publish)."""
+    if gdf.empty:
+        raise ValueError(f"{layer}: GeoDataFrame has no features; nothing to write")
+    if gdf.crs is None:
+        gdf = gdf.set_crs("EPSG:4326")
     flat = gdf.copy()
     flat["geometry"] = flat.geometry.force_2d()
+    minx, miny, maxx, maxy = (float(v) for v in flat.total_bounds)
     flat.to_file(path, driver="GPKG", layer=layer)
+    return (minx, miny, maxx, maxy)
+
+
+def geojson_to_geopackage(geojson_path, layer_name: str, out_dir) -> tuple:
+    """Convert a GeoJSON file to a GeoPackage whose layer is *layer_name* (so the
+    published GeoServer layer takes that name). Returns ``(gpkg_path, bbox)`` with
+    ``bbox`` the 2D EPSG:4326 bounds. Reads the GeoJSON with GeoPandas and writes
+    the GPKG via :func:`write_geopackage`. Used by the GeoServer publish asset."""
+    gdf = gpd.read_file(geojson_path)
+    gpkg_path = Path(out_dir) / f"{layer_name}.gpkg"
+    bbox = write_geopackage(gdf, str(gpkg_path), layer_name)
+    return gpkg_path, bbox
