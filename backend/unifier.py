@@ -336,6 +336,74 @@ def unify_source_both(config, source_key):
     return summary_persister, timeseries_persister
 
 
+def unify_source_multi(config, source_key, parameters):
+    """Unify a single source for MULTIPLE analytes with **one** fetch.
+
+    The provider (e.g. WQP) returns every requested analyte in a single query, so
+    instead of sweeping the same wells once per analyte, the source is fetched
+    once and each analyte's summary + timeseries is produced by filtering that
+    shared fetch. This is the fix for the per-analyte refetch redundancy (see
+    orchestration/assets/products.py) — WQP's ~13 analyte assets collapse to one
+    fetch.
+
+    Returns ``{parameter: (summary_persister, timeseries_persister)}``. Requires a
+    source whose site + parameter sources implement ``set_parameters`` (currently
+    WQP). Analytes only — do not pass ``waterlevels``.
+    """
+    config.validate()
+    if not parameters:
+        return {}
+
+    # source_pair selects the analyte table from config.parameter; any analyte
+    # in the group resolves the same (site, analyte) source pair.
+    config.parameter = parameters[0]
+    pair = config.source_pair(source_key)
+    if pair is None:
+        config.warn(
+            f"Source {source_key!r} does not provide the requested analytes"
+        )
+        return {p: (make_persister(config), make_persister(config)) for p in parameters}
+
+    site_source, parameter_source = pair
+    if not (
+        hasattr(site_source, "set_parameters")
+        and hasattr(parameter_source, "set_parameters")
+    ):
+        raise ValueError(
+            f"Source {source_key!r} does not support multi-analyte unification"
+        )
+
+    site_source.set_parameters(parameters)
+    parameter_source.set_parameters(parameters)
+    # Share the union site list and the single multi-analyte observation fetch
+    # across every per-analyte pass; each pass filters the cached fetch to its
+    # own analyte (see WQPParameterSource._extract_site_records).
+    site_source._fetch_cache_enabled = True
+    parameter_source._fetch_cache_enabled = True
+
+    result: dict = {}
+    for p in parameters:
+        config.parameter = p
+
+        config.output_summary = False
+        ts_persister = make_persister(config)
+        config._persister = ts_persister
+        _site_wrapper(
+            site_source, parameter_source, ts_persister, config, raise_errors=True
+        )
+
+        config.output_summary = True
+        summary_persister = make_persister(config)
+        config._persister = summary_persister
+        _site_wrapper(
+            site_source, parameter_source, summary_persister, config, raise_errors=True
+        )
+
+        result[p] = (summary_persister, ts_persister)
+
+    return result
+
+
 def collect_sites(config):
     """Gather site records from **every** enabled source (sites only, no
     parameter data) and return them as a flat list of ``_payload`` dicts.

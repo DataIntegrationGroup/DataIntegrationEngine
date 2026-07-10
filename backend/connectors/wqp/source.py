@@ -56,6 +56,33 @@ def parse_tsv(text):
     return [dict(zip(header, row.split("\t"))) for row in rows[1:]]
 
 
+def _wqp_characteristic_names(parameters) -> list:
+    """The WQP CharacteristicName values for a list of DIE analytes (an analyte
+    can map to several names; conductivity and specific_conductance share
+    'Specific conductance' and are separated later by temperature basis)."""
+    names: list = []
+    for p in parameters:
+        for n in WQP_ANALYTE_MAPPING.get(p, []):
+            if n not in names:
+                names.append(n)
+    return names
+
+
+class _WQPMultiAnalyte:
+    """Opt-in multi-analyte mode: fetch a source once for several analytes
+    (characteristicName carries them all), then filter per analyte downstream so
+    one WQP query serves N analyte products instead of N identical sweeps.
+    ``_parameters is None`` keeps the original single-analyte behavior."""
+
+    _parameters = None  # list[str] of DIE analytes when in multi mode
+
+    def set_parameters(self, parameters) -> None:
+        self._parameters = list(parameters)
+
+    def _active_parameters(self) -> list:
+        return self._parameters if self._parameters is not None else [self.config.parameter]
+
+
 def get_date_range(config):
     params = {}
     if config.start_date:
@@ -65,7 +92,7 @@ def get_date_range(config):
     return params
 
 
-class WQPSiteSource(BaseSiteSource):
+class WQPSiteSource(_WQPMultiAnalyte, BaseSiteSource):
     chunk_size = 50
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
@@ -93,7 +120,10 @@ class WQPSiteSource(BaseSiteSource):
         if config.has_bounds():
             params["bBox"] = ",".join([str(b) for b in config.bbox_bounding_points()])
         if not config.sites_only:
-            if config.parameter.lower() != "waterlevels":
+            if self._parameters is not None:
+                # multi-analyte: one station query covering every analyte
+                params["characteristicName"] = _wqp_characteristic_names(self._parameters)
+            elif config.parameter.lower() != "waterlevels":
                 params["characteristicName"] = get_analyte_search_param(
                     config.parameter, WQP_ANALYTE_MAPPING
                 )
@@ -111,7 +141,7 @@ class WQPSiteSource(BaseSiteSource):
             return parse_tsv(text)
 
 
-class WQPParameterSource(BaseParameterSource):
+class WQPParameterSource(_WQPMultiAnalyte, BaseParameterSource):
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = self.config.parameter
@@ -125,9 +155,17 @@ class WQPParameterSource(BaseParameterSource):
         return record
 
     def _extract_site_records(self, records, site_record):
-        return [
+        matched = [
             ri for ri in records if ri["MonitoringLocationIdentifier"] == site_record.id
         ]
+        if self._parameters is not None:
+            # multi-analyte fetch returns every analyte's rows; keep only the
+            # ones for the analyte this pass is unifying (config.parameter).
+            # conductivity/specific_conductance share a name here and are split
+            # further by temperature basis in _clean_records.
+            names = set(_wqp_characteristic_names([self.config.parameter]))
+            matched = [ri for ri in matched if ri.get("CharacteristicName") in names]
+        return matched
 
     def _extract_source_parameter_results(self, records):
         return [ri["ResultMeasureValue"] for ri in records]
@@ -220,7 +258,10 @@ class WQPParameterSource(BaseParameterSource):
         }
         params.update(get_date_range(self.config))
 
-        if config.parameter.lower() != WATERLEVELS:
+        if self._parameters is not None:
+            # multi-analyte: one result query covering every analyte
+            params["characteristicName"] = _wqp_characteristic_names(self._parameters)
+        elif config.parameter.lower() != WATERLEVELS:
             params["characteristicName"] = get_analyte_search_param(
                 config.parameter, WQP_ANALYTE_MAPPING
             )
