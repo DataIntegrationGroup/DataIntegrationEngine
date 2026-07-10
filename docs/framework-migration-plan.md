@@ -162,7 +162,10 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
   - bor, isc_seven_rivers, nmbgmr_amp, nmose_pod migrated **transitively** — the base `_execute_json_request` now delegates to dlt's `fetch_json`, so these connectors moved without per-connector edits (nmose needed a `json.dumps` on its ArcGIS geometry param — requests doesn't serialize a dict param like httpx did).
   - Base `BaseSource._http_client` is now a dlt `RESTClient`; the manual retry loop + `_execute_text_request` + `_NON_RETRYABLE_STATUS` are gone. `bounding_polygons` geoconnex fetch on `fetch_json`.
   - **httpx dependency dropped** (relock removed httpx + httpcore + h11). Verified live end-to-end via every REST connector.
-  - FROST fleet (nmed_dwb + st2) stays on `frost_sta_client` — its own client lib, never used httpx. Optional future: move it to dlt `@iot.nextLink` too.
+  - ✅ **FROST fleet migrated too — frost_sta_client removed.** `backend/connectors/_sensorthings.py::sta_query` builds the OData query and follows `@iot.nextLink` via dlt; the 6 FROST sources (nmed_dwb + st2 fleet) read the JSON dicts directly. frost issued bare `requests.request` (no retry/backoff/pooling); dlt's session gives all three. Relock dropped frost-sta-client + 7 transitive deps. Live-verified: PVACD 13,829 obs, CABQ 159 sites (stickup-height path), DWB 3,617 sites.
+
+### ✅ Phase B COMPLETE — one HTTP stack (dlt), httpx + frost_sta_client both gone
+Every connector (all 8) fetches through dlt now. No `httpx`, no `frost_sta_client`. `backend/connectors/_dlt.py` (`fetch_text`/`fetch_json`/`fetch_json_records`) + `_sensorthings.py` (`sta_query`) are the whole transport layer. Retry/backoff/pooling uniform across sources; USGS truncation bug fixed as a bonus.
 
 ### ✅ USGS on dlt — pagination truncation FIXED
 - Both fetches paginate via `JSONLinkPaginator` on the OGC `rel=next` cursor: site GET (combined-metadata) and water-level **POST CQL** (field-measurements). `fetch_json_records` gained method/json_data/headers + error mapping (429 → `USGSRateLimitError`, else `PartialOrNoDataError`).
