@@ -130,10 +130,15 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
 - Then generalized: `_dump_collection` routes its features through a GeoDataFrame (`route_feature_dicts_through_gdf`) — reconstruct geometry via `shapely.shape`, rebuild the canonical GeoDataFrame, re-emit. **One change makes all 22 products GeoPandas-backed**, no per-dumper edits and no `products.py` cutover (dumpers keep their names/signatures). Uniform products byte-identical; the 3 ragged now emit uniform null columns (one `major_chemistry` test updated). Full suite green (405 passed).
 - `route_feature_dicts_through_gdf` is idempotent, so `dump_*_collection` and the item-based helpers compose safely.
 
-### ▶ Next (orchestration / deploy env — not runtime-verifiable in the DIE venv)
-1. **Asset payload refactor** — shared source asset emits typed frames (`sites`/`summary` GeoDataFrame, `observations` DataFrame) instead of the `{records, sites, timeseries}` pickle dict; point at `GeoDataFrameIOManager`; combine reads GeoDataFrames. Retires the pickle handoff. (Combine already calls the now-gdf-backed dumpers, so product output is unchanged.)
-2. **GeoServer publish from the GeoDataFrame** — geoserver asset writes GPKG straight from the combine's GeoDataFrame (`write_geopackage`), skipping the GeoJSON→GeoPackage round-trip.
-3. **Retire CLI-path bespoke persistence** — `persister.py` byte assembly + `strategies.py` (lower priority; CLI is out of scope).
+### ✅ Orchestration handoff — pickle → Parquet (wired; deploy-env verify pending)
+- `PayloadParquetIOManager` (`orchestration/resources/geodataframe_io.py`) replaces `_TolerantGCSPickleIOManager`. The source asset's `{records, sites, timeseries}` payload crosses as three **Parquet** blobs on GCS instead of a pickle. **Source and combine asset bodies unchanged** — they still emit/consume the same dict — so the 20-product combine dispatch is untouched (lowest blast radius). `definitions.py` swaps the `io_manager` resource.
+- Tested serialization core in `geodataframe.py`: `dicts_to/from_parquet_bytes` (records, sites) and `timeseries_to/from_parquet_bytes` (nested list-of-per-site-lists tagged with `__site_idx` so `sites[i] ↔ timeseries[i]` alignment survives). Full payload round-trip test green (404 passed).
+- **Deploy-env verify pending**: the IO manager + `definitions.py` are syntax-checked only (no dagster/GCS in the DIE venv). Must run a Dagster branch deployment / one cohort job before merge. Note the GCS prefix changed (`dagster-io` → `dagster-parquet`), so the first run re-materializes sources (old pickle blobs are ignored, not read).
+- Records/sites carry lat/lon as columns → plain Parquet (geometry is built later in the dumpers), not GeoParquet.
+
+### ▶ Next
+1. **GeoServer publish from the GeoDataFrame** — geoserver asset writes GPKG straight from the combine's GeoDataFrame (`write_geopackage`), skipping the GeoJSON→GeoPackage round-trip.
+2. **Retire CLI-path bespoke persistence** — `persister.py` byte assembly + `strategies.py` (lower priority; CLI is out of scope).
 
 ### ✅ Cleanup — twins pruned
 The 5 `dump_*_collection_gpd` twins (and their twin-only helpers) were removed once `_dump_collection` routing made the legacy dumpers GeoPandas-backed. `geodataframe.py` now holds only the used primitives: the routing hook, the records/features → GeoDataFrame builders, the GeoParquet handoff helpers, and `write_geopackage`. Tests cover the primitives directly; product byte-parity stays guarded by `test_ogc_features.py`. (399 passed.)
