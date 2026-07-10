@@ -389,34 +389,8 @@ def dump_mcl_exceedance_collection(
     """
     collection_id = meta.get("id", "collection")
 
-    wells: dict = {}
-    for r in records:
-        source = getattr(r, "source", "") or ""
-        rid = getattr(r, "id", "") or ""
-        key = (source, rid)
-        well = wells.get(key)
-        if well is None:
-            well = {
-                "source": source,
-                "id": rid,
-                "name": getattr(r, "name", None),
-                "latitude": getattr(r, "latitude", None),
-                "longitude": getattr(r, "longitude", None),
-                "elevation": getattr(r, "elevation", None),
-                "well_depth": getattr(r, "well_depth", None),
-                "well_depth_units": getattr(r, "well_depth_units", None),
-                "values": {},
-            }
-            wells[key] = well
-        analyte = getattr(r, "parameter_name", None)
-        if analyte:
-            well["values"][analyte] = {
-                "value": getattr(r, "latest_value", None),
-                "date": getattr(r, "latest_date", None),
-            }
-
     features = []
-    for (source, rid), well in wells.items():
+    for (source, rid), well in _pivot_by_well(records).items():
         props = {
             "source": source,
             "id": rid,
@@ -425,7 +399,7 @@ def dump_mcl_exceedance_collection(
             "well_depth_units": well["well_depth_units"],
         }
         exceeded = []
-        for analyte, entry in well["values"].items():
+        for analyte, entry in well["analytes"].items():
             value = entry["value"]
             props[analyte] = value
             props[f"{analyte}_date"] = entry["date"]
@@ -451,16 +425,7 @@ def dump_mcl_exceedance_collection(
         props["exceedance_count"] = len(exceeded)
         props["exceeded_analytes"] = sorted(exceeded)
 
-        features.append(
-            {
-                "type": "Feature",
-                "id": _feature_id(source, rid),
-                "geometry": _point_geometry(
-                    well["latitude"], well["longitude"], well["elevation"]
-                ),
-                "properties": props,
-            }
-        )
+        features.append(_well_feature(source, rid, well, props))
 
     return _dump_collection(
         path, collection_id, features, meta, extra={"mcl_thresholds": thresholds}
