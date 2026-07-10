@@ -157,8 +157,13 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
 - ✅ `GeoServerPersister` dropped (dead CLI PostGIS path)
 - ✅ Inter-asset handoff → Parquet (pickle retired)
 - ✅ GeoServer GPKG conversion → tested backend helper
-- ✅ Phase B: WQP fetch → dlt (1/8 connectors)
-- ▶ Next connector: USGS (pagination win); deploy-env verification pending; httpx removal after all connectors migrate
+- ✅ Phase B: WQP + **USGS** fetch → dlt (2/8 connectors)
+- ▶ Remaining connectors: bor, isc_seven_rivers, nmbgmr_amp, nmose_pod (ArcGIS), FROST fleet (nmed_dwb + st2); deploy-env verification pending; httpx removal after all connectors migrate
+
+### ✅ USGS on dlt — pagination truncation FIXED
+- Both fetches paginate via `JSONLinkPaginator` on the OGC `rel=next` cursor: site GET (combined-metadata) and water-level **POST CQL** (field-measurements). `fetch_json_records` gained method/json_data/headers + error mapping (429 → `USGSRateLimitError`, else `PartialOrNoDataError`).
+- Removed `USGSRequester` + `check_truncation`. The old code **refused** any paged response, so statewide USGS queries returned nothing. Live after the change: **30,097** statewide GW sites (was: refused), **3,465** WL records for 250 sites (paginated POST). Verified live against the API.
+- USGS off httpx (health + both get_records).
 
 ### ✅ Cleanup — twins pruned
 The 5 `dump_*_collection_gpd` twins (and their twin-only helpers) were removed once `_dump_collection` routing made the legacy dumpers GeoPandas-backed. `geodataframe.py` now holds only the used primitives: the routing hook, the records/features → GeoDataFrame builders, the GeoParquet handoff helpers, and `write_geopackage`. Tests cover the primitives directly; product byte-parity stays guarded by `test_ogc_features.py`. (399 passed.)
