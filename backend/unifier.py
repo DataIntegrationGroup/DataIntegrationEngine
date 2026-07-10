@@ -15,37 +15,11 @@
 # ===============================================================================
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import shapely
-
-from backend.config import Config, get_source
 from backend.logger import make_logger
 
 _log = make_logger("unifier")
-from backend.constants import WATERLEVELS
 from backend.persisters.factory import make_persister
-from backend.source import BaseSiteSource
 from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
-
-
-def health_check(source: BaseSiteSource) -> bool | None:
-    """
-    Determines if data can be returned from the source (if it is healthy)
-
-    Parameters
-    -------
-    source: BaseSiteSource
-        The site source to check, specific to the source being queried
-
-    Returns
-    -------
-    bool
-        True if the source is healthy, else False
-    """
-    source = get_source(source)
-    if source:
-        return bool(source.health())
-    else:
-        return None
 
 
 def unify_analytes(config):
@@ -67,18 +41,6 @@ def unify_waterlevels(config):
 
     if not config.dry:
         _unify_parameter(config, config.water_level_sources())
-
-    return True
-
-
-def unify_sites(config):
-    _log.log("Unifying sites only")
-
-    # config.report() -- report is done in cli.py, no need to do it twice
-    config.validate()
-
-    if not config.dry:
-        _unify_parameter(config, config.all_site_sources())
 
     return True
 
@@ -441,55 +403,6 @@ def collect_sites(config):
         _site_wrapper(site_source, None, persister, config)
 
     return [s._payload for s in persister.sites]
-
-
-def get_county_bounds(county):
-    config = Config()
-    config.county = county
-    bp = config.bounding_wkt()
-    return bp
-
-
-def get_source_bounds(sourcekeys, as_str=False):
-    config = Config()
-    sourcekeys = sourcekeys.lower().replace("_", "")
-
-    rets = []
-    for sourcekey in sourcekeys.split(","):
-        for sources in (config.analyte_sources(), config.water_level_sources()):
-            for source, _ in sources:
-                if source.__class__.__name__.lower().startswith(sourcekey):
-                    bp = source.bounding_polygon
-                    if bp and bp not in rets:
-                        rets.append(bp)
-
-    if rets:
-        if len(rets) > 1:
-            rets = shapely.GeometryCollection(rets)
-        else:
-            rets = rets[0]
-        if as_str:
-            rets = rets.wkt
-        return rets
-
-
-def get_sources(config=None):
-    if config is None:
-        config = Config()
-
-    sources = []
-    if config.parameter == WATERLEVELS:
-        allsources = config.water_level_sources()
-    else:
-        allsources = config.analyte_sources()
-
-    for source, _ in allsources:
-        if config.wkt or config.bbox or config.county:
-            if source.intersects(config.bounding_wkt()):
-                sources.append(source)
-        else:
-            sources.append(source)
-    return sources
 
 
 # ============= EOF =============================================
