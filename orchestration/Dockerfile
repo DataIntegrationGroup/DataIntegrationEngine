@@ -26,7 +26,6 @@ RUN uv sync --frozen --extra gcs && \
 
 # Copy source code
 COPY backend/ ./backend/
-COPY frontend/ ./frontend/
 COPY orchestration/ ./orchestration/
 
 ENV PYTHONPATH=/app

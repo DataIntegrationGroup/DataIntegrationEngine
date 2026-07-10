@@ -36,11 +36,8 @@ parquet = [
     "pyarrow>=24.0.0",
 ]
 
-[project.scripts]
-die = "frontend.cli:cli"
-
 [tool.hatch.build.targets.wheel]
-packages = ["frontend", "backend"]
+packages = ["backend"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
