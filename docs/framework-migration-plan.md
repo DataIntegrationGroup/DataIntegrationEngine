@@ -124,7 +124,18 @@ Replaced: bespoke fetch internals (→ dlt), bespoke persistence (→ geopandas 
 ### ✅ Dagster `GeoDataFrameIOManager` (written; runs in deploy env)
 - `orchestration/resources/geodataframe_io.py` — `dg.ConfigurableIOManager` that serializes GeoDataFrame assets to GeoParquet on GCS (via `AuthedGCSResource`), tolerant of a missing input blob (empty GeoDataFrame), mirroring `_TolerantGCSPickleIOManager`'s blob layout. Serialization delegates to the unit-tested backend helpers; the module is thin dagster+GCS glue. Syntax-checked; **not runtime-verified here** (dagster/GCS absent from the DIE dev venv) — it lands + gets exercised in the orchestration deploy env.
 
-### ▶ Next (Phase A fan-out — a larger, separately-verified change)
-1. **Asset payload refactor** — have the shared source asset emit typed frames (`sites` GeoDataFrame, `summary` GeoDataFrame, `observations` plain DataFrame) instead of the `{records, sites, timeseries}` dict of `_payload` dicts; point them at `GeoDataFrameIOManager`; combine consumes GeoDataFrames. This is where the pickle handoff actually retires.
-2. **Convert remaining `dump_*_collection`** to source features from a GeoDataFrame, each behind the same byte-parity test.
-3. **Retire** `persister.py` byte assembly, `strategies.py`, and the manual upserts in `geoserver.py` (`GeoDataFrame.to_postgis`).
+### ✅ Phase A dumper conversion — all shapes proven (5 / 22 done)
+Decision taken: ragged products get **uniform columns (nulls)** — required for GPKG/PostGIS.
+- `dump_collection_from_items()` — shared `items → GeoDataFrame → OGC collection` serializer every `dump_*_gpd` uses.
+- Converted, each parity-tested: **summary**, **timeseries** (uniform point); **hardness** (uniform pivot); **well_density** (polygon); **major_chemistry** (ragged→uniform). Parity compares the JSON-serialized form (shapely.mapping tuples vs to_json lists are JSON-equal). Full suite green (405 passed).
+
+**Remaining 17 (mechanical — all shapes now proven):**
+- Uniform point: `monitoring_recency`, `data_density`, `trend` (waterlevel + analyte), `waterlevel_change`, `waterlevel_status`, `seasonal_amplitude`, `depletion_projection`, `pod_age_points`, `well_correlation`
+- Uniform pivot: `water_type`, `sar`, `ion_balance`
+- Polygon: `basin_well_density`, `pod_age_by_county`
+- Ragged→uniform: `mcl_exceedance`, `wqi`
+
+### ▶ Next
+1. **Finish the remaining 17 `dump_*_gpd`** — same pattern, each behind a parity test.
+2. **Asset payload refactor** (orchestration/deploy env) — shared source asset emits typed frames (`sites`/`summary` GeoDataFrame, `observations` DataFrame) instead of the `{records, sites, timeseries}` pickle dict; point at `GeoDataFrameIOManager`; combine calls the `_gpd` dumpers. Retires the pickle handoff.
+3. **Cutover + delete** — repoint `products.py` to the `_gpd` dumpers, delete the legacy dumpers + `persister.py` byte assembly + `strategies.py`; `geoserver.py` upserts → `GeoDataFrame.to_postgis`.
