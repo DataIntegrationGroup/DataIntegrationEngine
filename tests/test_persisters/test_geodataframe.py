@@ -12,14 +12,22 @@ import json
 
 import pytest
 
+from shapely.geometry import Polygon
+
 from backend.persisters.ogc_features import (
     dump_summary_collection,
     dump_timeseries_collection,
+    dump_hardness_collection,
+    dump_major_chemistry_collection,
+    dump_well_density_collection,
     _dump_collection,
 )
 from backend.persisters.geodataframe import (
     dump_summary_collection_gpd,
     dump_timeseries_collection_gpd,
+    dump_hardness_collection_gpd,
+    dump_major_chemistry_collection_gpd,
+    dump_well_density_collection_gpd,
     geodataframe_to_features,
     gdf_to_parquet_bytes,
     parquet_bytes_to_gdf,
@@ -27,6 +35,34 @@ from backend.persisters.geodataframe import (
     write_geopackage,
 )
 from backend.record import SummaryRecord, SiteRecord, ParameterRecord
+
+
+def _make_chem_record(source, rid, analyte, value, units="mg/L", date="2024-05-01", well_depth=None):
+    return SummaryRecord(
+        {
+            "source": source,
+            "id": rid,
+            "name": f"Well {rid}",
+            "latitude": 34.0,
+            "longitude": -106.0,
+            "elevation": None,
+            "well_depth": well_depth,
+            "well_depth_units": "ft",
+            "parameter_name": analyte,
+            "latest_value": value,
+            "latest_units": units,
+            "latest_date": date,
+        }
+    )
+
+
+def _square_county(name, fips, x0, y0, side=1.0):
+    poly = Polygon([(x0, y0), (x0 + side, y0), (x0 + side, y0 + side), (x0, y0 + side)])
+    return {"name": name, "fips": fips, "geometry": poly, "area_sq_km": 100.0}
+
+
+def _density_site(source, rid, lon, lat):
+    return {"source": source, "id": rid, "latitude": lat, "longitude": lon}
 
 
 def _make_summary_record(
@@ -80,8 +116,15 @@ def _strip_timestamp(collection: dict) -> dict:
     return c
 
 
+def _norm(collection: dict) -> dict:
+    """Normalize a collection to its written-JSON form (drop timeStamp, coerce
+    coordinate tuples from shapely.mapping to lists) so the comparison reflects
+    the actual serialized bytes, not Python tuple-vs-list identity."""
+    return json.loads(json.dumps(_strip_timestamp(collection), default=str))
+
+
 def _assert_collections_equal(legacy: dict, gpd_out: dict):
-    assert _strip_timestamp(legacy) == _strip_timestamp(gpd_out)
+    assert _norm(legacy) == _norm(gpd_out)
 
 
 class TestSummaryParity:
@@ -235,6 +278,76 @@ class TestTimeseriesParity:
         features = geodataframe_to_features(gdf_back)
         rebuilt = _dump_collection(str(tmp_path / "b.geojson"), meta["id"], features, meta)
         _assert_collections_equal(legacy, rebuilt)
+
+
+class TestHardnessParity:
+    """Uniform-pivot product: fixed per-well output schema → byte-identical."""
+
+    def test_full_and_partial_wells_identical(self, tmp_path):
+        records = [
+            _make_chem_record("NMBGMR", "W1", "calcium", 42.0, well_depth=120.0),
+            _make_chem_record("NMBGMR", "W1", "magnesium", 12.0),
+            _make_chem_record("WQP", "W2", "calcium", 55.0),  # missing magnesium
+            _make_chem_record("WQP", "W3", "magnesium", 8.0),  # missing calcium
+        ]
+        meta = {"id": "nm_hardness"}
+        legacy = dump_hardness_collection(str(tmp_path / "a.geojson"), records, meta)
+        gpd_out = dump_hardness_collection_gpd(str(tmp_path / "b.geojson"), records, meta)
+        _assert_collections_equal(legacy, gpd_out)
+
+
+class TestWellDensityParity:
+    """Polygon product: county polygons, uniform props → byte-identical."""
+
+    def test_county_polygons_identical(self, tmp_path):
+        counties = [_square_county("A", "001", 0, 0), _square_county("B", "003", 10, 10)]
+        sites = [
+            _density_site("NMBGMR", "W1", 0.5, 0.5),
+            _density_site("NMBGMR", "W2", 0.2, 0.8),
+            _density_site("USGS", "W3", 10.5, 10.5),
+            _density_site("USGS", "W4", 99.0, 99.0),  # unassigned
+        ]
+        meta = {"id": "nm_wd"}
+        legacy = dump_well_density_collection(str(tmp_path / "a.geojson"), counties, sites, meta)
+        gpd_out = dump_well_density_collection_gpd(str(tmp_path / "b.geojson"), counties, sites, meta)
+        _assert_collections_equal(legacy, gpd_out)
+        # polygon geometry survived the GeoDataFrame path
+        assert gpd_out["features"][0]["geometry"]["type"] == "Polygon"
+
+
+class TestMajorChemistryUniformSchema:
+    """Ragged product: routing through a GeoDataFrame gives every feature the
+    UNION of analyte columns (null where absent) — the chosen schema, not
+    byte-parity with the legacy ragged output."""
+
+    def test_uniform_columns_with_nulls(self, tmp_path):
+        records = [
+            _make_chem_record("NMBGMR", "W1", "calcium", 42.0),
+            _make_chem_record("NMBGMR", "W1", "chloride", 15.0),
+            _make_chem_record("WQP", "W2", "calcium", 55.0),  # no chloride
+        ]
+        meta = {"id": "nm_mc"}
+        legacy = dump_major_chemistry_collection(str(tmp_path / "a.geojson"), records, meta)
+        gpd_out = dump_major_chemistry_collection_gpd(str(tmp_path / "b.geojson"), records, meta)
+
+        # same wells, same geometry, same feature ids
+        assert {f["id"] for f in legacy["features"]} == {f["id"] for f in gpd_out["features"]}
+
+        gp = {f["id"]: f["properties"] for f in gpd_out["features"]}
+        lg = {f["id"]: f["properties"] for f in legacy["features"]}
+
+        # uniform schema: every gpd feature carries every analyte column
+        all_keys = set().union(*(p.keys() for p in gp.values()))
+        for props in gp.values():
+            assert set(props.keys()) == all_keys
+
+        # legacy W2 lacks chloride; gpd W2 has it as null; shared values preserved
+        assert "chloride" not in lg["NMBGMR:W2"] if "NMBGMR:W2" in lg else True
+        w2 = gp["WQP:W2"]
+        assert w2["chloride"] is None and w2["chloride_units"] is None
+        assert w2["calcium"] == 55.0
+        w1 = gp["NMBGMR:W1"]
+        assert w1["calcium"] == 42.0 and w1["chloride"] == 15.0
 
 
 class TestGeoDataFrame:

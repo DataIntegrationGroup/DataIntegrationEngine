@@ -35,10 +35,18 @@ from shapely.geometry import Point
 
 from backend.constants import TDS
 from backend.persisters.ogc_features import (
+    HARDNESS_METHOD_DESCRIPTION,
     TDS_CLASS_METHOD_DESCRIPTION,
+    WELL_DENSITY_METHOD_DESCRIPTION,
+    _HARDNESS_CA_FACTOR,
+    _HARDNESS_MG_FACTOR,
+    _assign_points_to_regions,
+    _dedupe_well_points,
     _dump_collection,
     _feature_id,
+    _hardness_class,
     _num,
+    _pivot_by_well,
     _tds_class,
 )
 
@@ -216,6 +224,107 @@ def dump_timeseries_collection_gpd(
     gdf = features_to_geodataframe(items)
     features = geodataframe_to_features(gdf)
     return _dump_collection(path, collection_id, features, meta)
+
+
+def dump_collection_from_items(path, collection_id, items, meta, extra=None) -> dict:
+    """Serialize precomputed ``(feature_id, geometry, props)`` items to an OGC
+    FeatureCollection through a GeoDataFrame. The single serialization path every
+    ``dump_*_gpd`` shares: build the GDF, emit GeoJSON features, wrap the OGC
+    envelope. *geometry* may be point or polygon (shapely) or None."""
+    gdf = features_to_geodataframe(list(items))
+    features = geodataframe_to_features(gdf)
+    return _dump_collection(path, collection_id, features, meta, extra=extra)
+
+
+def dump_hardness_collection_gpd(path: str, records: list, meta: dict) -> dict:
+    """GeoPandas-backed dump_hardness_collection. One feature per well with a
+    fixed property set (calcium/magnesium + hardness), so byte-identical to the
+    legacy dumper. Reuses the legacy pivot + hardness helpers so only the
+    serialization differs."""
+    wells = _pivot_by_well(records)
+    items = []
+    for (source, rid), well in wells.items():
+        analytes = well["analytes"]
+        ca = _num(analytes.get("calcium", {}).get("value"))
+        mg = _num(analytes.get("magnesium", {}).get("value"))
+        hardness = (
+            None
+            if ca is None or mg is None
+            else round(_HARDNESS_CA_FACTOR * ca + _HARDNESS_MG_FACTOR * mg, 1)
+        )
+        props = {
+            "source": source,
+            "id": rid,
+            "name": well["name"],
+            "well_depth": well["well_depth"],
+            "well_depth_units": well["well_depth_units"],
+            "calcium": analytes.get("calcium", {}).get("value"),
+            "calcium_date": analytes.get("calcium", {}).get("date"),
+            "magnesium": analytes.get("magnesium", {}).get("value"),
+            "magnesium_date": analytes.get("magnesium", {}).get("date"),
+            "hardness_caco3": hardness,
+            "hardness_units": "mg/L as CaCO3",
+            "hardness_class": _hardness_class(hardness),
+        }
+        geom = _point(well["latitude"], well["longitude"], well["elevation"])
+        items.append((_feature_id(source, rid), geom, props))
+    return dump_collection_from_items(
+        path, meta.get("id", "collection"), items, meta,
+        extra={"hardness_method": HARDNESS_METHOD_DESCRIPTION},
+    )
+
+
+def dump_major_chemistry_collection_gpd(path: str, records: list, meta: dict) -> dict:
+    """GeoPandas-backed dump_major_chemistry_collection. One feature per well; the
+    per-analyte properties are **ragged** in the legacy output, so routing through
+    a GeoDataFrame gives every well a *uniform* column set (null for analytes it
+    lacks) — the chosen schema, not byte-parity (needed for GPKG/PostGIS)."""
+    wells = _pivot_by_well(records)
+    items = []
+    for (source, rid), well in wells.items():
+        props = {
+            "source": source,
+            "id": rid,
+            "name": well["name"],
+            "well_depth": well["well_depth"],
+            "well_depth_units": well["well_depth_units"],
+        }
+        for analyte, vals in well["analytes"].items():
+            props[analyte] = vals["value"]
+            props[f"{analyte}_units"] = vals["units"]
+            props[f"{analyte}_date"] = vals["date"]
+        geom = _point(well["latitude"], well["longitude"], well["elevation"])
+        items.append((_feature_id(source, rid), geom, props))
+    return dump_collection_from_items(path, meta.get("id", "collection"), items, meta)
+
+
+def dump_well_density_collection_gpd(
+    path: str, counties: list, site_records: list, meta: dict
+) -> dict:
+    """GeoPandas-backed dump_well_density_collection. One feature per county
+    **polygon**; uniform props → byte-identical to the legacy dumper. Reuses the
+    legacy point-dedupe + region-assignment helpers."""
+    points = _dedupe_well_points(site_records)
+    counts, unassigned = _assign_points_to_regions(counties, points)
+    items = []
+    for county, well_count in zip(counties, counts):
+        area = county["area_sq_km"]
+        props = {
+            "county": county["name"],
+            "fips": county["fips"],
+            "area_sq_km": area,
+            "well_count": well_count,
+            "wells_per_sq_km": round(well_count / area, 4) if area else None,
+        }
+        fid = f"county:{county['fips'] or county['name']}"
+        items.append((fid, county["geometry"], props))
+    return dump_collection_from_items(
+        path, meta.get("id", "collection"), items, meta,
+        extra={
+            "well_density_method": WELL_DENSITY_METHOD_DESCRIPTION,
+            "unassigned_well_count": unassigned,
+        },
+    )
 
 
 def gdf_to_parquet_bytes(gdf: gpd.GeoDataFrame) -> bytes:
