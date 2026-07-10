@@ -13,10 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===============================================================================
-import os
 from datetime import datetime, timedelta
 import shapely.wkt
-import yaml
 
 from .exceptions import ConfigError
 from .bounding_polygons import get_county_polygon
@@ -195,37 +193,13 @@ class Config:
     analyte_output_units: str = MILLIGRAMS_PER_LITER
     waterlevel_output_units: str = FEET
 
-    def __init__(self, model=None, payload=None, path=None):
+    def __init__(self, payload=None):
         _l = make_logger(self.__class__.__name__)
         self.log = _l.log
         self.warn = _l.warn
         self.debug = _l.debug
 
-        if path:
-            payload = self._load_from_yaml(path)
-
-        self._payload = payload
-
-        if model:
-            if model.wkt:
-                self.wkt = model.wkt
-            else:
-                self.county = model.county
-                if not self.county:
-                    if model.bbox:
-                        self.bbox = model.bbox.model_dump()
-
-            if model.sources:
-                for s in SOURCE_KEYS:
-                    setattr(self, f"use_source_{s}", s in model.sources)
-        elif payload:
-            sources = payload.get("sources", [])
-            if sources:
-                for sk in SOURCE_KEYS:
-                    value = sources.get(sk)
-                    if value is not None:
-                        setattr(self, f"use_source_{sk}", value)
-
+        if payload:
             for attr in (
                 "wkt",
                 "county",
@@ -237,24 +211,6 @@ class Config:
             ):
                 if attr in payload:
                     setattr(self, attr, payload[attr])
-
-    def _load_from_yaml(self, path):
-        path = os.path.abspath(path)
-        if os.path.exists(path):
-            self.log(f"Loading config from {path}")
-            with open(path, "r") as f:
-                data = yaml.safe_load(f)
-            return data
-        else:
-            self.warn(f"Config file {path} not found")
-
-    def get_config_and_false_agencies(self):
-        entry = PARAMETER_SOURCE_MAP.get(self.parameter)
-        if entry is None:
-            raise ValueError(f"Unknown parameter {self.parameter!r}. Valid parameters: {sorted(PARAMETER_SOURCE_MAP)}")
-        config_agencies = entry["agencies"]
-        false_agencies = [a for a in SOURCE_KEYS if a not in config_agencies]
-        return config_agencies, false_agencies
 
     def _build_source_pair(self, site_klass, param_klass):
         s, ss = site_klass(), param_klass()
@@ -450,10 +406,5 @@ class Config:
     @property
     def end_dt(self):
         return self._extract_date(self.end_date)
-
-    def get(self, attr):
-        if self._payload:
-            return self._payload.get(attr)
-
 
 # ============= EOF =============================================

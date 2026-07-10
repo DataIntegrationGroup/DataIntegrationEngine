@@ -1,7 +1,8 @@
 """Parquet Dagster IO manager for the shared-source payload handoff.
 
-Replaces ``_TolerantGCSPickleIOManager`` (pickle) for the shared source assets.
-Each source asset outputs ``{"records": [...], "sites": [...], "timeseries":
+Persists the shared source assets' payloads as Parquet on GCS (this replaced an
+earlier pickle IO manager). Each source asset outputs ``{"records": [...],
+"sites": [...], "timeseries":
 [[...]]}`` (flat scalar payload dicts). This manager serializes those three
 parts as **Parquet** blobs on GCS — typed, columnar, compressed — and the
 combine reads the identical dict back, so the source and combine asset bodies are
@@ -89,8 +90,7 @@ class PayloadParquetIOManager(dg.ConfigurableIOManager):
         base = self._base_path(context.upstream_output)
         bucket = self._bucket()
 
-        records_blob = bucket.blob(f"{base}/{_RECORDS}")
-        if not records_blob.exists():
+        if not bucket.blob(f"{base}/{_RECORDS}").exists():
             context.log.warning(
                 f"Parquet input {context.asset_key.to_user_string()!r} not found "
                 "in GCS; treating as empty. Run the source asset before the product "
@@ -98,12 +98,16 @@ class PayloadParquetIOManager(dg.ConfigurableIOManager):
             )
             return {"records": [], "sites": [], "timeseries": []}
 
+        # Each part is read independently and a missing/partial blob degrades to
+        # empty rather than crashing — handle_output writes the three blobs
+        # sequentially, so a crash mid-write can leave records present but
+        # sites/observations absent.
+        def _read(name, reader):
+            blob = bucket.blob(f"{base}/{name}")
+            return reader(blob.download_as_bytes()) if blob.exists() else []
+
         return {
-            "records": parquet_bytes_to_dicts(records_blob.download_as_bytes()),
-            "sites": parquet_bytes_to_dicts(
-                bucket.blob(f"{base}/{_SITES}").download_as_bytes()
-            ),
-            "timeseries": parquet_bytes_to_timeseries(
-                bucket.blob(f"{base}/{_OBSERVATIONS}").download_as_bytes()
-            ),
+            "records": _read(_RECORDS, parquet_bytes_to_dicts),
+            "sites": _read(_SITES, parquet_bytes_to_dicts),
+            "timeseries": _read(_OBSERVATIONS, parquet_bytes_to_timeseries),
         }

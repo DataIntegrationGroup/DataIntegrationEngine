@@ -106,10 +106,8 @@ def transform_length_units(
 
         if in_unit == FEET and out_unit == METERS:
             value = value * 0.3048
-            unit = METERS
         elif in_unit == METERS and out_unit == FEET:
             value = value * 3.28084
-            unit = FEET
     return value, out_unit
 
 

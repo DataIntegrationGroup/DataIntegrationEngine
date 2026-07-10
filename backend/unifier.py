@@ -22,18 +22,8 @@ from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
 def _site_wrapper(site_source, parameter_source, persister, config, raise_errors=False):
 
     try:
-        # TODO: fully develop checks/discoveries below
-        # if not site_source.check():
-        #     print(f"Skipping {site_source}. check failed")
-
-        # schemas = site_source.discover()
-        # if not schemas:
-        #     print(f"No schemas found for {site_source}")
-
-        # in the future make discover required
-        # return
-
-        # used to revert back to initial state if a rate limit error is hit, so there aren't partial records
+        # snapshot lengths to roll back to on a rate-limit / partial-data abort,
+        # so a source never contributes partial records
         initial_sites_len = len(persister.sites)
         initial_timeseries_len = len(persister.timeseries)
         initial_records_len = len(persister.records)

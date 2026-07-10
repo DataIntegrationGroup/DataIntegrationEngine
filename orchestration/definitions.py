@@ -115,7 +115,7 @@ def _cron_sort_key(cron: str) -> tuple[int, int]:
     parts = cron.split()
     try:
         return (int(parts[1]), int(parts[0]))
-    except IndexError, ValueError:
+    except (IndexError, ValueError):
         return (6, 0)
 
 

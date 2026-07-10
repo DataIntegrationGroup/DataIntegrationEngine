@@ -18,9 +18,10 @@ class DIEConfigResource(dg.ConfigurableResource):
         """Translate a products.yaml entry into a finalized DIE ``Config``.
 
         Mapping:
-        - ``output_type`` → ``output_summary``. Both ``ogc_summary`` and
-          ``ogc_major_chemistry`` run in summary mode (the latter pivots
-          per-analyte summaries into one feature per well).
+        - ``output_type`` → ``output_summary``. ``ogc_summary``,
+          ``ogc_major_chemistry``, and ``ogc_mcl_exceedance`` run in summary mode
+          (the pivot products fold per-analyte summaries into one feature per
+          well); everything else is timeseries mode.
         - ``spatial_filter.county`` → ``county``. ``spatial_filter.state`` sets
           ``wkt = None`` (statewide; DIE applies the NM extent downstream).
         - ``sources.include`` → enable only those sources (all others off).
