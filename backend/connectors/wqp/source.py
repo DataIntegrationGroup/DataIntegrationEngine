@@ -16,6 +16,7 @@
 
 
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
+from backend.connectors._dlt import fetch_text
 from backend.connectors.mappings import WQP_ANALYTE_MAPPING
 from backend.constants import (
     PARAMETER_NAME,
@@ -73,12 +74,12 @@ class WQPSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            r = self._http_client.get(
+            fetch_text(
                 "https://www.waterqualitydata.us/data/Station/search",
                 params={"mimeType": "tsv", "siteid": "325754103461301"},
             )
-            return r.status_code == 200
-        except Exception as e:
+            return True
+        except Exception:
             return False
 
     def get_records(self):
@@ -103,8 +104,8 @@ class WQPSiteSource(BaseSiteSource):
 
         params.update(get_date_range(config))
 
-        text = self._execute_text_request(
-            "https://www.waterqualitydata.us/data/Station/search?", params, timeout=30
+        text = fetch_text(
+            "https://www.waterqualitydata.us/data/Station/search", params, timeout=30
         )
         if text:
             return parse_tsv(text)
@@ -230,8 +231,8 @@ class WQPParameterSource(BaseParameterSource):
 
         params.update(get_date_range(config))
 
-        text = self._execute_text_request(
-            "https://www.waterqualitydata.us/data/Result/search?", params, timeout=30
+        text = fetch_text(
+            "https://www.waterqualitydata.us/data/Result/search", params, timeout=30
         )
         if text:
             return parse_tsv(text)
