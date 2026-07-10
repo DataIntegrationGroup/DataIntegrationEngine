@@ -20,13 +20,20 @@ class TestTransformHorizontalDatum:
             "WGS84",
         )
 
-    def test_different_datum_returns_out_datum(self):
-        # Reproject NAD27 -> WGS84; the output datum is the target and the coords
-        # stay in NM (the shift magnitude is a pyproj/datum-grid detail).
+    def test_nad27_reproject_applies_shift(self):
+        # NAD27 -> WGS84 is a real ~50-100 m shift in NM. Regression guard: the
+        # datum_transform axis-order bug used to return the input unchanged.
         x, y, datum = transform_horizontal_datum(-106.5, 34.0, "NAD27", "WGS84")
         assert datum == "WGS84"
-        assert x == pytest.approx(-106.5, abs=0.01)
-        assert y == pytest.approx(34.0, abs=0.01)
+        # shifted, but still the same point (~0.0006 deg), and NOT axis-swapped
+        assert x == pytest.approx(-106.5006, abs=1e-3) and x != -106.5
+        assert y == pytest.approx(34.0001, abs=1e-3)
+
+    def test_nad83_reproject_negligible_shift(self):
+        # NAD83 ~= WGS84 (sub-meter); returns essentially the same coords
+        x, y, datum = transform_horizontal_datum(-106.5, 34.0, "NAD83", "WGS84")
+        assert datum == "WGS84"
+        assert (x, y) == pytest.approx((-106.5, 34.0), abs=1e-5)
 
 
 class TestTransformLengthUnits:
