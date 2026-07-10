@@ -66,14 +66,14 @@ class CABQSiteTransformer(STSiteTransformer):
     def _transform_elevation(self, elevation, record):
         if elevation:
             try:
-                thing = record.things._entities[0]
-                stickup_height_ft = thing._properties["stickup_height"]["value"]
+                thing = record["Things"][0]
+                stickup_height_ft = thing["properties"]["stickup_height"]["value"]
                 stickup_height_m, conversion_factor, warning_msg = StandardUnitConverter().convert(
                     stickup_height_ft, "ft", "m", "stickup_height", "stickup_height"
                 )
                 elevation = elevation - stickup_height_m
-            except KeyError:
-                self.config.warn(f"No stickup_height for {record.id}")
+            except (KeyError, IndexError, TypeError):
+                self.config.warn(f"No stickup_height for {record['@iot.id']}")
         return elevation
 
 

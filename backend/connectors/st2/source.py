@@ -33,6 +33,7 @@ from backend.connectors.st2.transformer import (
     CABQSiteTransformer,
     CABQWaterLevelTransformer,
 )
+from backend.connectors._sensorthings import sta_query
 from backend.connectors.st_connector import (
     STSiteSource,
     STWaterLevelSource,
@@ -109,11 +110,11 @@ class ST2WaterLevelSource(STWaterLevelSource):
 
     def _extract_parameter_record(self, record):
         record[PARAMETER_NAME] = DTW
-        record[PARAMETER_VALUE] = record["observation"].result
+        record[PARAMETER_VALUE] = record["observation"]["result"]
         record[PARAMETER_UNITS] = self.config.waterlevel_output_units
-        record[DT_MEASURED] = record["observation"].phenomenon_time
-        record[SOURCE_PARAMETER_NAME] = record["datastream"].name
-        record[SOURCE_PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
+        record[DT_MEASURED] = record["observation"]["phenomenonTime"]
+        record[SOURCE_PARAMETER_NAME] = record["datastream"]["name"]
+        record[SOURCE_PARAMETER_UNITS] = record["datastream"]["unitOfMeasurement"]["symbol"]
         # Link to the raw, non-normalized SensorThings datastream these
         # observations came from, so consumers can trace a feature back to the
         # provider's original series (before DIE normalization).
@@ -121,7 +122,7 @@ class ST2WaterLevelSource(STWaterLevelSource):
         return record
 
     def _datastream_link(self, datastream):
-        ds_id = getattr(datastream, "id", None)
+        ds_id = (datastream or {}).get("@iot.id")
         if ds_id is None:
             return None
         return f"{self.url}/Datastreams({ds_id})"
@@ -136,37 +137,34 @@ class ST2WaterLevelSource(STWaterLevelSource):
         return {}
 
     def _extract_source_parameter_results(self, records):
-        return [r["observation"].result for r in records]
+        return [r["observation"]["result"] for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
-        return [r["observation"].phenomenon_time for r in records]
+        return [r["observation"]["phenomenonTime"] for r in records]
 
     def _extract_source_parameter_names(self, records: list) -> list:
-        return [r["datastream"].name for r in records]
+        return [r["datastream"]["name"] for r in records]
 
     def _clean_records(self, records: list) -> list:
-        return [r for r in records if r["observation"].result is not None]
+        return [r for r in records if r["observation"]["result"] is not None]
 
     def get_records(self, site_record, *args, **kw):
-        service = self.client.get_service()
         config = self.config
 
         records = []
-        for t in self.client._get_things(service, site_record):
-            if t.name == "Water Well":
-                for di in t.datastreams:
-
-                    q = di.get_observations().query()
-
+        for t in self.client._get_things(site_record):
+            if t.get("name") == "Water Well":
+                for di in t.get("Datastreams", []):
                     fi = make_dt_filter(
                         "phenomenonTime", config.start_dt, config.end_dt
                     )
-                    if fi:
-                        q = q.filter(fi)
-
-                    q = q.orderby("phenomenonTime", "desc")
-
-                    for obs in q.list():
+                    obs_list = sta_query(
+                        self.url,
+                        f"Datastreams({di['@iot.id']})/Observations",
+                        filter=fi or None,
+                        orderby="phenomenonTime desc",
+                    )
+                    for obs in obs_list:
                         records.append(
                             {
                                 "thing": t,

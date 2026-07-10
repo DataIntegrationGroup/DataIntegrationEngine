@@ -18,7 +18,6 @@ dependencies = [
     "click>=8.2.1",
     "python-dotenv",
     "dlt>=1.28.1",
-    "frost_sta_client",
     "geopandas",
     "pandas",
     "pymannkendall",

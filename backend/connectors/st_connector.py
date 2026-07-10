@@ -16,10 +16,10 @@
 from datetime import datetime
 from typing import Optional
 
-import frost_sta_client as fsc
 from shapely import MultiPolygon, unary_union
 
 from backend.bounding_polygons import get_state_polygon
+from backend.connectors._sensorthings import sta_query
 from backend.source import (
     BaseSiteSource,
     BaseWaterLevelSource,
@@ -29,28 +29,20 @@ from backend.source import (
 from backend.transformer import SiteTransformer
 
 
-def get_service(url):
-    return fsc.SensorThingsService(url)
-
-
 class STClient:
+    """Thin SensorThings client — builds the OData query and returns the JSON
+    entities (dicts). Replaces frost_sta_client (see _sensorthings.py)."""
+
     def __init__(self, url: str):
         self._url = url
 
-    def get_service(self):
+    def _get_things(self, site, expand="Locations,Datastreams", additional_filters=None):
         if self._url is None:
             raise ValueError("URL not set")
-        return get_service(self._url)
-
-    def _get_things(self, service, site, expand="Locations,Datastreams", additional_filters=None):
-        things = service.things().query().expand(expand)
         fs = [f"Locations/id eq {site.id}"]
         if additional_filters:
-            for fi in additional_filters:
-                fs.append(fi)
-        if fs:
-            things.filter(" and ".join(fs))
-        return things.list()
+            fs.extend(additional_filters)
+        return sta_query(self._url, "Things", expand=expand, filter=" and ".join(fs))
 
 
 def make_dt_filter(tag, start, end):
@@ -76,15 +68,11 @@ class STSiteSource(BaseSiteSource):
 
     def health(self):
         try:
-            service = self.client.get_service()
-            resp = list(service.locations().query().top(1).list())
-            return bool(resp)
+            return bool(sta_query(self.url, "Locations", top=1))
         except Exception:
             return False
 
     def get_records(self, *args, **kw):
-        service = self.client.get_service()
-
         config = self.config
 
         fs = []
@@ -110,16 +98,13 @@ class STSiteSource(BaseSiteSource):
                 fs.append(fi)
 
         fs = fs + self._get_filters()
-        q = (
-            service.locations()
-            .query()
-            .expand("Things/Datastreams")
-            .filter(" and ".join(fs))
+        return sta_query(
+            self.url,
+            "Locations",
+            expand="Things/Datastreams",
+            filter=" and ".join(fs) if fs else None,
+            top=kw.get("top"),
         )
-        if "top" in kw:
-            q = q.top(kw["top"])
-
-        return list(q.list())
 
     def _get_filters(self):
         return []
@@ -137,13 +122,13 @@ class STWaterLevelSource(BaseWaterLevelSource):
 
     def _extract_terminal_record(self, records, position):
         record = get_terminal_record(
-            records, tag=lambda x: x["observation"].phenomenon_time, position=position
+            records, tag=lambda x: x["observation"]["phenomenonTime"], position=position
         )
         return {
-            "value": self._parse_result(record["observation"].result),
-            "datetime": record["observation"].phenomenon_time,
-            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].name,
+            "value": self._parse_result(record["observation"]["result"]),
+            "datetime": record["observation"]["phenomenonTime"],
+            "source_parameter_units": record["datastream"]["unitOfMeasurement"]["symbol"],
+            "source_parameter_name": record["datastream"]["name"],
         }
 
 
@@ -159,13 +144,13 @@ class STAnalyteSource(BaseAnalyteSource):
 
     def _extract_terminal_record(self, records, position):
         record = get_terminal_record(
-            records, tag=lambda x: x["observation"].phenomenon_time, position=position
+            records, tag=lambda x: x["observation"]["phenomenonTime"], position=position
         )
         return {
-            "value": self._parse_result(record["observation"].result),
-            "datetime": record["observation"].phenomenon_time,
-            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].name,
+            "value": self._parse_result(record["observation"]["result"]),
+            "datetime": record["observation"]["phenomenonTime"],
+            "source_parameter_units": record["datastream"]["unitOfMeasurement"]["symbol"],
+            "source_parameter_name": record["datastream"]["name"],
         }
 
 
@@ -183,7 +168,7 @@ class STSiteTransformer(SiteTransformer):
         if self.source_id is None:
             raise ValueError(f"{self.__class__.__name__} Source ID not set")
 
-        coordinates = record.location["coordinates"]
+        coordinates = record["location"]["coordinates"]
 
         lat = coordinates[1]
         lng = coordinates[0]
@@ -195,8 +180,8 @@ class STSiteTransformer(SiteTransformer):
 
         rec = {
             "source": self.source_id,
-            "id": record.id,
-            "name": record.name,
+            "id": record["@iot.id"],
+            "name": record["name"],
             "latitude": lat,
             "longitude": lng,
             "elevation": ele,

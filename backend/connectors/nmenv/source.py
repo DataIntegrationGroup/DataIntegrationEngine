@@ -14,6 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 from backend.connectors import NM_STATE_BOUNDING_POLYGON
+from backend.connectors._sensorthings import sta_query
 from backend.connectors.mappings import DWB_ANALYTE_MAPPING
 from backend.connectors.nmenv.transformer import (
     DWBSiteTransformer,
@@ -56,53 +57,56 @@ class DWBSiteSource(STSiteSource):
         elif self.config:
             analyte = self.config.parameter
 
-        service = self.client.get_service()
         if self.config.sites_only:
-            ds = service.things()
-            q = ds.query()
             fs = []
             if self.config.has_bounds():
                 fs.append(
                     f"st_within(Locations/location, geography'{self.config.bounding_wkt()}')"
                 )
-            q = q.expand("Locations")
-            if fs:
-                q = q.filter(" and ".join(fs))
-            return [thing.locations.entities[0] for thing in q.list()]
+            things = sta_query(
+                self.url,
+                "Things",
+                expand="Locations",
+                filter=" and ".join(fs) if fs else None,
+                top=kw.get("top"),
+            )
+            return [t["Locations"][0] for t in things if t.get("Locations")]
         else:
             analyte = get_analyte_search_param(analyte, DWB_ANALYTE_MAPPING)
             if analyte is None:
                 return []
 
-            ds = service.datastreams()
-            q = ds.query()
             fs = [f"ObservedProperty/id eq {analyte}"]
-            if self.config:
-                if self.config.has_bounds():
-                    fs.append(
-                        f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
-                    )
+            if self.config and self.config.has_bounds():
+                fs.append(
+                    f"st_within(Thing/Location/location, geography'{self.config.bounding_wkt()}')"
+                )
 
-            q = q.filter(" and ".join(fs))
-            q = q.expand("Thing/Locations")
+            datastreams = sta_query(
+                self.url,
+                "Datastreams",
+                expand="Thing/Locations",
+                filter=" and ".join(fs),
+                top=kw.get("top"),
+            )
 
             # NM ENV has multiple datastreams per parameter per location (e.g. id 8 and arsenic)
             # because of this duplicative site information is retrieved (we operated under the assumption one datastream per location per parameter)
             # so we need to filter out duplicates, otherwise there will be multiple site records and duplicative parameter records
-            all_sites = [di.thing.locations.entities[0] for di in q.list()]
+            all_sites = [
+                di["Thing"]["Locations"][0]
+                for di in datastreams
+                if di.get("Thing", {}).get("Locations")
+            ]
 
-            # can't do list(set(all_sites)) because the Location entities are not hashable
+            # dedupe by location id (the JSON dicts are not hashable)
             site_dictionary = {}
             for site in all_sites:
-                site_id = site.id
-                if site_id not in site_dictionary.keys():
+                site_id = site["@iot.id"]
+                if site_id not in site_dictionary:
                     site_dictionary[site_id] = site
 
-            distinct_sites = list(site_dictionary.values())
-            # print(
-            #     f"Found {len(all_sites)} datastreams for {analyte} and {len(distinct_sites)} distinct sites."
-            # )
-            return distinct_sites
+            return list(site_dictionary.values())
 
 
 class DWBAnalyteSource(STAnalyteSource):
@@ -127,23 +131,21 @@ class DWBAnalyteSource(STAnalyteSource):
             return float(result.split(" ")[0])
 
     def get_records(self, site, *args, **kw):
-        service = self.client.get_service()
-
         analyte = get_analyte_search_param(self.config.parameter, DWB_ANALYTE_MAPPING)
-        ds = service.datastreams()
-        q = ds.query()
-        q = q.expand("Thing/Locations, ObservedProperty, Observations")
-        q = q.filter(
-            f"Thing/Locations/id eq {site.id} and ObservedProperty/id eq {analyte}"
+        datastreams = sta_query(
+            self.url,
+            "Datastreams",
+            expand="Thing/Locations, ObservedProperty",
+            filter=f"Thing/Locations/id eq {site.id} and ObservedProperty/id eq {analyte}",
         )
 
         # NMED DWB has multiple datastreams per parameter per location (e.g. id 8 and arsenic)
-        # print(
-        #     f"Found {len(q.list().entities)} datastreams for {site.id} and {analyte}."
-        # )
         rs = []
-        for datastream in q.list().entities:
-            for obs in datastream.get_observations().query().list():
+        for datastream in datastreams:
+            obs_list = sta_query(
+                self.url, f"Datastreams({datastream['@iot.id']})/Observations"
+            )
+            for obs in obs_list:
                 rs.append(
                     {
                         "location": site,
@@ -157,20 +159,20 @@ class DWBAnalyteSource(STAnalyteSource):
     def _extract_parameter_record(self, record):
         # this is only used for time series
         record[PARAMETER_NAME] = self.config.parameter
-        record[PARAMETER_VALUE] = self._parse_result(record["observation"].result)
+        record[PARAMETER_VALUE] = self._parse_result(record["observation"]["result"])
         record[PARAMETER_UNITS] = self.config.analyte_output_units
-        record[DT_MEASURED] = record["observation"].phenomenon_time
-        record[SOURCE_PARAMETER_NAME] = record["datastream"].observed_property.name
-        record[SOURCE_PARAMETER_UNITS] = record["datastream"].unit_of_measurement.symbol
+        record[DT_MEASURED] = record["observation"]["phenomenonTime"]
+        record[SOURCE_PARAMETER_NAME] = record["datastream"]["ObservedProperty"]["name"]
+        record[SOURCE_PARAMETER_UNITS] = record["datastream"]["unitOfMeasurement"]["symbol"]
         return record
 
     def _extract_source_parameter_results(self, records):
         # this is only used in summary output
         return [
             self._parse_result(
-                r["observation"].result,
-                r["observation"].phenomenon_time,
-                r["observation"].id,
+                r["observation"]["result"],
+                r["observation"]["phenomenonTime"],
+                r["observation"]["@iot.id"],
                 r["location"].id,
             )
             for r in records
@@ -178,30 +180,30 @@ class DWBAnalyteSource(STAnalyteSource):
 
     def _extract_source_parameter_units(self, records):
         # this is only used in summary output
-        return [r["datastream"].unit_of_measurement.symbol for r in records]
+        return [r["datastream"]["unitOfMeasurement"]["symbol"] for r in records]
 
     def _extract_parameter_dates(self, records: list) -> list:
-        return [r["observation"].phenomenon_time for r in records]
+        return [r["observation"]["phenomenonTime"] for r in records]
 
     def _extract_source_parameter_names(self, records: list) -> list:
-        return [r["datastream"].observed_property.name for r in records]
+        return [r["datastream"]["ObservedProperty"]["name"] for r in records]
 
     def _extract_terminal_record(self, records, position):
         # this is only used in summary output
         record = get_terminal_record(
-            records, tag=lambda x: x["observation"].phenomenon_time, position=position
+            records, tag=lambda x: x["observation"]["phenomenonTime"], position=position
         )
 
         return {
             "value": self._parse_result(
-                record["observation"].result,
-                record["observation"].phenomenon_time,
-                record["observation"].id,
+                record["observation"]["result"],
+                record["observation"]["phenomenonTime"],
+                record["observation"]["@iot.id"],
                 record["location"].id,
             ),
-            "datetime": record["observation"].phenomenon_time,
-            "source_parameter_units": record["datastream"].unit_of_measurement.symbol,
-            "source_parameter_name": record["datastream"].observed_property.name,
+            "datetime": record["observation"]["phenomenonTime"],
+            "source_parameter_units": record["datastream"]["unitOfMeasurement"]["symbol"],
+            "source_parameter_name": record["datastream"]["ObservedProperty"]["name"],
         }
 
 
