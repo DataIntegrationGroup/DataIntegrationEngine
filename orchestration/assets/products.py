@@ -139,6 +139,13 @@ _MAJOR_CHEMISTRY = [
 SourceSpec = namedtuple("SourceSpec", "parameter scope source_key group")
 
 
+def _schema_dict(record) -> dict:
+    """A record's declared-schema fields only, as a plain scalar dict for the
+    Parquet IO-manager handoff. Drops incidental non-scalar payload keys that
+    would fail Arrow serialization (see the source asset)."""
+    return {k: record._payload.get(k) for k in record.keys}
+
+
 def _product_params(product: dict) -> list[str]:
     """The DIE parameter(s) a product unifies. Single-parameter products yield
     one; multi-analyte products yield their analyte list."""
@@ -298,11 +305,17 @@ def build_shared_source_asset(spec: SourceSpec) -> dg.AssetsDefinition:
                 summary_persister, timeseries_persister = unify_source_both(
                     config, spec.source_key
                 )
-                # Ship plain dicts across the IO manager; rebuild in combine.
-                records.extend(r._payload for r in summary_persister.records)
-                sites.extend(s._payload for s in timeseries_persister.sites)
+                # Ship plain scalar dicts across the IO manager; rebuild in
+                # combine. Emit only each record's declared schema keys — a
+                # record's _payload can also carry incidental non-scalar junk
+                # (e.g. the FROST connectors leave a SiteRecord in "location" and
+                # nested thing/datastream/observation dicts), which the pickle IO
+                # manager tolerated but the Parquet one cannot serialize. The
+                # combine only ever reads the declared keys anyway.
+                records.extend(_schema_dict(r) for r in summary_persister.records)
+                sites.extend(_schema_dict(s) for s in timeseries_persister.sites)
                 timeseries.extend(
-                    [o._payload for o in site_ts]
+                    [_schema_dict(o) for o in site_ts]
                     for site_ts in timeseries_persister.timeseries
                 )
         except Exception:

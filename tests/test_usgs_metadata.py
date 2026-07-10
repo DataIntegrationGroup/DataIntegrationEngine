@@ -19,9 +19,10 @@ def _raw_feature(approval="Provisional", qualifier=None):
 
 def test_standardize_record_keeps_approval_and_qualifier():
     s = NWISWaterLevelSource()
-    rec = s._standardize_record(_raw_feature("Approved", ["Static"]))
+    # API qualifier is a list; joined to a scalar string
+    rec = s._standardize_record(_raw_feature("Approved", ["Static", "Ice"]))
     assert rec["approval_status"] == "Approved"
-    assert rec["qualifier"] == ["Static"]
+    assert rec["qualifier"] == "Static, Ice"
 
 
 def test_standardize_record_missing_metadata_is_none():
@@ -46,7 +47,7 @@ def test_extract_parameter_record_populates_metadata():
     std = s._standardize_record(_raw_feature("Provisional", ["Ice"]))
     out = s._extract_parameter_record(std)
     assert out["approval_status"] == "Provisional"
-    assert out["qualifier"] == ["Ice"]
+    assert out["qualifier"] == "Ice"
 
 
 def test_parameter_record_schema_includes_metadata_keys():

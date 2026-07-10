@@ -236,9 +236,11 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
             "datetime_measured": props["time"],
             "source_parameter_units": props["unit_of_measure"],
             # provisional vs approved, and provider qualifier flags — carried
-            # through to the timeseries product instead of dropped
+            # through to the timeseries product instead of dropped. qualifier is
+            # a list in the API; join to a scalar string so it stays consistent
+            # with the other sources and serializes cleanly (Parquet/GeoJSON).
             "approval_status": props.get("approval_status"),
-            "qualifier": props.get("qualifier"),
+            "qualifier": ", ".join(q) if isinstance((q := props.get("qualifier")), list) else q,
         }
 
     def _extract_site_records(self, records, site_record):
