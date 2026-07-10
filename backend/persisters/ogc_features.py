@@ -64,7 +64,15 @@ def _dump_collection(
     trend_method) after description.
 
     §V: MUST include top-level id, type, numberReturned, timeStamp.
+
+    Every product's features are routed through a GeoDataFrame here (GeoPandas is
+    the serialization engine): uniform-schema products are unchanged byte-for-byte
+    and ragged products (per-analyte pivots) gain a uniform column set with nulls.
+    Lazy import avoids a circular dependency with the geodataframe module.
     """
+    from backend.persisters.geodataframe import route_feature_dicts_through_gdf
+
+    features = route_feature_dicts_through_gdf(features)
     collection = {
         "type": "FeatureCollection",
         "id": collection_id,

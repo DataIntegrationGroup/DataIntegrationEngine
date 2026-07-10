@@ -31,7 +31,7 @@ import json
 
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import Point
+from shapely.geometry import Point, shape
 
 from backend.constants import TDS
 from backend.persisters.ogc_features import (
@@ -224,6 +224,29 @@ def dump_timeseries_collection_gpd(
     gdf = features_to_geodataframe(items)
     features = geodataframe_to_features(gdf)
     return _dump_collection(path, collection_id, features, meta)
+
+
+def route_feature_dicts_through_gdf(features: list) -> list:
+    """Rebuild a list of GeoJSON feature dicts by round-tripping them through a
+    GeoDataFrame — the single hook that makes **every** ``dump_*`` in
+    ``ogc_features`` GeoDataFrame-backed (called from ``_dump_collection``).
+
+    Geometry dicts are reconstructed with ``shapely.geometry.shape`` (point or
+    polygon; ``None`` stays null). Because a GeoDataFrame has a uniform column
+    set, products whose features carry ragged property keys gain explicit null
+    columns (the chosen schema); uniform products round-trip byte-identically.
+    Idempotent: features already emitted from a GeoDataFrame pass through
+    unchanged, so item-based dumpers that hit this a second time are unaffected.
+    """
+    if not features:
+        return features
+    items = []
+    for f in features:
+        geom_dict = f.get("geometry")
+        geom = shape(geom_dict) if geom_dict else None
+        items.append((f.get("id"), geom, f.get("properties", {})))
+    gdf = features_to_geodataframe(items)
+    return geodataframe_to_features(gdf)
 
 
 def dump_collection_from_items(path, collection_id, items, meta, extra=None) -> dict:

@@ -274,7 +274,12 @@ class TestMajorChemistryCollection:
 
         w2 = by_id["WQP:W2"]["properties"]
         assert w2["calcium"] == 55.0
-        assert "chloride" not in w2  # missing analyte omitted
+        # Features are serialized through a GeoDataFrame (uniform column set), so a
+        # well missing an analyte carries it as an explicit null rather than
+        # omitting the key. See docs/framework-migration-plan.md (ragged decision).
+        assert w2["chloride"] is None
+        assert w2["chloride_units"] is None
+        assert w2["chloride_date"] is None
 
     def test_geometry_and_required_fields(self, tmp_path):
         out = tmp_path / "mc.geojson"
