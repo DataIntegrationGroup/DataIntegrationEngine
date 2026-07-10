@@ -15,34 +15,8 @@
 # ===============================================================================
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from backend.logger import make_logger
-
-_log = make_logger("unifier")
 from backend.persisters.factory import make_persister
 from backend.exceptions import USGSRateLimitError, PartialOrNoDataError
-
-
-def unify_analytes(config):
-    _log.log("Unifying analytes")
-    # config.report() -- report is done in cli.py, no need to do it twice
-    config.validate()
-
-    if not config.dry:
-        _unify_parameter(config, config.analyte_sources())
-
-    return True
-
-
-def unify_waterlevels(config):
-    _log.log("Unifying waterlevels")
-
-    # config.report() -- report is done in cli.py, no need to do it twice
-    config.validate()
-
-    if not config.dry:
-        _unify_parameter(config, config.water_level_sources())
-
-    return True
 
 
 def _site_wrapper(site_source, parameter_source, persister, config, raise_errors=False):
@@ -185,38 +159,6 @@ def _site_wrapper(site_source, parameter_source, persister, config, raise_errors
         config.warn(f"Failed to unify {site_source}")
         if raise_errors:
             raise
-
-
-def _unify_parameter(
-    config,
-    sources,
-):
-
-    persister = make_persister(config)
-    # Expose the persister so callers (e.g. the Dagster assets) can read the
-    # collected records/sites/timeseries after unification.
-    config._persister = persister
-
-    for site_source, parameter_source in sources:
-        _site_wrapper(
-            site_source,
-            parameter_source,
-            persister,
-            config,
-        )
-
-    if config.output_summary:
-        persister.dump_summary(config.output_path)
-    elif config.output_timeseries_unified:
-        persister.dump_timeseries_unified(config.output_path)
-        persister.dump_sites(config.output_path)
-    elif config.sites_only:
-        persister.dump_sites(config.output_path)
-    else:  # config.output_timeseries_separated
-        persister.dump_timeseries_separated(config.output_path)
-        persister.dump_sites(config.output_path)
-
-    persister.finalize(config.output_name)
 
 
 def unify_source(config, source_key):
