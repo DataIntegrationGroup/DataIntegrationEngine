@@ -24,6 +24,8 @@ from backend.constants import (
     PARAMETER_UNITS,
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
+    APPROVAL_STATUS,
+    QUALIFIER,
 )
 from backend.connectors.usgs.transformer import (
     NWISSiteTransformer,
@@ -226,12 +228,17 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         return records
     
     def _standardize_record(self, record: dict) -> dict:
+        props = record["properties"]
         return {
-            "site_id": record["properties"]["monitoring_location_id"],
+            "site_id": props["monitoring_location_id"],
             "source_parameter_name": "Water level, depth LSD",
-            "value": None if record["properties"]["value"] is None else str(record["properties"]["value"]),
-            "datetime_measured": record["properties"]["time"],
-            "source_parameter_units": record["properties"]["unit_of_measure"]
+            "value": None if props["value"] is None else str(props["value"]),
+            "datetime_measured": props["time"],
+            "source_parameter_units": props["unit_of_measure"],
+            # provisional vs approved, and provider qualifier flags — carried
+            # through to the timeseries product instead of dropped
+            "approval_status": props.get("approval_status"),
+            "qualifier": props.get("qualifier"),
         }
 
     def _extract_site_records(self, records, site_record):
@@ -273,6 +280,8 @@ class NWISWaterLevelSource(BaseWaterLevelSource):
         record[DT_MEASURED] = record["datetime_measured"]
         record[SOURCE_PARAMETER_NAME] = record["source_parameter_name"]
         record[SOURCE_PARAMETER_UNITS] = record["source_parameter_units"]
+        record[APPROVAL_STATUS] = record.get("approval_status")
+        record[QUALIFIER] = record.get("qualifier")
 
         return record
 

@@ -20,6 +20,8 @@ from backend.constants import (
     SOURCE_PARAMETER_NAME,
     SOURCE_PARAMETER_UNITS,
     CONVERSION_FACTOR,
+    APPROVAL_STATUS,
+    QUALIFIER,
     SOURCE_DATASTREAM_LINK,
     FEET,
 )
@@ -105,6 +107,10 @@ class ParameterRecord(BaseRecord):
         SOURCE_PARAMETER_NAME,
         SOURCE_PARAMETER_UNITS,
         CONVERSION_FACTOR,
+        # optional per-observation source quality metadata (None when a source
+        # doesn't report it — currently populated by the USGS/NWIS connector)
+        APPROVAL_STATUS,
+        QUALIFIER,
     )
 
     defaults: dict = {}

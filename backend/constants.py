@@ -60,6 +60,13 @@ SOURCE_PARAMETER_NAME = "source_parameter_name"
 SOURCE_PARAMETER_UNITS = "source_parameter_units"
 CONVERSION_FACTOR = "conversion_factor"
 
+# Per-observation quality metadata from the source. Optional: None for sources
+# that don't report it. APPROVAL_STATUS distinguishes provisional (revisable)
+# from approved data; QUALIFIER carries provider flags/notes (estimated,
+# ice-affected, pumping, etc.).
+APPROVAL_STATUS = "approval_status"
+QUALIFIER = "qualifier"
+
 # Link (e.g. SensorThings Datastream URL) to the raw, NON-NORMALIZED source
 # series a record came from — the provider's original observations before DIE
 # applies unit/datum normalization. Named with the source_ prefix like
