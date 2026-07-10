@@ -145,12 +145,20 @@ Decision taken: ragged products get **uniform columns (nulls)** — required for
 1. **Deploy-env verification** — run a Dagster branch deployment / one cohort job to exercise `PayloadParquetIOManager` + the geoserver asset (dagster/GCS absent from the DIE venv). Required before merge.
 2. **Retire CLI-path bespoke persistence** — `persister.py` byte assembly + `strategies.py` (lower priority; CLI is out of scope).
 
+### ✅ Phase B started — WQP fetch on dlt (spike)
+- `backend/connectors/_dlt.py`: `fetch_text` (single-shot) + `fetch_json_pages` (paginated, for USGS/ArcGIS next), wrapping dlt's `RESTClient`. Final failure → `PartialOrNoDataError` (unifier still skips gracefully).
+- WQP site + result `get_records` and `health()` fetch via `fetch_text`. **Live-verified byte-identical** to the httpx path; end-to-end `WQPSiteSource` returns the same sites. WQP no longer references httpx.
+- `dlt` is now a **core** dep (backend imports the WQP connector).
+- **Finding**: WQP is a single-shot **TSV** download, not paginated JSON — this spike validates dlt/requests coexisting with httpx + the delegation pattern, but does NOT exercise pagination. **USGS** (paginated OGC JSON, POST CQL, the 2000-well truncation bug) is the meaningful next target for `fetch_json_pages`.
+- **httpx not yet removable**: still used by the base `BaseSource.__init__` (client built for every source) + USGS + `bounding_polygons`. Removal only after all connectors migrate.
+
 ### Migration status
 - ✅ Product dumpers → GeoPandas (all 22, one hook)
 - ✅ `GeoServerPersister` dropped (dead CLI PostGIS path)
 - ✅ Inter-asset handoff → Parquet (pickle retired)
 - ✅ GeoServer GPKG conversion → tested backend helper
-- ▶ Deploy-env verification pending; CLI-path persister/strategies cleanup optional
+- ✅ Phase B: WQP fetch → dlt (1/8 connectors)
+- ▶ Next connector: USGS (pagination win); deploy-env verification pending; httpx removal after all connectors migrate
 
 ### ✅ Cleanup — twins pruned
 The 5 `dump_*_collection_gpd` twins (and their twin-only helpers) were removed once `_dump_collection` routing made the legacy dumpers GeoPandas-backed. `geodataframe.py` now holds only the used primitives: the routing hook, the records/features → GeoDataFrame builders, the GeoParquet handoff helpers, and `write_geopackage`. Tests cover the primitives directly; product byte-parity stays guarded by `test_ogc_features.py`. (399 passed.)
