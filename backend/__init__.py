@@ -5,7 +5,6 @@ from os import environ
 class OutputFormat(str, Enum):
     GEOJSON = "geojson"
     CSV = "csv"
-    GEOSERVER = "geoserver"
     OGC_SUMMARY = "ogc_summary"
     OGC_TIMESERIES = "ogc_timeseries"
 

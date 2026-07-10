@@ -283,9 +283,7 @@ class Config:
 
     def finalize(self):
         self._update_output_units()
-        if self.output_format != OutputFormat.GEOSERVER:
-            self.update_output_name()
-
+        self.update_output_name()
         self.make_output_directory()
         self.make_output_path()
 

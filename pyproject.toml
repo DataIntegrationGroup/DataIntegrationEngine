@@ -32,8 +32,10 @@ Homepage = "https://github.com/DataIntegrationGroup/DataIntegrationEngine"
 
 [project.optional-dependencies]
 dev = ["pytest", "mypy", "flake8"]
-geoserver = ["psycopg2-binary", "GeoAlchemy2", "SQLAlchemy"]
 gcs = ["google-cloud-storage"]
+parquet = [
+    "pyarrow>=24.0.0",
+]
 
 [project.scripts]
 die = "frontend.cli:cli"
