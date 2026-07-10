@@ -124,18 +124,16 @@ Replaced: bespoke fetch internals (→ dlt), bespoke persistence (→ geopandas 
 ### ✅ Dagster `GeoDataFrameIOManager` (written; runs in deploy env)
 - `orchestration/resources/geodataframe_io.py` — `dg.ConfigurableIOManager` that serializes GeoDataFrame assets to GeoParquet on GCS (via `AuthedGCSResource`), tolerant of a missing input blob (empty GeoDataFrame), mirroring `_TolerantGCSPickleIOManager`'s blob layout. Serialization delegates to the unit-tested backend helpers; the module is thin dagster+GCS glue. Syntax-checked; **not runtime-verified here** (dagster/GCS absent from the DIE dev venv) — it lands + gets exercised in the orchestration deploy env.
 
-### ✅ Phase A dumper conversion — all shapes proven (5 / 22 done)
+### ✅ Phase A dumper conversion — ALL 22 done via one hook
 Decision taken: ragged products get **uniform columns (nulls)** — required for GPKG/PostGIS.
-- `dump_collection_from_items()` — shared `items → GeoDataFrame → OGC collection` serializer every `dump_*_gpd` uses.
-- Converted, each parity-tested: **summary**, **timeseries** (uniform point); **hardness** (uniform pivot); **well_density** (polygon); **major_chemistry** (ragged→uniform). Parity compares the JSON-serialized form (shapely.mapping tuples vs to_json lists are JSON-equal). Full suite green (405 passed).
+- First proved the mechanism per shape with parity twins: **summary**, **timeseries** (uniform point); **hardness** (uniform pivot); **well_density** (polygon); **major_chemistry** (ragged→uniform). Parity compares the JSON-serialized form (shapely.mapping tuples vs to_json lists are JSON-equal).
+- Then generalized: `_dump_collection` routes its features through a GeoDataFrame (`route_feature_dicts_through_gdf`) — reconstruct geometry via `shapely.shape`, rebuild the canonical GeoDataFrame, re-emit. **One change makes all 22 products GeoPandas-backed**, no per-dumper edits and no `products.py` cutover (dumpers keep their names/signatures). Uniform products byte-identical; the 3 ragged now emit uniform null columns (one `major_chemistry` test updated). Full suite green (405 passed).
+- `route_feature_dicts_through_gdf` is idempotent, so `dump_*_collection` and the item-based helpers compose safely.
 
-**Remaining 17 (mechanical — all shapes now proven):**
-- Uniform point: `monitoring_recency`, `data_density`, `trend` (waterlevel + analyte), `waterlevel_change`, `waterlevel_status`, `seasonal_amplitude`, `depletion_projection`, `pod_age_points`, `well_correlation`
-- Uniform pivot: `water_type`, `sar`, `ion_balance`
-- Polygon: `basin_well_density`, `pod_age_by_county`
-- Ragged→uniform: `mcl_exceedance`, `wqi`
+### ▶ Next (orchestration / deploy env — not runtime-verifiable in the DIE venv)
+1. **Asset payload refactor** — shared source asset emits typed frames (`sites`/`summary` GeoDataFrame, `observations` DataFrame) instead of the `{records, sites, timeseries}` pickle dict; point at `GeoDataFrameIOManager`; combine reads GeoDataFrames. Retires the pickle handoff. (Combine already calls the now-gdf-backed dumpers, so product output is unchanged.)
+2. **GeoServer publish from the GeoDataFrame** — geoserver asset writes GPKG straight from the combine's GeoDataFrame (`write_geopackage`), skipping the GeoJSON→GeoPackage round-trip.
+3. **Retire CLI-path bespoke persistence** — `persister.py` byte assembly + `strategies.py` (lower priority; CLI is out of scope).
 
-### ▶ Next
-1. **Finish the remaining 17 `dump_*_gpd`** — same pattern, each behind a parity test.
-2. **Asset payload refactor** (orchestration/deploy env) — shared source asset emits typed frames (`sites`/`summary` GeoDataFrame, `observations` DataFrame) instead of the `{records, sites, timeseries}` pickle dict; point at `GeoDataFrameIOManager`; combine calls the `_gpd` dumpers. Retires the pickle handoff.
-3. **Cutover + delete** — repoint `products.py` to the `_gpd` dumpers, delete the legacy dumpers + `persister.py` byte assembly + `strategies.py`; `geoserver.py` upserts → `GeoDataFrame.to_postgis`.
+### Cleanup note
+The 5 `dump_*_collection_gpd` twins in `geodataframe.py` are now redundant with the routed legacy dumpers (they double-route harmlessly); they remain as item-based-API verification. Prune or keep as regression guards — low priority.
