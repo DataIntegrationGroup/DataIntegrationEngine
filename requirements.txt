@@ -7,7 +7,7 @@
 # NOTE: must NOT contain editable/path entries (e.g. `-e .`) — the PEX deps
 # builder cannot resolve those. The local packages (backend/, orchestration/)
 # are bundled into the source PEX automatically.
-dagster>=1.13.11
+dagster>=1.13.13
 dagster-cloud
 dagster-gcp>=0.29.11
 google-cloud-storage
