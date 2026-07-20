@@ -9,7 +9,7 @@
 # are bundled into the source PEX automatically.
 dagster>=1.13.11
 dagster-cloud
-dagster-gcp>=0.29.11
+dagster-gcp>=0.29.14
 google-cloud-storage
 google-cloud-secret-manager
 requests
