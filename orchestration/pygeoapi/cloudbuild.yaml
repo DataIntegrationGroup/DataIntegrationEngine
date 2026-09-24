@@ -8,7 +8,7 @@ steps:
       - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:latest'
       - '-f'
       - 'orchestration/pygeoapi/Dockerfile'
-      - 'orchestration/pygeoapi'   # build context — allows COPY ../config/products.yaml
+      - 'orchestration'   # build context holds pygeoapi/ and config/products.yaml
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -28,11 +28,10 @@ steps:
       - '--allow-unauthenticated'
       - '--port=80'
       - '--memory=512Mi'
-      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$_SUFFIX.run.app'
+      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app'
 
 substitutions:
   _REGION: us-central1
-  _SUFFIX: placeholder   # replace with Cloud Run URL suffix after first deploy
 
 images:
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:$COMMIT_SHA'

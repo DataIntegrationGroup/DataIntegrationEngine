@@ -6,14 +6,15 @@ FROM geopython/pygeoapi:latest
 WORKDIR /pygeoapi
 
 # Copy generation inputs
-COPY config.yml.j2 /tmp/config.yml.j2
-COPY generate_config.py /tmp/generate_config.py
-COPY ../config/products.yaml /tmp/products.yaml
+# Build context is orchestration/ (see cloudbuild.yaml)
+COPY pygeoapi/config.yml.j2 /tmp/config.yml.j2
+COPY pygeoapi/generate_config.py /tmp/generate_config.py
+COPY config/products.yaml /tmp/products.yaml
 
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.
-RUN pip install jinja2 pyyaml --quiet && \
-    python /tmp/generate_config.py \
+# jinja2 and PyYAML are pygeoapi dependencies, already in /venv.
+RUN /venv/bin/python3 /tmp/generate_config.py \
       --products /tmp/products.yaml \
       --template /tmp/config.yml.j2 \
       --output /pygeoapi/local.config.yml

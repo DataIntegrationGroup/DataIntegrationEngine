@@ -8,7 +8,12 @@ server:
   language: en-US
   cors: true
   pretty_print: false
-  limit: 500
+  limits:
+    default_items: 500
+    max_items: 10000   # NewWeaver requests limit=10000
+  map:
+    url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
 
 logging:
   level: ERROR
@@ -32,6 +37,7 @@ metadata:
     name: NM Bureau of Geology & Mineral Resources
     url: https://geoinfo.nmt.edu
   contact:
+    name: NM Bureau of Geology & Mineral Resources
     address: 801 Leroy Place
     city: Socorro
     stateorprovince: New Mexico
@@ -48,7 +54,7 @@ resources:
       - water
       - groundwater
       - New Mexico
-    extent:
+    extents:
       spatial:
         bbox:
           - -109.05
@@ -74,7 +80,7 @@ resources:
             EMPTY_AS_NULL: "NO"
             GDAL_CACHEMAX: "64"
         id_field: id
-        layer: OGRGeoJSON
+        layer: latest   # GDAL names a GeoJSON layer after the file basename
 {% if product.output_type == 'ogc_timeseries' %}
         time_field: datetime
 {% endif %}
