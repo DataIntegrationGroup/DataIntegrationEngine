@@ -73,22 +73,24 @@ resources:
         end: null
 {% endif %}
     providers:
-{% if product.output_type == 'ogc_timeseries' %}
-      # GeoParquet via the Parquet provider: the OGR provider ignores datetime
-      # filters and parses the whole GeoJSON on every request. The file must be
-      # GeoParquet with a bbox covering column and a tz-aware UTC datetime.
+{% if product.id in parquet %}
+      # GeoParquet via the Parquet provider — chosen by generate_config.py when
+      # latest.parquet is usable. Faster than OGR (indexed reads instead of a full
+      # GeoJSON parse per request) and the only one that applies datetime filters.
       - type: feature
         name: Parquet
         data:
-          source: gs://{{ gcs_bucket }}/products/{{ product.id }}/latest.parquet
-        id_field: id
+          source: {{ parquet_root }}/{{ product.id }}/latest.parquet
+        id_field: {{ parquet[product.id] }}
+{% if product.output_type == 'ogc_timeseries' %}
         time_field: datetime
+{% endif %}
 {% else %}
       - type: feature
         name: OGR
         data:
           source_type: GeoJSON
-          source: /vsigs/{{ gcs_bucket }}/products/{{ product.id }}/latest.geojson
+          source: {{ geojson_root }}/{{ product.id }}/latest.geojson
           source_options:
             GDAL_HTTP_UNSAFESSL: "NO"
           gdal_ogr_options:

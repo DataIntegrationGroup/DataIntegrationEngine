@@ -20,10 +20,15 @@ COPY config/products.yaml /tmp/products.yaml
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.
 # jinja2 and PyYAML are pygeoapi dependencies, already in /venv.
+# CHECK_PARQUET=1 (set by cloudbuild.yaml) serves each product from its
+# latest.parquet when a usable one is in GCS; the build needs GCS access for
+# that (docker build --network=cloudbuild). Without it every product is GeoJSON.
+ARG CHECK_PARQUET=0
 RUN /venv/bin/python3 /tmp/generate_config.py \
       --products /tmp/products.yaml \
       --template /tmp/config.yml.j2 \
-      --output /pygeoapi/local.config.yml
+      --output /pygeoapi/local.config.yml \
+      $([ "$CHECK_PARQUET" = "1" ] && echo --check-parquet)
 
 EXPOSE 80
 
