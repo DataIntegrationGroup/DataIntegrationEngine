@@ -24,6 +24,7 @@ numberReturned and product-level extras) is a product concern that stays in
 
 import io
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import geopandas as gpd
@@ -292,3 +293,125 @@ def geojson_to_geopackage(geojson_path, layer_name: str, out_dir) -> tuple:
     gpkg_path = Path(out_dir) / f"{layer_name}.gpkg"
     bbox = write_geopackage(gdf, str(gpkg_path), layer_name)
     return gpkg_path, bbox
+
+
+# ---------------------------------------------------------------------------
+# GeoParquet product output — written next to latest.geojson so pygeoapi can
+# serve the product through its Parquet provider (see SPEC §6). The provider
+# needs: GeoParquet `geo` metadata with a bbox covering column (for `bbox`
+# queries), a tz-aware timestamp for the time field (for `datetime` queries),
+# plain `string` columns (it can't describe `large_string`), and a unique id
+# column (the GeoJSON feature id; the `id` property is not unique on every
+# product, e.g. the well id on timeseries observations).
+# ---------------------------------------------------------------------------
+
+PARQUET_ID_FIELD = "feature_id"
+PARQUET_TIME_FIELD = "datetime"
+
+
+def _utc_timestamp_ms(value):
+    """Parse an ISO-8601 string to a tz-aware UTC datetime, or None. Naive
+    values (e.g. a bare date) are taken as UTC. Python datetimes are used rather
+    than pandas/Arrow parsing because pandas' ns timestamps overflow past 2262 and
+    Arrow rejects offset-less strings for a tz-aware target."""
+    if _is_null(value):
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def _unique_feature_ids(features: list[dict]) -> list[str]:
+    """Each feature's top-level id as a string, made unique: repeats get
+    ``:2``, ``:3``, … in file order. Product ids aren't always unique — e.g.
+    timeseries ids are ``source:site:date``, so a well read several times a day
+    repeats — and ``/items/{id}`` needs one feature per id. Features without an
+    id get their 1-based position."""
+    seen: dict[str, int] = {}
+    out = []
+    for i, f in enumerate(features, start=1):
+        fid = str(f["id"]) if f.get("id") is not None else str(i)
+        n = seen.get(fid, 0) + 1
+        seen[fid] = n
+        out.append(fid if n == 1 else f"{fid}:{n}")
+    return out
+
+
+def _scalar_kind(v) -> str:
+    if isinstance(v, bool):
+        return "bool"
+    if isinstance(v, (int, float)):
+        return "number"
+    return type(v).__name__
+
+
+def _stringify_multi_type_column(gdf: pd.DataFrame, col: str) -> None:
+    """In place: cast *col* to str when its non-null values span more than one
+    scalar kind (bool / number / str) — pyarrow needs one type per column, and
+    product properties do mix them (e.g. WQP ``parameter_value`` floats with
+    'ND', ``approval_status`` booleans with provider strings)."""
+    kinds = {_scalar_kind(v) for v in gdf[col] if not _is_null(v)}
+    if len(kinds) > 1:
+        gdf[col] = [None if _is_null(v) else str(v) for v in gdf[col]]
+
+
+def collection_to_geoparquet(collection: dict, out_path) -> int:
+    """Write a product FeatureCollection *collection* (the parsed GeoJSON) to
+    GeoParquet at *out_path* for pygeoapi's Parquet provider. Returns the row
+    count.
+
+    - ``feature_id``: each feature's top-level GeoJSON id, made unique.
+    - ``datetime`` (when present): tz-aware UTC ``timestamp[ms]``; rows are
+      sorted by it so row-group statistics can prune ``datetime`` queries.
+    - dict/list property values are JSON-encoded and columns mixing scalar
+      kinds (bool / number / str) are stringified, so every column has one
+      Arrow type.
+    - Written as GeoParquet 1.1 with a bbox covering column; large_string
+      columns are downcast to string."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    features = collection.get("features", [])
+    gdf = gpd.GeoDataFrame.from_features(features, crs="EPSG:4326")
+    gdf[PARQUET_ID_FIELD] = _unique_feature_ids(features)
+
+    for col in gdf.columns:
+        if col == "geometry":
+            continue
+        if any(isinstance(v, (dict, list)) for v in gdf[col]):
+            gdf[col] = [
+                json.dumps(v) if isinstance(v, (dict, list)) else v for v in gdf[col]
+            ]
+        _stringify_multi_type_column(gdf, col)
+
+    if PARQUET_TIME_FIELD in gdf.columns:
+        ts = pa.array(
+            [_utc_timestamp_ms(v) for v in gdf[PARQUET_TIME_FIELD]],
+            type=pa.timestamp("ms", tz="UTC"),
+        )
+        gdf[PARQUET_TIME_FIELD] = pd.arrays.ArrowExtensionArray(ts)
+        gdf = gdf.sort_values(PARQUET_TIME_FIELD, kind="stable")
+
+    gdf.to_parquet(
+        out_path,
+        index=False,
+        schema_version="1.1.0",
+        write_covering_bbox=True,
+        row_group_size=100_000,
+    )
+
+    # pandas 3's default string dtype is Arrow large_string; the provider only
+    # understands string. Rewrite with a downcast, keeping the geo metadata.
+    table = pq.read_table(out_path)
+    if any(pa.types.is_large_string(f.type) for f in table.schema):
+        schema = pa.schema(
+            [
+                f.with_type(pa.string()) if pa.types.is_large_string(f.type) else f
+                for f in table.schema
+            ],
+            metadata=table.schema.metadata,
+        )
+        pq.write_table(table.cast(schema), out_path, row_group_size=100_000)
+    return table.num_rows
