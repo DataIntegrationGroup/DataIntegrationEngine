@@ -5,6 +5,12 @@ FROM geopython/pygeoapi:latest
 
 WORKDIR /pygeoapi
 
+# pygeoapi's Parquet provider needs pyarrow and geopandas, which the base
+# image doesn't ship (s3fs, shapely, pandas are already in /venv).
+# Pinned to the versions tested locally against pygeoapi 0.25.
+RUN /venv/bin/python3 -m pip install --no-cache-dir --quiet \
+      pyarrow==25.0.1 geopandas==1.1.4
+
 # Copy generation inputs
 # Build context is orchestration/ (see cloudbuild.yaml)
 COPY pygeoapi/config.yml.j2 /tmp/config.yml.j2

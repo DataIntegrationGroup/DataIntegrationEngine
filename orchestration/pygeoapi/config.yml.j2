@@ -68,6 +68,17 @@ resources:
         end: null
 {% endif %}
     providers:
+{% if product.output_type == 'ogc_timeseries' %}
+      # GeoParquet via the Parquet provider: the OGR provider ignores datetime
+      # filters and parses the whole GeoJSON on every request. The file must be
+      # GeoParquet with a bbox covering column and a tz-aware UTC datetime.
+      - type: feature
+        name: Parquet
+        data:
+          source: gs://{{ gcs_bucket }}/products/{{ product.id }}/latest.parquet
+        id_field: id
+        time_field: datetime
+{% else %}
       - type: feature
         name: OGR
         data:
@@ -80,8 +91,6 @@ resources:
             GDAL_CACHEMAX: "64"
         id_field: id
         layer: latest   # GDAL names a GeoJSON layer after the file basename
-{% if product.output_type == 'ogc_timeseries' %}
-        time_field: datetime
 {% endif %}
 
 {% endfor %}

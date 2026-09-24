@@ -2,7 +2,8 @@
 Generate pygeoapi config.yml from products.yaml + Jinja2 template.
 
 §V: pygeoapi config MUST be generated from products.yaml — never hand-edited.
-§V: pygeoapi OGR provider MUST use /vsigs/ path (GCS).
+§V: pygeoapi OGR provider MUST use /vsigs/ path (GCS). Timeseries products use
+    the Parquet provider and read gs://.../latest.parquet instead.
 
 Usage:
     python generate_config.py \
@@ -29,13 +30,16 @@ def generate(products_path: Path, template_path: Path, output_path: Path) -> Non
         gcs_bucket=products_config["gcs_bucket"],
     )
 
-    # Sanity check: every product must produce an OGR /vsigs/ entry
+    # Sanity check: every product must produce a GCS source entry
     for product in products_config["products"]:
         pid = product["id"]
         bucket = products_config["gcs_bucket"]
-        expected = f"/vsigs/{bucket}/products/{pid}/latest.geojson"
+        if product.get("output_type") == "ogc_timeseries":
+            expected = f"gs://{bucket}/products/{pid}/latest.parquet"
+        else:
+            expected = f"/vsigs/{bucket}/products/{pid}/latest.geojson"
         assert expected in rendered, (
-            f"§V violated: OGR provider for '{pid}' missing /vsigs/ path in generated config"
+            f"§V violated: provider for '{pid}' missing {expected} in generated config"
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
