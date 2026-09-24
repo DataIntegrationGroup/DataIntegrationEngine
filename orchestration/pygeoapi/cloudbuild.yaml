@@ -29,7 +29,9 @@ steps:
       - '--port=80'
       - '--service-account=die-pygeoapi@$PROJECT_ID.iam.gserviceaccount.com'   # needs storage.objectViewer on the products bucket
       - '--memory=2Gi'   # Parquet provider peaked at 1.2-2.0 GB across 4 workers locally
-      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app'
+      # CPL_MACHINE_IS_GCE: GDAL can't detect Cloud Run as GCE, so /vsigs/ skips the
+      # metadata-server credentials and every GeoJSON collection fails without it.
+      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app,CPL_MACHINE_IS_GCE=YES'
 
 substitutions:
   _REGION: us-central1

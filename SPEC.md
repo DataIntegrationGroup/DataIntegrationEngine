@@ -444,7 +444,9 @@ Run at Docker build time — baked into the image, not runtime.
 ### §6.4 GCS Auth
 
 On Cloud Run, both GDAL `/vsigs/` and PyArrow's `gs://` filesystem use the service
-account's ADC automatically. No credentials file needed. Require the pygeoapi Cloud Run
+account's ADC. No credentials file needed. GDAL only uses the metadata server when it
+detects GCE, which it can't on Cloud Run — `CPL_MACHINE_IS_GCE=YES` must be set or every
+OGR collection fails with `No valid GCS credentials found`. PyArrow needs no setting. Require the pygeoapi Cloud Run
 Service account to have `roles/storage.objectViewer` on the products bucket
 (`gcs_bucket` in `products.yaml`).
 
@@ -493,6 +495,7 @@ ENV PYGEOAPI_CONFIG=/pygeoapi/local.config.yml
 
 Cloud Run Service (`orchestration/pygeoapi/cloudbuild.yaml`):
 - `PYGEOAPI_SERVER_URL` — `https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app`
+- `CPL_MACHINE_IS_GCE=YES` — lets GDAL `/vsigs/` use Cloud Run credentials (§6.4)
 - Port: 80
 - Service account: `die-pygeoapi@$PROJECT_ID.iam.gserviceaccount.com` — needs
   `roles/storage.objectViewer` on the products bucket; Cloud Build's account needs
