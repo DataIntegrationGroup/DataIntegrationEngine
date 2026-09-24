@@ -20,8 +20,12 @@ logging:
 
 metadata:
   identification:
-    title: NM Unified Water Data
-    description: OGC API - Features for New Mexico water data
+    title: New Mexico Unified Water Data
+    description: >-
+      This tool integrates groundwater-level and water-quality data for New Mexico
+      from state and federal sources, including NMBGMR, USGS, and the Water Quality Portal.
+      Its collections provide per-well summaries, trends, time series, and derived
+      water-quality indicators through the OGC API - Features standard.
     keywords:
       - water
       - groundwater
@@ -29,7 +33,7 @@ metadata:
       - NMBGMR
     keywords_type: theme
     terms_of_service: https://creativecommons.org/licenses/by/4.0/
-    url: https://waterdata.nmt.edu
+    url: ${PYGEOAPI_SERVER_URL}   # the live Cloud Run URL, set in cloudbuild.yaml
   license:
     name: CC-BY 4.0
     url: https://creativecommons.org/licenses/by/4.0/
@@ -43,6 +47,7 @@ metadata:
     stateorprovince: New Mexico
     postalcode: "87801"
     country: USA
+    email: data-services-nmbg@nmt.edu
 
 resources:
 {% for product in products %}
