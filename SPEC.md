@@ -494,6 +494,9 @@ ENV PYGEOAPI_CONFIG=/pygeoapi/local.config.yml
 Cloud Run Service (`orchestration/pygeoapi/cloudbuild.yaml`):
 - `PYGEOAPI_SERVER_URL` — `https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app`
 - Port: 80
+- Service account: `die-pygeoapi@$PROJECT_ID.iam.gserviceaccount.com` — needs
+  `roles/storage.objectViewer` on the products bucket; Cloud Build's account needs
+  `roles/iam.serviceAccountUser` on it
 - Memory: 2Gi — the Parquet provider peaked at ~1.8 GB across 4 gunicorn workers locally
 
 ---
