@@ -186,7 +186,8 @@ temporal filtering natively without custom code.
 `backend/persisters/ogc_features.py` → `OGCFeaturesPersister`
 - `dump_summary_collection(path, records, meta)` — §4.2 format
 - `dump_timeseries_collection(path, site_records, timeseries_records, meta)` — §4.3 format
-- Writes local `.geojson` file; Dagster GCS resource handles upload
+- Writes local `.geojson` file; Dagster GCS resource handles upload, and also writes a
+  GeoParquet copy (`latest.parquet`, see §6.1) via `geodataframe.collection_to_geoparquet`
 
 ---
 
@@ -207,6 +208,7 @@ products_config            ← loads products.yaml at startup
      ▼
  gcs_upload                ← gs://die-products/{product_id}/{YYYY-MM-DD}.geojson
                               gs://die-products/{product_id}/latest.geojson  (overwrite)
+                              gs://die-products/{product_id}/latest.parquet  (overwrite)
 ```
 
 ### §5.2 Configurable Products (`orchestration/config/products.yaml`)
@@ -264,26 +266,34 @@ Structure supports later migration to persistent Dagster daemon (change Cloud Ru
 ### §6.1 Role
 
 pygeoapi serves the GCS-stored product files as OGC API - Features collections. No DB.
-The provider depends on the product's `output_type`:
+Each product is served from one of two files, chosen when the image is built (§6.3):
 
-| Products | Provider | Source |
+| When | Provider | Source |
 |---|---|---|
-| `ogc_timeseries` | **Parquet** (`time_field: datetime`) | `gs://{bucket}/products/{id}/latest.parquet` |
-| all others | **OGR** (`source_type: GeoJSON`) | `/vsigs/{bucket}/products/{id}/latest.geojson` |
+| `latest.parquet` is usable | **Parquet** (`id_field: feature_id`; `time_field: datetime` for `ogc_timeseries`) | `gs://{bucket}/products/{id}/latest.parquet` |
+| otherwise | **OGR** (`source_type: GeoJSON`) | `/vsigs/{bucket}/products/{id}/latest.geojson` |
 
-Timeseries products use Parquet because the OGR provider ignores `datetime` filters and
-parses the whole GeoJSON on every request (~9–10 s per request for the 733 MB
-`nm_waterlevels_timeseries` file in local testing, vs. under 1 s from GeoParquet).
+Parquet is preferred because the OGR provider parses the whole GeoJSON on every request
+(~9–10 s for the 733 MB `nm_waterlevels_timeseries` file, ~0.1 s per MB from GCS for the
+rest, vs. well under 1 s from GeoParquet) and ignores `datetime` filters.
 
-The timeseries GeoParquet file must have:
-- GeoParquet `geo` metadata with WKB geometry and a **bbox covering column** (required for
-  `bbox` queries; geopandas `to_parquet(..., write_covering_bbox=True)`)
-- `datetime` as a **tz-aware UTC** timestamp
-- `string` rather than `large_string` columns (the provider can't describe `large_string`
-  fields)
+**Writing `latest.parquet`.** `GCSResource.upload_product` writes it after every GeoJSON
+upload, stamped with the GeoJSON's content hash. When the GeoJSON is unchanged it still
+writes the Parquet if it is missing or its hash differs (backfill). A conversion failure
+does not fail the product: the Parquet is deleted so a stale copy can't be served, and the
+asset's `parquet_status` / `parquet_error` metadata record it. The file has:
+- GeoParquet 1.1 `geo` metadata with WKB geometry and a **bbox covering column**
+- `feature_id`: the feature's top-level GeoJSON id, made unique (repeats get `:2`, `:3`, …;
+  timeseries ids are `source:site:date`, which repeats for several readings a day)
+- `datetime` (when present) as a **tz-aware UTC** `timestamp[ms]`, rows sorted by it
+- `string` rather than `large_string` columns; dict/list values JSON-encoded; columns
+  mixing bool/number/string values stored as strings
 
-The pipeline does not write `latest.parquet` yet; it is uploaded manually. It must exist
-in the bucket before pygeoapi starts — the entrypoint fails if any collection can't open.
+**Usable** means: GeoParquet metadata with a bbox covering column, **point geometry only**,
+an id column (`feature_id`, else `id`), and for `ogc_timeseries` a tz-aware `datetime`.
+Polygon layers stay on GeoJSON because the Parquet provider answers `bbox` by containment
+(the feature's bbox fully inside the query box), not intersection, and would drop
+polygons crossing the box edge.
 
 Known provider limitations:
 - Parquet: date-only `datetime` queries (`2020-01-01/2020-12-31`) return 500 against a
@@ -324,8 +334,12 @@ logging:
 
 metadata:
   identification:
-    title: NM Unified Water Data
-    description: OGC API - Features for New Mexico water data
+    title: New Mexico Unified Water Data
+    description: >-
+      This tool integrates groundwater-level and water-quality data for New Mexico
+      from state and federal sources, including NMBGMR, USGS, and the Water Quality Portal.
+      Its collections provide per-well summaries, trends, time series, and derived
+      water-quality indicators through the OGC API - Features standard.
     keywords:
       - water
       - groundwater
@@ -333,7 +347,7 @@ metadata:
       - NMBGMR
     keywords_type: theme
     terms_of_service: https://creativecommons.org/licenses/by/4.0/
-    url: https://waterdata.nmt.edu
+    url: ${PYGEOAPI_SERVER_URL}   # the live Cloud Run URL, set in cloudbuild.yaml
   license:
     name: CC-BY 4.0
     url: https://creativecommons.org/licenses/by/4.0/
@@ -347,6 +361,7 @@ metadata:
     stateorprovince: New Mexico
     postalcode: "87801"
     country: USA
+    email: data-services-nmbg@nmt.edu
 
 resources:
 {% for product in products %}
@@ -372,22 +387,24 @@ resources:
         end: null
 {% endif %}
     providers:
-{% if product.output_type == 'ogc_timeseries' %}
-      # GeoParquet via the Parquet provider: the OGR provider ignores datetime
-      # filters and parses the whole GeoJSON on every request. The file must be
-      # GeoParquet with a bbox covering column and a tz-aware UTC datetime.
+{% if product.id in parquet %}
+      # GeoParquet via the Parquet provider — chosen by generate_config.py when
+      # latest.parquet is usable. Faster than OGR (indexed reads instead of a full
+      # GeoJSON parse per request) and the only one that applies datetime filters.
       - type: feature
         name: Parquet
         data:
-          source: gs://{{ gcs_bucket }}/products/{{ product.id }}/latest.parquet
-        id_field: id
+          source: {{ parquet_root }}/{{ product.id }}/latest.parquet
+        id_field: {{ parquet[product.id] }}
+{% if product.output_type == 'ogc_timeseries' %}
         time_field: datetime
+{% endif %}
 {% else %}
       - type: feature
         name: OGR
         data:
           source_type: GeoJSON
-          source: /vsigs/{{ gcs_bucket }}/products/{{ product.id }}/latest.geojson
+          source: {{ geojson_root }}/{{ product.id }}/latest.geojson
           source_options:
             GDAL_HTTP_UNSAFESSL: "NO"
           gdal_ogr_options:
@@ -409,50 +426,34 @@ basename).
 
 ### §6.3 Config Generation (`orchestration/pygeoapi/generate_config.py`)
 
-```python
-def generate(products_path: Path, template_path: Path, output_path: Path) -> None:
-    products_config = yaml.safe_load(products_path.read_text())
-    env = Environment(
-        loader=FileSystemLoader(str(template_path.parent)),
-        keep_trailing_newline=True,
-    )
-    tmpl = env.get_template(template_path.name)
-    rendered = tmpl.render(
-        products=products_config["products"],
-        gcs_bucket=products_config["gcs_bucket"],
-    )
+Renders `config.yml.j2` from `products.yaml` at **image build time** — baked into the
+image, not runtime. With `--check-parquet` (set by Cloud Build, §6.5) it reads each
+product's `latest.parquet` footer from GCS and picks the Parquet provider when the file is
+usable (§6.1), otherwise OGR + GeoJSON; the build log lists each product's choice and
+reason. A missing or unreadable file falls back to GeoJSON; any other error (permissions,
+network) fails the build rather than silently serving everything as GeoJSON. Without the
+flag (e.g. a local `docker build`) every product is GeoJSON.
 
-    # Sanity check: every product must produce a GCS source entry
-    for product in products_config["products"]:
-        pid = product["id"]
-        bucket = products_config["gcs_bucket"]
-        if product.get("output_type") == "ogc_timeseries":
-            expected = f"gs://{bucket}/products/{pid}/latest.parquet"
-        else:
-            expected = f"/vsigs/{bucket}/products/{pid}/latest.geojson"
-        assert expected in rendered, (
-            f"§V violated: provider for '{pid}' missing {expected} in generated config"
-        )
+A new or newly-valid `latest.parquet` is picked up on the next image build.
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(rendered)
-    print(f"Generated {output_path} ({len(products_config['products'])} collections)")
-```
-
-Run at Docker build time — baked into the image, not runtime.
+`--source-root DIR` replaces both GCS roots with a local directory — local testing only.
 
 ### §6.4 GCS Auth
 
 On Cloud Run, both GDAL `/vsigs/` and PyArrow's `gs://` filesystem use the service
 account's ADC. No credentials file needed. GDAL only uses the metadata server when it
 detects GCE, which it can't on Cloud Run — `CPL_MACHINE_IS_GCE=YES` must be set or every
-OGR collection fails with `No valid GCS credentials found`. PyArrow needs no setting. Require the pygeoapi Cloud Run
-Service account to have `roles/storage.objectViewer` on the products bucket
-(`gcs_bucket` in `products.yaml`).
+OGR collection fails with `No valid GCS credentials found`. PyArrow needs no setting.
+Require the pygeoapi Cloud Run service account to have `roles/storage.objectViewer` on the products bucket
+(`gcs_bucket` in `products.yaml`). The Cloud Build account needs the same role for the
+build-time Parquet check (§6.3).
 
-For local dev, render the config and rewrite GCS paths to a mounted folder instead:
+For local dev, render the config inside the image against a mounted products folder:
 ```bash
-sed -i '' -E 's#(/vsigs/|gs://)dataservices-die-products#/data#' local.config.yml
+docker run --rm --entrypoint /venv/bin/python3 \
+  -v ~/pygeoapi-test/products:/data/products:ro -v ~/pygeoapi-test:/out die-pygeoapi \
+  /tmp/generate_config.py --products /tmp/products.yaml --template /tmp/config.yml.j2 \
+  --output /out/local.config.yml --check-parquet --source-root /data/products
 ```
 
 ### §6.5 Dockerfile (`orchestration/pygeoapi/Dockerfile`)
@@ -482,16 +483,24 @@ COPY config/products.yaml /tmp/products.yaml
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.
 # jinja2 and PyYAML are pygeoapi dependencies, already in /venv.
+# CHECK_PARQUET=1 (set by cloudbuild.yaml) serves each product from its
+# latest.parquet when a usable one is in GCS; the build needs GCS access for
+# that (docker build --network=cloudbuild). Without it every product is GeoJSON.
+ARG CHECK_PARQUET=0
 RUN /venv/bin/python3 /tmp/generate_config.py \
       --products /tmp/products.yaml \
       --template /tmp/config.yml.j2 \
-      --output /pygeoapi/local.config.yml
+      --output /pygeoapi/local.config.yml \
+      $([ "$CHECK_PARQUET" = "1" ] && echo --check-parquet)
 
 EXPOSE 80
 
 # pygeoapi reads PYGEOAPI_CONFIG env var; default is local.config.yml
 ENV PYGEOAPI_CONFIG=/pygeoapi/local.config.yml
 ```
+
+Cloud Build (`orchestration/pygeoapi/cloudbuild.yaml`) builds with `--network=cloudbuild` and
+`--build-arg=CHECK_PARQUET=1` so the build can run the Parquet check against GCS (§6.3).
 
 Cloud Run Service (`orchestration/pygeoapi/cloudbuild.yaml`):
 - `PYGEOAPI_SERVER_URL` — `https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app`
