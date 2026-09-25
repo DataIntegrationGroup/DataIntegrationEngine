@@ -8,6 +8,7 @@ server:
   language: en-US
   cors: true
   pretty_print: false
+  gzip: true   # Cloud Run does not compress; timeseries pages shrink 10-45x
   limits:
     default_items: 500
     max_items: 10000   # NewWeaver requests limit=10000
