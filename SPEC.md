@@ -554,11 +554,16 @@ Cloud Run Service (`orchestration/pygeoapi/cloudbuild.yaml`):
 Baked products (§6.3) are only as fresh as the image: a pipeline run that publishes new
 data (a combine asset with `skipped_unchanged: false` or `parquet_status: written`) is
 not served until pygeoapi is rebuilt and redeployed with
-`orchestration/pygeoapi/cloudbuild.yaml`. **For now this rebuild is manual**: run the
-build after the scheduled product runs finish, and not while any are still running, so
-the image doesn't copy a half-updated set of products. Automating it (a Cloud Build
-trigger started from Dagster after product runs publish new data) is planned; see
-`docs/pygeoapi-performance-plan.md` T5.
+`orchestration/pygeoapi/cloudbuild.yaml`.
+
+The `pygeoapi_rebuild` sensor (`orchestration/pygeoapi_rebuild.py`) does this. Every
+10 minutes it checks for product jobs (cohort and standalone) that succeeded since its
+last check. Once none are queued or running, it starts the `die-pygeoapi-rebuild` Cloud
+Build trigger (`us-central1`) once. Waiting until no runs are active means the image never
+bakes a half-updated set of products. Sensor ticks use no Dagster+ credits, and the
+sensor launches no Dagster run. It is stopped by default and is turned on only in the
+prod deployment. It authenticates with `GCP_SERVICE_ACCOUNT_KEY`, which needs
+`roles/cloudbuild.builds.editor`.
 
 ---
 

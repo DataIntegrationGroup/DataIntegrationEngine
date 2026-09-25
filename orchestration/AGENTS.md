@@ -55,7 +55,8 @@ uv run python -c "import orchestration.definitions; print('ok')"
   `assets/products.py:build_product_assets` — into a per-source asset graph:
   `sources/<key>` → combine (`<product_id>`) → `<product_id>/geoserver`.
 - `definitions.py` wires assets, one asset job per product (`<product_id>_job`),
-  schedules, and resources (`die_config`, `gcs`, `geoserver`, `io_manager`).
+  schedules, the `pygeoapi_rebuild` sensor (`pygeoapi_rebuild.py`), and resources
+  (`die_config`, `gcs`, `geoserver`, `io_manager`).
 - Resources live in `resources/`. The backend DIE engine is the `nmuwd` package
   (repo root `backend/`); orchestration only drives it.
 - Per-source and geoserver assets soft-fail: errors surface as red asset checks
@@ -67,7 +68,8 @@ Dagster+ serverless builds from the repo root per `dagster_cloud.yaml`
 (`module_name: orchestration.definitions`). Runtime deps come from the root
 `requirements.txt`. Secrets are set as Dagster+ env vars, not in code:
 
-- `GCP_SERVICE_ACCOUNT_KEY` — GCS upload/IO-manager auth (JSON key).
+- `GCP_SERVICE_ACCOUNT_KEY` — JSON key for GCS upload/IO-manager and the
+  `pygeoapi_rebuild` Cloud Build trigger.
 - `GEOSERVER_URL` / `GEOSERVER_USER` / `GEOSERVER_PASSWORD` / `GEOSERVER_WORKSPACE`.
 - `USGS_API_KEY` — USGS/NWIS API key. Without it the USGS water data API is
   heavily rate-limited. Resolved via `dg.EnvVar` into `DIEConfigResource`, which
