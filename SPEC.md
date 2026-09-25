@@ -300,16 +300,23 @@ Polygon layers stay on GeoJSON because the Parquet provider answers `bbox` by co
 (the feature's bbox fully inside the query box), not intersection, and would drop
 polygons crossing the box edge.
 
-The image patches two Parquet provider bugs (`orchestration/pygeoapi/patch_pygeoapi.py`,
-run by the Dockerfile against the pinned base image; the build fails if the patched source
-changes): a filtered page returned up to `limit + 1` rows plus earlier batches, so pages
-overlapped; and date-only `datetime` bounds (`2020-01-01/2020-12-31`) returned 500 against
-the tz-aware column (they're now read as UTC).
+The image patches the Parquet provider (`orchestration/pygeoapi/patch_pygeoapi.py`, run by
+the Dockerfile against the pinned base image; the build fails if the patched source
+changes):
+- **Paging:** a filtered page returned up to `limit + 1` rows plus earlier batches, so
+  pages overlapped. Every page but the last now has exactly `limit` rows.
+- **Date-only `datetime`** bounds (`2020-01-01/2020-12-31`) returned 500 against the
+  tz-aware column. They're now read as UTC.
+- **No `bbox`:** responses carried a collection `bbox`, which was `[NaN, NaN, NaN, NaN]`
+  (invalid JSON) for empty results, and a `bbox` on every feature. Both are now left
+  out, matching the OGR collections.
+- **True `numberMatched`:** items pages report the total count of matching rows (as
+  `resulttype=hits` does), not `offset` + rows returned + 1. That costs ~20–110 ms of
+  server time per request.
 
 Known provider limitations:
-- Parquet: `numberMatched` is a lookahead (`offset` + rows returned + 1 while more rows
-  exist), not a total. Page until a short page or no `next` link.
-- OGR: no `numberReturned`; DateTime properties are returned as `YYYY/MM/DD HH:MM:SS+00`.
+- OGR: no `numberMatched` or `numberReturned`; DateTime properties are returned as
+  `YYYY/MM/DD HH:MM:SS+00`.
 
 ```
 GET /collections

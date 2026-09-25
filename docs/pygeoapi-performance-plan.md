@@ -1,7 +1,8 @@
 # Plan: pygeoapi performance and correctness (post-standup)
 
-Status: T1–T4 implemented on DIE-363 (uncommitted, 2026-09-24); T5 deferred (rebuild is
-manual for now); T6 partly (format version); T7 not started. See "Progress" below. Picks up from the pygeoapi standup (PR #137, branch
+Status: T1–T4 done on DIE-363 and deployed (2026-09-24); T5 deferred (rebuild is manual
+for now); T6 partly (format version); T7 partly (per-feature bbox). See "Progress" below.
+Picks up from the pygeoapi standup (PR #137, branch
 `DIE-359-deploy-pygeo-api-on-cloud-run`) and the per-product GeoParquet work (branch
 `DIE-363-update-the-layer-generation-code-to-land-in-pygeo-api-instead-of-geo-server`,
 4 commits on top of #137, not yet pushed). Read `SPEC.md` §6 first; it describes the
@@ -19,6 +20,21 @@ Measured locally: patched image, files on local disk, 4 workers, 2 GiB.
 | T4 bake | done | `--bake-to`; 31/31 collections pass items/bbox/by-id from baked files; 88 MB baked; `limit=10` in 13–35 ms |
 | T5 rebuild | deferred | Not automated yet. Rebuild manually after product runs publish new data (SPEC §6.6) |
 | T6 | partial | `PARQUET_FORMAT_VERSION` done (now `"2"`, so every existing `latest.parquet` is rewritten on the next run). Others open |
+| T7 | partial | per-feature `bbox` removed (with the empty-result fix below). The `bbox` covering column is still a property |
+
+**Live results** (baked build with the locally built Parquet files uploaded by hand, 2
+workers): the whole well-9033 series in 5,000-row pages takes 9.6–9.7 s (GeoServer ~10 s;
+before, ~26 s), with 48,809 distinct rows and no overlap. With 10,000-row pages it takes
+7.9–8.0 s: each request has ~0.4 s of fixed cost, so fewer, larger pages are faster.
+Most `limit=10` requests take 0.17–0.22 s total, of which ~0.13 s is network. Cloud Run
+memory stayed at 26–29% of 2 GiB, and the latency breakdown is almost all user execution.
+
+**Client feedback, fixed after the first live test** (in `patch_pygeoapi.py`):
+- Empty results returned `"bbox": [NaN, NaN, NaN, NaN]`, which isn't valid JSON. The
+  Parquet provider now leaves out both the collection bbox and the per-feature bboxes.
+- `numberMatched` was an estimate except on the last page. Items pages now carry the true
+  total, so clients can fetch pages in parallel.
+- Not fixed here (separate ticket): WQP `source` labels differ between products. See T6.
 
 Until T5 is done, **each pipeline run that changes data needs a manual pygeoapi build**
 (`orchestration/pygeoapi/cloudbuild.yaml`), started after the product runs finish.
@@ -95,7 +111,7 @@ takes several GCS round trips.
    `limit + 1 - (read - batch.num_rows)`.
 3. **`numberMatched` is lookahead by design.** It's `offset + len(rows)` with one extra row
    fetched to decide on a `next` link. Fixing (2) does **not** make it a true total.
-   Clients must page until a short page or no `next` link.
+   (Since patched to count the filtered rows; see Progress.)
 4. **No gzip.** Cloud Run doesn't compress, and `server.gzip` isn't set.
 5. **Well lookups scan the whole file.** The timeseries Parquet is sorted by `datetime`,
    so an `id=` filter can't skip row groups.
@@ -236,14 +252,22 @@ Not being done yet. Until it is, rebuild by hand after product runs publish new 
 - **Dagster+ memory:** converting the 733 MB timeseries peaked at ~3.6 GB RSS locally
   (JSON load + GeoDataFrame). Watch the first run. If it's too high, build the Parquet
   from the in-memory records instead of re-parsing the GeoJSON.
+- **WQP source labels differ between products** (separate ticket). In
+  `backend/connectors/wqp/transformer.py`, WQP site records are labeled `WQP/{provider}`
+  (`WQP/NWIS`, `WQP/STORET`), but observation records (water levels, analytes) are
+  labeled plain `WQP`. Products built from observations say `WQP`: the summaries, the
+  timeseries, major chemistry, and MCL exceedance. Products built from sites say
+  `WQP/NWIS`. The client's fallback copes, but for those wells the summary shows the
+  USGS-NWIS feed's row. The recommended fix is to label observations `WQP/{provider}` too.
+  That changes public `source` values in every WQP-backed product, on GeoServer as well.
 - **CI:** `uv sync --extra dev` has no pyarrow, jinja2, or dagster, so the new Parquet,
   config, and GCS-sync tests skip in CI. Add `--extra parquet` and the needed packages to
   CI, or run those tests in `orchestration-ci.yml`.
 
 ### T7 — Trim response rows (optional, after T1–T5)
 
-- Extend the T2 patch to drop the `bbox` covering column from properties and to skip
-  per-feature `bbox` in `__geo_interface__`. Gzip already recovers most of these bytes,
+- Extend the T2 patch to drop the `bbox` covering column from properties. (Per-feature
+  `bbox` is already gone.) Gzip already recovers most of these bytes,
   so do this only if measurements still show a gap.
 - Don't drop the Z coordinate for size reasons; that's a data decision.
 
