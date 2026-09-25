@@ -93,6 +93,23 @@ def test_unchanged_geojson_backfills_missing_parquet_then_skips(tmp_path, monkey
     assert third["parquet_status"] == "unchanged"
 
 
+def test_format_version_bump_rewrites_unchanged_geojson(tmp_path, monkeypatch):
+    import backend.persisters.geodataframe as gdf_mod
+
+    bucket = FakeBucket()
+    res = _resource(monkeypatch, bucket)
+    path = str(_write_collection(tmp_path))
+    res.upload_product(path, "p")
+    assert bucket.store[PARQUET]["metadata"]["parquet_format"] == gdf_mod.PARQUET_FORMAT_VERSION
+    assert res.upload_product(path, "p")["parquet_status"] == "unchanged"
+
+    monkeypatch.setattr(gdf_mod, "PARQUET_FORMAT_VERSION", "next")
+    again = res.upload_product(path, "p")
+    assert again["skipped"] is True  # GeoJSON unchanged
+    assert again["parquet_status"] == "written"
+    assert bucket.store[PARQUET]["metadata"]["parquet_format"] == "next"
+
+
 def test_failed_conversion_deletes_stale_parquet(tmp_path, monkeypatch):
     bucket = FakeBucket()
     res = _resource(monkeypatch, bucket)

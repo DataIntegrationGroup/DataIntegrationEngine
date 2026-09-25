@@ -311,6 +311,9 @@ PARQUET_TIME_FIELD = "datetime"
 # site's readings sit in few row groups and an `id=` filter can skip the rest.
 # id first: clients filter by id alone, so row-group id ranges must not overlap.
 PARQUET_SITE_FIELDS = ("id", "source")
+# Bump when collection_to_geoparquet's output changes for the same input, so
+# the pipeline rewrites existing latest.parquet files (see GCSResource).
+PARQUET_FORMAT_VERSION = "2"
 
 
 def _utc_timestamp_ms(value):

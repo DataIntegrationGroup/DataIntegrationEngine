@@ -16,6 +16,7 @@ except ImportError:
 
 _CONTENT_HASH_KEY = "content_hash"
 _LAST_CHANGED_KEY = "last_changed"  # YYYY-MM-DD the content last actually changed
+_PARQUET_FORMAT_KEY = "parquet_format"  # converter version that wrote latest.parquet
 
 
 def _days_between(start: str, end: str) -> Optional[int]:
@@ -175,25 +176,31 @@ class GCSResource(dg.ConfigurableResource):
     ) -> dict:
         """Make latest.parquet match the GeoJSON whose parsed content is *data*.
 
-        Skips the write when latest.parquet already carries *content_hash*.
-        Otherwise converts and uploads it (a single GCS upload replaces the
+        Skips the write when latest.parquet already carries *content_hash* and
+        the current PARQUET_FORMAT_VERSION, so a converter change rewrites
+        files whose GeoJSON hasn't changed. Otherwise converts and uploads it (a single GCS upload replaces the
         object atomically). A conversion failure never fails the product — the
         GeoJSON is already published and pygeoapi falls back to it — but any
         existing latest.parquet is deleted so a stale copy can't be served."""
         key = f"{self.products_prefix}/{product_id}/latest.parquet"
         info: dict = {"parquet_uri": f"gs://{self.bucket_name}/{key}"}
+        from backend.persisters.geodataframe import (
+            PARQUET_FORMAT_VERSION,
+            collection_to_geoparquet,
+        )
+
+        wanted = {_CONTENT_HASH_KEY: content_hash, _PARQUET_FORMAT_KEY: PARQUET_FORMAT_VERSION}
         blob = bucket.blob(key)
         if blob.exists():
             blob.reload()
-            if (blob.metadata or {}).get(_CONTENT_HASH_KEY) == content_hash:
+            meta = blob.metadata or {}
+            if all(meta.get(k) == v for k, v in wanted.items()):
                 return {**info, "parquet_status": "unchanged"}
-
-        from backend.persisters.geodataframe import collection_to_geoparquet
 
         parquet_path = Path(local_path).with_name(f"{product_id}.parquet")
         try:
             collection_to_geoparquet(data, parquet_path)
-            blob.metadata = {_CONTENT_HASH_KEY: content_hash}
+            blob.metadata = wanted
             blob.upload_from_filename(
                 str(parquet_path), content_type="application/vnd.apache.parquet"
             )
