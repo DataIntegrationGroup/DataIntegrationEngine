@@ -19,6 +19,7 @@ from backend.persisters.geodataframe import (
     dicts_to_parquet_bytes,
     features_to_geodataframe,
     geodataframe_to_features,
+    collection_to_geoparquet,
     geojson_to_geopackage,
     gdf_to_parquet_bytes,
     parquet_bytes_to_dicts,
@@ -323,3 +324,98 @@ class TestGeojsonToGeopackage:
         back = gpd.read_file(gpkg_path)
         assert len(back) == 2
         assert back.geometry.iloc[0].has_z is False  # flattened for GeoServer
+
+
+class TestCollectionToGeoParquet:
+    """Product FeatureCollection -> latest.parquet for pygeoapi."""
+
+    @staticmethod
+    def _feature(fid, coords, **props):
+        geom = None if coords is None else {"type": "Point", "coordinates": coords}
+        return {"type": "Feature", "id": fid, "geometry": geom, "properties": props}
+
+    def _write(self, tmp_path, features):
+        pytest.importorskip("pyarrow")
+        import pyarrow.parquet as pq
+
+        out = tmp_path / "latest.parquet"
+        n = collection_to_geoparquet({"features": features}, out)
+        return n, pq.read_table(out)
+
+    def test_geoparquet_metadata_and_string_columns(self, tmp_path):
+        n, table = self._write(
+            tmp_path, [self._feature("a:1", [-106.5, 35.0], name="x", value=1.5)]
+        )
+        import pyarrow as pa
+
+        assert n == 1
+        geo = json.loads(table.schema.metadata[b"geo"])
+        assert geo["version"] == "1.1.0"
+        assert geo["columns"]["geometry"]["covering"]["bbox"]
+        assert "bbox" in table.schema.names
+        assert not any(pa.types.is_large_string(f.type) for f in table.schema)
+
+    def test_feature_id_is_unique_top_level_id(self, tmp_path):
+        _, table = self._write(
+            tmp_path,
+            [
+                self._feature("src:W1:2024-01-01", [-106.5, 35.0], id=7),
+                self._feature("src:W1:2024-01-01", [-106.5, 35.0], id=7),
+                self._feature("src:W2:2024-01-01", [-106.6, 35.1], id=8),
+            ],
+        )
+        rows = table.to_pydict()
+        assert rows["feature_id"] == [
+            "src:W1:2024-01-01",
+            "src:W1:2024-01-01:2",
+            "src:W2:2024-01-01",
+        ]
+        assert rows["id"] == [7, 7, 8]  # the property is kept as-is
+
+    def test_datetime_is_utc_and_sorted(self, tmp_path):
+        import pyarrow as pa
+
+        _, table = self._write(
+            tmp_path,
+            [
+                self._feature("c", [-106, 35], datetime="2316-03-02T00:00:00Z"),
+                self._feature("a", [-106, 35], datetime="2024-01-01T06:30:00Z"),
+                self._feature("b", [-106, 35], datetime="2020-05-01"),
+                self._feature("d", [-106, 35], datetime="not a date"),
+            ],
+        )
+        t = table.schema.field("datetime").type
+        assert pa.types.is_timestamp(t) and t.tz == "UTC" and t.unit == "ms"
+        values = table.to_pydict()["datetime"]
+        assert [v.isoformat() if v else None for v in values] == [
+            "2020-05-01T00:00:00+00:00",
+            "2024-01-01T06:30:00+00:00",
+            "2316-03-02T00:00:00+00:00",  # past pandas' 2262 ns limit
+            None,
+        ]
+
+    def test_rows_sorted_by_site_then_time(self, tmp_path):
+        _, table = self._write(
+            tmp_path,
+            [
+                self._feature("b2", [-106, 35], source="b", id="1", datetime="2021-01-01"),
+                self._feature("a2", [-106, 35], source="a", id="2", datetime="2020-01-01"),
+                self._feature("a1", [-106, 35], source="a", id="1", datetime="2022-01-01"),
+                self._feature("a1", [-106, 35], source="a", id="1", datetime="2019-01-01"),
+            ],
+        )
+        assert table.to_pydict()["feature_id"] == ["a1:2", "a1", "b2", "a2"]
+
+    def test_mixed_and_nested_values_become_strings(self, tmp_path):
+        _, table = self._write(
+            tmp_path,
+            [
+                self._feature("a", [-106, 35], value=1.5, status=True, q={"k": 1}),
+                self._feature("b", [-106, 35], value="ND", status="Approved", q=[1, 2]),
+                self._feature("c", None, value=None, status=None, q=None),
+            ],
+        )
+        rows = table.to_pydict()
+        assert rows["value"] == ["1.5", "ND", None]
+        assert rows["status"] == ["True", "Approved", None]
+        assert rows["q"] == ['{"k": 1}', "[1, 2]", None]

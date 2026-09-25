@@ -2,13 +2,17 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      # Bakes products from GCS into the image; the cloudbuild network supplies
+      # credentials (needs storage.objectViewer on the products bucket).
+      - '--network=cloudbuild'
+      - '--build-arg=BAKE_PRODUCTS=1'
       - '-t'
       - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:$COMMIT_SHA'
       - '-t'
       - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:latest'
       - '-f'
       - 'orchestration/pygeoapi/Dockerfile'
-      - 'orchestration/pygeoapi'   # build context — allows COPY ../config/products.yaml
+      - 'orchestration'   # build context holds pygeoapi/ and config/products.yaml
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -27,12 +31,15 @@ steps:
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--port=80'
-      - '--memory=512Mi'
-      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$_SUFFIX.run.app'
+      - '--service-account=die-pygeoapi@$PROJECT_ID.iam.gserviceaccount.com'   # needs storage.objectViewer on the products bucket
+      - '--memory=2Gi'
+      # CPL_MACHINE_IS_GCE: GDAL can't detect Cloud Run as GCE, so /vsigs/ skips the
+      # metadata-server credentials and every GeoJSON collection fails without it.
+      # WSGI_WORKERS=2: the default 4 hit the 2 GiB cap under load locally.
+      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app,CPL_MACHINE_IS_GCE=YES,WSGI_WORKERS=2'
 
 substitutions:
   _REGION: us-central1
-  _SUFFIX: placeholder   # replace with Cloud Run URL suffix after first deploy
 
 images:
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:$COMMIT_SHA'

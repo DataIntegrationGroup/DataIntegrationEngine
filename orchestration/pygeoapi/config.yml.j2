@@ -8,15 +8,25 @@ server:
   language: en-US
   cors: true
   pretty_print: false
-  limit: 500
+  gzip: true   # Cloud Run doesn't compress
+  limits:
+    default_items: 500
+    max_items: 10000   # NewWeaver requests limit=10000
+  map:
+    url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
 
 logging:
   level: ERROR
 
 metadata:
   identification:
-    title: NM Unified Water Data
-    description: OGC API - Features for New Mexico water data
+    title: New Mexico Unified Water Data
+    description: >-
+      This tool integrates groundwater-level and water-quality data for New Mexico
+      from state and federal sources, including NMBGMR, USGS, and the Water Quality Portal.
+      Its collections provide per-well summaries, trends, time series, and derived
+      water-quality indicators through the OGC API - Features standard.
     keywords:
       - water
       - groundwater
@@ -24,7 +34,7 @@ metadata:
       - NMBGMR
     keywords_type: theme
     terms_of_service: https://creativecommons.org/licenses/by/4.0/
-    url: https://waterdata.nmt.edu
+    url: ${PYGEOAPI_SERVER_URL}   # the live Cloud Run URL, set in cloudbuild.yaml
   license:
     name: CC-BY 4.0
     url: https://creativecommons.org/licenses/by/4.0/
@@ -32,11 +42,13 @@ metadata:
     name: NM Bureau of Geology & Mineral Resources
     url: https://geoinfo.nmt.edu
   contact:
+    name: NM Bureau of Geology & Mineral Resources
     address: 801 Leroy Place
     city: Socorro
     stateorprovince: New Mexico
     postalcode: "87801"
     country: USA
+    email: data-services-nmbg@nmt.edu
 
 resources:
 {% for product in products %}
@@ -48,7 +60,7 @@ resources:
       - water
       - groundwater
       - New Mexico
-    extent:
+    extents:
       spatial:
         bbox:
           - -109.05
@@ -58,25 +70,33 @@ resources:
         crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
 {% if product.output_type == 'ogc_timeseries' %}
       temporal:
-        interval:
-          - - "1900-01-01T00:00:00Z"
-            - null
+        begin: 1900-01-01T00:00:00Z   # unquoted: pygeoapi needs a tz-aware datetime, not a string
+        end: null
 {% endif %}
     providers:
+{% if product.id in parquet %}
+      # Chosen by generate_config.py when latest.parquet is usable.
+      - type: feature
+        name: Parquet
+        data:
+          source: {{ parquet_root }}/{{ product.id }}/latest.parquet
+        id_field: {{ parquet[product.id] }}
+{% if product.output_type == 'ogc_timeseries' %}
+        time_field: datetime
+{% endif %}
+{% else %}
       - type: feature
         name: OGR
         data:
           source_type: GeoJSON
-          source: /vsigs/{{ gcs_bucket }}/products/{{ product.id }}/latest.geojson
+          source: {{ geojson_root }}/{{ product.id }}/latest.geojson
           source_options:
             GDAL_HTTP_UNSAFESSL: "NO"
           gdal_ogr_options:
             EMPTY_AS_NULL: "NO"
             GDAL_CACHEMAX: "64"
         id_field: id
-        layer: OGRGeoJSON
-{% if product.output_type == 'ogc_timeseries' %}
-        time_field: datetime
+        layer: latest   # GDAL names a GeoJSON layer after the file basename
 {% endif %}
 
 {% endfor %}

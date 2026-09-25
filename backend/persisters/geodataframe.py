@@ -24,6 +24,7 @@ numberReturned and product-level extras) is a product concern that stays in
 
 import io
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import geopandas as gpd
@@ -292,3 +293,112 @@ def geojson_to_geopackage(geojson_path, layer_name: str, out_dir) -> tuple:
     gpkg_path = Path(out_dir) / f"{layer_name}.gpkg"
     bbox = write_geopackage(gdf, str(gpkg_path), layer_name)
     return gpkg_path, bbox
+
+
+# ---------------------------------------------------------------------------
+# GeoParquet output for pygeoapi's Parquet provider (SPEC §6.1).
+# ---------------------------------------------------------------------------
+
+PARQUET_ID_FIELD = "feature_id"
+PARQUET_TIME_FIELD = "datetime"
+# Sort keys before datetime, so an `id=` filter skips row groups. id comes
+# first because clients filter on it alone.
+PARQUET_SITE_FIELDS = ("id", "source")
+# Bump when the output changes, so existing latest.parquet files get rewritten.
+PARQUET_FORMAT_VERSION = "2"
+
+
+def _utc_timestamp_ms(value):
+    """ISO-8601 string -> UTC datetime (naive values taken as UTC), or None.
+    Parsed in Python: pandas ns timestamps overflow past 2262, and Arrow
+    rejects offset-less strings for a tz-aware type."""
+    if _is_null(value):
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def _unique_feature_ids(features: list[dict]) -> list[str]:
+    """Feature ids as strings, with repeats suffixed ``:2``, ``:3``, … so
+    ``/items/{id}`` finds one feature. A missing id becomes the position."""
+    seen: dict[str, int] = {}
+    out = []
+    for i, f in enumerate(features, start=1):
+        fid = str(f["id"]) if f.get("id") is not None else str(i)
+        n = seen.get(fid, 0) + 1
+        seen[fid] = n
+        out.append(fid if n == 1 else f"{fid}:{n}")
+    return out
+
+
+def _scalar_kind(v) -> str:
+    if isinstance(v, bool):
+        return "bool"
+    if isinstance(v, (int, float)):
+        return "number"
+    return type(v).__name__
+
+
+def _stringify_multi_type_column(gdf: pd.DataFrame, col: str) -> None:
+    """Cast *col* to str in place if it mixes bool/number/str values
+    (e.g. floats with 'ND'); Arrow needs one type per column."""
+    kinds = {_scalar_kind(v) for v in gdf[col] if not _is_null(v)}
+    if len(kinds) > 1:
+        gdf[col] = [None if _is_null(v) else str(v) for v in gdf[col]]
+
+
+def collection_to_geoparquet(collection: dict, out_path) -> int:
+    """Write a parsed product GeoJSON *collection* to GeoParquet 1.1 (with a
+    bbox covering column) at *out_path*. Returns the row count.
+
+    Adds a unique ``feature_id``; stores ``datetime`` as UTC ``timestamp[ms]``
+    and sorts by site then time; JSON-encodes dict/list values; stringifies
+    mixed-type columns."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    features = collection.get("features", [])
+    gdf = gpd.GeoDataFrame.from_features(features, crs="EPSG:4326")
+    gdf[PARQUET_ID_FIELD] = _unique_feature_ids(features)
+
+    for col in gdf.columns:
+        if col == "geometry":
+            continue
+        if any(isinstance(v, (dict, list)) for v in gdf[col]):
+            gdf[col] = [
+                json.dumps(v) if isinstance(v, (dict, list)) else v for v in gdf[col]
+            ]
+        _stringify_multi_type_column(gdf, col)
+
+    if PARQUET_TIME_FIELD in gdf.columns:
+        ts = pa.array(
+            [_utc_timestamp_ms(v) for v in gdf[PARQUET_TIME_FIELD]],
+            type=pa.timestamp("ms", tz="UTC"),
+        )
+        gdf[PARQUET_TIME_FIELD] = pd.arrays.ArrowExtensionArray(ts)
+        keys = [c for c in PARQUET_SITE_FIELDS if c in gdf.columns]
+        gdf = gdf.sort_values(keys + [PARQUET_TIME_FIELD], kind="stable")
+
+    gdf.to_parquet(
+        out_path,
+        index=False,
+        schema_version="1.1.0",
+        write_covering_bbox=True,
+        row_group_size=100_000,
+    )
+
+    # pandas 3 writes large_string, which the provider can't read; downcast.
+    table = pq.read_table(out_path)
+    if any(pa.types.is_large_string(f.type) for f in table.schema):
+        schema = pa.schema(
+            [
+                f.with_type(pa.string()) if pa.types.is_large_string(f.type) else f
+                for f in table.schema
+            ],
+            metadata=table.schema.metadata,
+        )
+        pq.write_table(table.cast(schema), out_path, row_group_size=100_000)
+    return table.num_rows

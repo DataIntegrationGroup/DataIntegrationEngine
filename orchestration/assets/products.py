@@ -547,6 +547,7 @@ def _build_combine_asset(
         # dated_uri is None when the upload was skipped as unchanged.
         if info.get("dated_uri"):
             metadata["dated_uri"] = dg.MetadataValue.url(info["dated_uri"])
+        metadata.update(_parquet_metadata(info))
         # Change-recency signal for tuning run frequency: how long the data has
         # been static. A large, growing value means the schedule can be relaxed
         # (e.g. daily -> monthly); 0 means it changed this run.
@@ -637,6 +638,7 @@ def _build_correlation_combine_asset(product: dict, group: str) -> dg.AssetsDefi
             )
             if info.get("dated_uri"):
                 metadata["dated_uri"] = dg.MetadataValue.url(info["dated_uri"])
+            metadata.update(_parquet_metadata(info))
 
         yield dg.Output(None, metadata=metadata)
         yield dg.AssetCheckResult(
@@ -730,6 +732,7 @@ def _build_pod_age_combine_asset(product: dict, group: str) -> dg.AssetsDefiniti
             )
             if info.get("dated_uri"):
                 metadata["dated_uri"] = dg.MetadataValue.url(info["dated_uri"])
+            metadata.update(_parquet_metadata(info))
 
         yield dg.Output(None, metadata=metadata)
         yield dg.AssetCheckResult(
@@ -744,6 +747,19 @@ def _build_pod_age_combine_asset(product: dict, group: str) -> dg.AssetsDefiniti
         )
 
     return _combine_asset
+
+
+def _parquet_metadata(info: dict) -> dict:
+    """Metadata for latest.parquet. A failed conversion doesn't fail the
+    product, so it's surfaced here."""
+    meta: dict = {}
+    if info.get("parquet_status"):
+        meta["parquet_status"] = dg.MetadataValue.text(info["parquet_status"])
+    if info.get("parquet_status") != "failed" and info.get("parquet_uri"):
+        meta["parquet_uri"] = dg.MetadataValue.url(info["parquet_uri"])
+    if info.get("parquet_error"):
+        meta["parquet_error"] = dg.MetadataValue.text(info["parquet_error"])
+    return meta
 
 
 def _num_opt(value):
