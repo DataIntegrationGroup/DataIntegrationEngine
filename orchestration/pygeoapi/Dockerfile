@@ -2,8 +2,10 @@
 # pygeoapi 0.25.dev0 (geopython/pygeoapi:latest as of 2026-09-24).
 FROM geopython/pygeoapi@sha256:f3dd50a56f870d80df67416b6b07bf4d92aefa78b7e6f697564288f1cdf1df3f
 
-# pygeoapi base image includes GDAL with /vsigs/ GCS support.
-# Auth uses Application Default Credentials — no key file needed on Cloud Run.
+# Cloud Build bakes the product files into the image (BAKE_PRODUCTS=1 below),
+# so the service reads local disk. Without it the config reads GCS directly:
+# the base image's GDAL has /vsigs/ support, and auth uses Application Default
+# Credentials — no key file needed on Cloud Run.
 
 WORKDIR /pygeoapi
 
@@ -27,15 +29,21 @@ COPY config/products.yaml /tmp/products.yaml
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.
 # jinja2 and PyYAML are pygeoapi dependencies, already in /venv.
-# CHECK_PARQUET=1 (set by cloudbuild.yaml) serves each product from its
-# latest.parquet when a usable one is in GCS; the build needs GCS access for
-# that (docker build --network=cloudbuild). Without it every product is GeoJSON.
+# BAKE_PRODUCTS=1 (set by cloudbuild.yaml) copies each product's usable
+# latest.parquet, or else its latest.geojson, from GCS into /data/products and
+# serves it from there; new data therefore needs a rebuild. The build needs GCS
+# access for that (docker build --network=cloudbuild). Build with --no-cache
+# locally, or Docker reuses the previous download.
+# CHECK_PARQUET=1 picks the same files but keeps reading them from GCS.
+# With neither, every product is GeoJSON read from GCS.
+ARG BAKE_PRODUCTS=0
 ARG CHECK_PARQUET=0
 RUN /venv/bin/python3 /tmp/generate_config.py \
       --products /tmp/products.yaml \
       --template /tmp/config.yml.j2 \
       --output /pygeoapi/local.config.yml \
-      $([ "$CHECK_PARQUET" = "1" ] && echo --check-parquet)
+      $([ "$CHECK_PARQUET" = "1" ] && echo --check-parquet) \
+      $([ "$BAKE_PRODUCTS" = "1" ] && echo --bake-to /data/products)
 
 EXPOSE 80
 

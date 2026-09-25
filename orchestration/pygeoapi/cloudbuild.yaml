@@ -2,11 +2,12 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
-      # generate_config.py checks GCS for each product's latest.parquet during
-      # the build; the cloudbuild network gives it the build account's
-      # credentials (needs storage.objectViewer on the products bucket).
+      # generate_config.py copies each product's latest.parquet (when usable)
+      # or latest.geojson from GCS into the image; the cloudbuild network gives
+      # it the build account's credentials (needs storage.objectViewer on the
+      # products bucket). Each build is a fresh Docker, so the data is current.
       - '--network=cloudbuild'
-      - '--build-arg=CHECK_PARQUET=1'
+      - '--build-arg=BAKE_PRODUCTS=1'
       - '-t'
       - '$_REGION-docker.pkg.dev/$PROJECT_ID/die/die-pygeoapi:$COMMIT_SHA'
       - '-t'

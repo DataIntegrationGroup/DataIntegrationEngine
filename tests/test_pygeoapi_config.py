@@ -53,11 +53,11 @@ def _write_parquet(root: Path, pid: str, features: list) -> None:
     collection_to_geoparquet({"features": features}, root / pid / "latest.parquet")
 
 
-def _render(tmp_path, products, check_parquet=True, source_root=None) -> dict:
+def _render(tmp_path, products, check_parquet=True, source_root=None, bake_to=None) -> dict:
     products_path = tmp_path / "products.yaml"
     products_path.write_text(yaml.safe_dump({"gcs_bucket": "bkt", "products": products}))
     out = tmp_path / "config.yml"
-    gc.generate(products_path, TEMPLATE, out, check_parquet, source_root)
+    gc.generate(products_path, TEMPLATE, out, check_parquet, source_root, bake_to)
     return yaml.safe_load(out.read_text())["resources"]
 
 
@@ -139,3 +139,26 @@ def test_older_parquet_without_feature_id_uses_id(tmp_path):
     gdf.to_parquet(root / "a" / "latest.parquet", write_covering_bbox=True)
     res = _render(tmp_path, [_product("a")], source_root=str(root))
     assert res["a"]["providers"][0]["id_field"] == "id"
+
+
+def test_bake_copies_the_chosen_file_and_serves_it_locally(tmp_path):
+    root, baked = tmp_path / "products", tmp_path / "baked"
+    _write_parquet(root, "pts", [_point("x:1")])
+    _write_parquet(root, "poly", [_polygon("county")])
+    (root / "poly" / "latest.geojson").write_text('{"type": "FeatureCollection", "features": []}')
+    res = _render(
+        tmp_path, [_product("pts"), _product("poly")], False, source_root=str(root), bake_to=baked
+    )
+    assert res["pts"]["providers"][0]["data"]["source"] == f"{baked}/pts/latest.parquet"
+    assert res["poly"]["providers"][0]["data"]["source"] == f"{baked}/poly/latest.geojson"
+    assert sorted(str(p.relative_to(baked)) for p in baked.rglob("latest.*")) == [
+        "poly/latest.geojson",
+        "pts/latest.parquet",
+    ]
+
+
+def test_bake_fails_when_a_product_has_nothing_to_serve(tmp_path):
+    root = tmp_path / "products"
+    root.mkdir()
+    with pytest.raises(SystemExit, match="gone: no latest.geojson"):
+        _render(tmp_path, [_product("gone")], source_root=str(root), bake_to=tmp_path / "baked")

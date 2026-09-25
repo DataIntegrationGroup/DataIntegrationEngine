@@ -2,20 +2,24 @@
 Generate pygeoapi config.yml from products.yaml + Jinja2 template.
 
 §V: pygeoapi config MUST be generated from products.yaml — never hand-edited.
-§V: pygeoapi OGR provider MUST use /vsigs/ path (GCS); the Parquet provider
-    MUST use gs:// (GCS). --source-root exists only for local testing.
 
 Each product is served from its GeoParquet copy (latest.parquet, Parquet
 provider) when --check-parquet finds a usable one, otherwise from
 latest.geojson (OGR provider). The check runs at image build time, so a new
 Parquet file is picked up on the next build.
 
+--bake-to DIR (implies --check-parquet) copies each product's chosen file from
+GCS into DIR and points the config there, so the image serves products from
+local disk and new data needs a rebuild. Without it the config reads GCS
+directly (OGR via /vsigs/, Parquet via gs://). --source-root replaces GCS with
+a local directory, for testing only.
+
 Usage:
     python generate_config.py \
         --products ../config/products.yaml \
         --template config.yml.j2 \
         --output /pygeoapi/local.config.yml \
-        [--check-parquet] [--source-root /data/products]
+        [--check-parquet | --bake-to /data/products] [--source-root DIR]
 """
 import argparse
 import json
@@ -81,17 +85,42 @@ def parquet_id_field(uri: str, needs_time: bool) -> tuple[Optional[str], str]:
     return None, "no id column"
 
 
+def bake_file(uri: str, dest: Path) -> int:
+    """Copy *uri* (gs:// or a local path) to *dest*; returns its size in bytes."""
+    import pyarrow.fs as pafs
+
+    fs, path = pafs.FileSystem.from_uri(uri)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    pafs.copy_files(
+        path, str(dest), source_filesystem=fs, destination_filesystem=pafs.LocalFileSystem()
+    )
+    return dest.stat().st_size
+
+
+def _exists(uri: str) -> bool:
+    import pyarrow.fs as pafs
+
+    fs, path = pafs.FileSystem.from_uri(uri)
+    return fs.get_file_info(path).type != pafs.FileType.NotFound
+
+
 def generate(
     products_path: Path,
     template_path: Path,
     output_path: Path,
     check_parquet: bool = False,
     source_root: Optional[str] = None,
+    bake_to: Optional[Path] = None,
 ) -> None:
     products_config = yaml.safe_load(products_path.read_text())
     bucket = products_config["gcs_bucket"]
-    geojson_root = source_root or f"/vsigs/{bucket}/products"
-    parquet_root = source_root or f"gs://{bucket}/products"
+    store_root = source_root or f"gs://{bucket}/products"  # where products are read
+    if bake_to:
+        check_parquet = True
+        geojson_root = parquet_root = str(bake_to)
+    else:
+        geojson_root = source_root or f"/vsigs/{bucket}/products"
+        parquet_root = store_root
 
     # product id -> Parquet id_field, for products served from GeoParquet
     parquet: dict[str, str] = {}
@@ -99,16 +128,24 @@ def generate(
         pid = product["id"]
         if check_parquet:
             id_field, reason = parquet_id_field(
-                f"{parquet_root}/{pid}/latest.parquet",
+                f"{store_root}/{pid}/latest.parquet",
                 needs_time=product.get("output_type") == "ogc_timeseries",
             )
         else:
             id_field, reason = None, "Parquet check disabled"
         if id_field:
             parquet[pid] = id_field
-            print(f"  {pid}: Parquet (id_field={id_field})")
+            name, line = "latest.parquet", f"Parquet (id_field={id_field})"
         else:
-            print(f"  {pid}: GeoJSON ({reason})")
+            name, line = "latest.geojson", f"GeoJSON ({reason})"
+        if bake_to:
+            # A product with nothing to serve fails the build: the previous
+            # revision keeps serving instead of an image that can't start.
+            if not _exists(f"{store_root}/{pid}/{name}"):
+                raise SystemExit(f"{pid}: no {name} to bake ({line})")
+            size = bake_file(f"{store_root}/{pid}/{name}", Path(bake_to) / pid / name)
+            line += f", baked {size / 1e6:.1f} MB"
+        print(f"  {pid}: {line}")
 
     env = Environment(
         loader=FileSystemLoader(str(template_path.parent)),
@@ -152,10 +189,20 @@ if __name__ == "__main__":
         help="serve each product from latest.parquet when a usable one exists",
     )
     parser.add_argument(
+        "--bake-to",
+        type=Path,
+        help="copy each product's chosen file here and serve it from local disk",
+    )
+    parser.add_argument(
         "--source-root",
         help="local testing only: read products from this directory instead of GCS",
     )
     args = parser.parse_args()
     generate(
-        args.products, args.template, args.output, args.check_parquet, args.source_root
+        args.products,
+        args.template,
+        args.output,
+        args.check_parquet,
+        args.source_root,
+        args.bake_to,
     )
