@@ -395,6 +395,18 @@ class TestCollectionToGeoParquet:
             None,
         ]
 
+    def test_rows_sorted_by_site_then_time(self, tmp_path):
+        _, table = self._write(
+            tmp_path,
+            [
+                self._feature("b2", [-106, 35], source="b", id="1", datetime="2021-01-01"),
+                self._feature("a2", [-106, 35], source="a", id="2", datetime="2020-01-01"),
+                self._feature("a1", [-106, 35], source="a", id="1", datetime="2022-01-01"),
+                self._feature("a1", [-106, 35], source="a", id="1", datetime="2019-01-01"),
+            ],
+        )
+        assert table.to_pydict()["feature_id"] == ["a1:2", "a1", "b2", "a2"]
+
     def test_mixed_and_nested_values_become_strings(self, tmp_path):
         _, table = self._write(
             tmp_path,

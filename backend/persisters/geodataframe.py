@@ -307,6 +307,10 @@ def geojson_to_geopackage(geojson_path, layer_name: str, out_dir) -> tuple:
 
 PARQUET_ID_FIELD = "feature_id"
 PARQUET_TIME_FIELD = "datetime"
+# Rows with a datetime are sorted by these (when present), then by time, so one
+# site's readings sit in few row groups and an `id=` filter can skip the rest.
+# id first: clients filter by id alone, so row-group id ranges must not overlap.
+PARQUET_SITE_FIELDS = ("id", "source")
 
 
 def _utc_timestamp_ms(value):
@@ -364,7 +368,9 @@ def collection_to_geoparquet(collection: dict, out_path) -> int:
 
     - ``feature_id``: each feature's top-level GeoJSON id, made unique.
     - ``datetime`` (when present): tz-aware UTC ``timestamp[ms]``; rows are
-      sorted by it so row-group statistics can prune ``datetime`` queries.
+      sorted by site (``id``, ``source``) then time, so row-group statistics
+      can prune a one-well query. ``datetime`` queries across all sites can't
+      skip row groups; they stay correct.
     - dict/list property values are JSON-encoded and columns mixing scalar
       kinds (bool / number / str) are stringified, so every column has one
       Arrow type.
@@ -392,7 +398,8 @@ def collection_to_geoparquet(collection: dict, out_path) -> int:
             type=pa.timestamp("ms", tz="UTC"),
         )
         gdf[PARQUET_TIME_FIELD] = pd.arrays.ArrowExtensionArray(ts)
-        gdf = gdf.sort_values(PARQUET_TIME_FIELD, kind="stable")
+        keys = [c for c in PARQUET_SITE_FIELDS if c in gdf.columns]
+        gdf = gdf.sort_values(keys + [PARQUET_TIME_FIELD], kind="stable")
 
     gdf.to_parquet(
         out_path,
