@@ -34,10 +34,12 @@ steps:
       - '--allow-unauthenticated'
       - '--port=80'
       - '--service-account=die-pygeoapi@$PROJECT_ID.iam.gserviceaccount.com'   # needs storage.objectViewer on the products bucket
-      - '--memory=2Gi'   # Parquet provider peaked at 1.2-2.0 GB across 4 workers locally
+      - '--memory=2Gi'
       # CPL_MACHINE_IS_GCE: GDAL can't detect Cloud Run as GCE, so /vsigs/ skips the
       # metadata-server credentials and every GeoJSON collection fails without it.
-      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app,CPL_MACHINE_IS_GCE=YES'
+      # WSGI_WORKERS=2 (base image default 4): under sustained 10,000-row pages, 4
+      # workers reached the 2 GiB cap locally; 2 peaked at ~1.8 GiB, same timings.
+      - '--set-env-vars=PYGEOAPI_SERVER_URL=https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app,CPL_MACHINE_IS_GCE=YES,WSGI_WORKERS=2'
 
 substitutions:
   _REGION: us-central1
