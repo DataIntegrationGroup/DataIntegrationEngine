@@ -13,6 +13,10 @@ fix silently. When a fix lands upstream, delete it here.
    datetimes, and comparing them with a tz-aware timestamp column raises (500).
    Treat naive bounds as UTC. generate_config.py only sets time_field for
    Parquet files whose datetime column is tz-aware, so this is always safe here.
+3. bbox: responses were built with geopandas ``__geo_interface__``, which adds a
+   collection bbox — ``[NaN, NaN, NaN, NaN]`` for an empty result, invalid JSON
+   that browsers can't parse — and a bbox on every feature. Build them without
+   bboxes, matching the OGR (GeoJSON) collections.
 
 Usage:
     python patch_pygeoapi.py [path/to/pygeoapi/provider/parquet.py]
@@ -33,6 +37,17 @@ FIXES = [
         "datetime: naive instant is UTC",
         "target_time = isoparse(datetime_)",
         "target_time = _utc(isoparse(datetime_))",
+    ),
+    (
+        "bbox: items response",
+        "result = gdf.__geo_interface__",
+        "result = gdf.to_geo_dict(na='null', show_bbox=False, drop_id=False)",
+    ),
+    (
+        "bbox: single item",
+        "return gdf.__geo_interface__['features'][0]",
+        "return gdf.to_geo_dict(\n"
+        "                na='null', show_bbox=False, drop_id=False)['features'][0]",
     ),
 ]
 

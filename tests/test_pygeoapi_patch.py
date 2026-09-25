@@ -26,6 +26,8 @@ SOURCE = """
                 if read > limit:
                     batches_list.append(batch.slice(0, limit + 1))
                     break
+            return gdf.__geo_interface__['features'][0]
+            result = gdf.__geo_interface__
 """
 
 
@@ -34,6 +36,8 @@ def test_all_fixes_apply():
     assert "limit + 1 - (read - batch.num_rows)" in out
     assert out.count("_utc(isoparse(") == 3
     assert "def _utc(value):" in out
+    assert "__geo_interface__" not in out
+    assert out.count("show_bbox=False") == 2
 
 
 def test_changed_source_fails():
