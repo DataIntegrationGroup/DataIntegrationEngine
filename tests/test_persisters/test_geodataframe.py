@@ -327,8 +327,7 @@ class TestGeojsonToGeopackage:
 
 
 class TestCollectionToGeoParquet:
-    """The pygeoapi path: product FeatureCollection → latest.parquet in the shape
-    pygeoapi's Parquet provider needs (see generate_config.parquet_id_field)."""
+    """Product FeatureCollection -> latest.parquet for pygeoapi."""
 
     @staticmethod
     def _feature(fid, coords, **props):

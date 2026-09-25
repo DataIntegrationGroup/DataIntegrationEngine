@@ -3,16 +3,10 @@ Generate pygeoapi config.yml from products.yaml + Jinja2 template.
 
 §V: pygeoapi config MUST be generated from products.yaml — never hand-edited.
 
-Each product is served from its GeoParquet copy (latest.parquet, Parquet
-provider) when --check-parquet finds a usable one, otherwise from
-latest.geojson (OGR provider). The check runs at image build time, so a new
-Parquet file is picked up on the next build.
-
---bake-to DIR (implies --check-parquet) copies each product's chosen file from
-GCS into DIR and points the config there, so the image serves products from
-local disk and new data needs a rebuild. Without it the config reads GCS
-directly (OGR via /vsigs/, Parquet via gs://). --source-root replaces GCS with
-a local directory, for testing only.
+--check-parquet: serve each product from latest.parquet when usable, else
+latest.geojson. --bake-to DIR (implies --check-parquet): also copy the chosen
+file into DIR and serve it from there. --source-root: read a local directory
+instead of GCS (testing only).
 
 Usage:
     python generate_config.py \
@@ -29,29 +23,21 @@ from typing import Optional
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
-# Columns the pipeline writes into latest.parquet
-# (backend.persisters.geodataframe.collection_to_geoparquet).
-PARQUET_ID_FIELDS = ("feature_id", "id")  # preferred first; feature_id is unique
+PARQUET_ID_FIELDS = ("feature_id", "id")  # first found wins; feature_id is unique
 TIME_FIELD = "datetime"
-# pygeoapi's Parquet provider answers `bbox` by containment (feature bbox fully
-# inside the query box), not intersection like OGR. That's the same answer for
-# points but drops polygons that cross the box edge, so only point layers move.
+# The Parquet provider's bbox filter is containment-only, which drops polygons
+# crossing the box edge, so only point layers use it.
 POINT_TYPES = {"Point", "Point Z"}
 
 
 def parquet_id_field(uri: str, needs_time: bool) -> tuple[Optional[str], str]:
-    """Inspect the Parquet file at *uri* (gs:// or a local path) by reading only
-    its footer. Returns ``(id_field, reason)``: the id column pygeoapi should
-    use, or ``None`` with the reason the GeoJSON should be served instead.
+    """Check the Parquet footer at *uri* (gs:// or local). Returns
+    ``(id_field, "ok")`` if usable, else ``(None, reason)``.
 
-    Usable means GeoParquet ``geo`` metadata with a bbox covering column (the
-    Parquet provider can't answer ``bbox`` queries without it), point-only
-    geometry (see POINT_TYPES), an id column, and — for timeseries products — a
-    tz-aware ``datetime`` timestamp.
-
-    A missing or unreadable file falls back to GeoJSON. Any other error
-    (permissions, network) is raised: failing the build beats silently serving
-    every product as GeoJSON because a bucket grant is missing."""
+    Usable: GeoParquet metadata with a bbox covering column, point geometry,
+    an id column, and (if *needs_time*) a tz-aware ``datetime``. A missing or
+    unreadable file returns None; other errors (e.g. permissions) raise, so
+    the build fails instead of silently serving GeoJSON."""
     import pyarrow as pa
     import pyarrow.fs as pafs
     import pyarrow.parquet as pq
@@ -114,7 +100,7 @@ def generate(
 ) -> None:
     products_config = yaml.safe_load(products_path.read_text())
     bucket = products_config["gcs_bucket"]
-    store_root = source_root or f"gs://{bucket}/products"  # where products are read
+    store_root = source_root or f"gs://{bucket}/products"
     if bake_to:
         check_parquet = True
         geojson_root = parquet_root = str(bake_to)
@@ -139,8 +125,7 @@ def generate(
         else:
             name, line = "latest.geojson", f"GeoJSON ({reason})"
         if bake_to:
-            # A product with nothing to serve fails the build: the previous
-            # revision keeps serving instead of an image that can't start.
+            # Fail the build so the previous revision keeps serving.
             if not _exists(f"{store_root}/{pid}/{name}"):
                 raise SystemExit(f"{pid}: no {name} to bake ({line})")
             size = bake_file(f"{store_root}/{pid}/{name}", Path(bake_to) / pid / name)

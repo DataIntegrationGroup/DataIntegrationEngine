@@ -1,7 +1,4 @@
-"""Tests for GCSResource's latest.parquet sync (orchestration/resources/gcs.py):
-Parquet is written next to latest.geojson, backfilled when the GeoJSON is
-unchanged, and a failed conversion deletes any stale copy without failing the
-product."""
+"""Tests for GCSResource's latest.parquet sync."""
 
 import json
 

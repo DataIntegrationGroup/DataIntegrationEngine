@@ -1,5 +1,4 @@
-"""Tests for orchestration/pygeoapi/patch_pygeoapi.py: each fix applies exactly
-once, and the build fails when the pygeoapi source it targets has changed."""
+"""Tests for orchestration/pygeoapi/patch_pygeoapi.py."""
 
 import importlib.util
 from pathlib import Path

@@ -8,7 +8,7 @@ server:
   language: en-US
   cors: true
   pretty_print: false
-  gzip: true   # Cloud Run does not compress; timeseries pages shrink 10-45x
+  gzip: true   # Cloud Run doesn't compress
   limits:
     default_items: 500
     max_items: 10000   # NewWeaver requests limit=10000
@@ -75,9 +75,7 @@ resources:
 {% endif %}
     providers:
 {% if product.id in parquet %}
-      # GeoParquet via the Parquet provider — chosen by generate_config.py when
-      # latest.parquet is usable. Faster than OGR (indexed reads instead of a full
-      # GeoJSON parse per request) and the only one that applies datetime filters.
+      # Chosen by generate_config.py when latest.parquet is usable.
       - type: feature
         name: Parquet
         data:

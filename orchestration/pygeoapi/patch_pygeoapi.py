@@ -1,26 +1,14 @@
 """
-Patch pygeoapi's Parquet provider in the image (run once at build time).
+Patch pygeoapi's Parquet provider at build time. Each target must occur exactly
+once, or the build fails. Delete a fix once it lands upstream.
 
-Each fix replaces source text that must occur exactly once; otherwise the
-script exits non-zero and fails the build, so a base-image bump can't drop a
-fix silently. When a fix lands upstream, delete it here.
-
-1. Paging: `_response_feature_collection` slices the batch that crosses
-   `limit` to `limit + 1` rows, ignoring the rows already taken from earlier
-   batches. A filtered page then holds up to limit + 1 + (earlier batches)
-   rows, and pages overlap.
-2. Date-only `datetime` bounds (e.g. 2020-01-01/2020-12-31) parse to naive
-   datetimes, and comparing them with a tz-aware timestamp column raises (500).
-   Treat naive bounds as UTC. generate_config.py only sets time_field for
-   Parquet files whose datetime column is tz-aware, so this is always safe here.
-3. bbox: responses were built with geopandas ``__geo_interface__``, which adds a
-   collection bbox — ``[NaN, NaN, NaN, NaN]`` for an empty result, invalid JSON
-   that browsers can't parse — and a bbox on every feature. Build them without
-   bboxes, matching the OGR (GeoJSON) collections.
-4. numberMatched: items pages reported ``offset + rows returned`` (one more than
-   ``offset + limit`` while more rows exist), not a total. Count the filtered
-   rows instead, as ``resulttype=hits`` already does. The ``next`` link, which
-   compares numberMatched with offset + limit, is unaffected.
+1. Paging: the batch crossing `limit` was sliced to limit + 1 rows, ignoring
+   rows already read, so pages were too long and overlapped.
+2. Date-only `datetime` bounds were naive and raised against the tz-aware
+   column (500). Treat them as UTC; time_field is only set for tz-aware files.
+3. bbox: `__geo_interface__` added bboxes, [NaN, NaN, NaN, NaN] (invalid JSON)
+   when empty. Omit them.
+4. numberMatched: report the filtered row count, not offset + rows returned.
 
 Usage:
     python patch_pygeoapi.py [path/to/pygeoapi/provider/parquet.py]
@@ -63,7 +51,7 @@ FIXES = [
 UTC_HELPER = '''
 
 def _utc(value):
-    """Patched in by DIE (orchestration/pygeoapi/patch_pygeoapi.py)."""
+    """Added by DIE's patch_pygeoapi.py: naive datetimes are UTC."""
     from datetime import timezone
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 '''

@@ -339,7 +339,7 @@ server:
   language: en-US
   cors: true
   pretty_print: false
-  gzip: true   # Cloud Run does not compress; timeseries pages shrink 10-45x
+  gzip: true   # Cloud Run doesn't compress
   limits:
     default_items: 500
     max_items: 10000   # NewWeaver requests limit=10000
@@ -406,9 +406,7 @@ resources:
 {% endif %}
     providers:
 {% if product.id in parquet %}
-      # GeoParquet via the Parquet provider — chosen by generate_config.py when
-      # latest.parquet is usable. Faster than OGR (indexed reads instead of a full
-      # GeoJSON parse per request) and the only one that applies datetime filters.
+      # Chosen by generate_config.py when latest.parquet is usable.
       - type: feature
         name: Parquet
         data:
@@ -487,14 +485,11 @@ docker run --rm --entrypoint /venv/bin/python3 \
 Build context is `orchestration/` so `config/products.yaml` can be copied.
 
 ```dockerfile
-# Pinned: patch_pygeoapi.py edits this version's Parquet provider source.
-# pygeoapi 0.25.dev0 (geopython/pygeoapi:latest as of 2026-09-24).
+# Pinned for patch_pygeoapi.py: pygeoapi 0.25.dev0 (:latest on 2026-09-24).
 FROM geopython/pygeoapi@sha256:f3dd50a56f870d80df67416b6b07bf4d92aefa78b7e6f697564288f1cdf1df3f
 
-# Cloud Build bakes the product files into the image (BAKE_PRODUCTS=1 below),
-# so the service reads local disk. Without it the config reads GCS directly:
-# the base image's GDAL has /vsigs/ support, and auth uses Application Default
-# Credentials — no key file needed on Cloud Run.
+# Unbaked images read GCS directly (GDAL /vsigs/, Application Default
+# Credentials).
 
 WORKDIR /pygeoapi
 
@@ -504,8 +499,7 @@ WORKDIR /pygeoapi
 RUN /venv/bin/python3 -m pip install --no-cache-dir --quiet \
       pyarrow==25.0.1 geopandas==1.1.4
 
-# Fix the Parquet provider's paging and date-only datetime queries. Fails the
-# build if the source it patches has changed (see the script's docstring).
+# Fix Parquet provider bugs; fails the build if the patched source changed.
 COPY pygeoapi/patch_pygeoapi.py /tmp/patch_pygeoapi.py
 RUN /venv/bin/python3 /tmp/patch_pygeoapi.py
 
@@ -518,13 +512,11 @@ COPY config/products.yaml /tmp/products.yaml
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.
 # jinja2 and PyYAML are pygeoapi dependencies, already in /venv.
-# BAKE_PRODUCTS=1 (set by cloudbuild.yaml) copies each product's usable
-# latest.parquet, or else its latest.geojson, from GCS into /data/products and
-# serves it from there; new data therefore needs a rebuild. The build needs GCS
-# access for that (docker build --network=cloudbuild). Build with --no-cache
-# locally, or Docker reuses the previous download.
-# CHECK_PARQUET=1 picks the same files but keeps reading them from GCS.
-# With neither, every product is GeoJSON read from GCS.
+# BAKE_PRODUCTS=1 (cloudbuild.yaml): copy each product's file from GCS into
+# /data/products and serve it locally; needs GCS access at build time. Use
+# --no-cache locally to re-download.
+# CHECK_PARQUET=1: choose Parquet vs GeoJSON the same way, but read GCS.
+# Neither: GeoJSON from GCS.
 ARG BAKE_PRODUCTS=0
 ARG CHECK_PARQUET=0
 RUN /venv/bin/python3 /tmp/generate_config.py \

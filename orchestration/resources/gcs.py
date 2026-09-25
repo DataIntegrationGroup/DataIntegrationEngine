@@ -95,9 +95,7 @@ class GCSResource(dg.ConfigurableResource):
         Dedup compares a content hash (ignoring the volatile timeStamp) against
         the hash stored on the current latest.geojson's metadata.
 
-        Either way, latest.parquet is then brought in line with the GeoJSON
-        (see :meth:`_sync_parquet`) — so an unchanged product still gets its
-        Parquet backfilled.
+        Either way, latest.parquet is then synced (:meth:`_sync_parquet`).
 
         Returns dict with:
           dated_uri: gs://bucket/products/{product_id}/{date}.geojson (None if skipped)
@@ -174,14 +172,10 @@ class GCSResource(dg.ConfigurableResource):
     def _sync_parquet(
         self, bucket, product_id: str, data: dict, content_hash: str, local_path: str
     ) -> dict:
-        """Make latest.parquet match the GeoJSON whose parsed content is *data*.
-
-        Skips the write when latest.parquet already carries *content_hash* and
-        the current PARQUET_FORMAT_VERSION, so a converter change rewrites
-        files whose GeoJSON hasn't changed. Otherwise converts and uploads it (a single GCS upload replaces the
-        object atomically). A conversion failure never fails the product — the
-        GeoJSON is already published and pygeoapi falls back to it — but any
-        existing latest.parquet is deleted so a stale copy can't be served."""
+        """Write latest.parquet from *data* unless it already carries
+        *content_hash* and the current PARQUET_FORMAT_VERSION. A failed
+        conversion doesn't fail the product (GeoJSON is the fallback), but
+        deletes any stale latest.parquet."""
         key = f"{self.products_prefix}/{product_id}/latest.parquet"
         info: dict = {"parquet_uri": f"gs://{self.bucket_name}/{key}"}
         from backend.persisters.geodataframe import (

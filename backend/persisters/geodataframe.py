@@ -296,31 +296,22 @@ def geojson_to_geopackage(geojson_path, layer_name: str, out_dir) -> tuple:
 
 
 # ---------------------------------------------------------------------------
-# GeoParquet product output — written next to latest.geojson so pygeoapi can
-# serve the product through its Parquet provider (see SPEC §6). The provider
-# needs: GeoParquet `geo` metadata with a bbox covering column (for `bbox`
-# queries), a tz-aware timestamp for the time field (for `datetime` queries),
-# plain `string` columns (it can't describe `large_string`), and a unique id
-# column (the GeoJSON feature id; the `id` property is not unique on every
-# product, e.g. the well id on timeseries observations).
+# GeoParquet output for pygeoapi's Parquet provider (SPEC §6.1).
 # ---------------------------------------------------------------------------
 
 PARQUET_ID_FIELD = "feature_id"
 PARQUET_TIME_FIELD = "datetime"
-# Rows with a datetime are sorted by these (when present), then by time, so one
-# site's readings sit in few row groups and an `id=` filter can skip the rest.
-# id first: clients filter by id alone, so row-group id ranges must not overlap.
+# Sort keys before datetime, so an `id=` filter skips row groups. id comes
+# first because clients filter on it alone.
 PARQUET_SITE_FIELDS = ("id", "source")
-# Bump when collection_to_geoparquet's output changes for the same input, so
-# the pipeline rewrites existing latest.parquet files (see GCSResource).
+# Bump when the output changes, so existing latest.parquet files get rewritten.
 PARQUET_FORMAT_VERSION = "2"
 
 
 def _utc_timestamp_ms(value):
-    """Parse an ISO-8601 string to a tz-aware UTC datetime, or None. Naive
-    values (e.g. a bare date) are taken as UTC. Python datetimes are used rather
-    than pandas/Arrow parsing because pandas' ns timestamps overflow past 2262 and
-    Arrow rejects offset-less strings for a tz-aware target."""
+    """ISO-8601 string -> UTC datetime (naive values taken as UTC), or None.
+    Parsed in Python: pandas ns timestamps overflow past 2262, and Arrow
+    rejects offset-less strings for a tz-aware type."""
     if _is_null(value):
         return None
     try:
@@ -331,11 +322,8 @@ def _utc_timestamp_ms(value):
 
 
 def _unique_feature_ids(features: list[dict]) -> list[str]:
-    """Each feature's top-level id as a string, made unique: repeats get
-    ``:2``, ``:3``, … in file order. Product ids aren't always unique — e.g.
-    timeseries ids are ``source:site:date``, so a well read several times a day
-    repeats — and ``/items/{id}`` needs one feature per id. Features without an
-    id get their 1-based position."""
+    """Feature ids as strings, with repeats suffixed ``:2``, ``:3``, … so
+    ``/items/{id}`` finds one feature. A missing id becomes the position."""
     seen: dict[str, int] = {}
     out = []
     for i, f in enumerate(features, start=1):
@@ -355,30 +343,20 @@ def _scalar_kind(v) -> str:
 
 
 def _stringify_multi_type_column(gdf: pd.DataFrame, col: str) -> None:
-    """In place: cast *col* to str when its non-null values span more than one
-    scalar kind (bool / number / str) — pyarrow needs one type per column, and
-    product properties do mix them (e.g. WQP ``parameter_value`` floats with
-    'ND', ``approval_status`` booleans with provider strings)."""
+    """Cast *col* to str in place if it mixes bool/number/str values
+    (e.g. floats with 'ND'); Arrow needs one type per column."""
     kinds = {_scalar_kind(v) for v in gdf[col] if not _is_null(v)}
     if len(kinds) > 1:
         gdf[col] = [None if _is_null(v) else str(v) for v in gdf[col]]
 
 
 def collection_to_geoparquet(collection: dict, out_path) -> int:
-    """Write a product FeatureCollection *collection* (the parsed GeoJSON) to
-    GeoParquet at *out_path* for pygeoapi's Parquet provider. Returns the row
-    count.
+    """Write a parsed product GeoJSON *collection* to GeoParquet 1.1 (with a
+    bbox covering column) at *out_path*. Returns the row count.
 
-    - ``feature_id``: each feature's top-level GeoJSON id, made unique.
-    - ``datetime`` (when present): tz-aware UTC ``timestamp[ms]``; rows are
-      sorted by site (``id``, ``source``) then time, so row-group statistics
-      can prune a one-well query. ``datetime`` queries across all sites can't
-      skip row groups; they stay correct.
-    - dict/list property values are JSON-encoded and columns mixing scalar
-      kinds (bool / number / str) are stringified, so every column has one
-      Arrow type.
-    - Written as GeoParquet 1.1 with a bbox covering column; large_string
-      columns are downcast to string."""
+    Adds a unique ``feature_id``; stores ``datetime`` as UTC ``timestamp[ms]``
+    and sorts by site then time; JSON-encodes dict/list values; stringifies
+    mixed-type columns."""
     import pyarrow as pa
     import pyarrow.parquet as pq
 
@@ -412,8 +390,7 @@ def collection_to_geoparquet(collection: dict, out_path) -> int:
         row_group_size=100_000,
     )
 
-    # pandas 3's default string dtype is Arrow large_string; the provider only
-    # understands string. Rewrite with a downcast, keeping the geo metadata.
+    # pandas 3 writes large_string, which the provider can't read; downcast.
     table = pq.read_table(out_path)
     if any(pa.types.is_large_string(f.type) for f in table.schema):
         schema = pa.schema(

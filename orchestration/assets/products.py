@@ -750,9 +750,8 @@ def _build_pod_age_combine_asset(product: dict, group: str) -> dg.AssetsDefiniti
 
 
 def _parquet_metadata(info: dict) -> dict:
-    """Materialization metadata for the latest.parquet written next to the
-    GeoJSON (see GCSResource._sync_parquet). A failed conversion doesn't fail
-    the product — pygeoapi serves the GeoJSON — so surface it here."""
+    """Metadata for latest.parquet. A failed conversion doesn't fail the
+    product, so it's surfaced here."""
     meta: dict = {}
     if info.get("parquet_status"):
         meta["parquet_status"] = dg.MetadataValue.text(info["parquet_status"])

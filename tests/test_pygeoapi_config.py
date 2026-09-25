@@ -1,6 +1,4 @@
-"""Tests for orchestration/pygeoapi/generate_config.py: each product is served
-from its latest.parquet (Parquet provider) only when the file is usable, and
-from latest.geojson (OGR provider) otherwise."""
+"""Tests for orchestration/pygeoapi/generate_config.py."""
 
 import importlib.util
 from pathlib import Path
