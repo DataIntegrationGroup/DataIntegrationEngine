@@ -27,6 +27,7 @@ SOURCE = """
                     batches_list.append(batch.slice(0, limit + 1))
                     break
             return gdf.__geo_interface__['features'][0]
+            number_matched = offset + len(rp)
             result = gdf.__geo_interface__
 """
 
@@ -38,6 +39,7 @@ def test_all_fixes_apply():
     assert "def _utc(value):" in out
     assert "__geo_interface__" not in out
     assert out.count("show_bbox=False") == 2
+    assert "number_matched = scanner.count_rows()" in out
 
 
 def test_changed_source_fails():

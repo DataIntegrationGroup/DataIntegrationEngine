@@ -17,6 +17,10 @@ fix silently. When a fix lands upstream, delete it here.
    collection bbox — ``[NaN, NaN, NaN, NaN]`` for an empty result, invalid JSON
    that browsers can't parse — and a bbox on every feature. Build them without
    bboxes, matching the OGR (GeoJSON) collections.
+4. numberMatched: items pages reported ``offset + rows returned`` (one more than
+   ``offset + limit`` while more rows exist), not a total. Count the filtered
+   rows instead, as ``resulttype=hits`` already does. The ``next`` link, which
+   compares numberMatched with offset + limit, is unaffected.
 
 Usage:
     python patch_pygeoapi.py [path/to/pygeoapi/provider/parquet.py]
@@ -48,6 +52,11 @@ FIXES = [
         "return gdf.__geo_interface__['features'][0]",
         "return gdf.to_geo_dict(\n"
         "                na='null', show_bbox=False, drop_id=False)['features'][0]",
+    ),
+    (
+        "numberMatched: true total",
+        "number_matched = offset + len(rp)",
+        "number_matched = scanner.count_rows()",
     ),
 ]
 
