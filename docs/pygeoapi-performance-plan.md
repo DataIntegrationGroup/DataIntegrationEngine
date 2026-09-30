@@ -1,7 +1,7 @@
 # Plan: pygeoapi performance and correctness (post-standup)
 
-Status: T1–T4 done on DIE-363 and deployed (2026-09-24); T5 deferred (rebuild is manual
-for now); T6 partly (format version); T7 partly (per-feature bbox). See "Progress" below.
+Status: T1–T4 done on DIE-363 and deployed (2026-09-24); T5 done on DIE-364
+(`pygeoapi_rebuild` sensor); T6 partly (format version); T7 partly (per-feature bbox). See "Progress" below.
 Picks up from the pygeoapi standup (PR #137, branch
 `DIE-359-deploy-pygeo-api-on-cloud-run`) and the per-product GeoParquet work (branch
 `DIE-363-update-the-layer-generation-code-to-land-in-pygeo-api-instead-of-geo-server`,
@@ -18,7 +18,7 @@ Measured locally: patched image, files on local disk, 4 workers, 2 GiB.
 | T2 pin + patch | done | pages are exactly 5,000 rows, no overlap, 48,809 distinct ids; date-only `datetime` returns 200 |
 | T3 sort | done, changed | sorted by **`id`, `source`**, then `datetime` (not `source` first: with source first the `id` ranges of row groups overlap and well 9033 hit 4 of 9 groups; id first, 1–2). Whole series 1.3–1.4 s vs 1.6–2.5 s time-sorted |
 | T4 bake | done | `--bake-to`; 31/31 collections pass items/bbox/by-id from baked files; 88 MB baked; `limit=10` in 13–35 ms |
-| T5 rebuild | deferred | Not automated yet. Rebuild manually after product runs publish new data (SPEC §6.6) |
+| T5 rebuild | done (DIE-364) | `pygeoapi_rebuild` sensor starts the Cloud Build trigger once product runs finish (SPEC §6.6) |
 | T6 | partial | `PARQUET_FORMAT_VERSION` done (now `"2"`, so every existing `latest.parquet` is rewritten on the next run). Others open |
 | T7 | partial | per-feature `bbox` removed (with the empty-result fix below). The `bbox` covering column is still a property |
 
@@ -36,10 +36,10 @@ memory stayed at 26–29% of 2 GiB, and the latency breakdown is almost all user
   total, so clients can fetch pages in parallel.
 - Not fixed here (separate ticket): WQP `source` labels differ between products. See T6.
 
-Until T5 is done, **each pipeline run that changes data needs a manual pygeoapi build**
-(`orchestration/pygeoapi/cloudbuild.yaml`), started after the product runs finish.
-Whatever account runs it needs `storage.objectViewer` on the products bucket for the
-bake, as well as what builds need today.
+The rebuild (`orchestration/pygeoapi/cloudbuild.yaml`) is started by the
+`pygeoapi_rebuild` sensor after product runs finish (T5). The build's account needs
+`storage.objectViewer` on the products bucket for the bake, as well as what builds need
+today.
 
 New finding — **memory at 2 GiB with 4 workers.** Under sustained 10,000-row page load the
 local container's cgroup peak reached its 2 GiB cap (anon 1.88 GiB; workers 470–650 MB
@@ -208,29 +208,21 @@ Do them in order. Each is independently shippable. Re-run the measurement protoc
   - The build log lists each product's baked file and the reason.
   - All 31 collections return 200.
 
-### T5 — Rebuild after a pipeline run (deferred; manual for now)
+### T5 — Rebuild after a pipeline run (done, DIE-364)
 
-Not being done yet. Until it is, rebuild by hand after product runs publish new data
-(SPEC §6.6). Design notes for when it's picked up:
+The `pygeoapi_rebuild` sensor (`orchestration/pygeoapi_rebuild.py`, SPEC §6.6) polls
+every 10 minutes. After a product job succeeds, and once no product job is queued or
+running, it calls `projects.locations.triggers.run` on the `die-pygeoapi-rebuild` Cloud
+Build trigger. Several runs finishing on the same day give one build.
 
-- Create a Cloud Build **trigger** on the GitHub repo, `main` branch, manual invocation,
-  using `orchestration/pygeoapi/cloudbuild.yaml`. Triggers fill `COMMIT_SHA`
-  automatically.
-- Start it when a pipeline run has published new data. Recommended: a Dagster
-  job/sensor that runs after the scheduled product runs complete. If any product's
-  materialization has `parquet_status: written` or `skipped_unchanged: false`, it calls
-  the Cloud Build `projects.triggers.run` API.
-  - One rebuild per run, not per product. Debounce, and never build mid-run, so the image
-    never bakes a half-updated set.
-  - The Dagster+ credentials (`GCP_SERVICE_ACCOUNT_KEY`) need permission to run the
-    trigger (`roles/cloudbuild.builds.editor`, or a narrower custom role).
-  - Simpler fallback: Cloud Scheduler runs the trigger on a fixed cadence after the
-    pipeline window.
-- Schedules today are **monthly and staggered** (`products.yaml`: days 1, 15, 22, 23, 25
-  at 06:00 UTC). Moving to weekly means updating those `schedule:` values. With the
-  current staggering, the trigger fires up to 5 times a month.
-- Accept: a pipeline run that changes a product results in exactly one build, and the new
-  revision serves the new data with no manual step.
+- It launches no Dagster run. Sensor ticks cost no Dagster+ credits.
+- It rebuilds after every successful product run, even if the data didn't change.
+  Skipping unchanged runs (`parquet_status`) was left out for simplicity; builds fall
+  within the Cloud Build free tier.
+- Schedules are **monthly and staggered** (`products.yaml`: days 1, 15, 22, 23, 25 at
+  06:00 America/Denver), so expect up to 5 builds a month.
+- It is stopped by default (so local and branch deployments never rebuild prod). Turn it
+  on in the prod deployment.
 
 ### T6 — Pipeline correctness fixes
 

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import dagster as dg
 import yaml
 
+from orchestration.pygeoapi_rebuild import build_rebuild_sensor
 from orchestration.resources.die_config import DIEConfigResource
 from orchestration.resources.gcs import GCSResource, AuthedGCSResource
 from orchestration.resources.geoserver import GeoServerResource
@@ -244,6 +245,7 @@ defs = dg.Definitions(
     assets=_assets,
     jobs=list(_cohort_jobs.values()),
     schedules=_schedules,
+    sensors=[build_rebuild_sensor(list(_cohort_jobs))],
     resources={
         # USGS_API_KEY is a Dagster+ secret; EnvVar resolves it at run time and
         # the resource exports it for the NWIS connector. Resolves to None when
