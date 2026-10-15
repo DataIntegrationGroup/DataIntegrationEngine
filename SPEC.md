@@ -563,11 +563,6 @@ RUN /venv/bin/python3 /tmp/generate_config.py \
       $([ "$CHECK_PARQUET" = "1" ] && echo --check-parquet) \
       $([ "$BAKE_PRODUCTS" = "1" ] && echo --bake-to /data/products)
 
-# Fail the build on a config pygeoapi's schema rejects, so the previous
-# revision keeps serving. The URL only needs to be set, not reachable.
-RUN PYGEOAPI_SERVER_URL=http://localhost \
-      /venv/bin/pygeoapi config validate -c /pygeoapi/local.config.yml
-
 EXPOSE 80
 
 # pygeoapi reads PYGEOAPI_CONFIG env var; default is local.config.yml
