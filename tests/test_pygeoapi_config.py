@@ -160,3 +160,49 @@ def test_bake_fails_when_a_product_has_nothing_to_serve(tmp_path):
     root.mkdir()
     with pytest.raises(SystemExit, match="gone: no latest.geojson"):
         _render(tmp_path, [_product("gone")], source_root=str(root), bake_to=tmp_path / "baked")
+
+
+# --- Collection metadata from the real products.yaml -------------------------
+
+PRODUCTS_YAML = PYGEOAPI_DIR.parent / "config" / "products.yaml"
+BASE_KEYWORDS = {"water", "groundwater", "New Mexico"}
+MIN_ABSTRACT_CHARS = 300
+
+
+def _real_products() -> list:
+    return yaml.safe_load(PRODUCTS_YAML.read_text())["products"]
+
+
+@pytest.fixture(scope="module")
+def real_resources(tmp_path_factory) -> dict:
+    out = tmp_path_factory.mktemp("cfg") / "config.yml"
+    gc.generate(PRODUCTS_YAML, TEMPLATE, out)
+    return yaml.safe_load(out.read_text())["resources"]
+
+
+def _with_abstract() -> list:
+    return [p for p in _real_products() if p.get("abstract")]
+
+
+@pytest.mark.parametrize("product", _with_abstract(), ids=lambda p: p["id"])
+def test_documented_product_has_abstract_keywords_and_links(real_resources, product):
+    res = real_resources[product["id"]]
+    assert res["description"] == product["abstract"]
+    assert len(res["description"]) >= MIN_ABSTRACT_CHARS
+    assert set(res["keywords"]) - BASE_KEYWORDS, "needs a product-specific keyword"
+    for link in res["links"]:
+        # pygeoapi reads link['title'] directly; a missing one breaks the collection.
+        assert {"type", "rel", "title", "href"} <= link.keys(), link
+    rels = [link["rel"] for link in res["links"]]
+    assert rels.count("describedby") == 1 and rels.count("license") == 1
+    described = next(link for link in res["links"] if link["rel"] == "describedby")
+    assert described["href"].endswith(f"/docs/products/README.md#{product['output_type']}")
+
+
+def test_undocumented_products_keep_description_and_have_no_links(real_resources):
+    for product in _real_products():
+        if product.get("abstract"):
+            continue
+        res = real_resources[product["id"]]
+        assert res["description"] == product["description"]
+        assert "links" not in res

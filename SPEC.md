@@ -254,6 +254,16 @@ products:
 
 Assets are dynamically generated from `products.yaml` at Dagster definition time.
 
+`description` is a one-line summary. It is used in the Dagster asset description, in the
+`description` of the GeoJSON collection (so changing it changes every file's content
+hash), and in pygeoapi when there is no `abstract`. Two optional keys are read only by
+the pygeoapi template (§6.2):
+- `abstract`: the collection description served by pygeoapi, 4–6 sentences in this order:
+  what one feature is; what is measured, with units; sources; the method in one sentence;
+  update cadence; the main caveat; a pointer to the data dictionary.
+- `keywords`: product-specific terms (parameter, product type, method), added after the
+  shared base keywords.
+
 ### §5.3 Schedule Strategy (MVP)
 
 One Cloud Run Job per schedule group. Cloud Scheduler triggers with `PRODUCT_ID` env var.
@@ -381,16 +391,34 @@ metadata:
     country: USA
     email: data-services-nmbg@nmt.edu
 
+{# Each output type has a "## <output_type>" section here (data dictionary + method). #}
+{% set docs_url = "https://github.com/DataIntegrationGroup/DataIntegrationEngine/blob/main/docs/products/README.md" %}
 resources:
 {% for product in products %}
   {{ product.id }}:
     type: collection
     title: {{ product.title | tojson }}
-    description: {{ product.description | tojson }}
+    description: {{ (product.abstract or product.description) | tojson }}
     keywords:
       - water
       - groundwater
       - New Mexico
+{% for keyword in product.keywords or [] %}
+      - {{ keyword | tojson }}
+{% endfor %}
+{% if product.abstract %}
+    # pygeoapi needs a title on every link (KeyError otherwise). No enclosure
+    # links: pygeoapi sends a HEAD request for each one on every request.
+    links:
+      - type: text/html
+        rel: describedby
+        title: Data dictionary and method
+        href: {{ docs_url }}#{{ product.output_type }}
+      - type: text/html
+        rel: license
+        title: CC-BY 4.0
+        href: https://creativecommons.org/licenses/by/4.0/
+{% endif %}
     extents:
       spatial:
         bbox:
@@ -432,6 +460,15 @@ resources:
 
 {% endfor %}
 ```
+
+Collection metadata: products with an `abstract` (§5.2) are served with it as their
+description, plus two links. `rel: describedby` points to the `## <output_type>` section
+of `docs/products/README.md` on `main` (data dictionary and method), and `rel: license`
+points to CC-BY 4.0; QGIS reads license per collection. Renaming that file or a section
+heading breaks the links; `tests/test_product_docs.py` checks every linked section
+exists and quotes its method text from code. Every link needs a `title` (pygeoapi reads
+it unconditionally). There are no `rel: enclosure` links, because pygeoapi sends a HEAD
+request for each one that has no `length`, on every collection request.
 
 Notes on fields current pygeoapi requires (each fails at boot or first request if wrong):
 `metadata.contact.name`, `server.map`, `extents` (plural), `server.limits` (the old
@@ -525,6 +562,11 @@ RUN /venv/bin/python3 /tmp/generate_config.py \
       --output /pygeoapi/local.config.yml \
       $([ "$CHECK_PARQUET" = "1" ] && echo --check-parquet) \
       $([ "$BAKE_PRODUCTS" = "1" ] && echo --bake-to /data/products)
+
+# Fail the build on a config pygeoapi's schema rejects, so the previous
+# revision keeps serving. The URL only needs to be set, not reachable.
+RUN PYGEOAPI_SERVER_URL=http://localhost \
+      /venv/bin/pygeoapi config validate -c /pygeoapi/local.config.yml
 
 EXPOSE 80
 
