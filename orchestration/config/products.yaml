@@ -68,13 +68,12 @@ products:
     title: "NM Water Level Trends"
     description: "Per-well depth-to-water trend (slope and category), all NM sources"
     abstract: >-
-      One feature per well with measurements of depth-to-water below ground surface,
-      labeled with the direction and rate of change of its water level. Each well's
-      record is reduced to one value per day (the shallowest depth-to-water below ground
-      surface), then tested with the Mann-Kendall test (alpha = 0.05), with the rate
-      given as a Theil-Sen slope in feet per year. Wells need at least 10 daily values,
-      or at least 4 spanning 2 or more years; others are labeled "not enough data".
-      Updated monthly. The trend is in depth-to-water below ground surface, so
+      One feature per well with depth-to-water measurements, labeled with the direction
+      and rate of change of its water level. Each well's record is reduced to one value
+      per day (the shallowest depth to water), then tested with the Mann-Kendall test
+      (alpha = 0.05), with the rate given as a Theil-Sen slope in feet per year. Wells
+      need at least 10 daily values, or at least 4 spanning 2 or more years; others are
+      labeled "not enough data". Updated monthly. The trend is in depth to water, so
       "increasing" means the water level is falling.
     keywords: [water levels, depth to water, trend, Mann-Kendall, Theil-Sen]
     schedule: "0 6 15 * *"
