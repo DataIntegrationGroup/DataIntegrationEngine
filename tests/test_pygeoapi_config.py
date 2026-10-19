@@ -187,8 +187,9 @@ def _with_abstract() -> list:
 @pytest.mark.parametrize("product", _with_abstract(), ids=lambda p: p["id"])
 def test_documented_product_has_abstract_keywords_and_links(real_resources, product):
     res = real_resources[product["id"]]
-    assert res["description"] == product["abstract"]
-    assert len(res["description"]) >= MIN_ABSTRACT_CHARS
+    assert len(product["abstract"]) >= MIN_ABSTRACT_CHARS
+    assert res["description"].startswith(product["abstract"].strip())
+    assert res["description"].endswith(gc.DOCS_POINTER)
     assert set(res["keywords"]) - BASE_KEYWORDS, "needs a product-specific keyword"
     for link in res["links"]:
         # pygeoapi reads link['title'] directly; a missing one breaks the collection.
@@ -206,3 +207,56 @@ def test_undocumented_products_keep_description_and_have_no_links(real_resources
         res = real_resources[product["id"]]
         assert res["description"] == product["description"]
         assert "links" not in res
+
+
+# --- Sources in the abstract ---------------------------------------------------
+
+ABBREVIATIONS = {"NMBGMR": "NMBGMR", "USGS-NWIS": "USGS NWIS", "WQP": "WQP"}
+
+
+def test_layer_sources_maps_tags_merges_and_orders_by_count(capsys):
+    counts = {"NMBGMR": 5, "USGS-NWIS": 9, "WQP/NWIS": 3, "WQP/STORET": 4, "NEW": 1}
+    assert gc.layer_sources(counts, ABBREVIATIONS, "p") == ["USGS NWIS", "WQP", "NMBGMR", "NEW"]
+    assert "source 'NEW' is not in sources.yaml" in capsys.readouterr().out
+
+
+def test_tag_prefix_needs_a_slash():
+    assert gc.source_abbreviation("WQP/NWIS", ABBREVIATIONS) == "WQP"
+    assert gc.source_abbreviation("WQPX", ABBREVIATIONS) is None
+
+
+def _registry(tmp_path) -> Path:
+    path = tmp_path / "sources.yaml"
+    path.write_text(yaml.safe_dump({"sources": [
+        {"key": "nwis", "tags": ["USGS-NWIS"], "abbreviation": "USGS NWIS", "name": "n"},
+        {"key": "wqp", "tags": ["WQP"], "abbreviation": "WQP", "name": "w"},
+    ]}))
+    return path
+
+
+def test_abstract_lists_sources_found_in_the_layer(tmp_path):
+    root = tmp_path / "products"
+    _write_parquet(root, "a", [
+        _point("1", source="WQP/NWIS"), _point("2", source="USGS-NWIS"), _point("3", source="USGS-NWIS"),
+    ])
+    _registry(tmp_path)
+    product = {**_product("a"), "abstract": "One feature per well."}
+    res = _render(tmp_path, [product], source_root=str(root))
+    assert res["a"]["description"] == (
+        f"One feature per well. Sources: USGS NWIS, WQP. {gc.DOCS_POINTER}"
+    )
+
+
+def test_abstract_without_source_column_skips_the_sources_sentence(tmp_path):
+    root = tmp_path / "products"
+    _write_parquet(root, "a", [_point("1")])
+    _registry(tmp_path)
+    product = {**_product("a"), "abstract": "One feature per well."}
+    res = _render(tmp_path, [product], source_root=str(root))
+    assert res["a"]["description"] == f"One feature per well. {gc.DOCS_POINTER}"
+
+
+def test_abstract_without_a_registry_fails(tmp_path):
+    product = {**_product("a"), "abstract": "One feature per well."}
+    with pytest.raises(SystemExit, match="no source registry"):
+        _render(tmp_path, [product], check_parquet=False)

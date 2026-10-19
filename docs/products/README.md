@@ -38,14 +38,14 @@ Water-level products combine measurements from:
 
 **Products:** `nm_waterlevel_trends`
 
-One point feature per well that has depth-to-water measurements, labeled with
-the direction and rate of change of its water level.
+One point feature per well that has measurements of depth-to-water below ground
+surface, labeled with the direction and rate of change of its water level.
 
 ### Method
 
 > Depth-to-water trend per well. Observations are downsampled to one point per calendar day, keeping the daily MINIMUM depth-to-water (shallowest reading). Monotonic trend is tested with the non-parametric Mann-Kendall test (pymannkendall.original_test, alpha=0.05) on the daily series ordered by time; the rate is the Theil-Sen slope vs time. A well is classified only when it has at least 10 daily points, or at least 4 daily points spanning at least 2 years; otherwise 'not enough data'. A significant increasing slope is 'increasing' (water level getting DEEPER, i.e. a declining water table), a significant decreasing slope is 'decreasing' (water level getting SHALLOWER), else 'stable'. Mirrors the Ocotillo API ogc_depth_to_water_trend_wells materialized view, using Mann-Kendall + Theil-Sen instead of OLS.
 
-In plain terms: the trend is in **depth to water**, so `increasing` means the
+In plain terms: the trend is in **depth-to-water below ground surface**, so `increasing` means the
 water level is falling and `decreasing` means it is rising. A `stable` well has
 no statistically significant trend at the 95% level. That doesn't prove the
 level is flat, especially for short records.
@@ -65,7 +65,7 @@ level is flat, especially for short records.
 | `first_observation_datetime` | Date of the first daily value (UTC, ISO 8601) | | |
 | `last_observation_datetime` | Date of the last daily value (UTC, ISO 8601) | | |
 | `span_years` | Time from first to last daily value | years | ≥ 0 |
-| `slope_per_year` | Theil-Sen slope of depth to water vs time; positive = getting deeper | ft/year | null when `not enough data` |
+| `slope_per_year` | Theil-Sen slope of depth-to-water below ground surface vs time; positive = getting deeper | ft/year | null when `not enough data` |
 | `slope_units` | Units of `slope_per_year` | | `ft/year` |
 | `trend_category` | Mann-Kendall result | | `increasing`, `decreasing`, `stable`, `not enough data` |
 | `mk_p_value` | Mann-Kendall p-value; significant when < 0.05 | | 0–1, null when `not enough data` |

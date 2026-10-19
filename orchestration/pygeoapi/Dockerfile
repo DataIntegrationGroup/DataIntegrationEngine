@@ -21,6 +21,7 @@ RUN /venv/bin/python3 /tmp/patch_pygeoapi.py
 COPY pygeoapi/config.yml.j2 /tmp/config.yml.j2
 COPY pygeoapi/generate_config.py /tmp/generate_config.py
 COPY config/products.yaml /tmp/products.yaml
+COPY config/sources.yaml /tmp/sources.yaml
 
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.

@@ -5,7 +5,8 @@ output type needs a ``## <output_type>`` section. Each section quotes its
 product's method description verbatim, so the docs can't drift from the code.
 
 Set DIE_SAMPLE_PRODUCTS to a folder of ``<product_id>/latest.parquet`` files
-(e.g. ~/pygeoapi-test/pipeline) to also check every column is documented.
+(e.g. ~/pygeoapi-test/pipeline) to also check every column is documented and
+every ``source`` value is in orchestration/config/sources.yaml.
 """
 
 import os
@@ -20,6 +21,7 @@ from backend.trend_stats import TREND_METHOD_DESCRIPTION
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "docs" / "products" / "README.md"
 PRODUCTS_YAML = ROOT / "orchestration" / "config" / "products.yaml"
+SOURCES_YAML = ROOT / "orchestration" / "config" / "sources.yaml"
 
 # Columns documented once under "Common fields", or not shown to users.
 COMMON_COLUMNS = {"geometry", "bbox", "feature_id"}
@@ -84,3 +86,41 @@ def test_sample_columns_are_documented(product):
     columns = set(pq.read_schema(path).names) - COMMON_COLUMNS
     undocumented = columns - _field_names(_sections()[product["output_type"]])
     assert not undocumented, f"{product['id']}: undocumented fields {sorted(undocumented)}"
+
+
+# --- Source registry -----------------------------------------------------------
+
+def _registry() -> list:
+    return yaml.safe_load(SOURCES_YAML.read_text())["sources"]
+
+
+def test_registry_has_one_entry_per_backend_source():
+    from backend.config import SOURCE_DICT
+
+    keys = [src["key"] for src in _registry()]
+    assert sorted(keys) == sorted(SOURCE_DICT)
+
+
+def test_registry_entries_are_complete_and_tags_unique():
+    tags = []
+    for src in _registry():
+        assert src.get("abbreviation") and src.get("name") and src.get("tags"), src
+        tags += src["tags"]
+    assert len(tags) == len(set(tags))
+
+
+@pytest.mark.skipif(
+    not os.environ.get("DIE_SAMPLE_PRODUCTS"), reason="DIE_SAMPLE_PRODUCTS not set"
+)
+def test_sample_source_values_are_in_the_registry():
+    pq = pytest.importorskip("pyarrow.parquet")
+    pc = pytest.importorskip("pyarrow.compute")
+    tags = {tag for src in _registry() for tag in src["tags"]}
+    unknown = set()
+    for path in Path(os.environ["DIE_SAMPLE_PRODUCTS"]).expanduser().glob("*/latest.parquet"):
+        if "source" not in pq.read_schema(path).names:
+            continue
+        for value in pc.unique(pq.read_table(path, columns=["source"]).column(0)).to_pylist():
+            if value and value not in tags and not any(value.startswith(f"{t}/") for t in tags):
+                unknown.add(f"{path.parent.name}: {value}")
+    assert not unknown, sorted(unknown)

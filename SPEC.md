@@ -259,10 +259,19 @@ Assets are dynamically generated from `products.yaml` at Dagster definition time
 hash), and in pygeoapi when there is no `abstract`. Two optional keys are read only by
 the pygeoapi template (§6.2):
 - `abstract`: the collection description served by pygeoapi, 4–6 sentences in this order:
-  what one feature is; what is measured, with units; sources; the method in one sentence;
-  update cadence; the main caveat; a pointer to the data dictionary.
+  what one feature is; what is measured, with units; the method in one sentence; update
+  cadence; the main caveat. Don't list sources or link the data dictionary: the config
+  generator appends both (§6.3). Keep the first sentence short, because pygeoapi's
+  collection list shows only the first 255 characters.
 - `keywords`: product-specific terms (parameter, product type, method), added after the
   shared base keywords.
+
+Sources are registered once in `orchestration/config/sources.yaml`: one entry per
+`SOURCE_DICT` key in `backend/config.py`, with the `tags` the source writes to each
+feature's `source` property, an `abbreviation` and a full `name`. A feature's `source`
+matches a tag exactly or as `<tag>/<anything>` (`WQP/NWIS`). `tests/test_product_docs.py`
+checks the registry against `SOURCE_DICT` and, with `DIE_SAMPLE_PRODUCTS` set, against the
+`source` values in sample layers.
 
 ### §5.3 Schedule Strategy (MVP)
 
@@ -398,7 +407,7 @@ resources:
   {{ product.id }}:
     type: collection
     title: {{ product.title | tojson }}
-    description: {{ (product.abstract or product.description) | tojson }}
+    description: {{ descriptions[product.id] | tojson }}
     keywords:
       - water
       - groundwater
@@ -496,6 +505,15 @@ serving everything as GeoJSON.
 
 `--source-root DIR` replaces GCS with a local directory — local testing only.
 
+Each product with an `abstract` is described by the abstract, then "Sources: …", then a
+pointer to the data dictionary. The sources are the abbreviations (from
+`config/sources.yaml`, or `--sources`) of the distinct `source` values in the product's
+`latest.parquet`, most features first. Several tags with the same abbreviation are listed
+once. They are read only with `--check-parquet` or `--bake-to`. Products with no Parquet
+or no `source` column (the polygon layers) get no "Sources" sentence. A `source` value
+missing from the registry is listed as-is with a warning in the build log. A missing
+registry fails the build when any product has an abstract.
+
 ### §6.4 GCS Auth
 
 With baked products (the Cloud Build default) the service reads no GCS at runtime; only
@@ -545,6 +563,7 @@ RUN /venv/bin/python3 /tmp/patch_pygeoapi.py
 COPY pygeoapi/config.yml.j2 /tmp/config.yml.j2
 COPY pygeoapi/generate_config.py /tmp/generate_config.py
 COPY config/products.yaml /tmp/products.yaml
+COPY config/sources.yaml /tmp/sources.yaml
 
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.

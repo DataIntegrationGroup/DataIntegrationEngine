@@ -57,7 +57,7 @@ resources:
   {{ product.id }}:
     type: collection
     title: {{ product.title | tojson }}
-    description: {{ (product.abstract or product.description) | tojson }}
+    description: {{ descriptions[product.id] | tojson }}
     keywords:
       - water
       - groundwater
