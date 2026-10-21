@@ -4,9 +4,11 @@
 # feature's value matches a tag exactly, or as "<tag>/<anything>" (the Water
 # Quality Portal writes "WQP/<provider>", e.g. WQP/NWIS).
 #
-# generate_config.py reads the distinct `source` values in each layer and adds
-# their abbreviations to the collection's pygeoapi abstract.
-# tests/test_product_docs.py keeps this file in step with SOURCE_DICT.
+# generate_config.py reads the distinct `source` values in each layer, adds
+# their abbreviations to the collection's pygeoapi abstract, and lists the
+# values in the collection schema.
+# tests/test_product_docs.py keeps this file in step with SOURCE_DICT and the
+# Sources table in docs/products/README.md.
 
 sources:
   - key: nmbgmr_amp

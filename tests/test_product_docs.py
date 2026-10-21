@@ -109,6 +109,14 @@ def test_registry_entries_are_complete_and_tags_unique():
     assert len(tags) == len(set(tags))
 
 
+def test_readme_sources_table_matches_the_registry():
+    rows = re.findall(r"^\| `([^`]+)` \| ([^|]+) \| ([^|]+) \|$", _sections()["Sources"], flags=re.M)
+    expected = [
+        (tag, src["abbreviation"], src["name"]) for src in _registry() for tag in src["tags"]
+    ]
+    assert [tuple(cell.strip() for cell in row) for row in rows] == expected
+
+
 @pytest.mark.skipif(
     not os.environ.get("DIE_SAMPLE_PRODUCTS"), reason="DIE_SAMPLE_PRODUCTS not set"
 )
