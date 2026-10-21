@@ -13,6 +13,8 @@ from backend.persisters.geodataframe import collection_to_geoparquet  # noqa: E4
 
 PYGEOAPI_DIR = Path(__file__).resolve().parents[1] / "orchestration" / "pygeoapi"
 TEMPLATE = PYGEOAPI_DIR / "config.yml.j2"
+PARQUET = "die_providers.DieParquetProvider"
+OGR = "die_providers.DieOGRProvider"
 
 
 def _load_generate_config():
@@ -67,7 +69,7 @@ def test_without_check_every_product_is_geojson_on_gcs(tmp_path):
     res = _render(tmp_path, [_product("a"), _product("ts", "ogc_timeseries")], False)
     for pid in ("a", "ts"):
         provider = res[pid]["providers"][0]
-        assert provider["name"] == "OGR"
+        assert provider["name"] == OGR
         assert provider["data"]["source"] == f"/vsigs/bkt/products/{pid}/latest.geojson"
 
 
@@ -76,7 +78,7 @@ def test_usable_point_parquet_is_served_with_feature_id(tmp_path):
     _write_parquet(root, "a", [_point("x:1"), _point("x:1")])
     res = _render(tmp_path, [_product("a")], source_root=str(root))
     provider = res["a"]["providers"][0]
-    assert provider["name"] == "Parquet"
+    assert provider["name"] == PARQUET
     assert provider["data"]["source"] == f"{root}/a/latest.parquet"
     assert provider["id_field"] == "feature_id"
     assert "time_field" not in provider
@@ -87,7 +89,7 @@ def test_timeseries_parquet_gets_time_field(tmp_path):
     _write_parquet(root, "ts", [_point("x:1", datetime="2024-01-01T00:00:00Z")])
     res = _render(tmp_path, [_product("ts", "ogc_timeseries")], source_root=str(root))
     provider = res["ts"]["providers"][0]
-    assert provider["name"] == "Parquet"
+    assert provider["name"] == PARQUET
     assert provider["time_field"] == "datetime"
 
 
@@ -106,7 +108,7 @@ def test_unusable_parquet_falls_back_to_geojson(tmp_path, capsys, setup, reason)
     setup(root)
     res = _render(tmp_path, [_product("a")], source_root=str(root))
     provider = res["a"]["providers"][0]
-    assert provider["name"] == "OGR"
+    assert provider["name"] == OGR
     assert provider["data"]["source"] == f"{root}/a/latest.geojson"
     assert reason in capsys.readouterr().out
 
@@ -124,7 +126,7 @@ def test_timeseries_needs_tz_aware_datetime(tmp_path):
     )
     gdf.to_parquet(root / "ts" / "latest.parquet", write_covering_bbox=True)
     res = _render(tmp_path, [_product("ts", "ogc_timeseries")], source_root=str(root))
-    assert res["ts"]["providers"][0]["name"] == "OGR"
+    assert res["ts"]["providers"][0]["name"] == OGR
 
 
 def test_older_parquet_without_feature_id_uses_id(tmp_path):
@@ -304,3 +306,14 @@ def test_abstract_without_a_registry_fails(tmp_path):
     product = {**_product("a"), "abstract": "One feature per well."}
     with pytest.raises(SystemExit, match="no source registry"):
         _render(tmp_path, [product], check_parquet=False)
+
+
+def test_every_layer_with_a_source_column_lists_its_values(tmp_path):
+    root = tmp_path / "products"
+    _write_parquet(root, "a", [_point("1", source="WQP/NWIS"), _point("2", source="USGS-NWIS")])
+    _write_parquet(root, "b", [_point("1")])
+    _registry(tmp_path)
+    res = _render(tmp_path, [_product("a"), _product("b")], source_root=str(root))
+    # No abstract needed.
+    assert res["a"]["providers"][0]["source_values"] == ["USGS-NWIS", "WQP/NWIS"]
+    assert "source_values" not in res["b"]["providers"][0]
