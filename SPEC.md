@@ -256,8 +256,8 @@ Assets are dynamically generated from `products.yaml` at Dagster definition time
 
 `description` is a one-line summary. It is used in the Dagster asset description, in the
 `description` of the GeoJSON collection (so changing it changes every file's content
-hash), and in pygeoapi when there is no `abstract`. Two optional keys are read only by
-the pygeoapi template (§6.2):
+hash), and in pygeoapi when there is no `abstract`. Three optional keys are read only by
+the pygeoapi config generator and template (§6.2, §6.3):
 - `abstract`: the collection description served by pygeoapi, 4–6 sentences in this order:
   what one feature is; what is measured, with units; the method in one sentence; update
   cadence; the main caveat. Don't list sources or link the data dictionary: the config
@@ -265,6 +265,15 @@ the pygeoapi template (§6.2):
   collection list shows only the first 255 characters.
 - `keywords`: product-specific terms (parameter, product type, method), added after the
   shared base keywords.
+- `publish`: whether pygeoapi serves the product. Any other value fails the build.
+  - `listed` (default): a normal collection.
+  - `hidden`: the collection gets `visibility: hidden`. It is left out of `/collections`
+    and the OpenAPI document, so clients like QGIS don't list it, but `/collections/<id>`
+    and its `/items` are still served by direct URL.
+  - `none`: left out of the config and the image; every URL for it returns 404.
+
+  `publish` doesn't change the pipeline: Dagster still builds and uploads the product. To
+  stop producing it, remove the product or its `schedule`.
 
 Sources are registered once in `orchestration/config/sources.yaml`: one entry per
 `SOURCE_DICT` key in `backend/config.py`, with the `tags` the source writes to each
@@ -504,6 +513,11 @@ serving everything as GeoJSON.
 - Neither (e.g. a plain local `docker build`): every product is GeoJSON read from GCS.
 
 `--source-root DIR` replaces GCS with a local directory — local testing only.
+
+Every product's `publish` value (§5.2) is checked first; an invalid one fails the build.
+`publish: none` products are then skipped entirely: no Parquet check, no bake, no
+config entry. `publish: hidden` products are handled like listed ones, plus
+`visibility: hidden`. A config with no products to publish fails the build.
 
 Each product with an `abstract` is described by the abstract, then "Sources: …", then a
 pointer to the data dictionary. The sources are the abbreviations (from
