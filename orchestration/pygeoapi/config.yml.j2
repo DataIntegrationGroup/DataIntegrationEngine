@@ -56,6 +56,10 @@ resources:
 {% for product in products %}
   {{ product.id }}:
     type: collection
+{%- if product.publish == 'hidden' %}
+    # Left out of /collections and OpenAPI; still served by direct URL.
+    visibility: hidden
+{%- endif %}
     title: {{ product.title | tojson }}
     description: {{ descriptions[product.id] | tojson }}
     keywords:
