@@ -31,14 +31,15 @@ _MK_COMMON = (
 
 # Human-readable description of each trend product's method, embedded in the
 # collection so consumers know how the classification was derived.
+# The water-level trend mirrors the Ocotillo API ogc_depth_to_water_trend_wells
+# materialized view, using Mann-Kendall + Theil-Sen instead of OLS.
 TREND_METHOD_DESCRIPTION = (
     "Depth-to-water trend per well. Observations are downsampled to one point "
     "per calendar day, keeping the daily MINIMUM depth-to-water (shallowest "
     f"reading). {_MK_COMMON} A significant increasing slope is 'increasing' "
     "(water level getting DEEPER, i.e. a declining water table), a significant "
     "decreasing slope is 'decreasing' (water level getting SHALLOWER), else "
-    "'stable'. Mirrors the Ocotillo API ogc_depth_to_water_trend_wells "
-    "materialized view, using Mann-Kendall + Theil-Sen instead of OLS."
+    "'stable'."
 )
 
 ANALYTE_TREND_METHOD_DESCRIPTION = (

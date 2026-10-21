@@ -1,0 +1,70 @@
+# Data source registry: one entry per source in backend/config.py SOURCE_DICT.
+#
+# tags: the values a source writes to each feature's `source` property. A
+# feature's value matches a tag exactly, or as "<tag>/<anything>" (the Water
+# Quality Portal writes "WQP/<provider>", e.g. WQP/NWIS).
+#
+# generate_config.py reads the distinct `source` values in each layer and adds
+# their abbreviations to the collection's pygeoapi abstract.
+# tests/test_product_docs.py keeps this file in step with SOURCE_DICT.
+
+sources:
+  - key: nmbgmr_amp
+    tags: [NMBGMR]
+    abbreviation: NMBGMR
+    name: New Mexico Bureau of Geology and Mineral Resources, Aquifer Mapping Program
+
+  - key: nwis
+    tags: [USGS-NWIS]
+    abbreviation: USGS NWIS
+    name: U.S. Geological Survey National Water Information System
+
+  - key: wqp
+    tags: [WQP]
+    abbreviation: WQP
+    name: Water Quality Portal
+
+  - key: nmed_dwb
+    tags: [ST/DWB]
+    abbreviation: NMED DWB
+    name: New Mexico Environment Department Drinking Water Bureau
+
+  - key: bor
+    tags: [BOR-RISE]
+    abbreviation: USBR
+    name: U.S. Bureau of Reclamation (RISE)
+
+  - key: nmose_roswell
+    tags: [ST2/NMOSE-Roswell]
+    abbreviation: NM OSE
+    name: New Mexico Office of the State Engineer, Roswell District
+
+  - key: nmose_pod
+    tags: [NMOSEPOD]
+    abbreviation: NM OSE
+    name: New Mexico Office of the State Engineer, Points of Diversion
+
+  - key: nmose_isc_seven_rivers
+    tags: [ISCSevenRivers]
+    abbreviation: NM ISC
+    name: New Mexico Interstate Stream Commission, Seven Rivers
+
+  - key: bernco
+    tags: [ST2/BernCo]
+    abbreviation: BernCo
+    name: Bernalillo County
+
+  - key: cabq
+    tags: [ST2/CABQ]
+    abbreviation: CABQ
+    name: City of Albuquerque
+
+  - key: ebid
+    tags: [ST2/EBID]
+    abbreviation: EBID
+    name: Elephant Butte Irrigation District
+
+  - key: pvacd
+    tags: [ST2/PVACD]
+    abbreviation: PVACD
+    name: Pecos Valley Artesian Conservancy District

@@ -254,6 +254,25 @@ products:
 
 Assets are dynamically generated from `products.yaml` at Dagster definition time.
 
+`description` is a one-line summary. It is used in the Dagster asset description, in the
+`description` of the GeoJSON collection (so changing it changes every file's content
+hash), and in pygeoapi when there is no `abstract`. Two optional keys are read only by
+the pygeoapi template (§6.2):
+- `abstract`: the collection description served by pygeoapi, 4–6 sentences in this order:
+  what one feature is; what is measured, with units; the method in one sentence; update
+  cadence; the main caveat. Don't list sources or link the data dictionary: the config
+  generator appends both (§6.3). Keep the first sentence short, because pygeoapi's
+  collection list shows only the first 255 characters.
+- `keywords`: product-specific terms (parameter, product type, method), added after the
+  shared base keywords.
+
+Sources are registered once in `orchestration/config/sources.yaml`: one entry per
+`SOURCE_DICT` key in `backend/config.py`, with the `tags` the source writes to each
+feature's `source` property, an `abbreviation` and a full `name`. A feature's `source`
+matches a tag exactly or as `<tag>/<anything>` (`WQP/NWIS`). `tests/test_product_docs.py`
+checks the registry against `SOURCE_DICT` and, with `DIE_SAMPLE_PRODUCTS` set, against the
+`source` values in sample layers.
+
 ### §5.3 Schedule Strategy (MVP)
 
 One Cloud Run Job per schedule group. Cloud Scheduler triggers with `PRODUCT_ID` env var.
@@ -381,16 +400,34 @@ metadata:
     country: USA
     email: data-services-nmbg@nmt.edu
 
+{# Each output type has a "## <output_type>" section here (data dictionary + method). #}
+{% set docs_url = "https://github.com/DataIntegrationGroup/DataIntegrationEngine/blob/main/docs/products/README.md" %}
 resources:
 {% for product in products %}
   {{ product.id }}:
     type: collection
     title: {{ product.title | tojson }}
-    description: {{ product.description | tojson }}
+    description: {{ descriptions[product.id] | tojson }}
     keywords:
       - water
       - groundwater
       - New Mexico
+{% for keyword in product.keywords or [] %}
+      - {{ keyword | tojson }}
+{% endfor %}
+{% if product.abstract %}
+    # pygeoapi needs a title on every link (KeyError otherwise). No enclosure
+    # links: pygeoapi sends a HEAD request for each one on every request.
+    links:
+      - type: text/html
+        rel: describedby
+        title: Data dictionary and method
+        href: {{ docs_url }}#{{ product.output_type }}
+      - type: text/html
+        rel: license
+        title: CC-BY 4.0
+        href: https://creativecommons.org/licenses/by/4.0/
+{% endif %}
     extents:
       spatial:
         bbox:
@@ -433,6 +470,15 @@ resources:
 {% endfor %}
 ```
 
+Collection metadata: products with an `abstract` (§5.2) are served with it as their
+description, plus two links. `rel: describedby` points to the `## <output_type>` section
+of `docs/products/README.md` on `main` (data dictionary and method), and `rel: license`
+points to CC-BY 4.0; QGIS reads license per collection. Renaming that file or a section
+heading breaks the links; `tests/test_product_docs.py` checks every linked section
+exists and quotes its method text from code. Every link needs a `title` (pygeoapi reads
+it unconditionally). There are no `rel: enclosure` links, because pygeoapi sends a HEAD
+request for each one that has no `length`, on every collection request.
+
 Notes on fields current pygeoapi requires (each fails at boot or first request if wrong):
 `metadata.contact.name`, `server.map`, `extents` (plural), `server.limits` (the old
 `server.limit` is deprecated and leaves the HTML items page broken), `temporal.begin`/`end`
@@ -458,6 +504,15 @@ serving everything as GeoJSON.
 - Neither (e.g. a plain local `docker build`): every product is GeoJSON read from GCS.
 
 `--source-root DIR` replaces GCS with a local directory — local testing only.
+
+Each product with an `abstract` is described by the abstract, then "Sources: …", then a
+pointer to the data dictionary. The sources are the abbreviations (from
+`config/sources.yaml`, or `--sources`) of the distinct `source` values in the product's
+`latest.parquet`, most features first. Several tags with the same abbreviation are listed
+once. They are read only with `--check-parquet` or `--bake-to`. Products with no Parquet
+or no `source` column (the polygon layers) get no "Sources" sentence. A `source` value
+missing from the registry is listed as-is with a warning in the build log. A missing
+registry fails the build when any product has an abstract.
 
 ### §6.4 GCS Auth
 
@@ -508,6 +563,7 @@ RUN /venv/bin/python3 /tmp/patch_pygeoapi.py
 COPY pygeoapi/config.yml.j2 /tmp/config.yml.j2
 COPY pygeoapi/generate_config.py /tmp/generate_config.py
 COPY config/products.yaml /tmp/products.yaml
+COPY config/sources.yaml /tmp/sources.yaml
 
 # Bake config into image at build time.
 # §V: config generated from products.yaml, not hand-edited.

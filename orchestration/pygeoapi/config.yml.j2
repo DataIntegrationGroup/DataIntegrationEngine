@@ -50,16 +50,34 @@ metadata:
     country: USA
     email: data-services-nmbg@nmt.edu
 
+{# Each output type has a "## <output_type>" section here (data dictionary + method). #}
+{% set docs_url = "https://github.com/DataIntegrationGroup/DataIntegrationEngine/blob/main/docs/products/README.md" %}
 resources:
 {% for product in products %}
   {{ product.id }}:
     type: collection
     title: {{ product.title | tojson }}
-    description: {{ product.description | tojson }}
+    description: {{ descriptions[product.id] | tojson }}
     keywords:
       - water
       - groundwater
       - New Mexico
+{% for keyword in product.keywords or [] %}
+      - {{ keyword | tojson }}
+{% endfor %}
+{% if product.abstract %}
+    # pygeoapi needs a title on every link (KeyError otherwise). No enclosure
+    # links: pygeoapi sends a HEAD request for each one on every request.
+    links:
+      - type: text/html
+        rel: describedby
+        title: Data dictionary and method
+        href: {{ docs_url }}#{{ product.output_type }}
+      - type: text/html
+        rel: license
+        title: CC-BY 4.0
+        href: https://creativecommons.org/licenses/by/4.0/
+{% endif %}
     extents:
       spatial:
         bbox:

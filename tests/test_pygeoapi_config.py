@@ -160,3 +160,103 @@ def test_bake_fails_when_a_product_has_nothing_to_serve(tmp_path):
     root.mkdir()
     with pytest.raises(SystemExit, match="gone: no latest.geojson"):
         _render(tmp_path, [_product("gone")], source_root=str(root), bake_to=tmp_path / "baked")
+
+
+# --- Collection metadata from the real products.yaml -------------------------
+
+PRODUCTS_YAML = PYGEOAPI_DIR.parent / "config" / "products.yaml"
+BASE_KEYWORDS = {"water", "groundwater", "New Mexico"}
+MIN_ABSTRACT_CHARS = 300
+
+
+def _real_products() -> list:
+    return yaml.safe_load(PRODUCTS_YAML.read_text())["products"]
+
+
+@pytest.fixture(scope="module")
+def real_resources(tmp_path_factory) -> dict:
+    out = tmp_path_factory.mktemp("cfg") / "config.yml"
+    gc.generate(PRODUCTS_YAML, TEMPLATE, out)
+    return yaml.safe_load(out.read_text())["resources"]
+
+
+def _with_abstract() -> list:
+    return [p for p in _real_products() if p.get("abstract")]
+
+
+@pytest.mark.parametrize("product", _with_abstract(), ids=lambda p: p["id"])
+def test_documented_product_has_abstract_keywords_and_links(real_resources, product):
+    res = real_resources[product["id"]]
+    assert len(product["abstract"]) >= MIN_ABSTRACT_CHARS
+    assert res["description"].startswith(product["abstract"].strip())
+    assert res["description"].endswith(gc.DOCS_POINTER)
+    assert set(res["keywords"]) - BASE_KEYWORDS, "needs a product-specific keyword"
+    for link in res["links"]:
+        # pygeoapi reads link['title'] directly; a missing one breaks the collection.
+        assert {"type", "rel", "title", "href"} <= link.keys(), link
+    rels = [link["rel"] for link in res["links"]]
+    assert rels.count("describedby") == 1 and rels.count("license") == 1
+    described = next(link for link in res["links"] if link["rel"] == "describedby")
+    assert described["href"].endswith(f"/docs/products/README.md#{product['output_type']}")
+
+
+def test_undocumented_products_keep_description_and_have_no_links(real_resources):
+    for product in _real_products():
+        if product.get("abstract"):
+            continue
+        res = real_resources[product["id"]]
+        assert res["description"] == product["description"]
+        assert "links" not in res
+
+
+# --- Sources in the abstract ---------------------------------------------------
+
+ABBREVIATIONS = {"NMBGMR": "NMBGMR", "USGS-NWIS": "USGS NWIS", "WQP": "WQP"}
+
+
+def test_layer_sources_maps_tags_merges_and_orders_by_count(capsys):
+    counts = {"NMBGMR": 5, "USGS-NWIS": 9, "WQP/NWIS": 3, "WQP/STORET": 4, "NEW": 1}
+    assert gc.layer_sources(counts, ABBREVIATIONS, "p") == ["USGS NWIS", "WQP", "NMBGMR", "NEW"]
+    assert "source 'NEW' is not in sources.yaml" in capsys.readouterr().out
+
+
+def test_tag_prefix_needs_a_slash():
+    assert gc.source_abbreviation("WQP/NWIS", ABBREVIATIONS) == "WQP"
+    assert gc.source_abbreviation("WQPX", ABBREVIATIONS) is None
+
+
+def _registry(tmp_path) -> Path:
+    path = tmp_path / "sources.yaml"
+    path.write_text(yaml.safe_dump({"sources": [
+        {"key": "nwis", "tags": ["USGS-NWIS"], "abbreviation": "USGS NWIS", "name": "n"},
+        {"key": "wqp", "tags": ["WQP"], "abbreviation": "WQP", "name": "w"},
+    ]}))
+    return path
+
+
+def test_abstract_lists_sources_found_in_the_layer(tmp_path):
+    root = tmp_path / "products"
+    _write_parquet(root, "a", [
+        _point("1", source="WQP/NWIS"), _point("2", source="USGS-NWIS"), _point("3", source="USGS-NWIS"),
+    ])
+    _registry(tmp_path)
+    product = {**_product("a"), "abstract": "One feature per well."}
+    res = _render(tmp_path, [product], source_root=str(root))
+    assert res["a"]["description"] == (
+        f"One feature per well. Sources: USGS NWIS, WQP. {gc.DOCS_POINTER}"
+    )
+
+
+def test_abstract_without_source_column_skips_the_sources_sentence(tmp_path):
+    root = tmp_path / "products"
+    _write_parquet(root, "a", [_point("1")])
+    _registry(tmp_path)
+    product = {**_product("a"), "abstract": "One feature per well."}
+    res = _render(tmp_path, [product], source_root=str(root))
+    assert res["a"]["description"] == f"One feature per well. {gc.DOCS_POINTER}"
+
+
+def test_abstract_without_a_registry_fails(tmp_path):
+    product = {**_product("a"), "abstract": "One feature per well."}
+    with pytest.raises(SystemExit, match="no source registry"):
+        _render(tmp_path, [product], check_parquet=False)
