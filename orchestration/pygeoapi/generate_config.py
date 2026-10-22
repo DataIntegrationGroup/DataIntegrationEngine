@@ -10,7 +10,9 @@ instead of GCS (testing only).
 
 Products with an ``abstract`` are described by it, followed by the sources in
 the layer (from its ``source`` column, named per --sources) and a pointer to the
-data dictionary. Sources are read only with --check-parquet or --bake-to.
+data dictionary. Every layer's ``source`` values are also listed in its schema
+(``source_values``, see die_providers.py). Sources are read only with
+--check-parquet or --bake-to.
 
 A product's ``publish`` key (default ``listed``) controls how it is served:
 ``hidden`` sets pygeoapi's ``visibility: hidden`` (left out of /collections and
@@ -218,6 +220,7 @@ def generate(
     # product id -> Parquet id_field, for products served from GeoParquet
     parquet: dict[str, str] = {}
     descriptions: dict[str, str] = {}
+    source_values: dict[str, list[str]] = {}
     for product in products:
         pid = product["id"]
         if check_parquet:
@@ -229,9 +232,11 @@ def generate(
             id_field, reason = None, "Parquet check disabled"
         counts = (
             layer_source_counts(f"{store_root}/{pid}/latest.parquet")
-            if check_parquet and abbreviations and product.get("abstract")
+            if check_parquet and abbreviations
             else None
         )
+        if counts:
+            source_values[pid] = sorted(counts)
         sources = layer_sources(counts, abbreviations, pid) if counts else None
         descriptions[pid] = collection_description(product, sources)
         if id_field:
@@ -257,6 +262,7 @@ def generate(
     rendered = tmpl.render(
         products=products,
         descriptions=descriptions,
+        source_values=source_values,
         parquet=parquet,
         geojson_root=geojson_root,
         parquet_root=parquet_root,

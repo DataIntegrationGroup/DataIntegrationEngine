@@ -16,6 +16,10 @@ RUN /venv/bin/python3 -m pip install --no-cache-dir --quiet \
 COPY pygeoapi/patch_pygeoapi.py /tmp/patch_pygeoapi.py
 RUN /venv/bin/python3 /tmp/patch_pygeoapi.py
 
+# Providers named in the config (source values in the collection schema).
+COPY pygeoapi/die_providers.py /die/die_providers.py
+ENV PYTHONPATH=/die
+
 # Copy generation inputs
 # Build context is orchestration/ (see cloudbuild.yaml)
 COPY pygeoapi/config.yml.j2 /tmp/config.yml.j2

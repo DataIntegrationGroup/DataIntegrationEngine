@@ -20,19 +20,29 @@ fields listed for each output type:
 
 ## Sources
 
-Water-level products combine measurements from:
+Each feature's `source` field names the agency its data came from. A collection's
+schema page (`/collections/<id>/schema`) lists the `source` values in that layer
+under **Values**.
 
-| Source value | Provider |
-|---|---|
-| `NMBGMR` | New Mexico Bureau of Geology and Mineral Resources, Aquifer Mapping Program |
-| `USGS-NWIS` | USGS National Water Information System |
-| `WQP/<provider>` | Water Quality Portal, tagged with the data provider (e.g. `WQP/NWIS`) |
-| `ST2/NMOSE-Roswell` | NM Office of the State Engineer, Roswell district |
-| `ISCSevenRivers` | NM Interstate Stream Commission, Seven Rivers |
-| `ST2/BernCo` | Bernalillo County |
-| `ST2/CABQ` | City of Albuquerque |
-| `ST2/EBID` | Elephant Butte Irrigation District |
-| `ST2/PVACD` | Pecos Valley Artesian Conservancy District |
+| Source value | Abbreviation | Provider |
+|---|---|---|
+| `NMBGMR` | NMBGMR | New Mexico Bureau of Geology and Mineral Resources, Aquifer Mapping Program |
+| `USGS-NWIS` | USGS NWIS | U.S. Geological Survey National Water Information System |
+| `WQP` | WQP | Water Quality Portal |
+| `ST/DWB` | NMED DWB | New Mexico Environment Department Drinking Water Bureau |
+| `BOR-RISE` | USBR | U.S. Bureau of Reclamation (RISE) |
+| `ST2/NMOSE-Roswell` | NMOSE Roswell | New Mexico Office of the State Engineer, Roswell District |
+| `NMOSEPOD` | NM OSE | New Mexico Office of the State Engineer, Points of Diversion |
+| `ISCSevenRivers` | NM ISC | New Mexico Interstate Stream Commission, Seven Rivers |
+| `ST2/BernCo` | BernCo | Bernalillo County |
+| `ST2/CABQ` | CABQ | City of Albuquerque |
+| `ST2/EBID` | EBID | Elephant Butte Irrigation District |
+| `ST2/PVACD` | PVACD | Pecos Valley Artesian Conservancy District |
+
+Water Quality Portal values may carry the data provider, as `WQP/<provider>`
+(e.g. `WQP/NWIS`, `WQP/STORET`). Collection abstracts list sources by
+abbreviation. This table mirrors `orchestration/config/sources.yaml`;
+`tests/test_product_docs.py` checks they match.
 
 ## ogc_waterlevel_trend
 

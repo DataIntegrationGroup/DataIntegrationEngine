@@ -99,7 +99,7 @@ resources:
 {% if product.id in parquet %}
       # Chosen by generate_config.py when latest.parquet is usable.
       - type: feature
-        name: Parquet
+        name: die_providers.DieParquetProvider   # stock Parquet + source_values
         data:
           source: {{ parquet_root }}/{{ product.id }}/latest.parquet
         id_field: {{ parquet[product.id] }}
@@ -108,7 +108,7 @@ resources:
 {% endif %}
 {% else %}
       - type: feature
-        name: OGR
+        name: die_providers.DieOGRProvider   # stock OGR + source_values
         data:
           source_type: GeoJSON
           source: {{ geojson_root }}/{{ product.id }}/latest.geojson
@@ -119,6 +119,9 @@ resources:
             GDAL_CACHEMAX: "64"
         id_field: id
         layer: latest   # GDAL names a GeoJSON layer after the file basename
+{% endif %}
+{% if product.id in source_values %}
+        source_values: {{ source_values[product.id] | tojson }}
 {% endif %}
 
 {% endfor %}

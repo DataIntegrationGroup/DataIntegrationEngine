@@ -454,7 +454,7 @@ resources:
 {% if product.id in parquet %}
       # Chosen by generate_config.py when latest.parquet is usable.
       - type: feature
-        name: Parquet
+        name: die_providers.DieParquetProvider   # stock Parquet + source_values
         data:
           source: {{ parquet_root }}/{{ product.id }}/latest.parquet
         id_field: {{ parquet[product.id] }}
@@ -463,7 +463,7 @@ resources:
 {% endif %}
 {% else %}
       - type: feature
-        name: OGR
+        name: die_providers.DieOGRProvider   # stock OGR + source_values
         data:
           source_type: GeoJSON
           source: {{ geojson_root }}/{{ product.id }}/latest.geojson
@@ -474,6 +474,9 @@ resources:
             GDAL_CACHEMAX: "64"
         id_field: id
         layer: latest   # GDAL names a GeoJSON layer after the file basename
+{% endif %}
+{% if product.id in source_values %}
+        source_values: {{ source_values[product.id] | tojson }}
 {% endif %}
 
 {% endfor %}
@@ -528,6 +531,11 @@ or no `source` column (the polygon layers) get no "Sources" sentence. A `source`
 missing from the registry is listed as-is with a warning in the build log. A missing
 registry fails the build when any product has an abstract.
 
+Every product with a `source` column, abstract or not, also gets `source_values` (the raw
+values, sorted) on its provider. pygeoapi 0.25 can't take field metadata from config, so
+`orchestration/pygeoapi/die_providers.py` subclasses the stock Parquet and OGR providers to
+add them to the `source` field as `enum`, shown under "Values" on the schema page.
+
 ### §6.4 GCS Auth
 
 With baked products (the Cloud Build default) the service reads no GCS at runtime; only
@@ -571,6 +579,10 @@ RUN /venv/bin/python3 -m pip install --no-cache-dir --quiet \
 # Fix Parquet provider bugs; fails the build if the patched source changed.
 COPY pygeoapi/patch_pygeoapi.py /tmp/patch_pygeoapi.py
 RUN /venv/bin/python3 /tmp/patch_pygeoapi.py
+
+# Providers named in the config (source values in the collection schema).
+COPY pygeoapi/die_providers.py /die/die_providers.py
+ENV PYTHONPATH=/die
 
 # Copy generation inputs
 # Build context is orchestration/ (see cloudbuild.yaml)
