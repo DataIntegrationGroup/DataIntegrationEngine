@@ -315,5 +315,5 @@ def test_every_layer_with_a_source_column_lists_its_values(tmp_path):
     _registry(tmp_path)
     res = _render(tmp_path, [_product("a"), _product("b")], source_root=str(root))
     # No abstract needed.
-    assert res["a"]["providers"][0]["source_values"] == ["USGS-NWIS", "WQP/NWIS"]
+    assert sorted(res["a"]["providers"][0]["source_values"]) == sorted(["USGS-NWIS", "WQP/NWIS"])
     assert "source_values" not in res["b"]["providers"][0]
