@@ -172,6 +172,151 @@ products:
     sources:
       exclude: []
 
+  # Per-observation analyte time series, one product per analyte the other
+  # analyte products already fetch. Shares the analyte cohort's source fetches.
+  - id: nm_arsenic_timeseries
+    parameter: arsenic
+    output_type: ogc_timeseries
+    title: "NM Arsenic Time Series"
+    description: "Per-observation arsenic concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_tds_timeseries
+    parameter: tds
+    output_type: ogc_timeseries
+    title: "NM TDS Time Series"
+    description: "Per-observation TDS concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_fluoride_timeseries
+    parameter: fluoride
+    output_type: ogc_timeseries
+    title: "NM Fluoride Time Series"
+    description: "Per-observation fluoride concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_uranium_timeseries
+    parameter: uranium
+    output_type: ogc_timeseries
+    title: "NM Uranium Time Series"
+    description: "Per-observation uranium concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_nitrate_timeseries
+    parameter: nitrate
+    output_type: ogc_timeseries
+    title: "NM Nitrate Time Series"
+    description: "Per-observation nitrate concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_sulfate_timeseries
+    parameter: sulfate
+    output_type: ogc_timeseries
+    title: "NM Sulfate Time Series"
+    description: "Per-observation sulfate concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_chloride_timeseries
+    parameter: chloride
+    output_type: ogc_timeseries
+    title: "NM Chloride Time Series"
+    description: "Per-observation chloride concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_calcium_timeseries
+    parameter: calcium
+    output_type: ogc_timeseries
+    title: "NM Calcium Time Series"
+    description: "Per-observation calcium concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_magnesium_timeseries
+    parameter: magnesium
+    output_type: ogc_timeseries
+    title: "NM Magnesium Time Series"
+    description: "Per-observation magnesium concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_sodium_timeseries
+    parameter: sodium
+    output_type: ogc_timeseries
+    title: "NM Sodium Time Series"
+    description: "Per-observation sodium concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_potassium_timeseries
+    parameter: potassium
+    output_type: ogc_timeseries
+    title: "NM Potassium Time Series"
+    description: "Per-observation potassium concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_bicarbonate_timeseries
+    parameter: bicarbonate
+    output_type: ogc_timeseries
+    title: "NM Bicarbonate Time Series"
+    description: "Per-observation bicarbonate concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_carbonate_timeseries
+    parameter: carbonate
+    output_type: ogc_timeseries
+    title: "NM Carbonate Time Series"
+    description: "Per-observation carbonate concentration measurements, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
   # One feature per well flagging drinking-water MCL exceedances. Thresholds are
   # read at run time from gs://<bucket>/config/mcl.json (source of truth);
   # `analytes` lists the candidates gathered for comparison.
