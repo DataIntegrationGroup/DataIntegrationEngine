@@ -31,7 +31,7 @@ under **Values**.
 | `WQP` | WQP | Water Quality Portal |
 | `ST/DWB` | NMED DWB | New Mexico Environment Department Drinking Water Bureau |
 | `BOR-RISE` | USBR | U.S. Bureau of Reclamation (RISE) |
-| `ST2/NMOSE-Roswell` | NM OSE | New Mexico Office of the State Engineer, Roswell District |
+| `ST2/NMOSE-Roswell` | NMOSE Roswell | New Mexico Office of the State Engineer, Roswell District |
 | `NMOSEPOD` | NM OSE | New Mexico Office of the State Engineer, Points of Diversion |
 | `ISCSevenRivers` | NM ISC | New Mexico Interstate Stream Commission, Seven Rivers |
 | `ST2/BernCo` | BernCo | Bernalillo County |
