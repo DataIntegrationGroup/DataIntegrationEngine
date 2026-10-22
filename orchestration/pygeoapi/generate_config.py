@@ -12,6 +12,11 @@ Products with an ``abstract`` are described by it, followed by the sources in
 the layer (from its ``source`` column, named per --sources) and a pointer to the
 data dictionary. Sources are read only with --check-parquet or --bake-to.
 
+A product's ``publish`` key (default ``listed``) controls how it is served:
+``hidden`` sets pygeoapi's ``visibility: hidden`` (left out of /collections and
+the OpenAPI document, still served by direct URL); ``none`` leaves it out of the
+config and the image. Any other value fails the build.
+
 Usage:
     python generate_config.py \
         --products ../config/products.yaml \
@@ -34,6 +39,7 @@ TIME_FIELD = "datetime"
 # crossing the box edge, so only point layers use it.
 POINT_TYPES = {"Point", "Point Z"}
 SOURCE_FIELD = "source"
+PUBLISH_VALUES = ("listed", "hidden", "none")
 DOCS_POINTER = (
     "Field definitions and method details are in the data dictionary linked from "
     "this collection."
@@ -146,6 +152,16 @@ def collection_description(product: dict, sources: Optional[list[str]]) -> str:
     return " ".join(parts)
 
 
+def publish(product: dict) -> str:
+    """The product's ``publish`` value; an invalid one fails the build."""
+    value = product.get("publish", "listed")
+    if value not in PUBLISH_VALUES:
+        raise SystemExit(
+            f"{product['id']}: publish must be one of {', '.join(PUBLISH_VALUES)}, got {value!r}"
+        )
+    return value
+
+
 def bake_file(uri: str, dest: Path) -> int:
     """Copy *uri* (gs:// or a local path) to *dest*; returns its size in bytes."""
     import pyarrow.fs as pafs
@@ -175,11 +191,19 @@ def generate(
     sources_path: Optional[Path] = None,
 ) -> None:
     products_config = yaml.safe_load(products_path.read_text())
+    products = []
+    for product in products_config["products"]:
+        if publish(product) == "none":
+            print(f"  {product['id']}: not published (publish: none)")
+        else:
+            products.append(product)
+    if not products:
+        raise SystemExit("no products to publish")
     sources_path = sources_path or products_path.parent / "sources.yaml"
     abbreviations: dict[str, str] = {}
     if sources_path.exists():
         abbreviations = load_source_abbreviations(sources_path)
-    elif any(p.get("abstract") for p in products_config["products"]):
+    elif any(p.get("abstract") for p in products):
         # An abstract's source list would silently go missing.
         raise SystemExit(f"no source registry at {sources_path}")
     bucket = products_config["gcs_bucket"]
@@ -194,7 +218,7 @@ def generate(
     # product id -> Parquet id_field, for products served from GeoParquet
     parquet: dict[str, str] = {}
     descriptions: dict[str, str] = {}
-    for product in products_config["products"]:
+    for product in products:
         pid = product["id"]
         if check_parquet:
             id_field, reason = parquet_id_field(
@@ -221,6 +245,8 @@ def generate(
                 raise SystemExit(f"{pid}: no {name} to bake ({line})")
             size = bake_file(f"{store_root}/{pid}/{name}", Path(bake_to) / pid / name)
             line += f", baked {size / 1e6:.1f} MB"
+        if publish(product) == "hidden":
+            line += ", hidden"
         print(f"  {pid}: {line}")
 
     env = Environment(
@@ -229,7 +255,7 @@ def generate(
     )
     tmpl = env.get_template(template_path.name)
     rendered = tmpl.render(
-        products=products_config["products"],
+        products=products,
         descriptions=descriptions,
         parquet=parquet,
         geojson_root=geojson_root,
@@ -237,7 +263,7 @@ def generate(
     )
 
     # Sanity check: every product must produce a source entry for its provider
-    for product in products_config["products"]:
+    for product in products:
         pid = product["id"]
         if pid in parquet:
             expected = f"{parquet_root}/{pid}/latest.parquet"
@@ -250,7 +276,7 @@ def generate(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(rendered)
     print(
-        f"Generated {output_path} ({len(products_config['products'])} collections, "
+        f"Generated {output_path} ({len(products)} collections, "
         f"{len(parquet)} from GeoParquet)"
     )
 

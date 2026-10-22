@@ -162,6 +162,48 @@ def test_bake_fails_when_a_product_has_nothing_to_serve(tmp_path):
         _render(tmp_path, [_product("gone")], source_root=str(root), bake_to=tmp_path / "baked")
 
 
+# --- publish: listed / hidden / none ------------------------------------------
+
+
+def test_listed_is_the_default_and_sets_no_visibility(tmp_path):
+    res = _render(tmp_path, [_product("a"), {**_product("b"), "publish": "listed"}], False)
+    assert "visibility" not in res["a"] and "visibility" not in res["b"]
+
+
+def test_hidden_product_gets_visibility_hidden(tmp_path):
+    res = _render(tmp_path, [{**_product("h"), "publish": "hidden"}], False)
+    assert res["h"]["visibility"] == "hidden"
+    assert res["h"]["providers"][0]["data"]["source"] == "/vsigs/bkt/products/h/latest.geojson"
+
+
+def test_none_product_is_left_out_of_the_config_and_the_image(tmp_path):
+    root, baked = tmp_path / "products", tmp_path / "baked"
+    _write_parquet(root, "a", [_point("x:1")])
+    _write_parquet(root, "off", [_point("x:1")])
+    products = [_product("a"), {**_product("off"), "publish": "none"}]
+    res = _render(tmp_path, products, source_root=str(root), bake_to=baked)
+    assert list(res) == ["a"]
+    assert not (baked / "off").exists()
+
+
+def test_none_product_without_files_does_not_fail_the_bake(tmp_path):
+    root = tmp_path / "products"
+    _write_parquet(root, "a", [_point("x:1")])
+    products = [_product("a"), {**_product("gone"), "publish": "none"}]
+    res = _render(tmp_path, products, source_root=str(root), bake_to=tmp_path / "baked")
+    assert list(res) == ["a"]
+
+
+def test_invalid_publish_value_fails(tmp_path):
+    with pytest.raises(SystemExit, match="a: publish must be one of .*'private'"):
+        _render(tmp_path, [{**_product("a"), "publish": "private"}], False)
+
+
+def test_nothing_to_publish_fails(tmp_path):
+    with pytest.raises(SystemExit, match="no products to publish"):
+        _render(tmp_path, [{**_product("a"), "publish": "none"}], False)
+
+
 # --- Collection metadata from the real products.yaml -------------------------
 
 PRODUCTS_YAML = PYGEOAPI_DIR.parent / "config" / "products.yaml"
@@ -170,7 +212,9 @@ MIN_ABSTRACT_CHARS = 300
 
 
 def _real_products() -> list:
-    return yaml.safe_load(PRODUCTS_YAML.read_text())["products"]
+    """Published products in the real products.yaml."""
+    products = yaml.safe_load(PRODUCTS_YAML.read_text())["products"]
+    return [p for p in products if gc.publish(p) != "none"]
 
 
 @pytest.fixture(scope="module")
