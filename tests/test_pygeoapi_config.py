@@ -255,6 +255,26 @@ def test_undocumented_products_keep_description_and_have_no_links(real_resources
         assert "links" not in res
 
 
+UNPUBLISHED = {
+    "nm_arsenic_trend", "nm_nitrate_trend", "nm_fluoride_trend", "nm_uranium_trend",
+    "nm_sulfate_trend", "nm_chloride_trend", "nm_depletion_projection",
+}
+HIDDEN = {
+    "nm_waterlevel_change", "nm_waterlevel_status", "nm_sar", "nm_ion_balance", "nm_wqi",
+    "nm_seasonal_amplitude", "nm_well_correlation", "nm_pod_age_by_county",
+    "nm_pod_age_points",
+}
+
+
+def test_real_publish_settings(real_resources):
+    """Pins which real products are unpublished and hidden."""
+    all_ids = {p["id"] for p in yaml.safe_load(PRODUCTS_YAML.read_text())["products"]}
+    assert UNPUBLISHED | HIDDEN <= all_ids
+    assert real_resources.keys() == all_ids - UNPUBLISHED
+    for pid, res in real_resources.items():
+        assert res.get("visibility") == ("hidden" if pid in HIDDEN else None), pid
+
+
 # --- Sources in the abstract ---------------------------------------------------
 
 ABBREVIATIONS = {"NMBGMR": "NMBGMR", "USGS-NWIS": "USGS NWIS", "WQP": "WQP"}
