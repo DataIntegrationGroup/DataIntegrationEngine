@@ -255,8 +255,9 @@ products:
 Assets are dynamically generated from `products.yaml` at Dagster definition time.
 
 Every analyte that another product already fetches has an `nm_<analyte>_timeseries`
-product (`ogc_timeseries`, same shape as the water-level one above). These reuse the
-analyte cohort's shared source assets, so they add no source fetches.
+product (`ogc_timeseries`, same shape as the water-level one above) and an
+`nm_<analyte>_summary` product (`ogc_summary`, same shape as `nm_arsenic_summary`). These
+reuse the analyte cohort's shared source assets, so they add no source fetches.
 
 `description` is a one-line summary. It is used in the Dagster asset description, in the
 `description` of the GeoJSON collection (so changing it changes every file's content
