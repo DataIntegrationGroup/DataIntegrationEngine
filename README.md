@@ -216,3 +216,7 @@ products:
 | conversion_factor | the factor applied to the result to convert the measurement to standardized units | float or int | Y |
 
 Unit-conversion rules are documented in [UNIT_CONVERSIONS.md](UNIT_CONVERSIONS.md).
+
+## How to Cite
+
+New Mexico Bureau of Geology and Mineral Resources, 2026, New Mexico Unified Water Data—Data Integration Engine (Version 0.10) [Computer software]: https://github.com/DataIntegrationGroup/DataIntegrationEngine
