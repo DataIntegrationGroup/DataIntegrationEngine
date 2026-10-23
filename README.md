@@ -217,6 +217,6 @@ products:
 
 Unit-conversion rules are documented in [UNIT_CONVERSIONS.md](UNIT_CONVERSIONS.md).
 
-## Citation
+## How to Cite
 
 New Mexico Bureau of Geology and Mineral Resources, 2026, New Mexico Unified Water Data—Data Integration Engine (Version 0.10) [Computer software]: https://github.com/DataIntegrationGroup/DataIntegrationEngine
