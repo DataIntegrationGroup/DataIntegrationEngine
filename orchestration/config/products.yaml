@@ -178,6 +178,107 @@ products:
     sources:
       exclude: []
 
+  # Per-well analyte summary stats, one product per analyte the other analyte
+  # products already fetch. Shares the analyte cohort's source fetches.
+  - id: nm_nitrate_summary
+    parameter: nitrate
+    output_type: ogc_summary
+    title: "NM Nitrate Summary"
+    description: "Nitrate concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_sulfate_summary
+    parameter: sulfate
+    output_type: ogc_summary
+    title: "NM Sulfate Summary"
+    description: "Sulfate concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_chloride_summary
+    parameter: chloride
+    output_type: ogc_summary
+    title: "NM Chloride Summary"
+    description: "Chloride concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_calcium_summary
+    parameter: calcium
+    output_type: ogc_summary
+    title: "NM Calcium Summary"
+    description: "Calcium concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_magnesium_summary
+    parameter: magnesium
+    output_type: ogc_summary
+    title: "NM Magnesium Summary"
+    description: "Magnesium concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_sodium_summary
+    parameter: sodium
+    output_type: ogc_summary
+    title: "NM Sodium Summary"
+    description: "Sodium concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_potassium_summary
+    parameter: potassium
+    output_type: ogc_summary
+    title: "NM Potassium Summary"
+    description: "Potassium concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_bicarbonate_summary
+    parameter: bicarbonate
+    output_type: ogc_summary
+    title: "NM Bicarbonate Summary"
+    description: "Bicarbonate concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_carbonate_summary
+    parameter: carbonate
+    output_type: ogc_summary
+    title: "NM Carbonate Summary"
+    description: "Carbonate concentration summary stats, all NM sources"
+    schedule: "0 6 25 * *"
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
   # Per-observation analyte time series, one product per analyte the other
   # analyte products already fetch. Shares the analyte cohort's source fetches.
   - id: nm_arsenic_timeseries
