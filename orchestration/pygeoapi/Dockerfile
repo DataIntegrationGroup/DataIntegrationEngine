@@ -20,6 +20,11 @@ RUN /venv/bin/python3 /tmp/patch_pygeoapi.py
 COPY pygeoapi/die_providers.py /die/die_providers.py
 ENV PYTHONPATH=/die
 
+# Template overrides; others fall back to pygeoapi's stock templates.
+# landing_page.html: renders the description as HTML (| safe).
+# Copied from the pinned image; re-diff when bumping pygeoapi.
+COPY pygeoapi/templates/ /die/templates/
+
 # Copy generation inputs
 # Build context is orchestration/ (see cloudbuild.yaml)
 COPY pygeoapi/config.yml.j2 /tmp/config.yml.j2
