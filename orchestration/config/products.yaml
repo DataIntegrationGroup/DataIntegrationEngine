@@ -10,6 +10,7 @@ products:
       Summary statistics for water levels across all sources in New Mexico, measured in ft.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 15th.
+    keywords: ["water levels", "depth to water below ground surface", "summary statistics"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -24,6 +25,7 @@ products:
     abstract: >-
       Per-observation water level measurements across all sources in New Mexico, measured in ft.
       Each observation includes the site, date, and water level value. Updated monthly on the 15th.
+    keywords: ["water levels", "depth to water below ground surface", "time series"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -39,6 +41,7 @@ products:
       Summary statistics for arsenic concentrations across all sources in New Mexico, measured in µg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["arsenic", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -54,6 +57,7 @@ products:
       Summary statistics for TDS concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["tds", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -67,11 +71,11 @@ products:
     output_type: ogc_major_chemistry
     title: "NM Major Chemistry"
     description: "Wells with major-ion chemistry (latest value per analyte), well depth, all NM sources"
+    keywords: ["major chemistry", "calcium", "magnesium", "sodium", "potassium", "bicarbonate", "carbonate", "chloride", "sulfate"]
     abstract: >-
       One feature per well with major-ion chemistry measurements, including the latest value for each analyte and the well depth.
       Major chemistry includes calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, and sulfate.
       Updated monthly on the 25th.
-
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -120,6 +124,7 @@ products:
       at least 2 years; otherwise 'not enough data'.
       A significant increasing slope is 'increasing', a 
       significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["arsenic", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -142,6 +147,7 @@ products:
       at least 2 years; otherwise 'not enough data'.
       A significant increasing slope is 'increasing', a 
       significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["nitrate", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -164,6 +170,7 @@ products:
       at least 2 years; otherwise 'not enough data'.
       A significant increasing slope is 'increasing', a 
       significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["fluoride", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -186,6 +193,7 @@ products:
       at least 2 years; otherwise 'not enough data'.
       A significant increasing slope is 'increasing', a 
       significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["uranium", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -208,6 +216,7 @@ products:
       at least 2 years; otherwise 'not enough data'.
       A significant increasing slope is 'increasing', a 
       significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["sulfate", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -230,6 +239,7 @@ products:
       at least 2 years; otherwise 'not enough data'.
       A significant increasing slope is 'increasing', a 
       significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["chloride", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -277,6 +287,7 @@ products:
       Summary statistics for nitrate concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["nitrate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -292,6 +303,7 @@ products:
       Summary statistics for sulfate concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["sulfate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -307,6 +319,7 @@ products:
       Summary statistics for chloride concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["chloride", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -322,6 +335,7 @@ products:
       Summary statistics for calcium concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["calcium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -337,6 +351,7 @@ products:
       Summary statistics for magnesium concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["magnesium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -352,6 +367,7 @@ products:
       Summary statistics for sodium concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["sodium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -367,6 +383,7 @@ products:
       Summary statistics for potassium concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["potassium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -382,6 +399,7 @@ products:
       Summary statistics for bicarbonate concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["bicarbonate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -397,6 +415,7 @@ products:
       Summary statistics for carbonate concentrations across all sources in New Mexico, measured in mg/L.
       For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
       The summary is updated every month on the 25th.
+    keywords: ["carbonate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -414,6 +433,7 @@ products:
       Per-observation arsenic concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["arsenic", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -429,6 +449,7 @@ products:
       Per-observation TDS concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["tds", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -444,6 +465,7 @@ products:
       Per-observation fluoride concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["fluoride", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -459,6 +481,7 @@ products:
       Per-observation uranium concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["uranium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -474,6 +497,7 @@ products:
       Per-observation nitrate concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["nitrate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -489,6 +513,7 @@ products:
       Per-observation sulfate concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["sulfate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -504,6 +529,7 @@ products:
       Per-observation chloride concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["chloride", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -519,6 +545,7 @@ products:
       Per-observation calcium concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["calcium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -534,6 +561,7 @@ products:
       Per-observation magnesium concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["magnesium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -549,6 +577,7 @@ products:
       Per-observation sodium concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["sodium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -564,6 +593,7 @@ products:
       Per-observation potassium concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["potassium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -579,6 +609,7 @@ products:
       Per-observation bicarbonate concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["bicarbonate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -594,6 +625,7 @@ products:
       Per-observation carbonate concentration measurements across all sources in New Mexico, measured in mg/L.
       Each observation includes the date, site, and measured value.
       The time series is updated every month on the 25th.
+    keywords: ["carbonate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
