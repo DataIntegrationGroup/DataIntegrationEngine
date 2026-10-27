@@ -9,6 +9,8 @@ server:
   cors: true
   pretty_print: false
   gzip: true   # Cloud Run doesn't compress
+  templates:
+    path: /die/templates   # overrides stock templates by name (see Dockerfile)
   limits:
     default_items: 500
     max_items: 10000   # NewWeaver requests limit=10000
@@ -22,11 +24,37 @@ logging:
 metadata:
   identification:
     title: New Mexico Unified Water Data
-    description: >-
-      This tool integrates groundwater-level and water-quality data for New Mexico
+    description: |
+      <p>This tool integrates groundwater-level and water-quality data for New Mexico
       from state and federal sources, including NMBGMR, USGS, and the Water Quality Portal.
       Its collections provide per-well summaries, trends, time series, and derived
-      water-quality indicators through the OGC API - Features standard.
+      water-quality indicators through the OGC API - Features standard.</p>
+
+      <p>The following parameters are reported by the following sources:</p>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered text-center">
+          <thead>
+            <tr><th></th><th>waterlevels</th><th>arsenic</th><th>bicarbonate</th><th>conductivity**</th><th>calcium</th><th>carbonate</th><th>chloride</th><th>fluoride</th><th>magnesium</th><th>nitrate</th><th>ph</th><th>potassium</th><th>silica</th><th>sodium</th><th>specific conductance**</th><th>sulfate</th><th>tds</th><th>uranium</th></tr>
+          </thead>
+          <tbody>
+            <tr><th class="text-start">bernco</th><td>X</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><th class="text-start">bor</th><td>-</td><td>X</td><td>-</td><td>X</td><td>X</td><td>-</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>-</td><td>X</td><td>X</td><td>X</td></tr>
+            <tr><th class="text-start">cabq</th><td>X</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><th class="text-start">ebid</th><td>X</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><th class="text-start">nmbgmr-amp</th><td>X</td><td>X</td><td>X</td><td>-</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+            <tr><th class="text-start">nmed-dwb</th><td>-</td><td>X</td><td>X</td><td>-</td><td>X</td><td>-</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+            <tr><th class="text-start">nmose-isc-seven-rivers</th><td>X</td><td>-</td><td>X</td><td>X</td><td>X</td><td>-</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>-</td></tr>
+            <tr><th class="text-start">nmose-pod</th><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><th class="text-start">nmose-roswell</th><td>X</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><th class="text-start">nwis</th><td>X</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><th class="text-start">pvacd</th><td>X</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><th class="text-start">wqp</th><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X*</td><td>X</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><small>* TDS data from WQP may contain duplicates. Duplicates (same ActivityIdentifier) are reduced to one record, preferring USGS pCodes 70300, 70301, then 70303.</small></p>
+      <p><small>** Conductivity and specific conductance are often used interchangeably, but here they are distinguished by method. A record is specific conductance if it was determined at the standard 25&deg;C (e.g. <a href="https://www.epa.gov/sites/default/files/2015-08/documents/method_120-1_1982.pdf">EPA method 120.1</a>); otherwise it is conductivity.</small></p>
+
     keywords:
       - water
       - groundwater
