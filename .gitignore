@@ -140,6 +140,8 @@ ENV/
 env.bak/
 venv.bak/
 
+orchestration/uv.lock
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -172,4 +174,5 @@ cython_debug/
 #.idea/
 
 # outputs
-output*orchestration/uv.lock
+output*
+
