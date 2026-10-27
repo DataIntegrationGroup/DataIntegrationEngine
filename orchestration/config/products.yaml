@@ -639,6 +639,12 @@ products:
     output_type: ogc_mcl_exceedance
     title: "NM MCL Exceedances"
     description: "Wells flagged against drinking-water MCLs as set by the EPA, all NM sources"
+    abstract: >-
+      Wells flagged against drinking-water MCLs as set by the EPA, across all sources in New Mexico.
+      Lists the MCL, latest observed value, and exceedance status for each well for the following
+      analytes: arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds. Updated 
+      monthly on the 25th.
+    keywords: ["epa", "mcl"]
     schedule: "0 6 25 * *"
     analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
     spatial_filter:
@@ -653,6 +659,11 @@ products:
     output_type: ogc_monitoring_recency
     title: "NM Monitoring Recency"
     description: "Per-well water-level monitoring recency and status, all NM sources"
+    abstract: >-
+      How recently each well was measured for water levels.
+      Wells are flagged as active or stale based on the `stale_days` threshold.
+      Updated monthly on the 15th.
+    keywords: ["monitoring recency", "water levels"]
     schedule: "0 6 15 * *"
     stale_days: 365
     spatial_filter:
@@ -667,6 +678,11 @@ products:
     output_type: ogc_hardness
     title: "NM Water Hardness"
     description: "Per-well total hardness as CaCO3 (calcium + magnesium), all NM sources"
+    abstract: >-
+      Per-well total hardness as CaCO3 (calcium + magnesium), across all sources in New Mexico.
+      Lists the latest observed values for calcium and magnesium, and the resulting hardness classification.
+      Updated monthly on the 25th.
+    keywords: ["hardness", "calcium", "magnesium"]
     schedule: "0 6 25 * *"
     analytes: [calcium, magnesium]
     spatial_filter:
@@ -681,6 +697,10 @@ products:
     output_type: ogc_water_type
     title: "NM Water Type"
     description: "Per-well hydrochemical (Piper) water type from major-ion chemistry, all NM sources"
+    abstract: >-
+      Per-well hydrochemical (Piper) water type from the latest major-ion chemistry, across all sources in New Mexico.
+      Lists the latest observed values for the major ions and the resulting water type classification. Updated monthly on the 25th.
+    keywords: ["water type", "major ions", "hydrochemistry", "piper"]
     schedule: "0 6 25 * *"
     analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
     spatial_filter:
@@ -696,6 +716,11 @@ products:
     output_type: ogc_data_density
     title: "NM Water Level Data Density"
     description: "Per-well water-level measurement coverage and frequency, all NM sources"
+    abstract: >-
+      Per-well water-level measurement coverage and frequency, across all sources in New Mexico.
+      Lists the number of observations per day, the span of observations, the mean interval between
+      observations, and the number of observations per year. Updated monthly on the 15th.
+    keywords: ["water level", "data density", "measurement coverage"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -711,6 +736,10 @@ products:
     publish: hidden
     title: "NM Water Level Change"
     description: "Per-well depth-to-water change over a trailing window, all NM sources"
+    abstract: >-
+      Per-well depth-to-water change over the most recent trailing window of years, across all sources in New Mexico.
+      Positive values indicate a decline in the water table. Updated monthly on the 15th.
+    keywords: ["water level", "change", "trailing window"]
     schedule: "0 6 15 * *"
     window_years: 5
     spatial_filter:
@@ -726,6 +755,10 @@ products:
     publish: hidden
     title: "NM Sodium Adsorption Ratio"
     description: "Per-well sodium adsorption ratio and irrigation hazard class, all NM sources"
+    abstract: >-
+      Per-well sodium adsorption ratio Na/sqrt((Ca+Mg)/2), meq) and USDA irrigation hazard class, across all sources in New Mexico.
+      Updated monthly on the 25th.
+    keywords: ["sodium adsorption ratio", "sar", "irrigation hazard", "water quality"]
     schedule: "0 6 25 * *"
     analytes: [sodium, calcium, magnesium]
     spatial_filter:
@@ -741,6 +774,10 @@ products:
     publish: hidden
     title: "NM Ion Balance"
     description: "Per-well major-ion charge balance error (QA screen), all NM sources"
+    abstract: >-
+      Per-well major-ion charge balance error from the latest major ion chemistry, across all sources in New Mexico.
+      Updated monthly on the 25th.
+    keywords: ["ion balance", "charge balance", "water quality"]
     schedule: "0 6 25 * *"
     analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
     spatial_filter:
@@ -756,6 +793,10 @@ products:
     publish: hidden
     title: "NM Water Quality Index"
     description: "Per-well CCME water quality index against drinking-water MCLs, all NM sources"
+    keywords: ["water quality index", "ccme", "mcl", "water quality"]
+    abstract: >-
+      Per-well CCME water quality index (0-100) scored against the drinking-water MCL thresholds, across all sources in New Mexico.
+      Updated monthly on the 25th.
     schedule: "0 6 25 * *"
     analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
     spatial_filter:
@@ -772,6 +813,11 @@ products:
     publish: hidden
     title: "NM Water Level Status"
     description: "Per-well current water level vs the well's own record (percentile and status), all NM sources"
+    abstract: >-
+      Per-well current water level as a percentile of the well's own record,
+      with USGS-style above/below-normal status, across all sources in New Mexico.
+      Updated monthly on the 15th.
+    keywords: ["water level", "percentile", "status", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -787,6 +833,11 @@ products:
     publish: hidden
     title: "NM Water Level Seasonal Amplitude"
     description: "Per-well within-year depth-to-water amplitude, all NM sources"
+    abstract: >-
+      Per-well within-year depth-to-water spread (max - min per qualifying calendar year),
+      flagging pumping-stressed / strongly seasonal wells, across all sources in New Mexico.
+      Updated monthly on the 15th.
+    keywords: ["water level", "seasonal amplitude", "water quality"]
     schedule: "0 6 15 * *"
     min_days_per_year: 4
     spatial_filter:
@@ -804,6 +855,11 @@ products:
     publish: none
     title: "NM Well Depletion Projection"
     description: "Per-well screening projection of years until depth-to-water reaches well depth, all NM sources"
+    abstract: >-
+      Per-well screening-level linear projection of when depth-to-water reaches the well's total depth, from the Theil-Sen trend slope.
+      Only wells with a significant declining trend and a reported depth get a projection, across all sources in New Mexico.
+      Updated monthly on the 15th.
+    keywords: ["water level", "depletion projection", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -823,6 +879,11 @@ products:
     publish: hidden
     title: "NM Cross-Agency Well Correlation"
     description: "Per-well links to associated wells at other agencies and to OSE PODs, all NM sources"
+    abstract: >-
+      Per-well correlation of sites from every source (sites-only, including the OSE POD source)
+      via explicit id references (usgs_site_id / alternate_site_id) and spatial+depth agreement.
+      Generated monthly on the 1st, across all sources in New Mexico.
+    keywords: ["well correlation", "cross-agency", "water quality"]
     schedule: "0 6 1 * *"
     spatial_filter:
       state: NM
@@ -840,6 +901,11 @@ products:
     output_type: ogc_well_density
     title: "NM Water-Level Well Density by County"
     description: "Per-county water-level well count and density, all NM sources"
+    abstract: >-
+      Per-county water-level well count and density, across all sources in New Mexico.
+      Counties are fetched from geoconnex.us.
+      Updated monthly on the 15th.
+    keywords: ["water level", "well density", "county", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -855,6 +921,11 @@ products:
     output_type: ogc_basin_well_density
     title: "NM Water-Level Well Density by Groundwater Basin"
     description: "Per-basin water-level well count and density, all NM sources"
+    abstract: >-
+      Per-basin water-level well count and density, across all sources in New Mexico.
+      Basins are fetched from NM OSE's ArcGIS FeatureServer.
+      Updated monthly on the 15th.
+    keywords: ["water level", "well density", "basin", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -863,7 +934,7 @@ products:
 
   # One feature per NM county polygon: OSE PODs (wells) completed in the last 10
   # years, binned by completion year (finish_dat). Per-county year counts, trend
-  # slope (wells/year) and peak year; collection-level fastest-growing county and
+  # slope (wells/year) and peak year; collection-level fastest-growing county and`
   # statewide yearly totals. Standalone product (no `parameter`): its combine
   # gathers sites from EVERY source (sites-only, incl. the OSE POD source, the
   # only one carrying completion dates). Counties fetched from geoconnex.us
@@ -874,6 +945,12 @@ products:
     publish: hidden
     title: "NM Recent Well (POD) Age Distribution by County"
     description: "OSE PODs completed in the last 10 years, binned by year per NM county, with per-county growth trends"
+    abstract: >-
+      OSE PODs completed in the last 10 years, aggregated by NM county and year.
+      Includes per-county growth trends and collection-level fastest-growing county.
+      Counties are fetched from geoconnex.us.
+      Updated monthly on the 22nd.
+    keywords: ["well age", "POD", "county", "water quality"]
     schedule: "0 6 22 * *"
     years_back: 10
     spatial_filter:
@@ -891,6 +968,11 @@ products:
     publish: hidden
     title: "NM Recent Wells (PODs) — Last 10 Years"
     description: "Point layer of OSE PODs completed in the last 10 years, each tagged with completion year and county"
+    abstract: >-
+      OSE PODs completed in the last 10 years, represented as points with completion year and county.
+      Includes collection-level yearly totals and fastest-growing county.
+      Updated monthly on the 23rd.
+    keywords: ["well age", "POD", "point", "water quality"]
     schedule: "0 6 23 * *"
     years_back: 10
     spatial_filter:
