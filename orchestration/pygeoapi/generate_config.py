@@ -148,9 +148,10 @@ def collection_description(product: dict, sources: Optional[list[str]]) -> str:
     if not abstract:
         return product["description"]
     parts = [abstract.strip()]
+    parts.append(DOCS_POINTER)
     if sources:
         parts.append(f"Sources: {', '.join(sources)}.")
-    parts.append(DOCS_POINTER)
+    
     return " ".join(parts)
 
 

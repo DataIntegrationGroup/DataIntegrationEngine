@@ -527,8 +527,8 @@ Every product's `publish` value (§5.2) is checked first; an invalid one fails t
 config entry. `publish: hidden` products are handled like listed ones, plus
 `visibility: hidden`. A config with no products to publish fails the build.
 
-Each product with an `abstract` is described by the abstract, then "Sources: …", then a
-pointer to the data dictionary. The sources are the abbreviations (from
+Each product with an `abstract` is described by the abstract,then a
+pointer to the data dictionary, then "Sources: …". The sources are the abbreviations (from
 `config/sources.yaml`, or `--sources`) of the distinct `source` values in the product's
 `latest.parquet`, most features first. Several tags with the same abbreviation are listed
 once. They are read only with `--check-parquet` or `--bake-to`. Products with no Parquet

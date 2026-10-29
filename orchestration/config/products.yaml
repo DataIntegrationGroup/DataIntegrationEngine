@@ -6,6 +6,11 @@ products:
     output_type: ogc_summary
     title: "NM Unified Water Levels Summary"
     description: "Summary stats for water levels, all NM sources"
+    abstract: >-
+      Summary statistics for water levels across all sources in New Mexico, measured in ft.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 15th.
+    keywords: ["water levels", "depth to water below ground surface", "summary statistics"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -17,6 +22,10 @@ products:
     output_type: ogc_timeseries
     title: "NM Water Levels Time Series"
     description: "Per-observation water level measurements, all NM sources"
+    abstract: >-
+      Per-observation water level measurements across all sources in New Mexico, measured in ft.
+      Each observation includes the site, date, and water level value. Updated monthly on the 15th.
+    keywords: ["water levels", "depth to water below ground surface", "time series"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -28,6 +37,11 @@ products:
     output_type: ogc_summary
     title: "NM Arsenic Summary"
     description: "Arsenic concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for arsenic concentrations across all sources in New Mexico, measured in µg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["arsenic", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -39,6 +53,11 @@ products:
     output_type: ogc_summary
     title: "NM TDS Summary"
     description: "TDS concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for TDS concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["tds", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -52,6 +71,11 @@ products:
     output_type: ogc_major_chemistry
     title: "NM Major Chemistry"
     description: "Wells with major-ion chemistry (latest value per analyte), well depth, all NM sources"
+    keywords: ["major chemistry", "calcium", "magnesium", "sodium", "potassium", "bicarbonate", "carbonate", "chloride", "sulfate"]
+    abstract: >-
+      One feature per well with major-ion chemistry measurements, including the latest value for each analyte and the well depth.
+      Major chemistry includes calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, and sulfate.
+      Updated monthly on the 25th.
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -90,6 +114,17 @@ products:
     publish: none
     title: "NM Arsenic Trends"
     description: "Per-well arsenic concentration trend (slope and category), all NM sources"
+    abstract: >-
+      Arsenic concentration trend per well. Observations are downsampled to one
+      point per calendar day, keeping the daily MEAN concentration.
+      Monotonic trend is tested with the non-parametric Mann-Kendall test
+      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
+      time; the rate is the Theil-Sen slope vs time. A well is classified only
+      when it has at least 10 daily points, or at least 4 daily points spanning
+      at least 2 years; otherwise 'not enough data'.
+      A significant increasing slope is 'increasing', a 
+      significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["arsenic", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -102,6 +137,17 @@ products:
     publish: none
     title: "NM Nitrate Trends"
     description: "Per-well nitrate concentration trend (slope and category), all NM sources"
+    abstract: >-
+      Nitrate concentration trend per well. Observations are downsampled to one
+      point per calendar day, keeping the daily MEAN concentration.
+      Monotonic trend is tested with the non-parametric Mann-Kendall test
+      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
+      time; the rate is the Theil-Sen slope vs time. A well is classified only
+      when it has at least 10 daily points, or at least 4 daily points spanning
+      at least 2 years; otherwise 'not enough data'.
+      A significant increasing slope is 'increasing', a 
+      significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["nitrate", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -114,6 +160,17 @@ products:
     publish: none
     title: "NM Fluoride Trends"
     description: "Per-well fluoride concentration trend (slope and category), all NM sources"
+    abstract: >-
+      Fluoride concentration trend per well. Observations are downsampled to one
+      point per calendar day, keeping the daily MEAN concentration.
+      Monotonic trend is tested with the non-parametric Mann-Kendall test
+      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
+      time; the rate is the Theil-Sen slope vs time. A well is classified only
+      when it has at least 10 daily points, or at least 4 daily points spanning
+      at least 2 years; otherwise 'not enough data'.
+      A significant increasing slope is 'increasing', a 
+      significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["fluoride", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -126,6 +183,17 @@ products:
     publish: none
     title: "NM Uranium Trends"
     description: "Per-well uranium concentration trend (slope and category), all NM sources"
+    abstract: >-
+      Uranium concentration trend per well. Observations are downsampled to one
+      point per calendar day, keeping the daily MEAN concentration.
+      Monotonic trend is tested with the non-parametric Mann-Kendall test
+      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
+      time; the rate is the Theil-Sen slope vs time. A well is classified only
+      when it has at least 10 daily points, or at least 4 daily points spanning
+      at least 2 years; otherwise 'not enough data'.
+      A significant increasing slope is 'increasing', a 
+      significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["uranium", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -138,6 +206,17 @@ products:
     publish: none
     title: "NM Sulfate Trends"
     description: "Per-well sulfate concentration trend (slope and category), all NM sources"
+    abstract: >-
+      Sulfate concentration trend per well. Observations are downsampled to one
+      point per calendar day, keeping the daily MEAN concentration.
+      Monotonic trend is tested with the non-parametric Mann-Kendall test
+      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
+      time; the rate is the Theil-Sen slope vs time. A well is classified only
+      when it has at least 10 daily points, or at least 4 daily points spanning
+      at least 2 years; otherwise 'not enough data'.
+      A significant increasing slope is 'increasing', a 
+      significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["sulfate", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -150,6 +229,17 @@ products:
     publish: none
     title: "NM Chloride Trends"
     description: "Per-well chloride concentration trend (slope and category), all NM sources"
+    abstract: >-
+      Chloride concentration trend per well. Observations are downsampled to one
+      point per calendar day, keeping the daily MEAN concentration.
+      Monotonic trend is tested with the non-parametric Mann-Kendall test
+      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
+      time; the rate is the Theil-Sen slope vs time. A well is classified only
+      when it has at least 10 daily points, or at least 4 daily points spanning
+      at least 2 years; otherwise 'not enough data'.
+      A significant increasing slope is 'increasing', a 
+      significant decreasing slope is 'decreasing', else 'stable'.
+    keywords: ["chloride", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -161,6 +251,10 @@ products:
     output_type: ogc_summary
     title: "NM Fluoride Summary"
     description: "Fluoride concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for fluoride concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -172,6 +266,10 @@ products:
     output_type: ogc_summary
     title: "NM Uranium Summary"
     description: "Uranium concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for uranium concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -185,6 +283,11 @@ products:
     output_type: ogc_summary
     title: "NM Nitrate Summary"
     description: "Nitrate concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for nitrate concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["nitrate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -196,6 +299,11 @@ products:
     output_type: ogc_summary
     title: "NM Sulfate Summary"
     description: "Sulfate concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for sulfate concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["sulfate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -207,6 +315,11 @@ products:
     output_type: ogc_summary
     title: "NM Chloride Summary"
     description: "Chloride concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for chloride concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["chloride", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -218,6 +331,11 @@ products:
     output_type: ogc_summary
     title: "NM Calcium Summary"
     description: "Calcium concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for calcium concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["calcium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -229,6 +347,11 @@ products:
     output_type: ogc_summary
     title: "NM Magnesium Summary"
     description: "Magnesium concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for magnesium concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["magnesium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -240,6 +363,11 @@ products:
     output_type: ogc_summary
     title: "NM Sodium Summary"
     description: "Sodium concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for sodium concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["sodium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -251,6 +379,11 @@ products:
     output_type: ogc_summary
     title: "NM Potassium Summary"
     description: "Potassium concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for potassium concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["potassium", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -262,6 +395,11 @@ products:
     output_type: ogc_summary
     title: "NM Bicarbonate Summary"
     description: "Bicarbonate concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for bicarbonate concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["bicarbonate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -273,6 +411,11 @@ products:
     output_type: ogc_summary
     title: "NM Carbonate Summary"
     description: "Carbonate concentration summary stats, all NM sources"
+    abstract: >-
+      Summary statistics for carbonate concentrations across all sources in New Mexico, measured in mg/L.
+      For each site it includes the minimum, maximum, mean, for the reporting period, as well as the date and value of the earliest and latest observations.
+      The summary is updated every month on the 25th.
+    keywords: ["carbonate", "summary statistics"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -286,6 +429,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Arsenic Time Series"
     description: "Per-observation arsenic concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation arsenic concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["arsenic", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -297,6 +445,11 @@ products:
     output_type: ogc_timeseries
     title: "NM TDS Time Series"
     description: "Per-observation TDS concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation TDS concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["tds", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -308,6 +461,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Fluoride Time Series"
     description: "Per-observation fluoride concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation fluoride concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["fluoride", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -319,6 +477,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Uranium Time Series"
     description: "Per-observation uranium concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation uranium concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["uranium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -330,6 +493,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Nitrate Time Series"
     description: "Per-observation nitrate concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation nitrate concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["nitrate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -341,6 +509,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Sulfate Time Series"
     description: "Per-observation sulfate concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation sulfate concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["sulfate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -352,6 +525,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Chloride Time Series"
     description: "Per-observation chloride concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation chloride concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["chloride", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -363,6 +541,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Calcium Time Series"
     description: "Per-observation calcium concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation calcium concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["calcium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -374,6 +557,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Magnesium Time Series"
     description: "Per-observation magnesium concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation magnesium concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["magnesium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -385,6 +573,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Sodium Time Series"
     description: "Per-observation sodium concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation sodium concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["sodium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -396,6 +589,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Potassium Time Series"
     description: "Per-observation potassium concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation potassium concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["potassium", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -407,6 +605,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Bicarbonate Time Series"
     description: "Per-observation bicarbonate concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation bicarbonate concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["bicarbonate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -418,6 +621,11 @@ products:
     output_type: ogc_timeseries
     title: "NM Carbonate Time Series"
     description: "Per-observation carbonate concentration measurements, all NM sources"
+    abstract: >-
+      Per-observation carbonate concentration measurements across all sources in New Mexico, measured in mg/L.
+      Each observation includes the date, site, and measured value.
+      The time series is updated every month on the 25th.
+    keywords: ["carbonate", "time series"]
     schedule: "0 6 25 * *"
     spatial_filter:
       state: NM
@@ -430,7 +638,13 @@ products:
   - id: nm_mcl_exceedance
     output_type: ogc_mcl_exceedance
     title: "NM MCL Exceedances"
-    description: "Wells flagged against drinking-water MCLs, all NM sources"
+    description: "Wells flagged against drinking-water MCLs as set by the EPA, all NM sources"
+    abstract: >-
+      Wells flagged against drinking-water MCLs as set by the EPA, across all sources in New Mexico.
+      Lists the MCL, latest observed value, and exceedance status for each well for the following
+      analytes: arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds. Updated 
+      monthly on the 25th.
+    keywords: ["epa", "mcl"]
     schedule: "0 6 25 * *"
     analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
     spatial_filter:
@@ -445,6 +659,11 @@ products:
     output_type: ogc_monitoring_recency
     title: "NM Monitoring Recency"
     description: "Per-well water-level monitoring recency and status, all NM sources"
+    abstract: >-
+      How recently each well was measured for water levels.
+      Wells are flagged as active or stale based on the `stale_days` threshold.
+      Updated monthly on the 15th.
+    keywords: ["monitoring recency", "water levels"]
     schedule: "0 6 15 * *"
     stale_days: 365
     spatial_filter:
@@ -459,6 +678,11 @@ products:
     output_type: ogc_hardness
     title: "NM Water Hardness"
     description: "Per-well total hardness as CaCO3 (calcium + magnesium), all NM sources"
+    abstract: >-
+      Per-well total hardness as CaCO3 (calcium + magnesium), across all sources in New Mexico.
+      Lists the latest observed values for calcium and magnesium, and the resulting hardness classification.
+      Updated monthly on the 25th.
+    keywords: ["hardness", "calcium", "magnesium"]
     schedule: "0 6 25 * *"
     analytes: [calcium, magnesium]
     spatial_filter:
@@ -473,6 +697,10 @@ products:
     output_type: ogc_water_type
     title: "NM Water Type"
     description: "Per-well hydrochemical (Piper) water type from major-ion chemistry, all NM sources"
+    abstract: >-
+      Per-well hydrochemical (Piper) water type from the latest major-ion chemistry, across all sources in New Mexico.
+      Lists the latest observed values for the major ions and the resulting water type classification. Updated monthly on the 25th.
+    keywords: ["water type", "major ions", "hydrochemistry", "piper"]
     schedule: "0 6 25 * *"
     analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
     spatial_filter:
@@ -488,6 +716,11 @@ products:
     output_type: ogc_data_density
     title: "NM Water Level Data Density"
     description: "Per-well water-level measurement coverage and frequency, all NM sources"
+    abstract: >-
+      Per-well water-level measurement coverage and frequency, across all sources in New Mexico.
+      Lists the number of observations per day, the span of observations, the mean interval between
+      observations, and the number of observations per year. Updated monthly on the 15th.
+    keywords: ["water level", "data density", "measurement coverage"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -503,6 +736,10 @@ products:
     publish: hidden
     title: "NM Water Level Change"
     description: "Per-well depth-to-water change over a trailing window, all NM sources"
+    abstract: >-
+      Per-well depth-to-water change over the most recent trailing window of years, across all sources in New Mexico.
+      Positive values indicate a decline in the water table. Updated monthly on the 15th.
+    keywords: ["water level", "change", "trailing window"]
     schedule: "0 6 15 * *"
     window_years: 5
     spatial_filter:
@@ -518,6 +755,10 @@ products:
     publish: hidden
     title: "NM Sodium Adsorption Ratio"
     description: "Per-well sodium adsorption ratio and irrigation hazard class, all NM sources"
+    abstract: >-
+      Per-well sodium adsorption ratio Na/sqrt((Ca+Mg)/2), meq) and USDA irrigation hazard class, across all sources in New Mexico.
+      Updated monthly on the 25th.
+    keywords: ["sodium adsorption ratio", "sar", "irrigation hazard", "water quality"]
     schedule: "0 6 25 * *"
     analytes: [sodium, calcium, magnesium]
     spatial_filter:
@@ -533,6 +774,10 @@ products:
     publish: hidden
     title: "NM Ion Balance"
     description: "Per-well major-ion charge balance error (QA screen), all NM sources"
+    abstract: >-
+      Per-well major-ion charge balance error from the latest major ion chemistry, across all sources in New Mexico.
+      Updated monthly on the 25th.
+    keywords: ["ion balance", "charge balance", "water quality"]
     schedule: "0 6 25 * *"
     analytes: [calcium, magnesium, sodium, potassium, bicarbonate, carbonate, chloride, sulfate]
     spatial_filter:
@@ -548,6 +793,10 @@ products:
     publish: hidden
     title: "NM Water Quality Index"
     description: "Per-well CCME water quality index against drinking-water MCLs, all NM sources"
+    keywords: ["water quality index", "ccme", "mcl", "water quality"]
+    abstract: >-
+      Per-well CCME water quality index (0-100) scored against the drinking-water MCL thresholds, across all sources in New Mexico.
+      Updated monthly on the 25th.
     schedule: "0 6 25 * *"
     analytes: [arsenic, nitrate, fluoride, uranium, sulfate, chloride, tds]
     spatial_filter:
@@ -564,6 +813,11 @@ products:
     publish: hidden
     title: "NM Water Level Status"
     description: "Per-well current water level vs the well's own record (percentile and status), all NM sources"
+    abstract: >-
+      Per-well current water level as a percentile of the well's own record,
+      with USGS-style above/below-normal status, across all sources in New Mexico.
+      Updated monthly on the 15th.
+    keywords: ["water level", "percentile", "status", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -579,6 +833,11 @@ products:
     publish: hidden
     title: "NM Water Level Seasonal Amplitude"
     description: "Per-well within-year depth-to-water amplitude, all NM sources"
+    abstract: >-
+      Per-well within-year depth-to-water spread (max - min per qualifying calendar year),
+      flagging pumping-stressed / strongly seasonal wells, across all sources in New Mexico.
+      Updated monthly on the 15th.
+    keywords: ["water level", "seasonal amplitude", "water quality"]
     schedule: "0 6 15 * *"
     min_days_per_year: 4
     spatial_filter:
@@ -596,6 +855,11 @@ products:
     publish: none
     title: "NM Well Depletion Projection"
     description: "Per-well screening projection of years until depth-to-water reaches well depth, all NM sources"
+    abstract: >-
+      Per-well screening-level linear projection of when depth-to-water reaches the well's total depth, from the Theil-Sen trend slope.
+      Only wells with a significant declining trend and a reported depth get a projection, across all sources in New Mexico.
+      Updated monthly on the 15th.
+    keywords: ["water level", "depletion projection", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -615,6 +879,11 @@ products:
     publish: hidden
     title: "NM Cross-Agency Well Correlation"
     description: "Per-well links to associated wells at other agencies and to OSE PODs, all NM sources"
+    abstract: >-
+      Per-well correlation of sites from every source (sites-only, including the OSE POD source)
+      via explicit id references (usgs_site_id / alternate_site_id) and spatial+depth agreement.
+      Generated monthly on the 1st, across all sources in New Mexico.
+    keywords: ["well correlation", "cross-agency", "water quality"]
     schedule: "0 6 1 * *"
     spatial_filter:
       state: NM
@@ -632,6 +901,11 @@ products:
     output_type: ogc_well_density
     title: "NM Water-Level Well Density by County"
     description: "Per-county water-level well count and density, all NM sources"
+    abstract: >-
+      Per-county water-level well count and density, across all sources in New Mexico.
+      Counties are fetched from geoconnex.us.
+      Updated monthly on the 15th.
+    keywords: ["water level", "well density", "county", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -647,6 +921,11 @@ products:
     output_type: ogc_basin_well_density
     title: "NM Water-Level Well Density by Groundwater Basin"
     description: "Per-basin water-level well count and density, all NM sources"
+    abstract: >-
+      Per-basin water-level well count and density, across all sources in New Mexico.
+      Basins are fetched from NM OSE's ArcGIS FeatureServer.
+      Updated monthly on the 15th.
+    keywords: ["water level", "well density", "basin", "water quality"]
     schedule: "0 6 15 * *"
     spatial_filter:
       state: NM
@@ -655,7 +934,7 @@ products:
 
   # One feature per NM county polygon: OSE PODs (wells) completed in the last 10
   # years, binned by completion year (finish_dat). Per-county year counts, trend
-  # slope (wells/year) and peak year; collection-level fastest-growing county and
+  # slope (wells/year) and peak year; collection-level fastest-growing county and`
   # statewide yearly totals. Standalone product (no `parameter`): its combine
   # gathers sites from EVERY source (sites-only, incl. the OSE POD source, the
   # only one carrying completion dates). Counties fetched from geoconnex.us
@@ -666,6 +945,12 @@ products:
     publish: hidden
     title: "NM Recent Well (POD) Age Distribution by County"
     description: "OSE PODs completed in the last 10 years, binned by year per NM county, with per-county growth trends"
+    abstract: >-
+      OSE PODs completed in the last 10 years, aggregated by NM county and year.
+      Includes per-county growth trends and collection-level fastest-growing county.
+      Counties are fetched from geoconnex.us.
+      Updated monthly on the 22nd.
+    keywords: ["well age", "POD", "county", "water quality"]
     schedule: "0 6 22 * *"
     years_back: 10
     spatial_filter:
@@ -683,6 +968,11 @@ products:
     publish: hidden
     title: "NM Recent Wells (PODs) — Last 10 Years"
     description: "Point layer of OSE PODs completed in the last 10 years, each tagged with completion year and county"
+    abstract: >-
+      OSE PODs completed in the last 10 years, represented as points with completion year and county.
+      Includes collection-level yearly totals and fastest-growing county.
+      Updated monthly on the 23rd.
+    keywords: ["well age", "POD", "point", "water quality"]
     schedule: "0 6 23 * *"
     years_back: 10
     spatial_filter:
