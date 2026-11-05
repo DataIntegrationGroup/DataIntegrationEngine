@@ -385,7 +385,7 @@ logging:
 
 metadata:
   identification:
-    title: New Mexico Unified Water Data
+    title: Weaver API - New Mexico Unified Water Data
     description: >-
       This tool integrates groundwater-level and water-quality data for New Mexico
       from state and federal sources, including NMBGMR, USGS, and the Water Quality Portal.
