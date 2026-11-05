@@ -398,7 +398,7 @@ metadata:
       - NMBGMR
     keywords_type: theme
     terms_of_service: https://creativecommons.org/licenses/by/4.0/
-    url: ${PYGEOAPI_SERVER_URL}   # the live Cloud Run URL, set in cloudbuild.yaml
+    url: ${PYGEOAPI_SERVER_URL}   # public custom domain, set in cloudbuild.yaml
   license:
     name: CC-BY 4.0
     url: https://creativecommons.org/licenses/by/4.0/
@@ -625,7 +625,7 @@ Each Cloud Build runs a fresh Docker daemon, so no layer cache serves stale data
 build with `--no-cache` to re-download.
 
 Cloud Run Service (`orchestration/pygeoapi/cloudbuild.yaml`):
-- `PYGEOAPI_SERVER_URL` — `https://die-pygeoapi-$PROJECT_NUMBER.$_REGION.run.app`
+- `PYGEOAPI_SERVER_URL` — `https://weaver-api.newmexicowaterdata.org` (custom domain; pygeoapi builds all links from this)
 - `CPL_MACHINE_IS_GCE=YES` — lets GDAL `/vsigs/` use Cloud Run credentials (§6.4); unused
   with baked products, kept for images built without them
 - Port: 80
