@@ -74,60 +74,45 @@ class NMBGMRSiteSource(BaseSiteSource):
     bounding_polygon = NM_STATE_BOUNDING_POLYGON
 
     def __init__(self):
+        # config gets set by the BaseSiteSource constructor
         super().__init__(transformer=NMBGMRSiteTransformer())
+        if self.config.parameter.lower() == "waterlevels":
+            self.collection = "manual_waterlevels"
+        else:
+            self.collection = "water_chemistry"
 
     def health(self):
         try:
             resp = self._execute_json_request(
-                _make_url("locations"), tag="features", params={"limit": 1}
+                _make_url(self.collection)
             )
             return bool(resp)
         except Exception:
             return False
 
     def get_records(self):
-        config = self.config
-        params = {"site_type": "Groundwater other than spring (well)", "expand": False}
-        if config.has_bounds():
-            params["wkt"] = config.bounding_wkt()
+        params = {}
 
-        if not config.sites_only:
+        # only water chemistry has to filter for locations by parameter
+        if self.config.parameter.lower() != "waterlevels":
+            params["parameter"] = get_analyte_search_param(
+                self.config.parameter, NMBGMR_ANALYTE_MAPPING
+            )
 
-            if config.parameter.lower() != "waterlevels":
-                params["parameter"] = get_analyte_search_param(
-                    config.parameter, NMBGMR_ANALYTE_MAPPING
-                )
-            else:
-                params["parameter"] = "Manual groundwater levels"
+        """
+        Developer's notes
 
+        - The OcotilloAPI OGC EDR returns a FeatureCollection of GeoJSONs with no pagination
+        - If we run into a 413: request too large error in the future, we'll need to use tiles to cover New Mexico via the bbox query parameter.
+        """
         sites = self._execute_json_request(
-            _make_url("locations"), params, tag="features", timeout=TIMEOUT
+            _make_url(self.collection), params, tag="features", timeout=TIMEOUT
         )
-
-        if not config.sites_only:
-            for site in sites:
-                if get_bool_env_variable("IS_TESTING_ENV"):
-                    self.log(
-                        f"Skipping well data for {site['properties']['point_id']} for testing"
-                    )
-                    site["properties"]["formation"] = None
-                    site["properties"]["well_depth"] = None
-                    site["properties"]["well_depth_units"] = FEET
-                else:
-                    self.log(f"Obtaining well data for {site['properties']['point_id']}")
-                    well_data = self._execute_json_request(
-                        _make_url("wells"),
-                        params={"pointid": site["properties"]["point_id"]},
-                        tag="",
-                    )
-                    site["properties"]["formation"] = well_data["formation"]
-                    site["properties"]["well_depth"] = well_data["well_depth_ftbgs"]
-                    site["properties"]["well_depth_units"] = FEET
 
         return sites
 
 
-class NMBGMRAnalyteSource(BaseAnalyteSource):
+class NMBGMRAnalyteSource(BaseAnalyteSource):#
     def __init__(self):
         super().__init__(transformer=NMBGMRAnalyteTransformer())
 

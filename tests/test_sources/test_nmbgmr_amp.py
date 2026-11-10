@@ -4,17 +4,6 @@ import pytest
 from backend.constants import WATERLEVELS, CALCIUM, MILLIGRAMS_PER_LITER, FEET
 from tests.test_sources import BaseSourceTestClass
 
-@pytest.fixture(autouse=True)
-def setup_nmbgmr_amp():
-    # SETUP CODE -----------------------------------------------------------
-    os.environ["IS_TESTING_ENV"] = "True"
-
-    # RUN TESTS ------------------------------------------------------------
-    yield
-
-    # TEARDOWN CODE ---------------------------------------------------------
-    os.environ["IS_TESTING_ENV"] = "False"
-
 
 class TestNMBGMRWaterlevels(BaseSourceTestClass):
 
