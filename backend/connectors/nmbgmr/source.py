@@ -51,11 +51,21 @@ from backend.source import (
 
 TIMEOUT=15*60
 
-def _make_url(endpoint):
-    if os.getenv("DEBUG") == "1":
-        url = f"http://localhost:8000/latest/{endpoint}"
-    else:
-        url = f"https://ampapidev-dot-waterdatainitiative-271000.appspot.com/latest/{endpoint}"
+def _make_url(collection :str) -> str:
+    """
+    Make a URL for the specified collection in the OcotilloAPI OGC API collections.
+
+    Parameters
+    ----------
+    collection : str
+        The name of the collection for which to make the URL.
+
+    Returns
+    -------
+    str
+        The URL for the specified collection.
+    """
+    url = f"https://ocotillo-api.newmexicowaterdata.org/ogcapi/collections/{collection}"
     return url
 
 
