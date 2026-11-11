@@ -1,4 +1,7 @@
 from datetime import datetime, timezone
+from pathlib import Path
+
+import yaml
 
 from backend.trend_stats import (
     daily_series,
@@ -149,3 +152,14 @@ class TestMannKendall:
         cat, slope, p, tau = mann_kendall_trend(years, [50.0 + 0.5 * i for i in range(12)])
         assert round(slope, 3) == 0.5
 
+
+def test_products_yaml_has_full_record_and_window_trend_layers():
+    path = Path(__file__).resolve().parents[1] / "orchestration" / "config" / "products.yaml"
+    products = {p["id"]: p for p in yaml.safe_load(path.read_text())["products"]}
+    assert "window_years" not in products["nm_waterlevel_trends"]
+    assert "Full Record" in products["nm_waterlevel_trends"]["title"]
+    for years in (5, 10, 20):
+        p = products[f"nm_waterlevel_trends_{years}yr"]
+        assert p["output_type"] == "ogc_waterlevel_trend"
+        assert p["window_years"] == years
+        assert p["schedule"] == products["nm_waterlevel_trends"]["schedule"]

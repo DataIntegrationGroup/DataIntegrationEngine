@@ -82,23 +82,27 @@ products:
     sources:
       exclude: []
 
-  # One feature per well with a depth-to-water trend (slope_ft_per_year +
-  # category) computed from each well's water-level timeseries. The collection
-  # carries a trend_method description. Algorithm ported from the Ocotillo API
-  # ogc_depth_to_water_trend_wells materialized view (see ogc_features.py).
+  # One feature per well with a depth-to-water trend (slope_per_year +
+  # category) computed from each well's water-level timeseries, reduced to
+  # monthly medians. The collection carries a trend_method description.
+  # Algorithm ported from the Ocotillo API ogc_depth_to_water_trend_wells
+  # materialized view (see backend/trend_stats.py). This is the overall trend
+  # over each well's full record (trend_period = "full record").
   - id: nm_waterlevel_trends
     parameter: waterlevels
     output_type: ogc_waterlevel_trend
-    title: "NM Water Level Trends"
-    description: "Per-well depth-to-water trend (slope and category), all NM sources"
+    title: "NM Water Level Trends (Full Record)"
+    description: "Per-well depth-to-water trend over each well's full record (overall trend), all NM sources"
     abstract: >-
       One feature per well with depth-to-water measurements, labeled with the direction
-      and rate of change of its water level. Each well's record is reduced to one value
-      per day (the shallowest depth to water), then tested with the Mann-Kendall test
-      (alpha = 0.05), with the rate given as a Theil-Sen slope in feet per year. Wells
-      need at least 10 daily values, or at least 4 spanning 2 or more years; others are
-      labeled "not enough data". Updated monthly. The trend is in depth to water, so
-      "increasing" means the water level is falling.
+      and rate of change of its water level over the well's full record (the overall
+      trend; see first_observation_datetime and last_observation_datetime). Each well's
+      record is reduced to one value per month (the median depth to water), then tested
+      with the Mann-Kendall test (alpha = 0.05), with the rate given as a Theil-Sen
+      slope in feet per year. Wells need at least 10 monthly values, or at least 4
+      spanning 2 or more years; others are labeled "not enough data" with a reason.
+      Updated monthly. The trend is in depth to water, so "increasing" means the water
+      level is falling.
     keywords: [water levels, depth to water, trend, Mann-Kendall, Theil-Sen]
     schedule: "0 6 15 * *"
     spatial_filter:
@@ -106,7 +110,84 @@ products:
     sources:
       exclude: []
 
-  # Per-well analyte concentration trend (Mann-Kendall + Theil-Sen, daily mean).
+  # Same trend as nm_waterlevel_trends, but over a fixed trailing window
+  # (`window_years`) of whole calendar months before the run month, the same
+  # for every well.
+  # The minimum-data rule applies to the monthly values inside the window.
+  - id: nm_waterlevel_trends_5yr
+    parameter: waterlevels
+    output_type: ogc_waterlevel_trend
+    title: "NM Water Level Trends (5 Years)"
+    description: "Per-well depth-to-water trend over the 5 years before the run date, all NM sources"
+    abstract: >-
+      One feature per well with depth-to-water measurements, labeled with the direction
+      and rate of change of its water level over a fixed 5-year window of whole calendar
+      months before the month of the run, the same for every well (see window_start and
+      window_end). Only measurements inside the window are used. They are reduced to one
+      value per month (the median depth to water), then tested with the Mann-Kendall
+      test (alpha = 0.05), with the rate given as a Theil-Sen slope in feet per year.
+      Wells need at least 10 monthly values in the window, or at least 4 spanning 2 or
+      more years; others are labeled "not enough data" with a reason. Updated monthly.
+      The trend is in depth to water, so "increasing" means the water level is falling.
+      A short window can catch one side of a wet/dry cycle, so read it alongside the 10-
+      and 20-year layers.
+    keywords: [water levels, depth to water, trend, Mann-Kendall, Theil-Sen, 5 year]
+    schedule: "0 6 15 * *"
+    window_years: 5
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_waterlevel_trends_10yr
+    parameter: waterlevels
+    output_type: ogc_waterlevel_trend
+    title: "NM Water Level Trends (10 Years)"
+    description: "Per-well depth-to-water trend over the 10 years before the run date, all NM sources"
+    abstract: >-
+      One feature per well with depth-to-water measurements, labeled with the direction
+      and rate of change of its water level over a fixed 10-year window of whole
+      calendar months before the month of the run, the same for every well (see
+      window_start and window_end). Only measurements inside the window are used. They
+      are reduced to one value per month (the median depth to water), then tested with
+      the Mann-Kendall test (alpha = 0.05), with the rate given as a Theil-Sen slope in
+      feet per year. Wells need at least 10 monthly values in the window, or at least 4
+      spanning 2 or more years; others are labeled "not enough data" with a reason.
+      Updated monthly. The trend is in depth to water, so "increasing" means the water
+      level is falling.
+    keywords: [water levels, depth to water, trend, Mann-Kendall, Theil-Sen, 10 year]
+    schedule: "0 6 15 * *"
+    window_years: 10
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  - id: nm_waterlevel_trends_20yr
+    parameter: waterlevels
+    output_type: ogc_waterlevel_trend
+    title: "NM Water Level Trends (20 Years)"
+    description: "Per-well depth-to-water trend over the 20 years before the run date, all NM sources"
+    abstract: >-
+      One feature per well with depth-to-water measurements, labeled with the direction
+      and rate of change of its water level over a fixed 20-year window of whole
+      calendar months before the month of the run, the same for every well (see
+      window_start and window_end). Only measurements inside the window are used. They
+      are reduced to one value per month (the median depth to water), then tested with
+      the Mann-Kendall test (alpha = 0.05), with the rate given as a Theil-Sen slope in
+      feet per year. Wells need at least 10 monthly values in the window, or at least 4
+      spanning 2 or more years; others are labeled "not enough data" with a reason.
+      Updated monthly. The trend is in depth to water, so "increasing" means the water
+      level is falling.
+    keywords: [water levels, depth to water, trend, Mann-Kendall, Theil-Sen, 20 year]
+    schedule: "0 6 15 * *"
+    window_years: 20
+    spatial_filter:
+      state: NM
+    sources:
+      exclude: []
+
+  # Per-well analyte concentration trend (Mann-Kendall + Theil-Sen, monthly mean).
   # One product per analyte, driven by `parameter`.
   - id: nm_arsenic_trend
     parameter: arsenic
@@ -115,15 +196,14 @@ products:
     title: "NM Arsenic Trends"
     description: "Per-well arsenic concentration trend (slope and category), all NM sources"
     abstract: >-
-      Arsenic concentration trend per well. Observations are downsampled to one
-      point per calendar day, keeping the daily MEAN concentration.
-      Monotonic trend is tested with the non-parametric Mann-Kendall test
-      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
-      time; the rate is the Theil-Sen slope vs time. A well is classified only
-      when it has at least 10 daily points, or at least 4 daily points spanning
-      at least 2 years; otherwise 'not enough data'.
-      A significant increasing slope is 'increasing', a 
-      significant decreasing slope is 'decreasing', else 'stable'.
+      Arsenic concentration trend per well. Observations are reduced to one point per
+      calendar month, keeping the monthly MEAN concentration. Monotonic trend is tested
+      with the non-parametric Mann-Kendall test (pymannkendall.original_test,
+      alpha=0.05) on the monthly series ordered by time; the rate is the Theil-Sen slope
+      vs time. A well is classified only when it has at least 10 monthly points, or at
+      least 4 monthly points spanning at least 2 years; otherwise 'not enough data'. A
+      significant increasing slope is 'increasing', a significant decreasing slope is
+      'decreasing', else 'stable'.
     keywords: ["arsenic", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
@@ -138,15 +218,14 @@ products:
     title: "NM Nitrate Trends"
     description: "Per-well nitrate concentration trend (slope and category), all NM sources"
     abstract: >-
-      Nitrate concentration trend per well. Observations are downsampled to one
-      point per calendar day, keeping the daily MEAN concentration.
-      Monotonic trend is tested with the non-parametric Mann-Kendall test
-      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
-      time; the rate is the Theil-Sen slope vs time. A well is classified only
-      when it has at least 10 daily points, or at least 4 daily points spanning
-      at least 2 years; otherwise 'not enough data'.
-      A significant increasing slope is 'increasing', a 
-      significant decreasing slope is 'decreasing', else 'stable'.
+      Nitrate concentration trend per well. Observations are reduced to one point per
+      calendar month, keeping the monthly MEAN concentration. Monotonic trend is tested
+      with the non-parametric Mann-Kendall test (pymannkendall.original_test,
+      alpha=0.05) on the monthly series ordered by time; the rate is the Theil-Sen slope
+      vs time. A well is classified only when it has at least 10 monthly points, or at
+      least 4 monthly points spanning at least 2 years; otherwise 'not enough data'. A
+      significant increasing slope is 'increasing', a significant decreasing slope is
+      'decreasing', else 'stable'.
     keywords: ["nitrate", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
@@ -161,15 +240,14 @@ products:
     title: "NM Fluoride Trends"
     description: "Per-well fluoride concentration trend (slope and category), all NM sources"
     abstract: >-
-      Fluoride concentration trend per well. Observations are downsampled to one
-      point per calendar day, keeping the daily MEAN concentration.
-      Monotonic trend is tested with the non-parametric Mann-Kendall test
-      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
-      time; the rate is the Theil-Sen slope vs time. A well is classified only
-      when it has at least 10 daily points, or at least 4 daily points spanning
-      at least 2 years; otherwise 'not enough data'.
-      A significant increasing slope is 'increasing', a 
-      significant decreasing slope is 'decreasing', else 'stable'.
+      Fluoride concentration trend per well. Observations are reduced to one point per
+      calendar month, keeping the monthly MEAN concentration. Monotonic trend is tested
+      with the non-parametric Mann-Kendall test (pymannkendall.original_test,
+      alpha=0.05) on the monthly series ordered by time; the rate is the Theil-Sen slope
+      vs time. A well is classified only when it has at least 10 monthly points, or at
+      least 4 monthly points spanning at least 2 years; otherwise 'not enough data'. A
+      significant increasing slope is 'increasing', a significant decreasing slope is
+      'decreasing', else 'stable'.
     keywords: ["fluoride", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
@@ -184,15 +262,14 @@ products:
     title: "NM Uranium Trends"
     description: "Per-well uranium concentration trend (slope and category), all NM sources"
     abstract: >-
-      Uranium concentration trend per well. Observations are downsampled to one
-      point per calendar day, keeping the daily MEAN concentration.
-      Monotonic trend is tested with the non-parametric Mann-Kendall test
-      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
-      time; the rate is the Theil-Sen slope vs time. A well is classified only
-      when it has at least 10 daily points, or at least 4 daily points spanning
-      at least 2 years; otherwise 'not enough data'.
-      A significant increasing slope is 'increasing', a 
-      significant decreasing slope is 'decreasing', else 'stable'.
+      Uranium concentration trend per well. Observations are reduced to one point per
+      calendar month, keeping the monthly MEAN concentration. Monotonic trend is tested
+      with the non-parametric Mann-Kendall test (pymannkendall.original_test,
+      alpha=0.05) on the monthly series ordered by time; the rate is the Theil-Sen slope
+      vs time. A well is classified only when it has at least 10 monthly points, or at
+      least 4 monthly points spanning at least 2 years; otherwise 'not enough data'. A
+      significant increasing slope is 'increasing', a significant decreasing slope is
+      'decreasing', else 'stable'.
     keywords: ["uranium", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
@@ -207,15 +284,14 @@ products:
     title: "NM Sulfate Trends"
     description: "Per-well sulfate concentration trend (slope and category), all NM sources"
     abstract: >-
-      Sulfate concentration trend per well. Observations are downsampled to one
-      point per calendar day, keeping the daily MEAN concentration.
-      Monotonic trend is tested with the non-parametric Mann-Kendall test
-      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
-      time; the rate is the Theil-Sen slope vs time. A well is classified only
-      when it has at least 10 daily points, or at least 4 daily points spanning
-      at least 2 years; otherwise 'not enough data'.
-      A significant increasing slope is 'increasing', a 
-      significant decreasing slope is 'decreasing', else 'stable'.
+      Sulfate concentration trend per well. Observations are reduced to one point per
+      calendar month, keeping the monthly MEAN concentration. Monotonic trend is tested
+      with the non-parametric Mann-Kendall test (pymannkendall.original_test,
+      alpha=0.05) on the monthly series ordered by time; the rate is the Theil-Sen slope
+      vs time. A well is classified only when it has at least 10 monthly points, or at
+      least 4 monthly points spanning at least 2 years; otherwise 'not enough data'. A
+      significant increasing slope is 'increasing', a significant decreasing slope is
+      'decreasing', else 'stable'.
     keywords: ["sulfate", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
@@ -230,15 +306,14 @@ products:
     title: "NM Chloride Trends"
     description: "Per-well chloride concentration trend (slope and category), all NM sources"
     abstract: >-
-      Chloride concentration trend per well. Observations are downsampled to one
-      point per calendar day, keeping the daily MEAN concentration.
-      Monotonic trend is tested with the non-parametric Mann-Kendall test
-      (pymannkendall.original_test, alpha=0.05) on the daily series ordered by
-      time; the rate is the Theil-Sen slope vs time. A well is classified only
-      when it has at least 10 daily points, or at least 4 daily points spanning
-      at least 2 years; otherwise 'not enough data'.
-      A significant increasing slope is 'increasing', a 
-      significant decreasing slope is 'decreasing', else 'stable'.
+      Chloride concentration trend per well. Observations are reduced to one point per
+      calendar month, keeping the monthly MEAN concentration. Monotonic trend is tested
+      with the non-parametric Mann-Kendall test (pymannkendall.original_test,
+      alpha=0.05) on the monthly series ordered by time; the rate is the Theil-Sen slope
+      vs time. A well is classified only when it has at least 10 monthly points, or at
+      least 4 monthly points spanning at least 2 years; otherwise 'not enough data'. A
+      significant increasing slope is 'increasing', a significant decreasing slope is
+      'decreasing', else 'stable'.
     keywords: ["chloride", "trend", "Mann-Kendall", "Theil-Sen"]
     schedule: "0 6 25 * *"
     spatial_filter:
