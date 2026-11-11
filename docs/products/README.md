@@ -46,19 +46,44 @@ abbreviation. This table mirrors `orchestration/config/sources.yaml`;
 
 ## ogc_waterlevel_trend
 
-**Products:** `nm_waterlevel_trends`
+**Products:** `nm_waterlevel_trends` (full record, the overall trend),
+`nm_waterlevel_trends_5yr`, `nm_waterlevel_trends_10yr`, `nm_waterlevel_trends_20yr`
 
 One point feature per well that has depth-to-water measurements, labeled with
 the direction and rate of change of its water level.
 
 ### Method
 
-> Depth-to-water trend per well. Observations are downsampled to one point per calendar day, keeping the daily MINIMUM depth-to-water (shallowest reading). Monotonic trend is tested with the non-parametric Mann-Kendall test (pymannkendall.original_test, alpha=0.05) on the daily series ordered by time; the rate is the Theil-Sen slope vs time. A well is classified only when it has at least 10 daily points, or at least 4 daily points spanning at least 2 years; otherwise 'not enough data'. A significant increasing slope is 'increasing' (water level getting DEEPER, i.e. a declining water table), a significant decreasing slope is 'decreasing' (water level getting SHALLOWER), else 'stable'.
+> Depth-to-water trend per well. Observations are reduced to one point per calendar month (UTC), keeping the monthly MEDIAN depth-to-water. Monotonic trend is tested with the non-parametric Mann-Kendall test (pymannkendall.original_test, alpha=0.05) on the monthly series ordered by time; the rate is the Theil-Sen slope vs time. A well is classified only when it has at least 10 monthly points, or at least 4 monthly points spanning at least 2 years; otherwise 'not enough data'. A significant increasing slope is 'increasing' (water level getting DEEPER, i.e. a declining water table), a significant decreasing slope is 'decreasing' (water level getting SHALLOWER), else 'stable'.
 
 In plain terms: the trend is in **depth to water**, so `increasing` means the
 water level is falling and `decreasing` means it is rising. A `stable` well has
 no statistically significant trend at the 95% level. That doesn't prove the
 level is flat, especially for short records.
+
+Reducing to monthly medians keeps dense logger data (many readings a day) from
+counting near-duplicate readings as independent evidence. It does **not**
+remove seasonal patterns: the test assumes there are none, so a strong seasonal
+swing can still affect the result, most of all in the 5-year layer (Helsel et
+al. 2020, §12.4).
+
+### Period
+
+`nm_waterlevel_trends` covers each well's **full record** (`trend_period` =
+`full record`); its `window_*` fields are empty.
+
+The `_5yr`, `_10yr` and `_20yr` layers cover a **fixed window** of whole
+calendar months before the month of the run, the same for every well. For
+example, a run in November 2026 gives the 5-year layer a window from 2021-11-01
+to 2026-10-31; the partial run month is left out. `window_start` and
+`window_end` give the exact dates, and the collection's `trend_method` states
+them too. Only measurements inside the window are used, and the minimum-data
+rule (at least 10 monthly values, or at least 4 spanning 2 or more years)
+applies to the monthly values inside the window. A short window can catch one
+side of a wet/dry cycle, so read the 5-year layer alongside the 10- and 20-year
+ones.
+
+Wells that fail the rule are `not enough data`; `insufficient_reason` says why.
 
 The Mann-Kendall test (Mann 1945; Kendall 1975) checks for a monotonic trend
 without assuming the data are normally distributed or the change is linear. The
@@ -75,14 +100,19 @@ pairs of points, so a few outliers don't skew it. See [References](#references).
 | `parameter_name` | Analyte name; always empty for water levels | | null |
 | `well_depth` | Total well depth, when the source reports it | ft | null if unknown |
 | `well_depth_units` | Units of `well_depth` | | `ft` |
-| `record_count` | Number of daily values used in the test | | ≥ 0 |
-| `observation_count` | Number of raw measurements before reducing to daily values | | ≥ 0 |
-| `first_observation_datetime` | Date of the first daily value (UTC, ISO 8601) | | |
-| `last_observation_datetime` | Date of the last daily value (UTC, ISO 8601) | | |
-| `span_years` | Time from first to last daily value | years | ≥ 0 |
+| `trend_period` | Period the trend covers | | `full record`, `5 years`, `10 years`, `20 years` |
+| `window_years` | Length of the fixed window | years | 5, 10, 20; null for the full record |
+| `window_start` | Start of the fixed window, the first of a month (UTC, ISO 8601) | | null for the full record |
+| `window_end` | End of the fixed window, the last second of the month before the run (UTC, ISO 8601) | | null for the full record |
+| `record_count` | Number of monthly values used in the test | | ≥ 0 |
+| `observation_count` | Number of raw measurements (in the window, for windowed layers) before reducing to monthly values | | ≥ 0 |
+| `first_observation_datetime` | Month of the first monthly value (UTC, ISO 8601, first of the month) | | |
+| `last_observation_datetime` | Month of the last monthly value (UTC, ISO 8601, first of the month) | | |
+| `span_years` | Time from first to last monthly value | years | ≥ 0 |
 | `slope_per_year` | Theil-Sen slope of depth to water vs time; positive = getting deeper | ft/year | null when `not enough data` |
 | `slope_units` | Units of `slope_per_year` | | `ft/year` |
 | `trend_category` | Mann-Kendall result | | `increasing`, `decreasing`, `stable`, `not enough data` |
+| `insufficient_reason` | Why the well is `not enough data` | | text; null when classified |
 | `mk_p_value` | Mann-Kendall p-value; significant when < 0.05 | | 0–1, null when `not enough data` |
 | `mk_tau` | Kendall's tau, the strength and sign of the trend | | −1 to 1, null when `not enough data` |
 | `source_datastream_link` | Link to the raw source datastream, when the source has one (SensorThings sources) | | URL; field absent otherwise |
