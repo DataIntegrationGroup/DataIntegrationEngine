@@ -1,6 +1,9 @@
 import json
 import os
 import tempfile
+from datetime import datetime, timezone
+
+import pytest
 
 from backend.persisters.ogc_features import (
     dump_summary_collection,
@@ -343,7 +346,6 @@ class TestWaterLevelTrendCollection:
             series,
             {"id": "nm_waterlevel_trends"},
             slope_units="ft/year",
-            reducer="min",
         )
 
         assert result["numberReturned"] == 4
@@ -368,7 +370,6 @@ class TestWaterLevelTrendCollection:
             series,
             {"id": "nm_waterlevel_trends"},
             slope_units="ft/year",
-            reducer="min",
         )
         assert result["type"] == "FeatureCollection"
         assert "timeStamp" in result
@@ -379,14 +380,15 @@ class TestWaterLevelTrendCollection:
         )  # single record
 
 
-class TestWaterLevelTrendDailyMin:
-    def test_downsamples_to_daily_min(self, tmp_path):
-        # Two readings on the same day -> keep the min (shallowest) DTW; one
-        # reading the next day. record_count counts days, observation_count raw.
+class TestWaterLevelTrendMonthlyMedian:
+    def test_reduces_to_monthly_median(self, tmp_path):
+        # Three readings in January -> one point (median 50); one in February.
+        # record_count counts months, observation_count raw readings.
         obs = [
-            _trend_obs("2020-01-01", 50.0),
-            _trend_obs("2020-01-01", 48.0),  # same day, lower -> kept
-            _trend_obs("2020-01-02", 52.0),
+            _trend_obs("2020-01-01", 40.0),
+            _trend_obs("2020-01-15", 50.0),
+            _trend_obs("2020-01-31", 90.0),
+            _trend_obs("2020-02-02", 52.0),
         ]
         out = tmp_path / "tr.geojson"
         result = dump_trend_collection(
@@ -395,12 +397,123 @@ class TestWaterLevelTrendDailyMin:
             [obs],
             {"id": "nm_waterlevel_trends"},
             slope_units="ft/year",
-            reducer="min",
         )
         props = result["features"][0]["properties"]
-        assert props["observation_count"] == 3
-        assert props["record_count"] == 2  # two distinct days
-        assert props["first_observation_datetime"].startswith("2020-01-01")
+        assert props["observation_count"] == 4
+        assert props["record_count"] == 2  # two distinct months
+        assert props["first_observation_datetime"] == "2020-01-01T00:00:00Z"
+        assert props["last_observation_datetime"] == "2020-02-01T00:00:00Z"
+
+
+class TestWaterLevelTrendWindows:
+    """Fixed-window layers (5/10/20 yr) and the full-record (overall) layer,
+    as built for production: monthly medians."""
+
+    NOW = datetime(2026, 11, 10, tzinfo=timezone.utc)
+
+    @pytest.fixture(autouse=True)
+    def _set_tmp(self, tmp_path):
+        self._tmp = tmp_path
+
+    def _dump(self, series, window_years=None):
+        return dump_trend_collection(
+            str(self._tmp / "tr.geojson"),
+            [_trend_site(rid=f"W{i}") for i in range(len(series))],
+            series,
+            {"id": "nm_waterlevel_trends"},
+            slope_units="ft/year",
+            window_years=window_years,
+            now=self.NOW,
+        )
+
+    def test_window_uses_only_readings_inside_window(self):
+        # Rising 2000-2014 (outside the 5-yr window), flat 2022-2026 (inside).
+        old = [_trend_obs(f"{2000 + i}-06-01", 50.0 + 5 * i) for i in range(15)]
+        recent = [_trend_obs(f"{2022 + i // 12}-{i % 12 + 1:02d}-15", 100.0) for i in range(48)]
+        series = [old + recent]
+
+        full = self._dump(series)["features"][0]["properties"]
+        win = self._dump(series, window_years=5)["features"][0]["properties"]
+
+        assert full["trend_period"] == "full record"
+        assert full["window_start"] is None and full["window_end"] is None
+        assert full["trend_category"] == "increasing"
+
+        assert win["trend_period"] == "5 years"
+        assert win["window_years"] == 5
+        assert win["window_start"] == "2021-11-01T00:00:00Z"
+        assert win["window_end"] == "2026-10-31T23:59:59Z"
+        assert win["observation_count"] == 48
+        assert win["record_count"] == 48
+        assert win["first_observation_datetime"] == "2022-01-01T00:00:00Z"
+        assert win["trend_category"] == "stable"
+
+    def test_window_is_whole_months_before_the_run_month(self):
+        # Run on 2026-11-10: 5-yr window is 2021-11-01 .. 2026-10-31. Readings
+        # before it and in the partial run month are left out.
+        obs = [
+            _trend_obs("2021-10-31", 1.0),  # day before the window
+            _trend_obs("2021-11-01", 2.0),  # first day of the window
+            _trend_obs("2026-10-31", 3.0),  # last day of the window
+            _trend_obs("2026-11-05", 4.0),  # partial run month
+        ]
+        props = self._dump([obs], window_years=5)["features"][0]["properties"]
+        assert props["observation_count"] == 2
+        assert props["first_observation_datetime"] == "2021-11-01T00:00:00Z"
+        assert props["last_observation_datetime"] == "2026-10-01T00:00:00Z"
+
+    def test_well_with_only_old_data_is_not_enough_data_with_reason(self):
+        old = [_trend_obs(f"{2000 + i}-06-01", 50.0 + i) for i in range(15)]
+        props = self._dump([old], window_years=10)["features"][0]["properties"]
+        assert props["trend_category"] == "not enough data"
+        assert props["insufficient_reason"] == "no measurements in the window"
+        assert props["slope_per_year"] is None
+
+    def test_minimum_data_rule_applies_inside_window(self):
+        # 4 monthly points spanning >= 2 yr inside the window -> classified.
+        ok = [_trend_obs(d, v) for d, v in [
+            ("2022-01-01", 50.0), ("2023-01-01", 51.0), ("2024-01-01", 52.0), ("2025-01-01", 53.0),
+        ]]
+        # 3 points in the window (plus older ones outside) -> not enough data.
+        thin = [_trend_obs(f"{2000 + i}-01-01", 40.0) for i in range(10)] + [
+            _trend_obs(d, 50.0) for d in ("2023-01-01", "2024-01-01", "2025-01-01")
+        ]
+        # 5 points inside the window but spanning < 2 yr -> not enough data.
+        short = [_trend_obs(f"2025-{m:02d}-01", 50.0 + m) for m in range(1, 6)]
+        by_id = {
+            f["id"]: f["properties"]
+            for f in self._dump([ok, thin, short], window_years=5)["features"]
+        }
+        assert by_id["NMBGMR:W0"]["trend_category"] != "not enough data"
+        assert by_id["NMBGMR:W0"]["insufficient_reason"] is None
+        assert by_id["NMBGMR:W1"]["trend_category"] == "not enough data"
+        assert by_id["NMBGMR:W1"]["insufficient_reason"].startswith(
+            "only 3 monthly values in the window;"
+        )
+        assert by_id["NMBGMR:W2"]["trend_category"] == "not enough data"
+        assert by_id["NMBGMR:W2"]["insufficient_reason"].startswith(
+            "5 monthly values in the window span only"
+        )
+
+    def test_dense_logger_is_tested_on_monthly_medians(self):
+        # Daily readings for 12 months: one value per month in the test.
+        obs = [
+            _trend_obs(f"2024-{m:02d}-{d:02d}", 50.0 + m + (0.5 if d % 2 else -0.5))
+            for m in range(1, 13)
+            for d in range(1, 29)
+        ]
+        props = self._dump([obs])["features"][0]["properties"]
+        assert props["observation_count"] == 12 * 28
+        assert props["record_count"] == 12
+
+    def test_collection_method_states_the_window(self):
+        series = [[_trend_obs("2025-01-01", 50.0)]]
+        windowed = self._dump(series, window_years=20)
+        full = self._dump(series)
+        assert "2006-11-01T00:00:00Z" in windowed["trend_method"]
+        assert "2026-10-31T23:59:59Z" in windowed["trend_method"]
+        assert "monthly MEDIAN" in windowed["trend_method"]
+        assert "full record" in full["trend_method"]
 
 
 class TestSourceDatastreamLink:
@@ -420,7 +533,6 @@ class TestSourceDatastreamLink:
             [obs],
             {"id": "nm_waterlevel_trends"},
             slope_units="ft/year",
-            reducer="min",
         )
         assert (
             result["features"][0]["properties"]["source_datastream_link"]
@@ -437,7 +549,6 @@ class TestSourceDatastreamLink:
             [obs],
             {"id": "nm_waterlevel_trends"},
             slope_units="ft/year",
-            reducer="min",
         )
         assert "source_datastream_link" not in result["features"][0]["properties"]
 
@@ -543,9 +654,9 @@ class TestMonitoringRecencyCollection:
 
 
 class TestAnalyteTrend:
-    def test_daily_mean_and_units(self, tmp_path):
+    def test_monthly_mean_and_units(self, tmp_path):
         site = _trend_site(source="WQP", rid="W1")
-        # two readings same day -> mean; rising over years -> increasing
+        # rising over years -> increasing
         obs = []
         for i in range(12):
             obs.append(_trend_obs(f"{2010 + i}-01-01", 0.005 + 0.001 * i))
@@ -556,13 +667,29 @@ class TestAnalyteTrend:
             [obs],
             {"id": "nm_arsenic_trend"},
             slope_units="mg/L/year",
-            reducer="mean",
+            analyte=True,
             parameter_name="arsenic",
         )
         props = result["features"][0]["properties"]
         assert props["parameter_name"] == "arsenic"
         assert props["slope_units"] == "mg/L/year"
         assert props["trend_category"] == "increasing"
+
+    def test_monthly_mean_and_method_text_match(self, tmp_path):
+        # Readings 1, 2, 9 in one month -> mean 4 (median would be 2).
+        obs = [_trend_obs(d, v) for d, v in [
+            ("2020-01-01", 1.0), ("2020-01-10", 2.0), ("2020-01-20", 9.0),
+        ]]
+        result = dump_trend_collection(
+            str(tmp_path / "at.geojson"),
+            [_trend_site(source="WQP", rid="W1")],
+            [obs],
+            {"id": "nm_arsenic_trend"},
+            slope_units="mg/L/year",
+            analyte=True,
+        )
+        assert result["features"][0]["properties"]["record_count"] == 1
+        assert "monthly MEAN concentration" in result["trend_method"]
 
 
 from backend.persisters.ogc_features import (
