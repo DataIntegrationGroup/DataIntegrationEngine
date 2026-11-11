@@ -16,17 +16,20 @@ from shapely.geometry import Point, mapping
 
 from backend.constants import TDS
 
-# Trend statistics live in backend/trend_stats.py (analysis, not serialization).
-# Re-exported here so existing importers (and dump_trend_collection's default
-# method arg) keep working.
+# Trend statistics live in backend/trend_stats.py (analysis, not
+# serialization); these are the helpers this module uses.
 from backend.trend_stats import (
     _SECONDS_PER_YEAR,
-    ANALYTE_TREND_METHOD_DESCRIPTION,
-    TREND_METHOD_DESCRIPTION,
+    FULL_RECORD_PERIOD,
     daily_series as _daily_series,
+    insufficient_reason as _insufficient_reason,
     mann_kendall_trend as _mann_kendall_trend,
     parse_epoch_seconds as _parse_epoch_seconds,
     qualifies_for_trend as _qualifies_for_trend,
+    trend_method_description as _trend_method_description,
+    trend_period_method as _trend_period_method,
+    trend_series as _trend_series,
+    trend_window as _trend_window,
 )
 
 
@@ -272,8 +275,9 @@ def dump_trend_collection(
     meta: dict,
     *,
     slope_units: str,
-    reducer: str = "min",
-    method: str = TREND_METHOD_DESCRIPTION,
+    window_years: Optional[float] = None,
+    now: Optional[datetime] = None,
+    analyte: bool = False,
     parameter_name: Optional[str] = None,
 ) -> dict:
     """
@@ -282,25 +286,46 @@ def dump_trend_collection(
 
     *site_records* and *timeseries_records* are index-aligned **payload dicts**
     (consumed as dicts, not rebuilt into record objects, to keep memory bounded).
-    Each well's observations are downsampled to one point per calendar day using
-    *reducer* ("min" for depth-to-water, "mean" for analytes), then tested with
-    Mann-Kendall + Theil-Sen.
+    Each well's observations are reduced to one value per calendar month (the
+    median depth-to-water, or the mean concentration when *analyte*), then
+    tested with Mann-Kendall + Theil-Sen. *analyte* picks both the aggregate
+    and the method text, so they always agree.
 
-    Each feature carries: parameter_name, record_count (daily points used),
-    observation_count (raw readings), first/last_observation_datetime,
+    *window_years* (optional) restricts every well to the same trailing window
+    of whole calendar months before the month of *now* (pass the run time so
+    every window layer from one run matches). Without it the trend covers each
+    well's full record (``trend_period`` = "full record").
+
+    Each feature carries: parameter_name, trend_period, window_years,
+    window_start/window_end, record_count (monthly points used),
+    observation_count (raw readings used), first/last_observation_datetime,
     span_years, slope_per_year (Theil-Sen) + slope_units, trend_category
-    (Mann-Kendall), mk_p_value, mk_tau, well_depth(+units), and
-    source_datastream_link when available. The collection carries
-    ``trend_method`` (*method*).
+    (Mann-Kendall), insufficient_reason, mk_p_value, mk_tau,
+    well_depth(+units), and source_datastream_link when available. The
+    collection carries ``trend_method`` (method + the period it covers).
 
     §V: MUST include top-level id, type, numberReturned, timeStamp.
     §V: Each Feature MUST have top-level id.
     """
     collection_id = meta.get("id", "collection")
+    in_window = window_years is not None
+
+    if in_window:
+        start_epoch, end_epoch = _trend_window(window_years, now)
+        trend_period = f"{window_years:g} years"
+        # The window is [start, end); report its last second so window_end is
+        # inside the window (e.g. 2026-10-31T23:59:59Z, not 2026-11-01).
+        window_start, window_end = _iso_utc(start_epoch), _iso_utc(end_epoch - 1)
+    else:
+        start_epoch = end_epoch = None
+        trend_period = FULL_RECORD_PERIOD
+        window_start = window_end = None
 
     features = []
     for site, obs_list in zip(site_records, timeseries_records):
-        observation_count, pairs = _daily_series(obs_list, reducer)
+        observation_count, pairs = _trend_series(
+            obs_list, analyte, start_epoch, end_epoch
+        )
         record_count = len(pairs)
         xs = [p[0] for p in pairs]
         ys = [p[1] for p in pairs]
@@ -309,7 +334,8 @@ def dump_trend_collection(
         slope_per_year = None
         p_value = None
         tau = None
-        if _qualifies_for_trend(record_count, span_years):
+        reason = _insufficient_reason(record_count, span_years, in_window)
+        if reason is None:
             years = [x / _SECONDS_PER_YEAR for x in xs]
             trend_category, slope_per_year, p_value, tau = _mann_kendall_trend(
                 years, ys
@@ -324,6 +350,10 @@ def dump_trend_collection(
             "parameter_name": parameter_name,
             "well_depth": site.get("well_depth"),
             "well_depth_units": site.get("well_depth_units"),
+            "trend_period": trend_period,
+            "window_years": window_years,
+            "window_start": window_start,
+            "window_end": window_end,
             "record_count": record_count,
             "observation_count": observation_count,
             "first_observation_datetime": _iso_utc(xs[0]) if record_count else None,
@@ -334,6 +364,7 @@ def dump_trend_collection(
             ),
             "slope_units": slope_units,
             "trend_category": trend_category,
+            "insufficient_reason": reason,
             "mk_p_value": None if p_value is None else round(p_value, 4),
             "mk_tau": None if tau is None else round(tau, 4),
         }
@@ -364,8 +395,11 @@ def dump_trend_collection(
             }
         )
 
+    method = _trend_method_description(analyte)
+    period = _trend_period_method(window_years, window_start, window_end)
+    trend_method = f"{method} {period}"
     return _dump_collection(
-        path, collection_id, features, meta, extra={"trend_method": method}
+        path, collection_id, features, meta, extra={"trend_method": trend_method}
     )
 
 
