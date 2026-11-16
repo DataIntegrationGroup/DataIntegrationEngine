@@ -78,7 +78,6 @@ from backend.bounding_polygons import (
 )
 from backend.config import PARAMETER_SOURCE_MAP, WATERLEVELS
 from backend.persisters.ogc_features import (
-    ANALYTE_TREND_METHOD_DESCRIPTION,
     dump_data_density_collection,
     dump_depletion_projection_collection,
     dump_hardness_collection,
@@ -137,6 +136,20 @@ _MAJOR_CHEMISTRY = [
 # product and a timeseries product over the same (parameter, scope, source)
 # share one asset and one fetch.
 SourceSpec = namedtuple("SourceSpec", "parameter scope source_key group")
+
+
+def run_time(context) -> datetime:
+    """One timestamp for the whole Dagster run, so every product built in the
+    run (e.g. the 5/10/20-year trend windows) uses the same run date. Uses the
+    schedule tick time when the run was scheduled, else the run's creation
+    time, else now."""
+    scheduled = context.run.tags.get("dagster/scheduled_execution_time")
+    if scheduled:
+        return datetime.fromisoformat(scheduled)
+    record = context.instance.get_run_record_by_id(context.run_id)
+    if record is not None and record.create_timestamp is not None:
+        return record.create_timestamp
+    return datetime.now(timezone.utc)
 
 
 def _schema_dict(record) -> dict:
@@ -462,13 +475,17 @@ def _build_combine_asset(
             elif output_type == "ogc_waterlevel_trend":
                 # all_sites/all_timeseries are index-aligned payload dicts (see
                 # source asset); consumed as dicts to keep memory bounded.
+                # window_years (optional) = fixed trailing window of whole
+                # months before the run month; absent = each well's full record.
+                window_years = product.get("window_years")
                 dump_trend_collection(
                     str(out),
                     all_sites,
                     all_timeseries,
                     meta,
                     slope_units="ft/year",
-                    reducer="min",
+                    window_years=None if window_years is None else float(window_years),
+                    now=run_time(context),
                 )
             elif output_type == "ogc_analyte_trend":
                 dump_trend_collection(
@@ -477,8 +494,7 @@ def _build_combine_asset(
                     all_timeseries,
                     meta,
                     slope_units="mg/L/year",
-                    reducer="mean",
-                    method=ANALYTE_TREND_METHOD_DESCRIPTION,
+                    analyte=True,
                     parameter_name=product.get("parameter"),
                 )
             elif output_type == "ogc_waterlevel_status":
