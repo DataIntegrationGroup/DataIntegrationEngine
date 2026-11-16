@@ -264,6 +264,11 @@ def mann_kendall_trend(years: list, values: list):
     # Time-aware Theil-Sen slope (per year) — robust and correct for the
     # irregular sampling typical of these records, unlike MK's index-based slope
     # which assumes unit spacing.
+    #
+    # Developer note: the slope is per year, not per month, because x is in
+    # decimal years (callers divide epoch seconds by _SECONDS_PER_YEAR; see
+    # dump_trend_collection in backend/persisters/ogc_features.py).
+    # Monthly aggregation changes the points, not the x unit.
     slope_per_year = float(theilslopes(values, years)[0])
 
     # mk trend is 'increasing' / 'decreasing' / 'no trend'.
