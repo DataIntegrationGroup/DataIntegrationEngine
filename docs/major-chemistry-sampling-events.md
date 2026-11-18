@@ -1,5 +1,5 @@
 ---
-generated-by: claude-opus-5-5
+generated-by: Claude Code
 generated-on: 2026-11-18
 prompted-by: Jake Ross (DIE-404)
 ---
