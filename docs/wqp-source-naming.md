@@ -56,10 +56,12 @@ Where a layer's `source` comes from depends on its writer in
 - Matches the registry tag and the abbreviation, so an exact `source=WQP` filter works
   in every layer.
 - Changes feature ids in the site-derived layers only (trend, recency, density,
-  water-level change/status, seasonal amplitude, depletion, correlation). The summary,
-  chemistry and timeseries layers, which have more WQP features, keep their ids.
-- Drops the provider name from `source`. Little is lost: the provider is either `NWIS`
-  or `STORET` (the EPA warehouse, not the reporting agency), and the
+  water-level change/status, seasonal amplitude, depletion, correlation: 17 layers in
+  `products.yaml`). The summary, chemistry and timeseries layers (35 layers) keep their
+  ids. No product excludes WQP, so every one of these layers can hold WQP wells.
+- Drops the provider name from `source`. Little is lost: for wells the provider is
+  normally `NWIS` or `STORET` (the EPA warehouse, not the reporting agency; WQP also has
+  smaller providers such as `STEWARDS` and `BIODATA`), and the
   `MonitoringLocationIdentifier` already used as `id` carries the reporting organization
   as its prefix (`USGS-...`, `21NMEX-...`, ...). That prefix is more informative than
   `STORET`.
@@ -68,10 +70,10 @@ Where a layer's `source` comes from depends on its writer in
 from `site_record.source`.
 
 - Keeps the provider.
-- Changes ids in the summary, chemistry and timeseries layers instead, which is the larger
-  set.
-- `source=WQP` still matches nothing; clients need a prefix match (`WQP/%`), which
-  pygeoapi's equality filters don't do.
+- Changes ids in the summary, chemistry and timeseries layers instead (35 layers, versus
+  17 under A).
+- `source=WQP` still matches nothing. The `?source=` query parameter is an exact match, so
+  clients would have to list every `WQP/<provider>` value.
 
 **C. `WQP` in `source`, provider in a new property** (e.g. `wqp_provider`).
 
