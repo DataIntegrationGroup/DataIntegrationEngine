@@ -34,9 +34,9 @@ therefore come from different sampling dates, and nothing checks or reports it.
 | `ogc_water_type` (Piper) | yes (all 8 ions) | **none** |
 | `ogc_sar` | yes (Na, Ca, Mg) | `sodium_date`, `calcium_date`, `magnesium_date` |
 | `ogc_ion_balance` | yes (all 8 ions) | **none** |
-| `ogc_wqi` | yes (score over the MCL set) | **none** |
+| `ogc_wqi` | yes (score over the MCL set) | `<analyte>_date` per analyte |
 
-Water type, ion balance and WQI give no dates at all, so a user cannot tell a
+Water type and ion balance give no dates at all, so a user cannot tell a
 mixed-date result from a real one.
 
 ### Reproduction
@@ -96,7 +96,9 @@ are already gone by then. The fix belongs one step earlier, building events from
    - If one analyte has more than one numeric reading on the same day, use
      their mean (same rule as the analyte trend product's monthly mean).
    - Values and units come from the timeseries records, which went through the
-     same transformer and unit conversion as the summary records.
+     same transformer and unit conversion as the summary records. One
+     difference: the timeseries keeps a non-numeric value it could not convert
+     (the summary skips it), so coerce with `_num` and drop `None`.
 2. **Event choice rule (proposed):** each product names a `required` analyte
    set. Pick the **most recent event that has every required analyte**. If no
    event has them all, pick the event with the most required analytes, newest
@@ -111,7 +113,7 @@ are already gone by then. The fix belongs one step earlier, building events from
    - WQI: at least one MCL analyte (see open decision 2)
 3. **Feature schema:** replace the per-analyte `<analyte>_date` properties
    with one `sample_date`, plus `n_analytes_in_event` and `event_complete`.
-   Add `sample_date` to water type, ion balance and WQI, which have no date
+   Add `sample_date` to water type and ion balance, which have no date
    today. A well whose events never share a date simply shows fewer analytes.
    It does not get values pulled from other dates.
 4. **MCL exceedance: keep the latest value per analyte** (open decision 1).
@@ -145,7 +147,7 @@ Suggested split into tickets, all in this repo:
    (arsenic, nitrate, fluoride, uranium, sulfate, chloride, TDS), which are
    often sampled on different dates?
 3. **Schema break:** removing `<analyte>_date` changes the published
-   properties of `nm_major_chemistry`, `nm_hardness` and `nm_sar`. Is that
+   properties of `nm_major_chemistry`, `nm_hardness`, `nm_sar` and `nm_wqi`. Is that
    acceptable for v1.1, or keep the per-analyte dates (all equal to
    `sample_date`) for one release?
 4. **Event key:** is calendar date good enough, or does any source (NMBGMR
