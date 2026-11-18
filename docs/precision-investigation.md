@@ -20,12 +20,14 @@ the Dagster output path rounds numeric values anymore.**
 1. **Binary floating-point noise.** Multiplying or averaging decimal values
    in `float` produces results that are not exactly representable, and
    Python's shortest `repr` then shows the error:
-   `176.12 * 0.4 = 70.44800000000001`, `(12.1 + 12.2 + 12.4) / 3 =
-   12.233333333333334`.
-2. **False precision from unit conversion.** Even when the product is exact,
-   a 5-6 significant-digit conversion factor applied to a 2-digit
-   measurement yields more digits than were measured:
-   `0.67 mg/L as N * 4.427 = 2.96609`, `1640.3 m * 3.28084 = 5381.561852`.
+   `176.12 * 0.4 = 70.44800000000001`.
+2. **False precision.** Even when the product is exact, a 5-6
+   significant-digit conversion factor applied to a 2-digit measurement
+   yields more digits than were measured (`0.67 mg/L as N * 4.427 =
+   2.96609`, `1640.3 m * 3.28084 = 5381.561852`). Means have the same
+   problem in a different form: `(12.1 + 12.2 + 12.4) / 3 =
+   12.233333333333334` is a repeating decimal cut off at float precision,
+   not a conversion artifact.
 
 ### Why it showed up with the CLI retirement
 
@@ -63,8 +65,10 @@ Only the fields in the table above regressed.
 
 ## Where the extra digits first appear
 
-Values parsed from source payloads are clean: `float("12.34")` round-trips
-exactly, and JSON numbers parse to the shortest representation. Digits are
+Values parsed from source payloads are clean as far as DIE is concerned:
+`float("12.34")` round-trips exactly, and JSON numbers parse to the shortest
+representation. (A provider could still send noisy numbers itself; that was
+not checked against live payloads.) Digits are
 added at three points:
 
 | Stage | Location | What happens |
@@ -72,7 +76,7 @@ added at three points:
 | Unit conversion (analytes, water levels) | `StandardUnitConverter.convert`, `backend/converter.py:125` | `input_value * conversion_factor`. Factor `1.0` is exact; every other factor introduces noise and/or false precision. |
 | Length conversion (elevation, well depth) | `transform_length_units`, `backend/transformer.py:107-110` | `* 0.3048` or `* 3.28084` when source units differ from the output units (ft). |
 | Source-specific arithmetic | `CABQSiteTransformer._transform_elevation`, `backend/connectors/st2/transformer.py:66` | stickup height converted ft to m, subtracted from elevation (m), then converted back to ft by the transformer. Two conversions plus a subtraction. |
-| Aggregation | `backend/source.py:134-136` | summary `mean = sum(values) / n`. Noise on most non-trivial means. |
+| Aggregation | `backend/source.py:134-136` | summary `mean = sum(values) / n`, an unbounded decimal for most inputs. `min`/`max` are computed from already-converted values (`source.py:105`), so they carry the conversion artifacts but add none. |
 
 Serialization (`_dump_collection`, `json.dump`) does not add digits; it just
 stops hiding them.
@@ -84,7 +88,8 @@ density already round explicitly in `ogc_features.py`.
 ### How often each conversion produces float noise
 
 Measured on 10,000 random 2-decimal source values (noise = `repr(x) !=
-repr(round(x, 10))`):
+repr(round(x, 10))`, which isolates binary noise from legitimately long
+decimals):
 
 | Conversion | Factor | Values with float noise |
 |---|---|---|
@@ -95,11 +100,10 @@ repr(round(x, 10))`):
 | mg/L as CaCO3 to mg/L (bicarbonate / calcium / carbonate) | 1.22 / 0.4 / 0.6 | 28% / 39% / 30% |
 | ton/ac-ft to mg/L | 735.47 | 24% |
 | pCi/L to mg/L (uranium) | 0.00149 | 25% |
-| mean of 3 one-decimal values | | 79% |
 | any value with factor 1.0 | 1.0 | 0% |
 
 Every non-identity conversion also produces false precision, whether or not it
-produces noise.
+produces noise, and most means have unbounded decimals.
 
 ## Affected sources and parameters
 
@@ -138,72 +142,89 @@ NMBGMR and ST2 sites.
 
 ## Recommended approaches
 
-### A. Restore a per-field rounding policy at the data level (recommended first step)
+Whatever the approach, round **when values are produced** (in the converter,
+the length transform and the summary aggregation), not as string formatting
+at serialization. That keeps GeoParquet, GeoJSON and pygeoapi consistent,
+keeps values numeric, and means derived products compute on the same values
+users see.
 
-Apply rounding when values are produced (after conversion in the transformer
-and after aggregation in `source.py`), not as string formatting at
-serialization. That keeps Parquet, GeoJSON and pygeoapi consistent and keeps
-values numeric. Start from the CLI's table, extend it to analyte
-`parameter_value` / `latest_value` / `earliest_value` and the geometry `z`,
-and keep it in one place (one mapping in `backend/constants.py` or
-`record.py`) so products and docs share it.
+### A. Significant figures from the raw source value (recommended)
 
-- Pros: small change, restores pre-retirement behavior, removes all float
-  noise, easy to test.
-- Cons: fixed decimals, not significant figures. A source that reports
-  `0.0032 mg/L` arsenic would be wrong at 2 decimals, so analytes need
-  per-parameter decimals (or a significant-figure rule) rather than one
-  number.
+`StandardUnitConverter.convert` and `transform_length_units` both receive the
+source value before DIE has done any arithmetic on it: the raw string for
+summary earliest/latest values (`transformer.py:512`), and
+`float(source_result)` for timeseries and summary min/max
+(`transformer.py:281`, `source.py:105`), whose shortest `repr` carries the
+same digits minus trailing zeros. So the fix can live in those two
+functions with no connector changes:
 
-### B. Source-precision-aware significant figures (fuller fix)
+1. Count significant figures of the input (`"0.67"` gives 2, `1640.3` gives 5,
+   `"12.30"` gives 4 when the string is available, 3 after `float()`).
+2. Treat conversion factors as exact and round the converted value to the
+   input's significant figures: `float(f"{v:.{n}g}")`. `1640.3 m` gives
+   `5381.6 ft`, `0.67 mg/L as N` gives `3.0 mg/L`, `0.5 ug/L` gives
+   `0.0005 mg/L`.
+3. Factor `1.0`: return the input unchanged (already clean).
+4. Mean: round to the decimal places of the most precise input (or that plus
+   one). `12.233333333333334` becomes `12.23`.
+5. CABQ stickup: subtract in feet after the elevation is in feet.
 
-Count the significant figures of the raw source value at ingest (from the
-string before `float()`), carry it on the record, and round the converted
-value to that many significant figures (`float(f"{v:.{n}g}")`). Means use
-the minimum precision of their inputs plus one digit, or a fixed policy.
+- Pros: one central change; output precision matches what the source
+  reported; handles low concentrations correctly (fixed decimals would turn
+  `0.0005 mg/L` into `0.0`); removes all binary noise as a side effect.
+- Cons: trailing zeros lost to `float()` or JSON numbers undercount precision
+  by one or more digits (`12.30` is treated as 3 sig figs); this rounds
+  slightly harder than the source intended, never softer. Treating factors
+  like 0.4 or 1.22 as exact is a policy choice that needs to be written down
+  (follow-up 2). Edge cases to cover in tests: scientific notation
+  (`"1.2E-3"`), integers with trailing zeros (`"1200"`), non-detects (`0.0`).
 
-- Pros: output matches what the source measured; handles mixed-precision
-  sources and tiny concentrations correctly.
-- Cons: touches every connector's value extraction; JSON sources that send
-  numbers (not strings) lose trailing zeros (`12.30` arrives as `12.3`), so
-  the counted precision is a lower bound; needs a documented policy for
-  conversion factors with fewer significant figures than the data (0.4, 0.6,
-  1.22).
+### B. Fixed per-field decimals (the CLI's old behavior)
+
+Reinstate the CLI's table (`elevation`/`well_depth`/`min`/`max`/`mean`/water
+level at 2 decimals) for the Dagster path.
+
+- Pros: smallest change; exactly restores pre-retirement output for the
+  fields the CLI covered.
+- Cons: wrong for analytes: decimals depend on the concentration scale, and
+  converting ug/L to mg/L moves the decimal point by 3. Would need a
+  per-parameter decimals table that still fails for wide-range analytes.
+  Acceptable for length fields in feet (ft to 0.01), where it agrees with A
+  for typical inputs.
 
 ### C. Noise-only cleanup (not recommended on its own)
 
 Round every converted value to ~10 significant figures. Removes
-`12.340000000000002` but leaves `5381.561852`. Useful only as a guard
-inside A or B.
+`70.44800000000001` but leaves `5381.561852` and `2.96609`.
 
 ### D. `Decimal` arithmetic in the converter (not recommended)
 
 Removes binary noise but not false precision, and is slower across millions
-of observations. A or B gives the same benefit with less churn.
+of observations.
 
-**Recommendation:** do A now with per-parameter decimals for analytes, then
-B where precision matters (analyte concentrations near MCLs), alongside a
-written sig-fig policy.
+**Recommendation:** approach A, with B's fixed 2 decimals kept as an optional
+cap for the length fields (elevation, well depth, depth to water in feet) if
+the team wants output that exactly matches the old CLI. Do not round
+latitude/longitude: DIE does no arithmetic on them, so they are already
+exactly what the source sent.
 
 ## Proposed follow-up tickets
 
-1. **Round Dagster-path outputs with a shared per-field precision policy.**
-   Apply after conversion/aggregation (approach A); cover elevation,
-   well_depth, geometry z, water-level values, summary min/max/mean,
-   analyte latest/earliest/parameter values. Remove or reuse the unused
-   `BaseRecord.to_row` / `to_dict` / `_get_sigfig_formatted_value`.
-   Regression tests on `dump_summary_collection` and
-   `dump_timeseries_collection` asserting no float noise for converted values.
+1. **Round converted and aggregated values to source significant figures.**
+   Approach A in `StandardUnitConverter.convert`, `transform_length_units`
+   and the summary mean; regression tests on `dump_summary_collection` and
+   `dump_timeseries_collection` asserting no float noise or false precision
+   for converted values. Remove the unused `BaseRecord.to_row` / `to_dict` /
+   `_get_sigfig_formatted_value` so there is one rounding path.
 2. **Data services unit conversion significant-figure doc.** Extend
-   `UNIT_CONVERSIONS.md` (or a sibling doc) with the precision policy per
-   unit and parameter, including how conversion-factor precision is handled.
-   (Split requested in the ticket comments.)
-3. **Capture source precision at ingest (approach B).** Keep the raw value
-   string or its significant-figure count on observation records; use it in
-   conversion rounding.
+   `UNIT_CONVERSIONS.md` (or a sibling doc) with the precision policy:
+   factors treated as exact, sig figs taken from the source, mean rule.
+   (Split requested in the ticket comments.) Should land before or with 1.
+3. **Keep raw source value strings where available** (WQP TSV, NMBGMR,
+   NMED) so trailing zeros survive to the converter. Optional refinement of
+   1; only worth it if under-counting precision turns out to matter.
 4. **CABQ stickup elevation double conversion.** Subtract the stickup in feet
-   after the elevation is in feet instead of converting ft to m and back.
-   Small, independent correctness cleanup.
+   after the elevation is in feet. Small, independent cleanup; can fold into 1.
 
 ## Open questions
 
@@ -211,5 +232,7 @@ written sig-fig policy.
   It was not in the ticket; the findings above are from code and a local
   reproduction. Adding the reported product/feature would confirm which row
   of the "affected" table the user hit.
-- What precision should analyte concentrations keep? This determines whether
-  ticket 1 alone is enough or ticket 3 is needed before the fix ships.
+- Does the team accept "conversion factors are exact, precision comes from
+  the source value" as the policy (follow-up 2)? Follow-up 1 depends on it.
+- Should output exactly match the old CLI for length fields (2 decimals), or
+  is source significant figures enough everywhere?
