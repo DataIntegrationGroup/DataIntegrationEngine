@@ -12,6 +12,28 @@ source reported (`5381.561852` ft for an elevation the source gave as
 come through clean, others don't. The reporter notes this started after the
 CLI was retired.
 
+**Where users saw it:** the attribute table of `nm_waterlevels_summary`, in
+the calculated `min`, `mean` and `max` fields (confirmed in PR review).
+
+### Why those three fields
+
+- `mean` is `sum(values) / n` (`backend/source.py:136`). It has float noise
+  or a cut-off repeating decimal for almost every well with more than one
+  distinct value, regardless of source.
+- `min` and `max` are picked from the converted values (`source.py:105`).
+  Water levels are output in ft, so they are clean for sources that report
+  ft (factor 1.0 returns the parsed value unchanged) and noisy for sources
+  that report m (factor 3.28084), for example `12.345 m` becomes
+  `40.501969800000005`.
+- The CLI hid all three: it rounded `min`/`mean`/`max` to 2 decimals.
+
+Which water-level sources report meters is decided by each provider's
+metadata (`DepthToWaterBGSUnits` for NMBGMR, `unit_of_measure` for USGS, the
+datastream `unitOfMeasurement` for the ST2 sources). The live payloads and the
+published product could not be reached from the environment used for this
+investigation, so the implementation ticket should confirm the list by
+checking the published `min`/`max` per source.
+
 ## Root cause
 
 There are two separate effects, and both come from the same gap: **nothing in
@@ -160,13 +182,16 @@ functions with no connector changes:
 
 1. Count significant figures of the input (`"0.67"` gives 2, `1640.3` gives 5,
    `"12.30"` gives 4 when the string is available, 3 after `float()`).
+   When counting from a float, drop the `.0` that `repr` adds to whole
+   numbers (`repr(37.0)` is `"37.0"` but the source sent `37`).
 2. Treat conversion factors as exact and round the converted value to the
    input's significant figures: `float(f"{v:.{n}g}")`. `1640.3 m` gives
    `5381.6 ft`, `0.67 mg/L as N` gives `3.0 mg/L`, `0.5 ug/L` gives
    `0.0005 mg/L`.
 3. Factor `1.0`: return the input unchanged (already clean).
-4. Mean: round to the decimal places of the most precise input (or that plus
-   one). `12.233333333333334` becomes `12.23`.
+4. Mean: round to the decimal places of the most precise input. Inputs
+   `12.1, 12.2, 12.4` give `12.233333333333334`, rounded to `12.2`. For the
+   usual 2-decimal water levels this gives the same 2 decimals the CLI did.
 5. CABQ stickup: subtract in feet after the elevation is in feet.
 
 - Pros: one central change; output precision matches what the source
@@ -177,7 +202,10 @@ functions with no connector changes:
   slightly harder than the source intended, never softer. Treating factors
   like 0.4 or 1.22 as exact is a policy choice that needs to be written down
   (follow-up 2). Edge cases to cover in tests: scientific notation
-  (`"1.2E-3"`), integers with trailing zeros (`"1200"`), non-detects (`0.0`).
+  (`"1.2E-3"`), integers with trailing zeros (`"1200"`), non-detects (`0.0`),
+  and short whole-number inputs (`37 m` is 2 sig figs, so `121.39108 ft`
+  rounds to `120.0`; the policy doc should say whether that is acceptable or
+  whether a minimum number of significant figures applies).
 
 ### B. Fixed per-field decimals (the CLI's old behavior)
 
@@ -202,11 +230,21 @@ Round every converted value to ~10 significant figures. Removes
 Removes binary noise but not false precision, and is slower across millions
 of observations.
 
-**Recommendation:** approach A, with B's fixed 2 decimals kept as an optional
-cap for the length fields (elevation, well depth, depth to water in feet) if
-the team wants output that exactly matches the old CLI. Do not round
+**Recommendation:** approach A everywhere, including length fields (agreed
+in PR review). Do not add the CLI's fixed 2 decimals as a cap. Do not round
 latitude/longitude: DIE does no arithmetic on them, so they are already
 exactly what the source sent.
+
+How A and the CLI's 2 decimals differ on length fields (computed with the
+current conversion code):
+
+| Source value | Raw DIE output today | CLI (2 decimals) | A (source sig figs) |
+|---|---|---|---|
+| `45.123 ft` (3-decimal transducer reading) | `45.123` | `45.12` (drops a measured digit) | `45.123` |
+| `12.345 m` | `40.501969800000005` | `40.5` | `40.502` |
+| `1640.3 m` elevation | `5381.561852` | `5381.56` | `5381.6` |
+| mean of `12.1, 12.2, 12.4 ft` | `12.233333333333334` | `12.23` | `12.2` |
+| `37 m` | `121.39108` | `121.39` | `120.0` (see edge cases above) |
 
 ## Proposed follow-up tickets
 
@@ -226,13 +264,17 @@ exactly what the source sent.
 4. **CABQ stickup elevation double conversion.** Subtract the stickup in feet
    after the elevation is in feet. Small, independent cleanup; can fold into 1.
 
+## Resolved in review
+
+- **Where users saw it:** the `nm_waterlevels_summary` attribute table,
+  `min`/`mean`/`max` (see Symptom).
+- **Policy:** conversion factors are treated as exact and precision comes
+  from the source value. Accepted for now, on the condition that it is
+  documented (follow-up 2).
+- **Length fields:** use source significant figures, not the CLI's fixed
+  2 decimals.
+
 ## Open questions
 
-- The ticket comments ask for the user feedback showing where this was seen.
-  It was not in the ticket; the findings above are from code and a local
-  reproduction. Adding the reported product/feature would confirm which row
-  of the "affected" table the user hit.
-- Does the team accept "conversion factors are exact, precision comes from
-  the source value" as the policy (follow-up 2)? Follow-up 1 depends on it.
-- Should output exactly match the old CLI for length fields (2 decimals), or
-  is source significant figures enough everywhere?
+- Minimum significant figures for short whole-number inputs (`37 m` to
+  `120.0 ft`): to be settled in the policy doc (follow-up 2).
