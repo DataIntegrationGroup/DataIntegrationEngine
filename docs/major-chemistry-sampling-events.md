@@ -7,7 +7,7 @@ prompted-by: Jake Ross (DIE-404)
 # Investigation: major-ion products mix sampling dates within a well (DIE-404)
 
 Status: investigation and recommendation only. No product code changed yet.
-Decisions needed before implementation are listed under "Open decisions".
+The open decisions were answered in review on 2026-11-19; see "Decisions".
 
 ## Finding
 
@@ -110,19 +110,22 @@ are already gone by then. The fix belongs one step earlier, building events from
      (K and CO3 used when present, not required)
    - hardness: Ca, Mg
    - SAR: Na, Ca, Mg
-   - WQI: at least one MCL analyte (see open decision 2)
-3. **Feature schema:** replace the per-analyte `<analyte>_date` properties
-   with one `sample_date`, plus `n_analytes_in_event` and `event_complete`.
-   Add `sample_date` to water type and ion balance, which have no date
-   today. A well whose events never share a date simply shows fewer analytes.
+   - WQI: undecided, so WQI stays on per-analyte latest values for now
+     (see Decisions)
+3. **Feature schema:** add one `sample_date`, plus `n_analytes_in_event` and
+   `event_complete`, to every event-based product. Keep the per-analyte
+   `<analyte>_date` properties for v1.1 (all equal to `sample_date`) so the
+   front end can move to `sample_date` first; a follow-up removes them.
+   Water type and ion balance get a date for the first time. A well whose events never share a date simply shows fewer analytes.
    It does not get values pulled from other dates.
-4. **MCL exceedance: keep the latest value per analyte** (open decision 1).
+4. **MCL exceedance: keep the latest value per analyte** (decided).
    Each comparison is independent, and the useful question for a drinking-water
    screen is "is the most recent arsenic reading above the MCL". Forcing a
    shared event would hide a recent arsenic exceedance whenever the newest full
    suite is older. Keep the per-analyte `<analyte>_date` there and say in the
    product abstract that analytes may come from different dates.
-5. **Wire it in the combine asset** for the six event-based output types: pass
+5. **Wire it in the combine asset** for the five event-based output types
+   (major chemistry, hardness, water type, SAR, ion balance): pass
    `all_sites` / `all_timeseries` to the dumpers instead of `SummaryRecord`s.
    Memory use stays the same because `all_timeseries` is already loaded there.
 6. **Tests** in `tests/test_persisters/test_ogc_features.py`: the reproduction
@@ -131,24 +134,39 @@ are already gone by then. The fix belongs one step earlier, building events from
    per-analyte latest values.
 7. **Docs and abstracts:** update the `products.yaml` abstracts ("latest value
    for each analyte" becomes "values from the most recent complete sampling
-   event"), and note in `CHANGELOG.md` that the property names changed.
+   event"), and note the new properties in `CHANGELOG.md`.
 
-Suggested split into tickets, all in this repo:
+## Decisions (review of PR #155, 2026-11-19)
 
-1. Event selection helper + major chemistry, with tests.
-2. Move hardness, water type, SAR, ion balance, WQI onto it.
-3. MCL wording/abstract only (if decision 1 holds).
+1. **MCL exceedance:** keep the latest value per analyte.
+2. **Required sets:** accepted as proposed above; adjust later with user
+   input. No WQI rule yet, so WQI is left out of the event change.
+3. **Schema:** keep `<analyte>_date` for v1.1 alongside the new `sample_date`.
+   Remove it in a follow-up, after the front end stops using it.
+4. **Event key:** calendar date is enough for now. Whether sources expose a
+   sample ID is a follow-up investigation across all sources.
 
-## Open decisions
+## Tickets to create
 
-1. **MCL exceedance:** keep per-analyte latest (recommended), or one event?
-2. **Partial events:** accept the required sets above? For WQI, which
-   analytes must be in the event, given that it scores against the MCL set
-   (arsenic, nitrate, fluoride, uranium, sulfate, chloride, TDS), which are
-   often sampled on different dates?
-3. **Schema break:** removing `<analyte>_date` changes the published
-   properties of `nm_major_chemistry`, `nm_hardness`, `nm_sar` and `nm_wqi`. Is that
-   acceptable for v1.1, or keep the per-analyte dates (all equal to
-   `sample_date`) for one release?
-4. **Event key:** is calendar date good enough, or does any source (NMBGMR
-   or Ocotillo) expose a sample ID we should prefer when it is present?
+DIE backlog (this repo):
+
+1. Add the event-selection step and move major chemistry onto it: add
+   `sample_date`, `n_analytes_in_event` and `event_complete`, keep
+   `<analyte>_date`, with tests.
+2. Move hardness, water type, SAR and ion balance onto the event-selection
+   step, with tests.
+3. MCL exceedance: update the abstract to say each analyte's value is its own
+   latest reading and may come from a different date. No logic change.
+4. Remove the per-analyte `<analyte>_date` properties from the event-based
+   products once the front end uses `sample_date` (blocked by 1, 2 and the
+   Weaver task below).
+5. Decide the WQI event rule (which analytes an event must have), then move
+   WQI onto the event-selection step or document why it stays per-analyte.
+6. Investigate whether each source (Ocotillo, NMBGMR, WQP, BOR and the
+   others) exposes a sample or event ID that should replace calendar date as
+   the event key.
+
+Front-end backlog (Weaver W10):
+
+7. Change the major chemistry detail panel to show the feature's single
+   `sample_date` instead of a date per analyte (blocked by 1).
