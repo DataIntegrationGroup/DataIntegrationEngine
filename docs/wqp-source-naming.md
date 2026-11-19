@@ -49,6 +49,33 @@ Where a layer's `source` comes from depends on its writer in
    schema `enum` for `source` lists the raw values, which is where DIE-317 made the split
    visible.
 
+## The id keeps the reporting agency
+
+`WQPSiteTransformer` uses WQP's `MonitoringLocationIdentifier` as `id`, unchanged, and
+`_feature_id` only puts `<source>:` in front of it. WQP builds that identifier from the
+reporting organization's code plus the organization's own site code, and WQP's station
+pages are filed under `/provider/<ProviderName>/<OrganizationIdentifier>/<id>`. New Mexico
+examples:
+
+| Provider | Organization | `MonitoringLocationIdentifier` | Feature id with `source = WQP` |
+|---|---|---|---|
+| NWIS | `USGS-NM` | [`USGS-323018103310702`](https://www.waterqualitydata.us/provider/NWIS/USGS-NM/USGS-323018103310702/) | `WQP:USGS-323018103310702` |
+| STORET | `21NMEX` | [`21NMEX-42RGRAND004.1`](https://www.waterqualitydata.us/provider/STORET/21NMEX/21NMEX-42RGRAND004.1) | `WQP:21NMEX-42RGRAND004.1` |
+| STORET | `21NMEX_WQX` | [`21NMEX_WQX-50SprValencRd`](https://www.waterqualitydata.us/provider/STORET/21NMEX_WQX/21NMEX_WQX-50SprValencRd/) | `WQP:21NMEX_WQX-50SprValencRd` |
+
+So the reporting agency stays readable in the feature id if `source` drops the provider
+(option A below). Two details:
+
+- USGS stations are prefixed `USGS-`, not with their organization code `USGS-NM`. The
+  prefix names the agency, not always the exact `OrganizationIdentifier`.
+- The provider (`NWIS`/`STORET`) isn't in the id. In these examples it follows from the
+  prefix (`USGS-` from NWIS, state and other agencies from STORET), but that is an
+  observation, not a WQP rule.
+
+The examples come from WQP's public station pages; the investigation couldn't query
+`waterqualitydata.us` directly. Checking the WQP rows DIE actually ingests is part of
+ticket 1 below.
+
 ## Options
 
 **A. `WQP` everywhere.** Change `WQPSiteTransformer` to write `WQP`.
@@ -61,10 +88,8 @@ Where a layer's `source` comes from depends on its writer in
   ids. No product excludes WQP, so every one of these layers can hold WQP wells.
 - Drops the provider name from `source`. Little is lost: for wells the provider is
   normally `NWIS` or `STORET` (the EPA warehouse, not the reporting agency; WQP also has
-  smaller providers such as `STEWARDS` and `BIODATA`), and the
-  `MonitoringLocationIdentifier` already used as `id` carries the reporting organization
-  as its prefix (`USGS-...`, `21NMEX-...`, ...). That prefix is more informative than
-  `STORET`.
+  smaller providers such as `STEWARDS` and `BIODATA`), and the id keeps the reporting
+  agency (see [The id keeps the reporting agency](#the-id-keeps-the-reporting-agency)).
 
 **B. `WQP/<provider>` everywhere.** Make the WQP parameter transformers take `source`
 from `site_record.source`.
@@ -84,35 +109,43 @@ from `site_record.source`.
 
 Use **A**: `source = "WQP"` in every layer.
 
-Implementation, as a follow-up ticket:
+## Proposed implementation tickets
 
-1. `WQPSiteTransformer`: write `"source": "WQP"`. Leave `ProviderName` out of the record.
-   Nothing reads it today.
-2. Add a connector-wide guard test: for each source in `SOURCE_DICT`, the site
-   transformer's `source` equals the parameter transformers' `source_tag`. This catches
-   the next connector that drifts, not just WQP. A stronger variant is to make
-   `ParameterTransformer` default to `site_record.source` and drop `source_tag`, but that
-   touches every connector and should be its own change.
-3. Update the WQP note under "Sources" in `docs/products/README.md` and the header
-   comment in `orchestration/config/sources.yaml`. The `<tag>/<anything>` prefix match in
-   `generate_config.source_abbreviation` is generic and can stay.
-4. Release note: feature ids for WQP wells in the site-derived layers change from
-   `WQP/<provider>:<id>` to `WQP:<id>`.
+General scope for the backlog; each needs refinement. Tickets 1 to 3 implement the
+recommendation and should ship in one release, so the id change happens once.
 
-Side effects to check when implementing:
-
-- **Well correlation.** Sites from the same agency are never linked spatially
-  (`backend/well_correlation.py`). Today `WQP/NWIS` and `WQP/STORET` count as different
-  agencies, so a NWIS-provided and a STORET-provided WQP well within 150 m can be linked.
-  Under A they're one agency and won't be. Since the two providers publish different
-  organizations' stations, the change is small. Compare correlation output before and
-  after.
-- **Point dedupe.** `_dedupe_well_points` keys on `(source, id)`. If the same
-  `MonitoringLocationIdentifier` ever came back from both providers, A would collapse it
-  to one point. That is the correct result.
-
-## Out of scope, noted for follow-up
-
-- WQP's NWIS-provided stations are USGS wells that the `USGS-NWIS` connector also
-  returns, with the same `USGS-<site_no>` id. They show up twice in combined layers under
-  two `source` values. Cross-source deduplication is a separate question from naming.
+1. **fix(wqp): write `source = "WQP"` for WQP sites.** `WQPSiteTransformer` writes
+   `"source": "WQP"` and drops `ProviderName`; nothing reads it. Add a test with a NWIS and a
+   STORET station. As part of this ticket, pull a sample of real WQP station rows and
+   confirm every `MonitoringLocationIdentifier` starts with an agency prefix as described
+   above.
+2. **test(connectors): site and observation `source` must match.** For each source in
+   `SOURCE_DICT`, assert the site transformer's `source` equals its parameter transformers'
+   `source_tag`. This catches the next connector that drifts, not just WQP. (A stronger
+   option, making `ParameterTransformer` take `source` from `site_record.source` and
+   dropping `source_tag`, touches every connector and can be a separate refactor.)
+3. **docs(products): update WQP source docs and release note.** Update the WQP note under
+   "Sources" in `docs/products/README.md` and the header comment in
+   `orchestration/config/sources.yaml`. The `<tag>/<anything>` prefix match in
+   `generate_config.source_abbreviation` is generic and can stay. Release note: feature
+   ids for WQP wells in the 17 site-derived layers change from `WQP/<provider>:<id>` to
+   `WQP:<id>`.
+4. **chore(correlation): compare well correlation before and after ticket 1.** Sites from
+   the same agency are never linked spatially (`backend/well_correlation.py`). Today
+   `WQP/NWIS` and `WQP/STORET` count as different agencies, so a NWIS-provided and a
+   STORET-provided WQP well within 150 m can be linked; after ticket 1 they can't. The two
+   providers publish different organizations' stations, so the change should be small.
+   Diff `nm_well_correlation` output to confirm. (`_dedupe_well_points`, which keys on
+   `(source, id)`, could also collapse a station returned by both providers; that is the
+   correct result.)
+5. **investigate: duplicate USGS wells from WQP and USGS-NWIS.** WQP's NWIS-provided
+   stations are USGS wells that the `USGS-NWIS` connector also returns, with the same
+   `USGS-<site_no>` id. They show up twice in combined layers under two `source` values.
+   Decide whether to drop NWIS-provided rows from the WQP connector, dedupe in the
+   combine step, or keep both and let well correlation link them.
+6. **investigate: WQP legacy endpoints and recent USGS data.** The WQP connector calls the
+   legacy `/data/Station/search` and `/data/Result/search` endpoints (WQX 2.2 profiles).
+   WQP notes that those profiles don't contain USGS data added after March 11, 2024; newer
+   USGS data is only in the WQX 3.0 profiles. Confirm whether this applies to DIE's
+   queries and, if it does, how it interacts with ticket 5 (the `USGS-NWIS` connector may
+   already cover the gap).
