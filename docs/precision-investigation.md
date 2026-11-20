@@ -164,103 +164,123 @@ NMBGMR and ST2 sites.
 
 ## Recommended approaches
 
-Whatever the approach, round **when values are produced** (in the converter,
-the length transform and the summary aggregation), not as string formatting
-at serialization. That keeps GeoParquet, GeoJSON and pygeoapi consistent,
-keeps values numeric, and means derived products compute on the same values
-users see.
+### A. Source decimal places, shifted by the conversion factor, rounded at output (recommended, agreed in review)
 
-### A. Significant figures from the raw source value (recommended)
+Three parts:
 
-`StandardUnitConverter.convert` and `transform_length_units` both receive the
-source value before DIE has done any arithmetic on it: the raw string for
-summary earliest/latest values (`transformer.py:512`), and
-`float(source_result)` for timeseries and summary min/max
-(`transformer.py:281`, `source.py:105`), whose shortest `repr` carries the
-same digits minus trailing zeros. So the fix can live in those two
-functions with no connector changes:
+**1. Count the source's decimal places at ingest.** `StandardUnitConverter.convert`
+and `transform_length_units` are the last places that see the source value
+before DIE does arithmetic on it. Count decimals there with
+`-Decimal(str(value)).as_tuple().exponent` (floored at 0), which handles
+`"12.30"` (2), `"1.2E-3"` (4) and `"1200"` (0). Two call sites call `float()`
+before the converter (`transformer.py:281`, `source.py:105`); pass the raw
+value through instead, since `convert` already coerces it. Where a source
+sends JSON numbers rather than strings, trailing zeros are already gone
+(`12.30` arrives as `12.3`), so the count can be one or more short. That
+rounds slightly harder than the source intended, never softer.
 
-1. Count significant figures of the input (`"0.67"` gives 2, `1640.3` gives 5,
-   `"12.30"` gives 4 when the string is available, 3 after `float()`).
-   When counting from a float, drop the `.0` that `repr` adds to whole
-   numbers (`repr(37.0)` is `"37.0"` but the source sent `37`).
-2. Treat conversion factors as exact and round the converted value to the
-   input's significant figures: `float(f"{v:.{n}g}")`. `1640.3 m` gives
-   `5381.6 ft`, `0.67 mg/L as N` gives `3.0 mg/L`, `0.5 ug/L` gives
-   `0.0005 mg/L`.
-3. Factor `1.0`: return the input unchanged (already clean).
-4. Mean: round to the decimal places of the most precise input. Inputs
-   `12.1, 12.2, 12.4` give `12.233333333333334`, rounded to `12.2`. For the
-   usual 2-decimal water levels this gives the same 2 decimals the CLI did.
-5. CABQ stickup: subtract in feet after the elevation is in feet.
+**2. Shift the decimal count by the conversion factor's order of magnitude.**
 
-- Pros: one central change; output precision matches what the source
-  reported; handles low concentrations correctly (fixed decimals would turn
-  `0.0005 mg/L` into `0.0`); removes all binary noise as a side effect.
-- Cons: trailing zeros lost to `float()` or JSON numbers undercount precision
-  by one or more digits (`12.30` is treated as 3 sig figs); this rounds
-  slightly harder than the source intended, never softer. Treating factors
-  like 0.4 or 1.22 as exact is a policy choice that needs to be written down
-  (follow-up 2). Edge cases to cover in tests: scientific notation
-  (`"1.2E-3"`), integers with trailing zeros (`"1200"`), non-detects (`0.0`),
-  and short whole-number inputs (`37 m` is 2 sig figs, so `121.39108 ft`
-  rounds to `120.0`; the policy doc should say whether that is acceptable or
-  whether a minimum number of significant figures applies).
+```
+decimals_out = max(0, decimals_in - floor(log10(factor)))
+```
 
-### B. Fixed per-field decimals (the CLI's old behavior)
+- Factor `1.0`: keeps the source's decimals (the value is unchanged anyway).
+- Factors between 1 and 10 (m to ft 3.28084, as N 4.427, as CaCO3 1.22):
+  keeps the source's decimals.
+- Factors below 1 add decimals (ft to m 0.3048 adds 1, ug/L to mg/L 0.001
+  adds 3), so small converted values are not rounded to zero.
+- Factors of 10 or more remove decimals (ton/ac-ft 735.47 removes 2).
+
+Plain decimal places without the shift fail on unit changes: `0.5 ug/L` is
+`0.0005 mg/L`, which rounds to `0.0` at 1 decimal. Significant figures drop
+a measured digit whenever the converted value crosses a power of ten
+(`9.87 m` gives `32.4 ft`) and turn short whole numbers coarse (`37 m` gives
+`120.0 ft`). The shifted rule avoids both.
+
+**3. Carry the decimal count on the record and round once at output.** Store
+it next to each value (for example `value_decimals`, `elevation_decimals`,
+`well_depth_decimals`) and apply it in one helper when features are built in
+`backend/persisters/ogc_features.py` (`_make_feature`,
+`dump_timeseries_collection`, `_pivot_by_well`, the site-dict features). That
+point sits before both the GeoJSON and GeoParquet writers. All arithmetic
+(conversion, `min`/`max`/`mean`, trends, medians) runs on unrounded values,
+so derived results are not computed from already-rounded inputs.
+
+- Each observation, and `earliest_value`/`latest_value`, rounds to its own
+  decimals.
+- `min`, `max` and `mean` round to the decimals of the most precise input
+  for that well. Inputs `12.1, 12.2, 12.4` give `12.233333333333334`,
+  rounded to `12.2`.
+- Derived products that already round their own computed fields (trends,
+  change, hardness, and so on) are unchanged.
+- Latitude/longitude are not rounded: DIE does no arithmetic on them, so they
+  are already exactly what the source sent.
+- CABQ stickup: subtract in feet after the elevation is in feet, so the
+  elevation goes through one conversion.
+
+Conversion factors are treated as exact. That is a policy choice, accepted in
+review on the condition that it is documented (follow-up 2).
+
+### B. Fixed per-field decimals (the CLI's old behavior, rejected)
 
 Reinstate the CLI's table (`elevation`/`well_depth`/`min`/`max`/`mean`/water
-level at 2 decimals) for the Dagster path.
+level at 2 decimals). Smallest change, but it drops measured digits
+(`45.123 ft` to `45.12`) and zeroes small converted analyte values
+(`0.5 ug/L` to `0.0 mg/L`).
 
-- Pros: smallest change; exactly restores pre-retirement output for the
-  fields the CLI covered.
-- Cons: wrong for analytes: decimals depend on the concentration scale, and
-  converting ug/L to mg/L moves the decimal point by 3. Would need a
-  per-parameter decimals table that still fails for wide-range analytes.
-  Acceptable for length fields in feet (ft to 0.01), where it agrees with A
-  for typical inputs.
+### C. Source significant figures (rejected in review)
 
-### C. Noise-only cleanup (not recommended on its own)
+Round each converted value to the source value's significant figures. Handles
+unit changes, but drops a measured digit when the converted value crosses a
+power of ten and coarsens short whole numbers (see the table below).
 
-Round every converted value to ~10 significant figures. Removes
-`70.44800000000001` but leaves `5381.561852` and `2.96609`.
+### D. Noise-only cleanup or `Decimal` arithmetic (not recommended)
 
-### D. `Decimal` arithmetic in the converter (not recommended)
+Rounding to ~10 significant figures, or computing in `Decimal`, removes
+`70.44800000000001` but leaves the false precision (`5381.561852`,
+`2.96609`).
 
-Removes binary noise but not false precision, and is slower across millions
-of observations.
+### Comparison
 
-**Recommendation:** approach A everywhere, including length fields (agreed
-in PR review). Do not add the CLI's fixed 2 decimals as a cap. Do not round
-latitude/longitude: DIE does no arithmetic on them, so they are already
-exactly what the source sent.
+Computed with the current conversion code:
 
-How A and the CLI's 2 decimals differ on length fields (computed with the
-current conversion code):
+| Source value | Raw DIE output today | CLI (2 decimals) | Source sig figs (C) | Shifted decimals (A) |
+|---|---|---|---|---|
+| `45.123 ft` (no conversion) | `45.123` | `45.12` | `45.123` | `45.123` |
+| `9.87 m` to ft | `32.3818908` | `32.38` | `32.4` | `32.38` |
+| `3.05 m` to ft | `10.006561999999999` | `10.01` | `10.0` | `10.01` |
+| `12.345 m` to ft | `40.501969800000005` | `40.5` | `40.502` | `40.502` |
+| `37 m` to ft | `121.39108` | `121.39` | `120.0` | `121.0` |
+| `1640.3 m` elevation to ft | `5381.561852` | `5381.56` | `5381.6` | `5381.6` |
+| `45.12 ft` to m | `13.752576` | `13.75` | `13.75` | `13.753` |
+| `0.5 ug/L` to mg/L | `0.0005` | `0.0` | `0.0005` | `0.0005` |
+| `1.5 pCi/L` uranium to mg/L | `0.002235` | `0.0` | `0.0022` | `0.0022` |
+| `0.67 mg/L as N` to mg/L | `2.96609` | `2.97` | `3.0` | `2.97` |
+| mean of `12.1, 12.2, 12.4 ft` | `12.233333333333334` | `12.23` | | `12.2` |
 
-| Source value | Raw DIE output today | CLI (2 decimals) | A (source sig figs) |
-|---|---|---|---|
-| `45.123 ft` (3-decimal transducer reading) | `45.123` | `45.12` (drops a measured digit) | `45.123` |
-| `12.345 m` | `40.501969800000005` | `40.5` | `40.502` |
-| `1640.3 m` elevation | `5381.561852` | `5381.56` | `5381.6` |
-| mean of `12.1, 12.2, 12.4 ft` | `12.233333333333334` | `12.23` | `12.2` |
-| `37 m` | `121.39108` | `121.39` | `120.0` (see edge cases above) |
+The one place A reports more digits than the source measured is a factor
+below 1: `45.12 ft` to `13.753 m` (0.001 m is finer than 0.01 ft). That was
+judged acceptable because the rule never hides a measured digit.
 
 ## Proposed follow-up tickets
 
-1. **Round converted and aggregated values to source significant figures.**
-   Approach A in `StandardUnitConverter.convert`, `transform_length_units`
-   and the summary mean; regression tests on `dump_summary_collection` and
-   `dump_timeseries_collection` asserting no float noise or false precision
-   for converted values. Remove the unused `BaseRecord.to_row` / `to_dict` /
+1. **Round outputs to shifted source decimal places.** Approach A: count
+   decimals in `StandardUnitConverter.convert` / `transform_length_units`,
+   carry them on records, round once in `ogc_features.py`. Regression tests on
+   `dump_summary_collection` and `dump_timeseries_collection` using the
+   comparison table above, plus scientific notation, `"1200"` and non-detects
+   (`0.0`). Remove the unused `BaseRecord.to_row` / `to_dict` /
    `_get_sigfig_formatted_value` so there is one rounding path.
-2. **Data services unit conversion significant-figure doc.** Extend
-   `UNIT_CONVERSIONS.md` (or a sibling doc) with the precision policy:
-   factors treated as exact, sig figs taken from the source, mean rule.
-   (Split requested in the ticket comments.) Should land before or with 1.
+2. **Data services unit conversion precision doc.** Extend
+   `UNIT_CONVERSIONS.md` (or a sibling doc) with the policy: conversion
+   factors treated as exact, decimals taken from the source and shifted by
+   the factor's order of magnitude, the `min`/`max`/`mean` rule, rounding
+   at output. (Split requested in the ticket comments; a review condition for
+   the policy.) Should land before or with 1.
 3. **Keep raw source value strings where available** (WQP TSV, NMBGMR,
    NMED) so trailing zeros survive to the converter. Optional refinement of
-   1; only worth it if under-counting precision turns out to matter.
+   1; only worth it if under-counting decimals turns out to matter.
 4. **CABQ stickup elevation double conversion.** Subtract the stickup in feet
    after the elevation is in feet. Small, independent cleanup; can fold into 1.
 
@@ -268,13 +288,11 @@ current conversion code):
 
 - **Where users saw it:** the `nm_waterlevels_summary` attribute table,
   `min`/`mean`/`max` (see Symptom).
-- **Policy:** conversion factors are treated as exact and precision comes
-  from the source value. Accepted for now, on the condition that it is
-  documented (follow-up 2).
-- **Length fields:** use source significant figures, not the CLI's fixed
-  2 decimals.
-
-## Open questions
-
-- Minimum significant figures for short whole-number inputs (`37 m` to
-  `120.0 ft`): to be settled in the policy doc (follow-up 2).
+- **Policy:** conversion factors are treated as exact. Accepted on the
+  condition that it is documented (follow-up 2).
+- **Rule:** source decimal places shifted by the conversion factor's order
+  of magnitude (approach A), replacing an earlier source-significant-figures
+  proposal and the CLI's fixed 2 decimals.
+- **Where to round:** once, when output features are built, after all
+  calculations.
+- **Short whole numbers** (`37 m`): resolved by the shifted rule (`121.0 ft`).
